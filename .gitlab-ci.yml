@@ -9,7 +9,7 @@ build_package:
     script:
         - echo 'CI BUILD'
         # install packages first
-        - npm run install
+        - npm install
         - bash ./scripts/build_rpm.sh
     tags:
         - cm-official-docker-executor
@@ -26,7 +26,7 @@ test_package:
         - apt-get update
         - apt-get install -y jq
         # install node modules
-        - npm run install
+        - npm install
         # npm audit - install includes audit, but perform specific check and fail if needed
         - audit_report=$(npm audit --json)
         - echo $audit_report
