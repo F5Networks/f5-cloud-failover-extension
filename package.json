@@ -9,7 +9,8 @@
     },
     "scripts": {
         "lint": "eslint src test scripts",
-        "test": "nyc --check-coverage --lines 90 --functions 90 --branches 90 mocha --recursive \"./test/*.js\""
+        "test": "nyc --check-coverage --lines 90 --functions 90 --branches 90 mocha --recursive \"./test/*.js\"",
+        "report": "nyc report --reporter=html"
     },
     "dependencies": {},
     "devDependencies": {
