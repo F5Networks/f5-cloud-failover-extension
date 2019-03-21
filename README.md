@@ -1,3 +1,3 @@
-# f5-failover
+# f5-cloud-failover
 
-F5 Failover Extension
+F5 Cloud Failover Extension

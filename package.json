@@ -1,0 +1,22 @@
+{
+    "name": "f5-cloud-failover",
+    "version": "0.9.0",
+    "author": "F5 Networks",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
+    },
+    "scripts": {
+        "lint": "eslint src test scripts",
+        "test": "nyc --check-coverage --lines 90 --functions 90 --branches 90 mocha --recursive \"./test/*.js\""
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "eslint": "^4.19.1",
+        "eslint-config-airbnb-base": "^13.1.0",
+        "eslint-plugin-import": "^2.14.0",
+        "mocha": "^6.0.2",
+        "nyc": "^13.3.0"
+    }
+}
