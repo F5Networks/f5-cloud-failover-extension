@@ -1,0 +1,30 @@
+{
+    "$id": "provider_schema.json",
+    "$async": true,
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Cloud failover provider schema",
+    "description": "",
+    "type": "object",
+    "allOf": [
+        {
+            "if": { "properties": { "class": { "const": "Provider" } } },
+            "then": {
+                "required": [
+                    "class"
+                ],
+                "properties": {
+                    "class": {
+                        "title": "Class",
+                        "description": "Cloud failover Provider class",
+                        "type": "string",
+                        "enum": [ "Provider" ]
+                    }
+                },
+                "additionalProperties": {
+                    "properties": {
+                }
+            },
+            "else": {}
+        }
+    ]
+}

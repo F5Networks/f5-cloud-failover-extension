@@ -13,7 +13,7 @@
         "report": "nyc report --reporter=html"
     },
     "dependencies": {
-        "ajv": "^6.5.4",
+        "ajv": "^6.10.0",
         "ajv-async": "^1.0.1",
         "commander": "^2.19.0",
         "request": "^2.83.0",
@@ -23,14 +23,14 @@
         "ms-rest-azure": "^2.6.0",
         "@google-cloud/compute": "^0.10.0",
         "@google-cloud/storage": "^1.7.0",
-        "ipaddr.js": "^1.7.0",
         "gtoken": "2.3.0"        
     },
     "devDependencies": {
-        "eslint": "^4.19.1",
+        "acorn": "^6.0.0",
+        "eslint": "^5.16.0",
         "eslint-config-airbnb-base": "^13.1.0",
-        "eslint-plugin-import": "^2.14.0",
-        "mocha": "^6.0.2",
+        "eslint-plugin-import": "^2.16.0",
+        "mocha": "^5.2.0",
         "nyc": "^13.3.0"
     }
 }

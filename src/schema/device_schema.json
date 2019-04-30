@@ -1,0 +1,30 @@
+{
+    "$id": "device_schema.json",
+    "$async": true,
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Cloud failover device schema",
+    "description": "",
+    "type": "object",
+    "allOf": [
+        {
+            "if": { "properties": { "class": { "const": "Device" } } },
+            "then": {
+                "required": [
+                    "class"
+                ],
+                "properties": {
+                    "class": {
+                        "title": "Class",
+                        "description": "Cloud failover Device class",
+                        "type": "string",
+                        "enum": [ "Provider" ]
+                    }
+                },
+                "additionalProperties": {
+                    "properties": {
+                }
+            },
+            "else": {}
+        }
+    ]
+}
