@@ -23,7 +23,7 @@
         "ms-rest-azure": "^2.6.0",
         "@google-cloud/compute": "^0.10.0",
         "@google-cloud/storage": "^1.7.0",
-        "gtoken": "2.3.0"        
+        "gtoken": "2.3.0"
     },
     "devDependencies": {
         "acorn": "^6.0.0",
@@ -31,6 +31,6 @@
         "eslint-config-airbnb-base": "^13.1.0",
         "eslint-plugin-import": "^2.16.0",
         "mocha": "^5.2.0",
-        "nyc": "^13.3.0"
+        "nyc": "^14.0.0"
     }
 }
