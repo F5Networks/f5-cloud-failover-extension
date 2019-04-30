@@ -12,7 +12,20 @@
         "test": "nyc --check-coverage --lines 90 --functions 90 --branches 90 mocha --recursive \"./test/*.js\"",
         "report": "nyc report --reporter=html"
     },
-    "dependencies": {},
+    "dependencies": {
+        "ajv": "^6.5.4",
+        "ajv-async": "^1.0.1",
+        "commander": "^2.19.0",
+        "request": "^2.83.0",
+        "aws-sdk": "^2.369.0",
+        "azure-arm-network": "5.1.0",
+        "azure-storage": "^2.8.1",
+        "ms-rest-azure": "^2.6.0",
+        "@google-cloud/compute": "^0.10.0",
+        "@google-cloud/storage": "^1.7.0",
+        "ipaddr.js": "^1.7.0",
+        "gtoken": "2.3.0"        
+    },
     "devDependencies": {
         "eslint": "^4.19.1",
         "eslint-config-airbnb-base": "^13.1.0",
