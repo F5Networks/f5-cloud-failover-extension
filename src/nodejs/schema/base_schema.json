@@ -194,7 +194,7 @@
             "title": "Class",
             "description": "Cloud failover top level class",
             "type": "string",
-            "enum": [ "Failover" ]
+            "enum": [ "Initialize" ]
        },
        "schemaVersion": {
             "title": "Schema version",
@@ -228,8 +228,7 @@
                 "title": "Class",
                 "type": "string",
                 "enum": [
-                    "Provider",
-                    "Device",
+                    "Failover",
                     "Controls",
                     "Shared"
                 ]
@@ -237,10 +236,7 @@
         },    
         "allOf": [
             {
-                "$ref": "provider_schema.json#"
-            },
-            {
-                "$ref": "device_schema.json#"
+                "$ref": "failover_schema.json#"
             },
             {
                 "$ref": "controls_schema.json#"
