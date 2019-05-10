@@ -12,8 +12,8 @@ const net = require('net');
 const fs = require('fs');
 const request = require('request');
 const Ajv = require('ajv');
-const SshClient = require('ssh2').Client; // eslint-disable-line import/no-extraneous-dependencies
-const icrdk = require('icrdk'); // eslint-disable-line import/no-extraneous-dependencies
+const SshClient = require('ssh2').Client; // eslint-disable-line import/no-unresolved
+const icrdk = require('icrdk'); // eslint-disable-line import/no-unresolved
 const constants = require('./constants.js');
 
 const DEFAULT_PORT = 443;

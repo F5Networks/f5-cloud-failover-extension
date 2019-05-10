@@ -1,2 +1,4 @@
 # mocha.opts
+  /test
+  /test/unittests
   --timeout 600000

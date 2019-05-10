@@ -8,8 +8,9 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "scripts": {
-        "lint": "eslint src test scripts",
-        "test": "nyc --check-coverage --lines 90 --functions 90 --branches 90 mocha --recursive \"./test/*.js\"",
+        "lint": "eslint src test",
+        "test-only": "mocha --recursive \"./test/unittests/*.js\" --opts ./test/unittests/.mocha.opts",
+        "test": "nyc npm run test-only",
         "report": "nyc report --reporter=html"
     },
     "dependencies": {
@@ -32,6 +33,7 @@
         "eslint-plugin-import": "^2.16.0",
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^5.2.0",
-        "nyc": "^14.0.0"
+        "nyc": "^14.0.0",
+        "ssh2": "^0.8.2"
     }
 }

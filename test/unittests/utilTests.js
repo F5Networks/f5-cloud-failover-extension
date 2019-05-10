@@ -14,7 +14,7 @@ describe('Util', () => {
     let util;
 
     before(() => {
-        util = require('../src/util.js');
+        util = require('../../src/nodejs/util.js');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
