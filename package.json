@@ -14,6 +14,7 @@
         "report": "nyc report --reporter=html"
     },
     "dependencies": {
+        "@f5devcentral/f5-cloud-libs": "beta",
         "ajv": "^6.10.0",
         "ajv-async": "^1.0.1",
         "commander": "^2.19.0",
