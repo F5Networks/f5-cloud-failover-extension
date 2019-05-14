@@ -23,6 +23,17 @@ build_package:
             - dist
         expire_in: 1 month
 
+test_node4:
+    image: node:4
+    stage: test
+    tags:
+        - docker-executor
+    script:
+        - npm install --global npm@5.10.0
+        - npm install mocha@5.2.0
+        - npm install
+        - npm run test
+
 test_package:
     stage: test
     script:
