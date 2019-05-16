@@ -26,8 +26,7 @@
                             "title": "Class",
                             "type": "string",
                             "enum": [
-                                "Constants",
-                                "Secret"
+                                "Constants"
                             ]
                         }
                     },    
@@ -35,11 +34,6 @@
                         {
                             "if": { "properties": { "class": { "const": "Constants" } } },
                             "then": { "$ref": "base_schema.json#/definitions/constants" },
-                            "else": {}
-                        },
-                        {
-                            "if": { "properties": { "class": { "const": "Secret" } } },
-                            "then": { "$ref": "base_schema.json#/definitions/secret" },
                             "else": {}
                         }
                     ]

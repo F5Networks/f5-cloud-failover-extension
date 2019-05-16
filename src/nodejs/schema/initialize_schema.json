@@ -1,0 +1,70 @@
+{
+    "$id": "initialize_schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Cloud Failover Initialization",
+    "description": "Top level schema for enabling cloud failover for BIG-IP",
+    "type": "object",
+    "allOf": [
+        {
+            "if": { "properties": { "class": { "const": "Initialize" } } },
+            "then": {
+                "required": ["class", "storage"],
+                "properties": {
+                    "class": {
+                        "description": "Indicates that this property contains failover initializaton configuration.",
+                        "type": "string",
+                        "const": "Initialize"
+                    },
+                    "subscription": {
+                        "description": "Cloud provider environment.",
+                        "type": "string",
+                        "pattern": "<regex to match GUID>"
+                    },
+                    "resourceGroup": {
+                        "description": "Azure resource group name.",
+                        "type": "string",
+                        "pattern": "<regex to match text>"
+                    },
+                    "location": {
+                        "description": "Deployment location.",
+                        "type": "string",
+                        "enum": ["westus", "us-east-1", "oregon"]
+                    },
+                    "storageAccount": {
+                        "description": "Storage account identifier.",
+                        "type": "string",
+                        "pattern": "<regex to match all storage account name formats>"
+                    },
+                    "storageAccountTagKey": {
+                        "description": "Storage account tag key.",
+                        "type": "string",
+                        "pattern": "<regex to match text>"
+                    },
+                    "storageAccountTagValue": {
+                        "description": "Storage account tag value.",
+                        "type": "string",
+                        "pattern": "<regex to match text>"
+                    },
+                    "uniqueLabel": {
+                        "description": "Unique label for identifying Azure NIC resources.",
+                        "type": "string",
+                        "pattern": "<regex to match text>"
+                    },
+                    "managedRoutes": {
+                        "description": "Routes this deployment will manage.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "<regex to match CIDR>"
+                        }
+                    },
+                    "identity": {
+                        "description": "Identity for getting provider authenication tokens.",
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    ]
+}
