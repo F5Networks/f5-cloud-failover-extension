@@ -16,8 +16,10 @@
 
 'use strict';
 
+/* eslint-disable prefer-rest-params */
+
 const path = require('path');
-const MASK_REGEX = require('./sharedConstants').MASK_REGEX;
+const MASK_REGEX = require('constants').MASK_REGEX;
 
 let f5Logger;
 try {

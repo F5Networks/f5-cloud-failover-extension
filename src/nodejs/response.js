@@ -16,6 +16,8 @@
 
 'use strict';
 
+/* eslint-disable arrow-body-style */
+
 /**
  * Format a response to rest request
  *

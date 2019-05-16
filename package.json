@@ -25,7 +25,8 @@
         "ms-rest-azure": "^2.6.0",
         "@google-cloud/compute": "^0.10.0",
         "@google-cloud/storage": "^1.7.0",
-        "gtoken": "2.3.0"
+        "gtoken": "2.3.0",
+        "uuid": "^3.3.2"
     },
     "devDependencies": {
         "acorn": "^6.0.0",
