@@ -8,61 +8,107 @@
         {
             "if": { "properties": { "class": { "const": "Initialize" } } },
             "then": {
-                "required": ["class", "storage"],
+                "required": ["class", "environment", "storageAccountName"],
                 "properties": {
                     "class": {
                         "description": "Indicates that this property contains failover initializaton configuration.",
                         "type": "string",
                         "const": "Initialize"
                     },
-                    "subscription": {
+                    "environment": {
                         "description": "Cloud provider environment.",
                         "type": "string",
-                        "pattern": "<regex to match GUID>"
+                        "enum": ["gce", "aws", "azure"]
                     },
-                    "resourceGroup": {
-                        "description": "Azure resource group name.",
-                        "type": "string",
-                        "pattern": "<regex to match text>"
+                    "useMetadata": {
+                        "description": "Option to override gathering info from provider metadata",
+                        "type": "boolean",
+                        "default": true
                     },
-                    "location": {
-                        "description": "Deployment location.",
-                        "type": "string",
-                        "enum": ["westus", "us-east-1", "oregon"]
-                    },
-                    "storageAccount": {
-                        "description": "Storage account identifier.",
-                        "type": "string",
-                        "pattern": "<regex to match all storage account name formats>"
-                    },
-                    "storageAccountTagKey": {
-                        "description": "Storage account tag key.",
-                        "type": "string",
-                        "pattern": "<regex to match text>"
-                    },
-                    "storageAccountTagValue": {
-                        "description": "Storage account tag value.",
-                        "type": "string",
-                        "pattern": "<regex to match text>"
-                    },
-                    "uniqueLabel": {
-                        "description": "Unique label for identifying Azure NIC resources.",
-                        "type": "string",
-                        "pattern": "<regex to match text>"
-                    },
-                    "managedRoutes": {
-                        "description": "Routes this deployment will manage.",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "pattern": "<regex to match CIDR>"
+                    "oneOf": {
+                        "storageAccountName": {
+                            "description": "Storage account name.",
+                            "type": "string"
+                        },
+                        "storageTags": {
+                            "description": "Unique tag(s) for identifying network interfaces or elastic IPs to be managed.",
+                            "type": "array",
+                            "items": [
+                                {
+                                    "title": "key",
+                                    "type": "string"
+                                },
+                                {
+                                    "title": "value",
+                                    "type": "string"
+                                }
+                            ]
                         }
                     },
-                    "identity": {
-                        "description": "Identity for getting provider authenication tokens.",
-                        "type": "string"
+                    "anyOf": {
+                        "managedRoutes": {
+                            "description": "Route(s) this deployment will manage.",
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
+                            }
+                        },
+                        "addressTags": {
+                            "description": "Unique tag(s) for identifying network interfaces or elastic IPs to be managed.",
+                            "type": "array",
+                            "items": [
+                                {
+                                    "title": "key",
+                                    "type": "string"
+                                },
+                                {
+                                    "title": "value",
+                                    "type": "string"
+                                }
+                            ]
+                        }     
                     }
                 },
+                "oneOf": [
+                    {
+                        "if": { "properties": { "environment": { "const": "azure" } } },
+                        "then": {
+                            "required": ["userIdentity"],
+                            "userIdentity": {
+                                "description": "Name of the managed user identity for getting Azure authenication tokens.",
+                                "type": "string"
+                            },
+                            "if": { "properties": { "useMetadata": { "const": false } } },
+                            "then": {
+                                "required": ["subscription", "resourceGroupName", "location"],
+                                    "subscription": {
+                                        "description": "Azure subscription ID.",
+                                        "type": "string"
+                                    },
+                                    "resourceGroupName": {
+                                        "description": "Azure resource group name.",
+                                        "type": "string"
+                                    },
+                                    "location": {
+                                        "description": "Azure deployment location.",
+                                        "type": "string",
+                                        "enum": ["eastasia","southeastasia","centralus","eastus","eastus2","westus","northcentralus","southcentralus","northeurope","westeurope","japanwest","japaneast","brazilsouth","australiaeast","australiasoutheast","southindia","centralindia","westindia","canadacentral","canadaeast","uksouth","ukwest","westcentralus","westus2","koreacentral","koreasouth","francecentral","francesouth","australiacentral","australiacentral2","southafricanorth","southafricawest","usdodcentral","usdodeast","usgovarizona","usgoviowa","usgovtexas","usgovvirginia","ussecwest","usseceast"]
+                                    }
+                            }
+                        }
+                    },
+                    {
+                        "if": { "properties": { "environment": { "const": "aws" } } },
+                        "then": {}
+                    },
+                    {
+                        "if": { "properties": { "environment": { "const": "gce" } } },
+                        "then": {
+                            "then": {}
+                        }
+                    }
+                ],
                 "additionalProperties": false
             }
         }

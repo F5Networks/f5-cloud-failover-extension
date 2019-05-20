@@ -4,7 +4,7 @@
     "title": "Cloud Failover",
     "description": "Top level schema for enabling cloud failover for BIG-IP",
     "type": "object",
-    "required": ["schemaVersion", "class", "environment"],
+    "required": ["schemaVersion", "class"],
     "propertyNames": {
         "oneOf": [
             { "pattern": "^[A-Za-z][0-9A-Za-z_]{0,47}$" },
@@ -30,12 +30,7 @@
             "title": "Schema",
             "description": "URL of schema against which to validate. Used by validation in your local environment only (via Visual Studio Code, for example)",
             "type": "string"
-       },
-       "environment": {
-            "description": "Cloud provider environment.",
-            "type": "string",
-            "enum": ["google", "aws", "azure"]
-    }
+       }
     },
     "additionalProperties": {
         "$comment": "AJV does not resolve defaults inside oneOf/anyOf, so instead use allOf.  Any schema refs should also use allOf with an if/then/else on class",

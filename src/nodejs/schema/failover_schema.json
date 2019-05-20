@@ -8,7 +8,7 @@
         {
             "if": { "properties": { "class": { "const": "Failover" } } },
             "then": {
-                "required": ["class", "environment"],
+                "required": ["class"],
                 "properties": {
                     "class": {
                         "description": "Indicates that this property contains failover trigger configuration.",
