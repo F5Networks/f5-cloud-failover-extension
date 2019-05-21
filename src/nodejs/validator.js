@@ -21,8 +21,6 @@ const Ajv = require('ajv');
 const baseSchema = require('./schema/base_schema.json');
 const initializeSchema = require('./schema/initialize_schema.json');
 const failoverSchema = require('./schema/failover_schema.json');
-const controlsSchema = require('./schema/controls_schema.json');
-const sharedSchema = require('./schema/shared_schema.json');
 
 class Validator {
     constructor() {
@@ -38,9 +36,7 @@ class Validator {
         this.validator = ajv
             .addSchema(baseSchema)
             .addSchema(initializeSchema)
-            .addSchema(failoverSchema)
-            .addSchema(controlsSchema)
-            .compile(sharedSchema);
+            .compile(failoverSchema);
     }
 
     validate(data) {

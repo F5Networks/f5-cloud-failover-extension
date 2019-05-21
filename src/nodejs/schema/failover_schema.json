@@ -2,7 +2,7 @@
     "$id": "failover_schema.json",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Cloud Failover",
-    "description": "Top level schema for triggering cloud failover for BIG-IP",
+    "description": "Schema for triggering cloud failover for BIG-IP",
     "type": "object",
     "allOf": [
         {
@@ -11,9 +11,10 @@
                 "required": ["class"],
                 "properties": {
                     "class": {
+                        "title": "Class",
                         "description": "Indicates that this property contains failover trigger configuration.",
                         "type": "string",
-                        "const": "Failover"
+                        "enum": [ "Failover" ]
                     }
                 },
                 "additionalProperties": false
