@@ -15,17 +15,18 @@
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "beta",
+        "@google-cloud/compute": "^0.10.0",
+        "@google-cloud/storage": "^1.7.0",
         "ajv": "^6.10.0",
         "ajv-async": "^1.0.1",
-        "commander": "^2.19.0",
-        "request": "^2.83.0",
+        "ajv-cli": "^3.0.0",
         "aws-sdk": "^2.369.0",
         "azure-arm-network": "5.1.0",
         "azure-storage": "^2.8.1",
-        "ms-rest-azure": "^2.6.0",
-        "@google-cloud/compute": "^0.10.0",
-        "@google-cloud/storage": "^1.7.0",
+        "commander": "^2.19.0",
         "gtoken": "2.3.0",
+        "ms-rest-azure": "^2.6.0",
+        "request": "^2.83.0",
         "uuid": "^3.3.2"
     },
     "devDependencies": {

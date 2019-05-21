@@ -4,38 +4,53 @@
     "title": "Cloud Failover",
     "description": "Top level schema for enabling cloud failover for BIG-IP",
     "type": "object",
-    "required": ["schemaVersion", "class", "environment"],
-    "propertyNames": {
-        "oneOf": [
-            { "pattern": "^[A-Za-z][0-9A-Za-z_]{0,47}$" },
-            { "const": "$schema" }
-        ]
+    "required": ["class"],
+    "definitions": {
+        "environment": {
+            "title": "Environment",
+            "description": "Cloud provider environment.",
+            "type": "string",
+            "enum": ["gce", "aws", "azure"]
+        },
+        "storageResource": {
+            "title": "Storage resource name",
+            "description": "The name of the provider resource (Azure storage account, S3 bucket) to use for config and state storage.",
+            "type": "string"
+        },
+        "storageTags": {
+            "title": "Storage tags",
+            "description": "Unique tag(s) for identifying network interfaces or elastic IPs to be managed.",
+            "type": "array",
+            "items": [
+                {
+                    "key": {"type":"string"}
+                },
+                {
+                    "value": {"type":"string"}
+                }
+            ]
+        }
     },
     "properties": {
        "class": {
             "title": "Class",
             "description": "Cloud failover top level class",
             "type": "string",
-            "enum": [ "CloudFailover" ]
+            "enum": ["CloudFailover"]
        },
        "schemaVersion": {
             "title": "Schema version",
             "description": "Version of ADC Declaration schema this declaration uses",
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
-            "enum": [ "0.9.0" ],
+            "enum": ["0.9.0"],
             "default": "0.9.0"
        },
        "$schema": {
             "title": "Schema",
             "description": "URL of schema against which to validate. Used by validation in your local environment only (via Visual Studio Code, for example)",
             "type": "string"
-       },
-       "environment": {
-            "description": "Cloud provider environment.",
-            "type": "string",
-            "enum": ["google", "aws", "azure"]
-    }
+       }
     },
     "additionalProperties": {
         "$comment": "AJV does not resolve defaults inside oneOf/anyOf, so instead use allOf.  Any schema refs should also use allOf with an if/then/else on class",
@@ -45,9 +60,7 @@
                 "type": "string",
                 "enum": [
                     "Initialize",
-                    "Failover",
-                    "Controls",
-                    "Shared"
+                    "Failover"
                 ]
             }
         },    
@@ -57,12 +70,6 @@
             },
             {
                 "$ref": "failover_schema.json#"
-            },
-            {
-                "$ref": "controls_schema.json#"
-            },
-            {
-                "$ref": "shared_schema.json#"
             }
         ]
     }
