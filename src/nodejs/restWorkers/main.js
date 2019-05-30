@@ -16,6 +16,10 @@
 'use strict';
 
 const util = require('../util.js');
+const Logger = require('../logger.js');
+const Validator = require('../validator.js');
+
+const logger = new Logger(module);
 
 /**
  * @class Worker
@@ -50,7 +54,15 @@ function Worker() {
  */
 // eslint-disable-next-line no-unused-vars
 Worker.prototype.onStart = function (success, error) {
-    success();
+    try {
+        this.validator = new Validator();
+        logger.info('Created cloud failover worker');
+        success();
+    } catch (err) {
+        const message = `Error creating cloud failover worker: ${err}`;
+        logger.severe(message);
+        error(message);
+    }
 };
 
 /**
