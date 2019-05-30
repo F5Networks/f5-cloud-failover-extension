@@ -26,7 +26,7 @@ class Validator {
     constructor() {
         const ajv = new Ajv(
             {
-                allErrors: false,
+                allErrors: true,
                 useDefaults: true,
                 coerceTypes: true,
                 extendRefs: 'fail'
@@ -34,9 +34,9 @@ class Validator {
         );
 
         this.validator = ajv
-            .addSchema(baseSchema)
             .addSchema(initializeSchema)
-            .compile(failoverSchema);
+            .addSchema(failoverSchema)
+            .compile(baseSchema);
     }
 
     validate(data) {

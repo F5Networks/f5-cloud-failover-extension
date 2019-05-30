@@ -37,6 +37,7 @@ module.exports = {
     FAILOVER_CLASS_NAME: 'Failover',
     INITIALIZE_CLASS_NAME: 'Initialize',
     LOCAL_HOST: 'localhost',
+    MASK_REGEX: new RegExp('pass(word|phrase)', 'i'),
     PATHS: {
         tgactive: '/config/failover/tgactive',
         tgrefresh: '/config/failover/tgrefresh'
