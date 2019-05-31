@@ -78,6 +78,11 @@ describe('logger', () => {
         assert.notStrictEqual(loggedMessages.info[0].indexOf('part 1 part 2 part 3'), -1);
     });
 
+    it('should set the message if not JSON object', () => {
+        logger.info('some string');
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('some string'), -1);
+    });
+
     it('should mask passwords', () => {
         const myPassword = 'foofoo';
         logger.info({ password: myPassword });
