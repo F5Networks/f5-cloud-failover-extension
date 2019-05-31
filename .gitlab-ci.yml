@@ -72,7 +72,7 @@ pages:
         # place index.html in public dir
         - cp docs/index.html ${PUBLIC_DIR}/index.html
         #### place code coverage docs under: /coverage-docs ####
-        - COVERAGE_DOCS=${PUBLIC_DIR}/coverage-docs
+        - COVERAGE_DOCS=${PUBLIC_DIR}/coverage
         - mkdir -p ${COVERAGE_DOCS}
         - cp -R coverage/* ${COVERAGE_DOCS}
     tags:
