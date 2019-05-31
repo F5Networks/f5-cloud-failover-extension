@@ -11,7 +11,14 @@
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/*.js\" --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
+        "check": "nyc check-coverage",
         "report": "nyc report --reporter=html"
+    },
+    "nyc": {
+        "branches": 50,
+        "lines": 50,
+        "functions": 50,
+        "statements": 50
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "beta",

@@ -16,6 +16,8 @@ lint:
 	npm run lint
 coverage: 
 	unit_test
+	echo "Checking code coverage"
+	npm run check
 	echo "Generating code coverage documentation"
 	npm run report
 code_docs:

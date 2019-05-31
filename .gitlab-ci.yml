@@ -52,7 +52,7 @@ test_package:
         # linter
         - npm run lint
         # unit tests
-        - npm run test && npm run report
+        - npm run test && npm run check && npm run report
     tags:
         - cm-official-docker-executor
     artifacts:
