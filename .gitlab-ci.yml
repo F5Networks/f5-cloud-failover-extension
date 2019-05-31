@@ -3,7 +3,6 @@ image: node:8
 stages:
     - build
     - test
-    - docs
     - publish
 
 build_package:
@@ -64,7 +63,6 @@ test_package:
 # publish docs to internal pages: - this job MUST be named 'pages'
 pages:
     stage: publish
-    image: ${CONTAINTHEDOCS_IMAGE}
     environment:
         name: staging
         url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}   
