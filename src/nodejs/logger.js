@@ -19,7 +19,7 @@
 /* eslint-disable prefer-rest-params */
 
 const path = require('path');
-const MASK_REGEX = require('constants').MASK_REGEX;
+const MASK_REGEX = require('./constants.js').MASK_REGEX;
 
 let f5Logger;
 try {
@@ -37,7 +37,7 @@ try {
  */
 class Logger {
     constructor(module) {
-        this.tag = 'f5-declarative-onboarding';
+        this.tag = 'f5-cloud-failover';
         this.filename = path.basename(module.filename);
 
         // If we weren't able to get the f5-logger, create a mock (so our unit tests run)

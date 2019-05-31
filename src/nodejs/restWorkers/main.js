@@ -16,6 +16,10 @@
 'use strict';
 
 const util = require('../util.js');
+const Logger = require('../logger.js');
+const Validator = require('../validator.js');
+
+const logger = new Logger(module);
 
 /**
  * @class Worker
@@ -50,7 +54,15 @@ function Worker() {
  */
 // eslint-disable-next-line no-unused-vars
 Worker.prototype.onStart = function (success, error) {
-    success();
+    try {
+        this.validator = new Validator();
+        logger.info('Created cloud failover worker');
+        success();
+    } catch (err) {
+        const message = `Error creating cloud failover worker: ${err}`;
+        logger.severe(message);
+        error(message);
+    }
 };
 
 /**
@@ -91,7 +103,34 @@ Worker.prototype.onGet = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPost = function (restOperation) {
-    util.restOperationResponder(restOperation, 200, { message: 'success' });
+    // util.restOperationResponder(restOperation, 200, { message: 'success' });
+    logger.finest('Got failover request.');
+
+    const contentType = restOperation.getContentType() || '';
+    let body = restOperation.getBody();
+
+    if (contentType.toLowerCase() !== 'application/json') {
+        try {
+            body = JSON.parse(body);
+        } catch (err) {
+            const message = 'Unable to parse request body. Should be JSON format.';
+            logger.info(message);
+            util.restOperationResponder(restOperation, 400, { message: 'bad request format' });
+            return;
+        }
+    }
+
+    const declaration = Object.assign({}, body);
+    const validation = this.validator.validate(declaration);
+
+    if (!validation.isValid) {
+        const message = `Bad declaration: ${JSON.stringify(validation.errors)}`;
+        logger.info(message);
+        util.restOperationResponder(restOperation, 400, { message: 'bad declaration' });
+    } else {
+        logger.fine('Successfully validated declaration');
+        util.restOperationResponder(restOperation, 200, { message: 'success' });
+    }
 };
 
 /**
