@@ -1,4 +1,5 @@
-{   "class": "CloudFailover",
+{   
+    "class": "CloudFailover",
     "myInit": {
         "class": "Initialize",
         "environment": "aws",
