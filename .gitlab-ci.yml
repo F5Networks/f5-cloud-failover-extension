@@ -69,6 +69,8 @@ pages:
     script:
         - PUBLIC_DIR='./public'
         - mkdir -p ${PUBLIC_DIR}
+        # place index.html in public dir
+        - cp docs/index.html ${PUBLIC_DIR}/index.html
         #### place code coverage docs under: /coverage-docs ####
         - COVERAGE_DOCS=${PUBLIC_DIR}/coverage-docs
         - mkdir -p ${COVERAGE_DOCS}
