@@ -179,8 +179,6 @@ What happens in the system internals between request and response?
 Ok, overview done!  Now let's dive into the major areas to be aware of as a developer.
 
 - [Core Modules](#core-modules)
-- [Adding System Poller Stats](#adding-system-poller-stats)
-- [Adding a New Consumer](#adding-a-new-consumer)
 - [Testing methodology](#testing-methodology)
 - [Release methodology](#release-methodology)
 - [Public documentation methodology](#public-documentation-methodology)
