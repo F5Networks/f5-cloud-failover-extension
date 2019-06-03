@@ -8,17 +8,11 @@ This is the top-level documentation which provides notes and information about c
 ---
 ## Overview
 
-The telemetry streaming system includes a number of key components, listed below.
+The F5 failover extension includes a number of key components, listed below.
 
-*System*: Target system (BIG-IP) to use for stats polling, iHealth polling.
+*Initialization*: Prepares the environment for failover.  Writes user data to cloud provider storage and configures the /config/failover scripts on BIG-IP.
 
-*System Poller*: Polls a system on a defined interval for information such as device statistics, virtual server statistics, pool statistics and much more.
-
-*iHealth Poller*: Creates system's Qkview file, uploads it to F5 iHealth Service and polls diagnostics from it on a defined schedule.
-
-*Event Listener*: Provides a listener, on both TCP and UDP protocols, that can accept events in a specific format and process them.
-
-*Consumer*: Accepts information from disparate systems and provides the tools to process that information.  In the context of Telemetry Streaming this simply means providing a mechanism by which to integrate with existing analytics products.
+*Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
 
 ---
 ### Diagram
@@ -30,30 +24,32 @@ The telemetry streaming system includes a number of key components, listed below
 
 How does the project handle a typical `POST` request?
 
-`POST /mgmt/shared/telemetry/declare`
+`POST /mgmt/shared/cloud-failover/declare`
 
 ```json
 {
-    "class": "Telemetry",
-    "My_System": {
-        "class": "Telemetry_System",
-        "systemPoller": {
-            "interval": 60
-        }
-    },
-    "My_Listener": {
-        "class": "Telemetry_Listener",
-        "port": 6514
-    },
-    "My_Consumer": {
-        "class": "Telemetry_Consumer",
-        "type": "Splunk",
-        "host": "192.0.2.1",
-        "protocol": "https",
-        "port": 8088,
-        "passphrase": {
-            "cipherText": "apikey"
-        }
+	"class": "CloudFailover",
+	"MyInit": {
+	    "class": "Initialize",
+	    "environment": "azure",
+	    "useMetadata": true,
+	    "storageResource": "myuniquestorageaccount",
+	    "storageTags": [
+	        {
+	            "key": "value",
+	            "value": "myvalue"
+	        }
+	    ],
+	    "managedRoutes": [
+	        "192.168.1.0/24",
+	        "0.0.0.0/0"
+	    ],
+	    "addressTags": [
+	        {
+	            "key": "value",
+	            "value": "myvalue"
+	        }
+        ]
     }
 }
 ```
@@ -64,51 +60,29 @@ How does the project handle a typical `POST` request?
 {
     "message": "success",
     "declaration": {
-        "class": "Telemetry",
-        "My_System": {
-            "class": "Telemetry_System",
-            "systemPoller": {
-                "interval": 60,
-                "enable": true,
-                "trace": false,
-                "tag": {
-                    "tenant": "`T`",
-                    "application": "`A`"
+        "class": "CloudFailover",
+        "MyInit": {
+            "class": "Initialize",
+            "environment": "azure",
+            "useMetadata": true,
+            "storageResource": "myuniquestorageaccount",
+            "storageTags": [
+                {
+                    "key": "value",
+                    "value": "myvalue"
                 }
-            },
-            "enable": true,
-            "trace": false,
-            "host": "localhost",
-            "port": 8100,
-            "protocol": "http"
-        },
-        "My_Listener": {
-            "class": "Telemetry_Listener",
-            "port": 6514,
-            "enable": true,
-            "trace": false,
-            "tag": {
-                "tenant": "`T`",
-                "application": "`A`"
-            },
-            "match": ""
-        },
-        "My_Consumer": {
-            "class": "Telemetry_Consumer",
-            "type": "Splunk",
-            "host": "192.0.2.1",
-            "protocol": "https",
-            "port": 8088,
-            "passphrase": {
-                "cipherText": "$M$Q7$xYs5xGCgf6Hlxsjd5AScwQ==",
-                "class": "Secret",
-                "protected": "SecureVault"
-            },
-            "enable": true,
-            "trace": false,
-            "format": "default"
-        },
-        "schemaVersion": "1.3.0"
+            ],
+            "managedRoutes": [
+                "192.168.1.0/24",
+                "0.0.0.0/0"
+            ],
+            "addressTags": [
+                {
+                    "key": "value",
+                    "value": "myvalue"
+                }
+            ]
+        }
     }
 }
 ```
