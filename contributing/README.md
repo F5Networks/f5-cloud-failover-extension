@@ -15,9 +15,14 @@ The F5 failover extension includes a number of key components, listed below.
 *Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
 
 ---
-### Diagram
+### Initialization
 
-![diagram](images/FailoverExtensionSequence.png)
+![diagram](images/init.png)
+
+1. Client POST declaration to extension endpoint
+2. Cloud SDK creates management client using token from local metadata
+3. Cloud SDK uses management client to create storage client 
+4. Cloud SDK uses storage client to write user-provided config data to storage location
 
 ---
 ### Anatomy of an Initialization Request
@@ -104,13 +109,25 @@ What happens in the system internals between request and response?
     - ref: [device.js](../src/nodejs/providers/device.js)
 - Client response sent with validated config
     - ref: [config.js](../src/nodejs/response.js)
-    ```javascript
-        return promise.then((config) => {
-        util.restOperationResponder(restOperation, 200,
-            { message: 'success', declaration: config });
-    })
-    ```
-    
+
+
+---
+### Failover
+
+![diagram](images/failover.png)
+
+1. Heartbeat lost from active device; client POST failover declaration to extension endpoint
+2. Cloud SDK creates management client using token from local metadata
+3. Cloud SDK uses management client to create storage client 
+4. Cloud SDK uses storage client to read config data and write task started to storage location
+5. Cloud SDK uses management client to create network client
+6. Cloud SDK uses network client to update route destination(s) to point to active device's NIC
+7. Cloud SDK uses network client to update IP > NIC association(s)
+    a. Azure: removes targeted IP(s) from standby NIC
+    b. Azure: adds targeted IP(s) to active NIC
+    c. AWS: updates EIP association(s)
+8. Cloud SDK uses storage client to write task completed to storage location
+
 ---
 ### Anatomy of a Failover Request
 
@@ -166,12 +183,12 @@ What happens in the system internals between request and response?
     - ref: [storage.js](../src/nodejs/providers/storage.js)
 - Client response sent with failover result
     - ref: [config.js](../src/nodejs/response.js)
-    ```javascript
-        return promise.then((config) => {
-        util.restOperationResponder(restOperation, 200,
-            { message: 'success', declaration: config });
-    })
-    ```
+
+---
+### Failover Flow Diagram
+
+![diagram](images/FailoverExtensionSequence.png)
+
 
 ---
 ## Contributing
@@ -190,7 +207,6 @@ All core modules are included inside `../src/nodejs/`
 
 - [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
     - Purpose: Hook for incoming HTTP requests
-
 - [auth.js](../src/nodejs/providers/auth.js)
     - Purpose: When passed an environment name, gets an authentication token from local metadata and returns a provider management client object for use in making calls to provider APIs
 - [device.js](../src/nodejs/providers/device.js)
@@ -199,7 +215,6 @@ All core modules are included inside `../src/nodejs/`
     - Purpose: Gets and munges the user data, provider configuration, and local BIG-IP configuration and returns the 'before failover' and 'after failover' configurations
 - [storage.js](../src/nodejs/providers/storage.js)
     - Purpose: Creates storage client, reads/writes user data and failover state to provider storage location
-
 - [logger.js](../src/nodejs/logger.js)
     - Purpose: Log events to /var/log/restnoded/restnoded.log
 - [validator.js](../src/nodejs/validator.js)
@@ -242,6 +257,6 @@ In general, see the documentation team for more details... however there is a pr
 
 The current process involves adding a `doc` label to an issue to note it requires public documentation.  This will cause the issue to show up in a documentation board in GitLab, the developer responsible for the feature is also responsible for generating the artifacts required by the documentation team member.
 
-See the [examples](../examples/declarations) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
+See the [examples](../examples) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
 
 See the [INTERNAL_README.md](../INTERNAL_README.md) for an internal explanation of most features.
