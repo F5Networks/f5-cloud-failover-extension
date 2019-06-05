@@ -8,13 +8,16 @@
         {
             "if": { "properties": { "class": { "const": "Failover" } } },
             "then": {
-                "required": ["class"],
+                "required": ["class", "environment"],
                 "properties": {
                     "class": {
                         "title": "Class",
                         "description": "Indicates that this property contains failover trigger configuration.",
                         "type": "string",
                         "enum": [ "Failover" ]
+                    },
+                    "environment": {
+                        "$ref": "base_schema.json#/definitions/environment"
                     }
                 },
                 "additionalProperties": false
