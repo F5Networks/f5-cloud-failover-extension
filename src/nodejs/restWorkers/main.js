@@ -18,6 +18,7 @@
 const util = require('../util.js');
 const Logger = require('../logger.js');
 const Validator = require('../validator.js');
+const Cloud = require('../providers/cloud.js');
 
 const logger = new Logger(module);
 
@@ -129,6 +130,26 @@ Worker.prototype.onPost = function (restOperation) {
         util.restOperationResponder(restOperation, 400, { message: 'bad declaration' });
     } else {
         logger.fine('Successfully validated declaration');
+        let initClass;
+        Object.keys(declaration).forEach((key) => {
+            if (declaration[key].class && declaration[key].class === 'Initialize') {
+                initClass = declaration[key];
+            }
+        });
+        logger.info(`Got declaration: ${JSON.stringify(body)}`);
+        const cloudProvider = Cloud.getCloudProvider(initClass.environment, { logger });
+        cloudProvider.init(initClass)
+            .then(() => {
+                // TODO: Before Merge, remove this call
+                cloudProvider.networkClient.publicIPAddresses.list('gjd-standalone', (error, publicIPAddresses) => {
+                    if (error) {
+                        Promise.reject(error);
+                    } else {
+                        logger.info(JSON.stringify(publicIPAddresses));
+                    }
+                });
+            });
+
         util.restOperationResponder(restOperation, 200, { message: 'success' });
     }
 };

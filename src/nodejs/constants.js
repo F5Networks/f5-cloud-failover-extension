@@ -28,6 +28,11 @@ module.exports = {
 
     BASE_URL: 'https://localhost/mgmt/shared/cloud-failover',
     CONTROLS_CLASS_NAME: 'Controls',
+    CLOUD_PROVIDERS: {
+        AWS: 'aws',
+        AZURE: 'azure',
+        GCE: 'gce'
+    },
     CONTROLS_PROPERTY_NAME: 'controls',
     ENDPOINTS: {
         CONFIG: 'declare',
