@@ -8,7 +8,13 @@ This is the top-level documentation which provides notes and information about c
 ---
 ## Overview
 
-The F5 failover extension includes a number of key components, listed below.
+The purpose of the F5 failover iControl LX extension is to decouple failover functionality from our cloud templates.  Some reasons for this are:
+
+- Standardization: Failover should look basically the same across all clouds
+- Portability: I should be able to install/run failover outside of a template deployment (Terraform, Ansible, FaaS, manually)
+- Lifecyle: I should be able to upgrade my BIG-IP software without having to call F5 support to fix failover
+
+The failover extension includes a number of key components, listed below.
 
 *Initialization*: Prepares the environment for failover.  Writes user data to cloud provider storage and configures the /config/failover scripts on BIG-IP.
 
@@ -101,14 +107,14 @@ What happens in the system internals between request and response?
     - ref: [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
 - Request is validated using JSON schema and AJV
     - ref: [validator.js](../src/nodejs/validator.js)
-- A provider auth token is acquired
-    - ref: [auth.js](../src/nodejs/providers/auth.js)
+- A provider auth token is acquired from metadata and a storage management client is returned
+    - ref: [cloud.js](../src/nodejs/providers/cloud.js)
 - User data is written to cloud provider storage
     - ref: [storage.js](../src/nodejs/providers/storage.js)
 - Failover declaration/API call is written to /config/failover scripts on BIG-IP
     - ref: [device.js](../src/nodejs/providers/device.js)
 - Client response sent with validated config
-    - ref: [config.js](../src/nodejs/response.js)
+    - ref: [response.js](../src/nodejs/response.js)
 
 
 ---
@@ -169,8 +175,8 @@ What happens in the system internals between request and response?
     - ref: [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
 - Request is validated using JSON schema and AJV
     - ref: [validator.js](../src/nodejs/validator.js)
-- A provider auth token is acquired
-    - ref: [auth.js](../src/nodejs/providers/auth.js)
+- A provider auth token is acquired from metadata and storage/network management clients are returned
+    - ref: [cloud.js](../src/nodejs/providers/cloud.js)
 - User data is read from cloud provider storage
     - ref: [storage.js](../src/nodejs/providers/storage.js)
 - BIG-IP configuration is read from local device
@@ -182,7 +188,7 @@ What happens in the system internals between request and response?
 - Completed task info is written from cloud provider storage
     - ref: [storage.js](../src/nodejs/providers/storage.js)
 - Client response sent with failover result
-    - ref: [config.js](../src/nodejs/response.js)
+    - ref: [response.js](../src/nodejs/response.js)
 
 ---
 ### Failover Flow Diagram
@@ -207,7 +213,7 @@ All core modules are included inside `../src/nodejs/`
 
 - [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
     - Purpose: Hook for incoming HTTP requests
-- [auth.js](../src/nodejs/providers/auth.js)
+- [cloud.js](../src/nodejs/providers/cloud.js)
     - Purpose: When passed an environment name, gets an authentication token from local metadata and returns a provider management client object for use in making calls to provider APIs
 - [device.js](../src/nodejs/providers/device.js)
     - Purpose: When passed a iControl REST resource URI, returns the desired configuration from the local BIG-IP device (using f5-cloud-libs bigIp class)
@@ -220,7 +226,7 @@ All core modules are included inside `../src/nodejs/`
 - [validator.js](../src/nodejs/validator.js)
     - Purpose: Validate POST data against schema(s) using ajv
 - [state.js](../src/nodejs/state.js)
-    - Purpose: Create, update, and return configuration state
+    - Purpose: Create, update, and return application state; in addition to returning the last successful declaration, we can extend this to include config details, history, etc
 - [response.js](../src/nodejs/response.js)
     - Purpose: Send REST response to client
 - [constants.js](../src/nodejs/constants.js)
