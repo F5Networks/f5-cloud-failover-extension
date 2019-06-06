@@ -142,6 +142,10 @@ Worker.prototype.onPost = function (restOperation) {
             .then(() => {
                 logger.info('cloud provider has been initialized');
                 return Promise.resolve();
+            })
+            .catch((err) => {
+                logger.info('Could not initialize the cloud provider');
+                logger.info(JSON.stringify(err));
             });
 
         util.restOperationResponder(restOperation, 200, { message: 'success' });
