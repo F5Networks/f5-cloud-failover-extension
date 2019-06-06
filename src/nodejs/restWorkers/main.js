@@ -18,6 +18,7 @@
 const util = require('../util.js');
 const Logger = require('../logger.js');
 const Validator = require('../validator.js');
+const Cloud = require('../providers/cloud.js');
 
 const logger = new Logger(module);
 
@@ -129,6 +130,24 @@ Worker.prototype.onPost = function (restOperation) {
         util.restOperationResponder(restOperation, 400, { message: 'bad declaration' });
     } else {
         logger.fine('Successfully validated declaration');
+        let initClass;
+        Object.keys(declaration).forEach((key) => {
+            if (declaration[key].class && declaration[key].class === 'Initialize') {
+                initClass = declaration[key];
+            }
+        });
+        logger.info(`Got declaration: ${JSON.stringify(body)}`);
+        const cloudProvider = Cloud.getCloudProvider(initClass.environment, { logger });
+        cloudProvider.init(initClass)
+            .then(() => {
+                logger.info('cloud provider has been initialized');
+                return Promise.resolve();
+            })
+            .catch((err) => {
+                logger.info('Could not initialize the cloud provider');
+                logger.info(JSON.stringify(err));
+            });
+
         util.restOperationResponder(restOperation, 200, { message: 'success' });
     }
 };
