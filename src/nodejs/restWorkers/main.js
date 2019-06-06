@@ -140,14 +140,8 @@ Worker.prototype.onPost = function (restOperation) {
         const cloudProvider = Cloud.getCloudProvider(initClass.environment, { logger });
         cloudProvider.init(initClass)
             .then(() => {
-                // TODO: Before Merge, remove this call
-                cloudProvider.networkClient.publicIPAddresses.list('gjd-standalone', (error, publicIPAddresses) => {
-                    if (error) {
-                        Promise.reject(error);
-                    } else {
-                        logger.info(JSON.stringify(publicIPAddresses));
-                    }
-                });
+                logger.info('cloud provider has been initialized');
+                return Promise.resolve();
             });
 
         util.restOperationResponder(restOperation, 200, { message: 'success' });

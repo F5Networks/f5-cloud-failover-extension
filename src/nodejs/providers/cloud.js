@@ -35,9 +35,6 @@ class Cloud {
         const logger = options ? options.logger : undefined;
         if (logger) {
             this.logger = logger;
-        } else {
-            // TODO: If a logger is not provided, what to do?
-            this.logger = 'TODO';
         }
     }
 }
@@ -53,36 +50,28 @@ class AzureCloud extends Cloud {
     init() {
         return this._getInstanceMetadata()
             .then((metadata) => {
-                this.logger.fine(`Metadata: ${JSON.stringify(metadata)}`);
-                const environment = this._getAzureEnvironment(metadata);
                 const subscriptionId = metadata.compute.subscriptionId;
+                const environment = this._getAzureEnvironment(metadata);
+
                 const msiOptions = {
                     resource: environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
                 };
-                this.logger.fine(`environment: ${environment.resourceManagerEndpointUrl}`);
                 const credentials = new msRestAzure.MSIVmTokenCredentials(msiOptions);
+
                 this.networkClient = new NetworkManagementClient(
                     credentials,
                     subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
             });
-        // Need to get storage account info - would be passed in from INIT declaration
-        /* TODO: Figure this out - but good luck with Azure Docs...
-        this.storageClient = azureStorage.createBlobService(
-            options.storageResource, // Get this from 'storageResource' in init declaration
-            credentialsJson.storageKey // Can we get this from Managed Service Identity?
-        );
-        */
     }
 
-    // TODO: Get the environment names as returned by metadata service
     _getAzureEnvironment(metadata) {
         const specialLocations = {
             AzurePublicCloud: 'Azure',
-            AzureUSGovernment: 'AzureUSGovernment',
-            AzureChina: 'AzureChina',
+            AzureUSGovernmentCloud: 'AzureUSGovernment',
+            AzureChinaCloud: 'AzureChina',
             AzureGermanCloud: 'AzureGermanCloud'
         };
         return azureEnvironment[specialLocations[metadata.compute.azEnvironment]];
