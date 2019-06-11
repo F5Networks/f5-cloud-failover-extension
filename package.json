@@ -8,6 +8,7 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "scripts": {
+        "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/*.js\" --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
