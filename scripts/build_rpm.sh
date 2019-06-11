@@ -8,7 +8,6 @@ mkdir -p ${FINALBUILDDIR}
 RELEASE='1'
 VERSION=$(cat ${MAINDIR}/package.json | jq .version -r)
 PKG_NAME=$(cat ${MAINDIR}/package.json | jq .name -r)
-
 rpmbuild -bb \
     --define "main $(pwd)" \
     --define '_topdir %{main}/rpmbuild' \
