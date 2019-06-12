@@ -201,10 +201,22 @@ What happens in the system internals between request and response?
 
 Ok, overview done!  Now let's dive into the major areas to be aware of as a developer.
 
+- [Software Design](#software-design)
 - [Core Modules](#core-modules)
 - [Testing methodology](#testing-methodology)
 - [Release methodology](#release-methodology)
 - [Public documentation methodology](#public-documentation-methodology)
+
+---
+### Software Design
+
+Design: Object model driven by cloud...
+
+Directory structure: `src/nodejs/providers/<azure|aws|google>/*`
+
+#### Class Diagram
+
+![diagram](../diagrams/artifacts/object_model_by_cloud.png)
 
 ---
 ### Core modules

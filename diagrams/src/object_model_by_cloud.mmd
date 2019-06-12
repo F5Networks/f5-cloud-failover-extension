@@ -1,0 +1,9 @@
+classDiagram
+Cloud o-- AzureCloud
+Cloud o-- AWSCLoud
+Cloud o-- GoogleCloud
+
+Cloud : getDataFromStorage(storageTag)
+Cloud : putDataInStorage(storageTag)
+Cloud : moveAddresses(virtualAddresses, tag)
+Cloud : moveRoutes(tag)
