@@ -17,8 +17,8 @@
 
 const util = require('../util.js');
 const Logger = require('../logger.js');
-const Validator = require('../validator.js');
-const Cloud = require('../providers/cloud.js');
+const configWorker = require('../config.js');
+const failover = require('../failover.js');
 
 const logger = new Logger(module);
 
@@ -53,10 +53,8 @@ function Worker() {
  * @param {Function} success - callback to indicate successful startup
  * @param {Function} error   - callback to indicate failure in startup
  */
-// eslint-disable-next-line no-unused-vars
 Worker.prototype.onStart = function (success, error) {
     try {
-        this.validator = new Validator();
         logger.info('Created cloud failover worker');
         success();
     } catch (err) {
@@ -82,20 +80,22 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
         this.logger.severe(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
         error();
     }
+
+    // init config worker - makes functions from restWorker available, etc.
+    configWorker.init(this);
+
     success();
 };
 
-/*
- * http handlers *
-*/
+// LX HTTP handlers
 
 /**
- *
  * handle onGet HTTP request
+ *
  * @param {Object} restOperation
  */
 Worker.prototype.onGet = function (restOperation) {
-    util.restOperationResponder(restOperation, 200, { message: 'success' });
+    processRequest(restOperation);
 };
 
 /**
@@ -104,79 +104,105 @@ Worker.prototype.onGet = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPost = function (restOperation) {
-    // util.restOperationResponder(restOperation, 200, { message: 'success' });
-    logger.finest('Got failover request.');
+    processRequest(restOperation);
+};
 
-    const contentType = restOperation.getContentType() || '';
+/**
+ * handle onPut HTTP request
+ *
+ * @param {Object} restOperation
+ */
+Worker.prototype.onPut = function (restOperation) {
+    processRequest(restOperation);
+};
+
+/**
+ * handle onPatch HTTP request
+ *
+ * @param {Object} restOperation
+ */
+Worker.prototype.onPatch = function (restOperation) {
+    processRequest(restOperation);
+};
+
+/**
+ * handle onDelete HTTP request
+ *
+ * @param {Object} restOperation
+ */
+Worker.prototype.onDelete = function (restOperation) {
+    processRequest(restOperation);
+};
+
+
+/**
+ * Process Requests - helper function which handles all requests to keep
+ * any dependency on the native LX framework minimal
+ *
+ * @param {Object} restOperation  - restOperation
+ */
+function processRequest(restOperation) {
+    const method = restOperation.method.toUpperCase();
+    const pathName = restOperation.getUri().pathname.split('/')[3];
+    const contentType = restOperation.getContentType().toLowerCase() || '';
     let body = restOperation.getBody();
 
-    if (contentType.toLowerCase() !== 'application/json') {
+    // validate content type, attempt to process regardless
+    if (contentType !== 'application/json') {
         try {
             body = JSON.parse(body);
         } catch (err) {
-            const message = 'Unable to parse request body. Should be JSON format.';
-            logger.info(message);
-            util.restOperationResponder(restOperation, 400, { message: 'bad request format' });
+            const message = 'Invalid request body. Content type should be application/json';
+            logger.error(message);
+            util.restOperationResponder(restOperation, 400, { message });
             return;
         }
     }
 
-    const declaration = Object.assign({}, body);
-    const validation = this.validator.validate(declaration);
+    logger.debug(`HTTP Request - ${method} /${pathName}`);
 
-    if (!validation.isValid) {
-        const message = `Bad declaration: ${JSON.stringify(validation.errors)}`;
-        logger.info(message);
-        util.restOperationResponder(restOperation, 400, { message: 'bad declaration' });
-    } else {
-        logger.fine('Successfully validated declaration');
-        let initClass;
-        Object.keys(declaration).forEach((key) => {
-            if (declaration[key].class && declaration[key].class === 'Initialize') {
-                initClass = declaration[key];
-            }
-        });
-        logger.info(`Got declaration: ${JSON.stringify(body)}`);
-        const cloudProvider = Cloud.getCloudProvider(initClass.environment, { logger });
-        cloudProvider.init(initClass)
+    switch (pathName) {
+    case 'declare':
+        switch (method) {
+        case 'POST':
+            configWorker.processConfigRequest(body)
+                .then((config) => {
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+            break;
+        case 'GET':
+            configWorker.getConfig()
+                .then((config) => {
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+            break;
+        default:
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+            break;
+        }
+        break;
+    case 'trigger':
+        failover.execute()
             .then(() => {
-                logger.info('cloud provider has been initialized');
-                return Promise.resolve();
+                util.restOperationResponder(restOperation, 200, { message: 'success' });
             })
             .catch((err) => {
-                logger.info('Could not initialize the cloud provider');
-                logger.info(JSON.stringify(err));
+                util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
             });
-
+        break;
+    case 'info':
         util.restOperationResponder(restOperation, 200, { message: 'success' });
+        break;
+    default:
+        util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });
+        break;
     }
-};
-
-/**
- *
- * handle onPut HTTP request
- * @param {Object} restOperation
- */
-Worker.prototype.onPut = function (restOperation) {
-    util.restOperationResponder(restOperation, 200, { message: 'success' });
-};
-
-/**
- *
- * handle onPatch HTTP request
- * @param {Object} restOperation
- */
-Worker.prototype.onPatch = function (restOperation) {
-    util.restOperationResponder(restOperation, 200, { message: 'success' });
-};
-
-/**
- *
- * handle onDelete HTTP request
- * @param {Object} restOperation
- */
-Worker.prototype.onDelete = function (restOperation) {
-    util.restOperationResponder(restOperation, 200, { message: 'success' });
-};
+}
 
 module.exports = Worker;

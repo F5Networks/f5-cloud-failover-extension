@@ -25,7 +25,6 @@ const VERSION = '1.0.0';
  */
 module.exports = {
     VERSION,
-
     BASE_URL: 'https://localhost/mgmt/shared/cloud-failover',
     CONTROLS_CLASS_NAME: 'Controls',
     CLOUD_PROVIDERS: {

@@ -16,8 +16,27 @@
 
 'use strict';
 
+const Logger = require('./logger.js');
+const util = require('./util.js');
+const configWorker = require('./config.js');
+
+const logger = new Logger(module);
+
 /**
- * Returns the BIG-IP device object
+ * Execute (primary function)
  *
- * @class
  */
+function execute() {
+    return configWorker.getConfig()
+        .then((config) => {
+            logger.debug(`failover.execute() called: ${util.stringify(config)}`);
+        })
+        .catch((err) => {
+            logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
+            return Promise.reject(err);
+        });
+}
+
+module.exports = {
+    execute
+};

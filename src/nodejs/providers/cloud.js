@@ -80,7 +80,7 @@ class AzureCloud extends Cloud {
     _getInstanceMetadata() {
         return new Promise((resolve, reject) => {
             cloudUtil.getDataFromUrl(
-                'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
+                'http://168.63.129.16/metadata/instance?api-version=2018-10-01',
                 {
                     headers: {
                         Metadata: true
