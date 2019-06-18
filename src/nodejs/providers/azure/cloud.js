@@ -27,6 +27,8 @@ const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
+
+        this.networkClient = null;
     }
 
     /**
@@ -50,6 +52,13 @@ class Cloud extends AbstractCloud {
                     environment.resourceManagerEndpointUrl
                 );
             });
+    }
+
+    /**
+     * Updated addresses
+     */
+    updateAddresses() {
+        return Promise.resolve();
     }
 
     _getAzureEnvironment(metadata) {
