@@ -20,26 +20,11 @@ const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
 const cloudUtil = require('@f5devcentral/f5-cloud-libs').util;
-const CLOUD_PROVIDERS = require('../constants').CLOUD_PROVIDERS;
+const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 
-/**
- * Consolidates Cloud-specific logic into a Cloud Provider, and returns a Cloud Provider
- *
- * @class
- */
+const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
-class Cloud {
-    constructor(name, options) {
-        this.environment = name;
-
-        const logger = options ? options.logger : undefined;
-        if (logger) {
-            this.logger = logger;
-        }
-    }
-}
-
-class AzureCloud extends Cloud {
+class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
     }
@@ -98,18 +83,5 @@ class AzureCloud extends Cloud {
 }
 
 module.exports = {
-    /**
-     * Given the name of a Cloud Provider return a Cloud Instance.
-     * @param {String} providerName     - Short name of the cloud provider
-     * @param {Object} [options]        - Optional parameters
-     * @param {Object} [options.logger] - Logger to use
-     */
-    getCloudProvider: function getCloudProvider(providerName, options) {
-        switch (providerName) {
-        case CLOUD_PROVIDERS.AZURE:
-            return new AzureCloud(options);
-        default:
-            throw new Error('Unsupported cloud');
-        }
-    }
+    Cloud
 };

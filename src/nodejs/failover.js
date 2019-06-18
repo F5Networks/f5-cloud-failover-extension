@@ -20,16 +20,44 @@ const Logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
 
+const CloudFactory = require('./providers/cloudFactory.js');
+
 const logger = new Logger(module);
+
 
 /**
  * Execute (primary function)
  *
  */
 function execute() {
+    let cloudProvider;
+
     return configWorker.getConfig()
         .then((config) => {
             logger.debug(`failover.execute() called: ${util.stringify(config)}`);
+
+            // get cloud provider from config - need to put this logic elsewhere, configWorker?
+            let initClass;
+            Object.keys(config).forEach((key) => {
+                if (config[key].class && config[key].class === 'Initialize') {
+                    initClass = config[key];
+                }
+            });
+            cloudProvider = CloudFactory.getCloudProvider(initClass.environment, { logger });
+
+            return cloudProvider.init(initClass);
+        })
+        .then(() => {
+            logger.info('Cloud provider has been initialized');
+        })
+        .then(() => {
+            logger.info('BIG-IP has been initialized');
+        })
+        .then(() => {
+            logger.info('Get traffic group addresses');
+        })
+        .then(() => {
+            logger.info('Updating addresses/routes');
         })
         .catch((err) => {
             logger.error(`failover.execute() error: ${util.stringify(err.message)}`);

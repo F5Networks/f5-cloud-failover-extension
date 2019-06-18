@@ -82,9 +82,13 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     }
 
     // init config worker - makes functions from restWorker available, etc.
-    configWorker.init(this);
-
-    success();
+    configWorker.init(this)
+        .then(() => {
+            success();
+        })
+        .catch(() => {
+            error();
+        });
 };
 
 // LX HTTP handlers

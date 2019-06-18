@@ -19,7 +19,6 @@
 const util = require('./util.js');
 const Logger = require('./logger.js');
 const Validator = require('./validator.js');
-const Cloud = require('./providers/cloud.js');
 
 const logger = new Logger(module);
 
@@ -108,29 +107,10 @@ class ConfigWorker {
         }
 
         logger.debug('Successfully validated declaration');
+        this.setConfig(declaration);
 
-        let initClass;
-        Object.keys(declaration).forEach((key) => {
-            if (declaration[key].class && declaration[key].class === 'Initialize') {
-                initClass = declaration[key];
-            }
-        });
-
-        logger.info(`Got declaration: ${JSON.stringify(body)}`);
-
-        const cloudProvider = Cloud.getCloudProvider(initClass.environment, { logger });
-        return cloudProvider.init(initClass)
-            .then(() => {
-                logger.info('cloud provider has been initialized');
-
-                this.setConfig(declaration);
-
-                return Promise.resolve(this.state.config);
-            })
-            .catch((err) => {
-                logger.error(`Could not initialize the cloud provider: ${util.stringify(err)}`);
-                return Promise.reject(err);
-            });
+        // return declaration to user
+        return Promise.resolve(this.state.config);
     }
 }
 
