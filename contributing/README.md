@@ -76,13 +76,12 @@ How does the project handle a `POST` request?
             }
         ],
         "managedRoutes": [
-            "192.168.1.0/24",
-            "0.0.0.0/0"
+            "192.168.1.0/24"
         ],
         "addressTags": [
             {
-                "key": "value",
-                "value": "myvalue"
+                "key": "F5_CLOUD_FAILOVER_LABEL",
+                "value": "mydeployment"
             }
         ]
     }
