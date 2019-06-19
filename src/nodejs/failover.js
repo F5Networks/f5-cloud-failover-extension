@@ -39,16 +39,8 @@ function execute() {
 
     return configWorker.getConfig()
         .then((config) => {
-            // get cloud provider from config - need to put this logic elsewhere, configWorker?
-            let initClass;
-            Object.keys(config).forEach((key) => {
-                if (config[key].class && config[key].class === 'Initialize') {
-                    initClass = config[key];
-                }
-            });
-            cloudProvider = CloudFactory.getCloudProvider(initClass.environment, { logger });
-
-            return cloudProvider.init();
+            cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
+            return cloudProvider.init({ tags: config.addressTags });
         })
         .then(() => {
             logger.info('Cloud provider has been initialized');

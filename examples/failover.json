@@ -1,7 +1,0 @@
-{
-    "class": "CloudFailover",
-	"MyFailover": {
-	    "class": "Failover",
-	    "environment": "azure"
-	}
-}

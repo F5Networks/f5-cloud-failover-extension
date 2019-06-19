@@ -192,13 +192,9 @@ function processRequest(restOperation) {
         }
         break;
     case 'trigger':
-        failover.execute()
-            .then(() => {
-                util.restOperationResponder(restOperation, 200, { message: 'success' });
-            })
-            .catch((err) => {
-                util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-            });
+        // TODO: response should use an async task pattern - for now simply execute failover and respond
+        failover.execute();
+        util.restOperationResponder(restOperation, 200, { message: 'in_progress' });
         break;
     case 'info':
         util.restOperationResponder(restOperation, 200, { message: 'success' });

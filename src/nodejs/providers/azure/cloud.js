@@ -35,9 +35,14 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-     */
-    init() {
+    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
+    *
+    * @param {Object} options       - function options
+    * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
+    */
+    init(options) {
+        this.tags = options.tags || null;
+
         return this._getInstanceMetadata()
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
@@ -55,7 +60,8 @@ class Cloud extends AbstractCloud {
                     this.subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
-            });
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -71,10 +77,10 @@ class Cloud extends AbstractCloud {
             .then((nics) => {
                 const myNics = [];
                 const theirNics = [];
-                const disassociateArr = [];
-                const associateArr = [];
+                const disassociate = [];
+                const associate = [];
 
-                // add nics to 'mine' or 'their' array based on addresses match
+                // add nics to 'mine' or 'their' array based on address match
                 nics.forEach((nic) => {
                     if (nic.provisioningState !== 'Succeeded') {
                         this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
@@ -114,7 +120,7 @@ class Cloud extends AbstractCloud {
                 }
 
                 // go through 'their' nics and come up with disassociate/associate actions required
-                // to move ip configurations to 'my' nics
+                // to move ip configurations to 'my' nics, if any are required
                 for (let s = myNics.length - 1; s >= 0; s -= 1) {
                     for (let h = theirNics.length - 1; h >= 0; h -= 1) {
                         if (theirNics[h].nic.name !== myNics[s].nic.name
@@ -159,50 +165,25 @@ class Cloud extends AbstractCloud {
                                 enableIPForwarding: myIpForwarding
                             };
 
-                            disassociateArr.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
+                            disassociate.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
                                 'Disassociate']);
-                            associateArr.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
+                            associate.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
                                 'Associate']);
                             break;
                         }
                     }
                 }
 
-                return this._updateAssociations(disassociateArr, associateArr);
+                return this._updateAssociations(disassociate, associate);
             })
-            .catch((err) => {
-                this.logger.error(`Error: ${err.message}`);
-            });
+            .catch(err => Promise.reject(err));
     }
 
-    _updateAssociations(disassociate, associate) {
-        this.logger.debug('disassociate: ', disassociate);
-        this.logger.debug('associate: ', associate);
-
-        if (!disassociate || !associate) {
-            this.logger.debug('No associations to update.');
-            return Promise.resolve();
-        }
-
-        const disassociatePromises = [];
-        disassociate.forEach((item) => {
-            disassociatePromises.push(this._retrier(this._updateNics, item));
-        });
-        return Promise.all(disassociatePromises)
-            .then(() => {
-                this.logger.info('Disassociate NICs successful.');
-
-                const associatePromises = [];
-                associate.forEach((item) => {
-                    associatePromises.push(this._retrier(this._updateNics, item));
-                });
-                return Promise.all(associatePromises);
-            })
-            .then(() => {
-                this.logger.info('Associate NICs successful.');
-            });
-    }
-
+    /**
+    * Get Azure environment
+    *
+    * @returns {String}
+    */
     _getAzureEnvironment(metadata) {
         const specialLocations = {
             AzurePublicCloud: 'Azure',
@@ -213,6 +194,11 @@ class Cloud extends AbstractCloud {
         return azureEnvironment[specialLocations[metadata.compute.azEnvironment]];
     }
 
+    /**
+    * Get instance metadata
+    *
+    * @returns {Promise}
+    */
     _getInstanceMetadata() {
         return new Promise((resolve, reject) => {
             cloudLibsUtil.getDataFromUrl(
@@ -235,7 +221,8 @@ class Cloud extends AbstractCloud {
     /**
     * Lists all network interface configurations in this resource group
     *
-    * @param {Object} options - Name of the resource group
+    * @param {Object} options       - function options
+    * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
     *
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
@@ -255,13 +242,22 @@ class Cloud extends AbstractCloud {
             })
         )
             .then((nics) => {
-                // TODO: implement filter based on tags here
-                // - for now resource group scope is enough for testing
+                // if true, filter nics based on an array of tags
                 if (tags) {
-                    return Promise.resolve(nics);
+                    const filteredNics = nics.filter((nic) => {
+                        let matchedTags = 0;
+                        tags.forEach((tag) => {
+                            if (Object.keys(nic.tags).includes(tag.key) && nic.tags[tag.key] === tag.value) {
+                                matchedTags += 1;
+                            }
+                        });
+                        return tags.length === matchedTags;
+                    });
+                    return Promise.resolve(filteredNics);
                 }
                 return Promise.resolve(nics);
-            });
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -344,6 +340,43 @@ class Cloud extends AbstractCloud {
                     });
             })
         );
+    }
+
+    /**
+    * Update associations
+    *
+    * @param {Array} disassociate - Disassociate array
+    * @param {Array} associate    - Associate array
+    *
+    * @returns {Promise}
+    */
+    _updateAssociations(disassociate, associate) {
+        this.logger.debug('disassociate: ', disassociate);
+        this.logger.debug('associate: ', associate);
+
+        if (!disassociate || !associate) {
+            this.logger.debug('No associations to update.');
+            return Promise.resolve();
+        }
+
+        const disassociatePromises = [];
+        disassociate.forEach((item) => {
+            disassociatePromises.push(this._retrier(this._updateNics, item));
+        });
+        return Promise.all(disassociatePromises)
+            .then(() => {
+                this.logger.info('Disassociate NICs successful.');
+
+                const associatePromises = [];
+                associate.forEach((item) => {
+                    associatePromises.push(this._retrier(this._updateNics, item));
+                });
+                return Promise.all(associatePromises);
+            })
+            .then(() => {
+                this.logger.info('Associate NICs successful.');
+            })
+            .catch(err => Promise.reject(err));
     }
 }
 

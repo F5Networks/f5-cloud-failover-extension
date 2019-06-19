@@ -26,11 +26,9 @@ const validator = new Validator();
 describe('validator', () => {
     it('should validate valid data', () => {
         const data = {
-            "class": "CloudFailover",
-            "declaration": {
-                "class": "Initialize",
-                "environment": "aws"
-            }
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            addressTags: []
         };
         const validation = validator.validate(data);
         assert.strictEqual(validation.isValid, true);

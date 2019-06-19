@@ -16,7 +16,6 @@
 
 'use strict';
 
-// note: this could be even cleaner than this
 const CLOUD_PROVIDERS = require('../constants').CLOUD_PROVIDERS;
 const AzureCloud = require('./azure/cloud.js').Cloud;
 

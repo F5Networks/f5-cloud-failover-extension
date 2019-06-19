@@ -19,8 +19,6 @@
 const Ajv = require('ajv');
 
 const baseSchema = require('./schema/base_schema.json');
-const initializeSchema = require('./schema/initialize_schema.json');
-const failoverSchema = require('./schema/failover_schema.json');
 
 class Validator {
     constructor() {
@@ -34,8 +32,6 @@ class Validator {
         );
 
         this.validator = ajv
-            .addSchema(initializeSchema)
-            .addSchema(failoverSchema)
             .compile(baseSchema);
     }
 

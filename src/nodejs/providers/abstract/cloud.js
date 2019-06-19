@@ -34,7 +34,7 @@ class AbstractCloud {
         }
 
         // properties populated via configuration at runtime
-        this.tags = {};
+        this.tags = null;
     }
 
     init() {
