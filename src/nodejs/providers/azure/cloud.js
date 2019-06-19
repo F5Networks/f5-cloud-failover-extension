@@ -19,7 +19,7 @@
 const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
-const cloudUtil = require('@f5devcentral/f5-cloud-libs').util;
+const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
@@ -67,14 +67,139 @@ class Cloud extends AbstractCloud {
     * @returns {Object}
     */
     updateAddresses(localAddresses, failoverAddresses) {
-        this.logger.debug(localAddresses);
-        this.logger.debug(failoverAddresses);
-
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
+                const myNics = [];
+                const theirNics = [];
+                const disassociateArr = [];
+                const associateArr = [];
+
+                // add nics to 'mine' or 'their' array based on addresses match
                 nics.forEach((nic) => {
-                    this.logger.debug(nic.name, nic.tags);
+                    if (nic.provisioningState !== 'Succeeded') {
+                        this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
+                    }
+
+                    // identify 'my' and 'their' nics
+                    nic.ipConfigurations.forEach((ipConfiguration) => {
+                        localAddresses.forEach((address) => {
+                            if (ipConfiguration.privateIPAddress === address) {
+                                if (myNics.indexOf(nic) === -1) {
+                                    myNics.push({ nic });
+                                }
+                            }
+                        });
+                        failoverAddresses.forEach((address) => {
+                            if (ipConfiguration.privateIPAddress === address) {
+                                if (theirNics.indexOf(nic) === -1) {
+                                    theirNics.push({ nic });
+                                }
+                            }
+                        });
+                    });
                 });
+
+                // remove any nics from 'their' array if they are also in 'my' array
+                for (let p = myNics.length - 1; p >= 0; p -= 1) {
+                    for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
+                        if (myNics[p].nic.id === theirNics[qp].nic.id) {
+                            theirNics.splice(qp, 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (!myNics || !theirNics) {
+                    this.logger.error('Could not determine network interfaces.');
+                }
+
+                // go through 'their' nics and come up with disassociate/associate actions required
+                // to move ip configurations to 'my' nics
+                for (let s = myNics.length - 1; s >= 0; s -= 1) {
+                    for (let h = theirNics.length - 1; h >= 0; h -= 1) {
+                        if (theirNics[h].nic.name !== myNics[s].nic.name
+                            && theirNics[h].nic.name.slice(0, -1) === myNics[s].nic.name.slice(0, -1)) {
+                            let myNic = [];
+                            let theirNic = [];
+                            const ourLocation = myNics[s].nic.location;
+                            const theirNsg = theirNics[h].nic.networkSecurityGroup;
+                            const myNsg = myNics[s].nic.networkSecurityGroup;
+                            const theirIpForwarding = theirNics[h].nic.enableIPForwarding;
+                            const myIpForwarding = myNics[s].nic.enableIPForwarding;
+                            const theirTags = theirNics[h].nic.tags;
+                            const myTags = myNics[s].nic.tags;
+
+                            myNic = this._getIpConfigs(myNics[s].nic.ipConfigurations);
+                            theirNic = this._getIpConfigs(theirNics[h].nic.ipConfigurations);
+
+                            for (let i = theirNic.length - 1; i >= 0; i -= 1) {
+                                for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
+                                    if (failoverAddresses[t] === theirNic[i].privateIPAddress) {
+                                        this.logger.silly('Match:', theirNic[i].privateIPAddress);
+
+                                        myNic.push(this._getNicConfig(theirNic[i]));
+                                        theirNic.splice(i, 1);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            const theirNicParams = {
+                                location: ourLocation,
+                                ipConfigurations: theirNic,
+                                networkSecurityGroup: theirNsg,
+                                tags: theirTags,
+                                enableIPForwarding: theirIpForwarding
+                            };
+                            const myNicParams = {
+                                location: ourLocation,
+                                ipConfigurations: myNic,
+                                networkSecurityGroup: myNsg,
+                                tags: myTags,
+                                enableIPForwarding: myIpForwarding
+                            };
+
+                            disassociateArr.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
+                                'Disassociate']);
+                            associateArr.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
+                                'Associate']);
+                            break;
+                        }
+                    }
+                }
+
+                return this._updateAssociations(disassociateArr, associateArr);
+            })
+            .catch((err) => {
+                this.logger.error(`Error: ${err.message}`);
+            });
+    }
+
+    _updateAssociations(disassociate, associate) {
+        this.logger.debug('disassociate: ', disassociate);
+        this.logger.debug('associate: ', associate);
+
+        if (!disassociate || !associate) {
+            this.logger.debug('No associations to update.');
+            return Promise.resolve();
+        }
+
+        const disassociatePromises = [];
+        disassociate.forEach((item) => {
+            disassociatePromises.push(this._retrier(this._updateNics, item));
+        });
+        return Promise.all(disassociatePromises)
+            .then(() => {
+                this.logger.info('Disassociate NICs successful.');
+
+                const associatePromises = [];
+                associate.forEach((item) => {
+                    associatePromises.push(this._retrier(this._updateNics, item));
+                });
+                return Promise.all(associatePromises);
+            })
+            .then(() => {
+                this.logger.info('Associate NICs successful.');
             });
     }
 
@@ -90,7 +215,7 @@ class Cloud extends AbstractCloud {
 
     _getInstanceMetadata() {
         return new Promise((resolve, reject) => {
-            cloudUtil.getDataFromUrl(
+            cloudLibsUtil.getDataFromUrl(
                 'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
                 {
                     headers: {
@@ -137,6 +262,88 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(nics);
             });
+    }
+
+    /**
+    * Returns an array of IP configurations
+    *
+    * @param {Object} ipConfigurations - The Azure NIC IP configurations
+    *
+    * @returns {Array} An array of IP configurations
+    */
+    _getIpConfigs(ipConfigurations) {
+        const nicArr = [];
+        ipConfigurations.forEach((ipConfiguration) => {
+            nicArr.push(this._getNicConfig(ipConfiguration));
+        });
+        return nicArr;
+    }
+
+    /**
+    * Returns a network interface IP configuration
+    *
+    * @param {Object} ipConfig - The full Azure IP configuration
+    *
+    * @returns {Array} An array of IP configuration parameters
+    */
+    _getNicConfig(ipConfig) {
+        return {
+            name: ipConfig.name,
+            privateIPAllocationMethod: ipConfig.privateIPAllocationMethod,
+            privateIPAddress: ipConfig.privateIPAddress,
+            primary: ipConfig.primary,
+            publicIPAddress: ipConfig.publicIPAddress,
+            subnet: ipConfig.subnet,
+            loadBalancerBackendAddressPools: ipConfig.loadBalancerBackendAddressPools
+        };
+    }
+
+    /**
+    * Retrier
+    *
+    * @param {Object} func - Function to try
+    * @param {Object} args - args
+    *
+    * @returns {Promise}
+    */
+    _retrier(func, args) {
+        return new Promise((resolve, reject) => {
+            cloudLibsUtil.tryUntil(this, { maxRetries: 4, retryIntervalMs: 15000 }, func, args)
+                .then(() => {
+                    resolve();
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        });
+    }
+
+    /**
+    * Update Nics
+    *
+    * @param {String} group     - group
+    * @param {String} nicName   - nicName
+    * @param {String} nicParams - nicParams
+    * @param {String} action    - action
+    *
+    * @returns {Promise}
+    */
+    _updateNics(group, nicName, nicParams, action) {
+        return new Promise(
+            ((resolve, reject) => {
+                this.logger.info(action, 'NIC: ', nicName);
+
+                this.networkClient.networkInterfaces.createOrUpdate(group, nicName,
+                    nicParams,
+                    (error, data) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(data);
+                        }
+                    });
+            })
+        );
     }
 }
 
