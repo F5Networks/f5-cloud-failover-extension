@@ -48,6 +48,9 @@
         "nyc": "^14.0.0",
         "ssh2": "^0.8.2"
     },
+    "optionalDependencies": {
+        "mermaid.cli": "^0.5.1"
+    },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
         "rules": {
