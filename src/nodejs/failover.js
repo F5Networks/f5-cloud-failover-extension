@@ -48,7 +48,7 @@ function execute() {
             });
             cloudProvider = CloudFactory.getCloudProvider(initClass.environment, { logger });
 
-            return cloudProvider.init(initClass);
+            return cloudProvider.init();
         })
         .then(() => {
             logger.info('Cloud provider has been initialized');
@@ -82,7 +82,6 @@ function execute() {
         })
         .then((addresses) => {
             logger.info('Performing Failover - Updating addresses');
-            logger.debug(addresses);
 
             return cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses);
         })

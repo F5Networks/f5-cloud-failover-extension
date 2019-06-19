@@ -32,6 +32,9 @@ class AbstractCloud {
         if (logger) {
             this.logger = logger;
         }
+
+        // properties populated via configuration at runtime
+        this.tags = {};
     }
 
     init() {

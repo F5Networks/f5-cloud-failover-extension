@@ -28,6 +28,9 @@ class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
 
+        this.resourceGroup = null;
+        this.subscriptionId = null;
+
         this.networkClient = null;
     }
 
@@ -37,9 +40,10 @@ class Cloud extends AbstractCloud {
     init() {
         return this._getInstanceMetadata()
             .then((metadata) => {
-                const subscriptionId = metadata.compute.subscriptionId;
-                const environment = this._getAzureEnvironment(metadata);
+                this.resourceGroup = metadata.compute.resourceGroupName;
+                this.subscriptionId = metadata.compute.subscriptionId;
 
+                const environment = this._getAzureEnvironment(metadata);
                 const msiOptions = {
                     resource: environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
@@ -48,17 +52,30 @@ class Cloud extends AbstractCloud {
 
                 this.networkClient = new NetworkManagementClient(
                     credentials,
-                    subscriptionId,
+                    this.subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
             });
     }
 
     /**
-     * Updated addresses
-     */
-    updateAddresses() {
-        return Promise.resolve();
+    * Update Addresses
+    *
+    * @param {Object} localAddresses    - Local addresses
+    * @param {String} failoverAddresses - Failover addresses
+    *
+    * @returns {Object}
+    */
+    updateAddresses(localAddresses, failoverAddresses) {
+        this.logger.debug(localAddresses);
+        this.logger.debug(failoverAddresses);
+
+        return this._listNics({ tags: this.tags || null })
+            .then((nics) => {
+                nics.forEach((nic) => {
+                    this.logger.debug(nic.name, nic.tags);
+                });
+            });
     }
 
     _getAzureEnvironment(metadata) {
@@ -74,7 +91,7 @@ class Cloud extends AbstractCloud {
     _getInstanceMetadata() {
         return new Promise((resolve, reject) => {
             cloudUtil.getDataFromUrl(
-                'http://168.63.129.16/metadata/instance?api-version=2018-10-01',
+                'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
                 {
                     headers: {
                         Metadata: true
@@ -88,6 +105,38 @@ class Cloud extends AbstractCloud {
                     reject(err);
                 });
         });
+    }
+
+    /**
+    * Lists all network interface configurations in this resource group
+    *
+    * @param {Object} options - Name of the resource group
+    *
+    * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
+    */
+    _listNics(options) {
+        const tags = options.tags || {};
+
+        return new Promise(
+            ((resolve, reject) => {
+                this.networkClient.networkInterfaces.list(this.resourceGroup,
+                    (error, data) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(data);
+                        }
+                    });
+            })
+        )
+            .then((nics) => {
+                // TODO: implement filter based on tags here
+                // - for now resource group scope is enough for testing
+                if (tags) {
+                    return Promise.resolve(nics);
+                }
+                return Promise.resolve(nics);
+            });
     }
 }
 
