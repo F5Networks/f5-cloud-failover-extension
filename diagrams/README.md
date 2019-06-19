@@ -4,7 +4,8 @@ This project makes use of [mermaid](https://mermaidjs.github.io) for diagrams fo
 
 ## Usage
 
+Note: Install by running `npm install` at the root of this project.
+
 ```bash
-npm install
-mmdc -i src/object_model_by_cloud.mmd -o artifacts/object_model_by_cloud.png --theme dark
+./node_modules/.bin/mmdc -i src/object_model_by_cloud.mmd -o artifacts/object_model_by_cloud.png --theme dark
 ```
