@@ -23,11 +23,23 @@ describe('Failover', () => {
     let CloudFactory;
     let f5CloudLibs;
 
+    let mockCloudFactory;
+    let mockBigIpInit;
+    let mockBigIpList;
+
     before(() => {
         config = require('../../src/nodejs/config.js');
         failover = require('../../src/nodejs/failover.js');
         CloudFactory = require('../../src/nodejs/providers/cloudFactory.js');
         f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+
+        const mockCloudProvider = {
+            init: () => {},
+            updateAddresses: () => {}
+        };
+        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
+        mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
+        mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -36,13 +48,6 @@ describe('Failover', () => {
     });
 
     it('should perform failover', () => {
-        const mockCloudProvider = {
-            init: () => {},
-            updateAddresses: () => {}
-        };
-        const mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
-        const mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
-        const mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
         mockBigIpList.onCall(0).returns({ hostname: 'foo' });
         mockBigIpList.returns([]);
 

@@ -38,6 +38,11 @@ function execute() {
 
     return configWorker.getConfig()
         .then((config) => {
+            if (!config.environment) {
+                const err = new Error('Environment not provided');
+                return Promise.reject(err);
+            }
+
             cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
             return cloudProvider.init({ tags: config.addressTags });
         })
