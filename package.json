@@ -17,9 +17,9 @@
     },
     "nyc": {
         "check-coverage": true,
-        "lines": 70,
-        "functions": 70,
-        "branches": 70,
+        "lines": 20,
+        "functions": 20,
+        "branches": 20,
         "reporter": [
             "html",
             "text"
@@ -50,6 +50,7 @@
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^5.2.0",
         "nyc": "^14.0.0",
+        "sinon": "^7.3.2",
         "ssh2": "^0.8.2"
     },
     "optionalDependencies": {

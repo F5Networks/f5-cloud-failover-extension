@@ -27,7 +27,6 @@ const logger = new Logger(module);
 const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
-
 /**
  * Execute (primary function)
  *

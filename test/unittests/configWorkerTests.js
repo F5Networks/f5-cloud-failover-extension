@@ -8,19 +8,13 @@
 
 'use strict';
 
-const assert = require('assert');
-
 /* eslint-disable global-require */
 
-const declaration = {
-    class: 'Cloud_Failover',
-    environment: 'azure'
-};
+const assert = require('assert');
+const constants = require('../constants.js');
 
-const restWorker = {
-    loadState: (first, cb) => { cb(null); },
-    saveState: (first, state, cb) => { cb(null); }
-};
+const declaration = constants.declarations.basic;
+const restWorker = constants.restWorker;
 
 describe('Config Worker', () => {
     let config;
