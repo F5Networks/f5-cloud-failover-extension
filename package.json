@@ -16,10 +16,14 @@
         "report": "nyc report --reporter=html"
     },
     "nyc": {
-        "branches": 75,
-        "lines": 75,
-        "functions": 50,
-        "statements": 75
+        "check-coverage": true,
+        "lines": 70,
+        "functions": 70,
+        "branches": 70,
+        "reporter": [
+            "html",
+            "text"
+        ]
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "beta",

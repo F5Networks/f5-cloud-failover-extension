@@ -7,8 +7,7 @@
     "definitions": {},
     "required": [
         "class",
-        "environment",
-        "addressTags"
+        "environment"
     ],
     "properties": {
         "class": {
