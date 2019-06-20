@@ -16,12 +16,12 @@ The purpose of the F5 failover iControl LX extension is to decouple failover fun
 
 The failover extension includes a number of key components, listed below.
 
-*Initialization*: Prepares the environment for failover.  Writes user data to cloud provider storage and configures the /config/failover scripts on BIG-IP.
+*Configuration*: Prepares the environment for failover.  Writes user data to cloud provider storage and configures the /config/failover scripts on BIG-IP.
 
 *Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
 
 ---
-### Initialization
+### Configuration
 
 ![diagram](images/init.png)
 
@@ -31,37 +31,32 @@ The failover extension includes a number of key components, listed below.
 4. Cloud SDK uses storage client to write user-provided config data to storage location
 
 ---
-### Anatomy of an Initialization Request
+### Anatomy of an Configuration Request
 
-How does the project handle a `POST` request in the initialization stage?
+How does the project handle a `POST` request?
 
 `POST /mgmt/shared/cloud-failover/declare`
 
 ```json
 {
-	"class": "CloudFailover",
-	"MyInit": {
-	    "class": "Initialize",
-	    "environment": "azure",
-	    "useMetadata": true,
-	    "storageResource": "myuniquestorageaccount",
-	    "storageTags": [
-	        {
-	            "key": "value",
-	            "value": "myvalue"
-	        }
-	    ],
-	    "managedRoutes": [
-	        "192.168.1.0/24",
-	        "0.0.0.0/0"
-	    ],
-	    "addressTags": [
-	        {
-	            "key": "value",
-	            "value": "myvalue"
-	        }
-        ]
-    }
+	"class": "Cloud_Failover",
+	"environment": "azure",
+	"storageResource": "myuniquestorageaccount",
+	"storageTags": [
+		{
+			"key": "value",
+			"value": "myvalue"
+		}
+	],
+	"managedRoutes": [
+		"192.168.1.0/24"
+	],
+	"addressTags": [
+		{
+			"key": "F5_CLOUD_FAILOVER_LABEL",
+			"value": "mydeployment"
+		}
+	]
 }
 ```
 
@@ -71,35 +66,30 @@ How does the project handle a `POST` request in the initialization stage?
 {
     "message": "success",
     "declaration": {
-        "class": "CloudFailover",
-        "MyInit": {
-            "class": "Initialize",
-            "environment": "azure",
-            "useMetadata": true,
-            "storageResource": "myuniquestorageaccount",
-            "storageTags": [
-                {
-                    "key": "value",
-                    "value": "myvalue"
-                }
-            ],
-            "managedRoutes": [
-                "192.168.1.0/24",
-                "0.0.0.0/0"
-            ],
-            "addressTags": [
-                {
-                    "key": "value",
-                    "value": "myvalue"
-                }
-            ]
-        }
+        "class": "Cloud_Failover",
+        "environment": "azure",
+        "storageResource": "myuniquestorageaccount",
+        "storageTags": [
+            {
+                "key": "value",
+                "value": "myvalue"
+            }
+        ],
+        "managedRoutes": [
+            "192.168.1.0/24"
+        ],
+        "addressTags": [
+            {
+                "key": "F5_CLOUD_FAILOVER_LABEL",
+                "value": "mydeployment"
+            }
+        ]
     }
 }
 ```
 
 ---
-#### Anatomy of an Initialization Request (cont.)
+#### Anatomy of an Configuration Request (cont.)
 
 What happens in the system internals between request and response?
 

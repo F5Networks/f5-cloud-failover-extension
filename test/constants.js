@@ -17,7 +17,19 @@
 'use strict';
 
 /**
- * Returns the BIG-IP device object
+ * Constants used across two or more files
  *
- * @class
+ * @module
  */
+module.exports = {
+    restWorker: {
+        loadState: (first, cb) => { cb(null); },
+        saveState: (first, state, cb) => { cb(null); }
+    },
+    declarations: {
+        basic: {
+            class: 'Cloud_Failover',
+            environment: 'azure'
+        }
+    }
+};

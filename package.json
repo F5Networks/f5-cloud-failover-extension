@@ -10,16 +10,22 @@
     "scripts": {
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
-        "test-only": "mocha --recursive \"./test/unittests/*.js\" --opts ./test/unittests/.mocha.opts",
+        "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html"
     },
     "nyc": {
-        "branches": 50,
+        "check-coverage": true,
         "lines": 50,
         "functions": 50,
-        "statements": 50
+        "branches": 25,
+        "statements": 50,
+        "reporter": [
+            "html",
+            "text"
+        ],
+        "cache": false
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "beta",
@@ -46,6 +52,7 @@
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^5.2.0",
         "nyc": "^14.0.0",
+        "sinon": "^7.3.2",
         "ssh2": "^0.8.2"
     },
     "optionalDependencies": {
