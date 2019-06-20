@@ -41,6 +41,7 @@ class Cloud extends AbstractCloud {
     * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
     */
     init(options) {
+        options = options || {};
         this.tags = options.tags || null;
 
         return this._getInstanceMetadata()

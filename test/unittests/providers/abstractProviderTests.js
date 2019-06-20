@@ -9,7 +9,6 @@
 'use strict';
 
 const assert = require('assert');
-const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 
 /* eslint-disable global-require */
 
@@ -17,7 +16,7 @@ describe('Provider - Abstract', () => {
     let Provider;
 
     before(() => {
-        Provider = require('../../src/nodejs/providers/abstract/cloud.js').AbstractCloud;
+        Provider = require('../../../src/nodejs/providers/abstract/cloud.js').AbstractCloud;
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
