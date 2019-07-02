@@ -8,22 +8,31 @@ This is the top-level documentation which provides notes and information about c
 ---
 ## Overview
 
-The purpose of the F5 Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments.  Some reasons for this are:
+The purpose of the F5 Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP).  This requires moving/updating certain cloud resources during a failover event, as desribed below.
+
+- Failover IP(s) - Update IP configurations on a NIC, update EIP associations, update forwarding rule target instance, etc.
+- Failover Route(s) - Update User-Defined Routes (UDR), update route table, etc.
+
+Additional reasons for providing a consolidated solution include:
 
 - Standardization: Failover should look basically the same across all clouds
 - Portability: I should be able to install/run failover using a variety of methods (Cloud native templates, Terraform, Ansible, FaaS, etc.)
 - Lifecyle: I should be able to upgrade my BIG-IP software without having to call F5 support to "fix failover"
 
-The failover extension includes a number of key components, listed below.
-
-*Configuration*: Prepares the environment for failover.  Writes user data to cloud provider storage and configures the /config/failover scripts on BIG-IP.
-
-*Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
-
 ---
-## Diagram
+### Failover Event Diagram
 
 ![diagram](images/FailoverExtensionHighLevel.gif)
+
+
+---
+### Components
+
+The failover extension includes a number of key components, listed below.
+
+*Configuration*: Prepares the environment for failover.  Writes configuration and/or state to cloud provider storage and configures the /config/failover scripts on BIG-IP.
+
+*Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
 
 ---
 ### Configuration
@@ -36,7 +45,7 @@ The failover extension includes a number of key components, listed below.
 4. Cloud SDK uses storage client to write user-provided config data to storage location
 
 ---
-### Anatomy of an Configuration Request
+#### Anatomy of a Configuration Request
 
 How does the project handle a `POST` request to the configuration endpoint?
 
@@ -94,7 +103,7 @@ How does the project handle a `POST` request to the configuration endpoint?
 ```
 
 ---
-#### Anatomy of an Configuration Request (cont.)
+#### Anatomy of a Configuration Request (cont.)
 
 What happens in the system internals between request and response?
 
@@ -130,7 +139,7 @@ What happens in the system internals between request and response?
 8. Cloud SDK uses storage client to write task completed to storage location
 
 ---
-### Anatomy of a Failover Trigger Request
+#### Anatomy of a Failover Trigger Request
 
 How does the project handle a `POST` request to the failover trigger endpoint?
 
@@ -169,7 +178,7 @@ What happens in the system internals between request and response?
     - ref: [response.js](../src/nodejs/response.js)
 
 ---
-### Failover Flow Diagram
+#### Failover Flow Diagram
 
 ![diagram](images/FailoverExtensionSequence.png)
 
