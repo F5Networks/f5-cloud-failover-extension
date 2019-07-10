@@ -111,6 +111,59 @@ class ConfigWorker {
     }
 
     /**
+     * Update the failover trigger scripts, stored on the BIG-IP's local filesystem, to call the Failover
+     * Extension 'trigger' endpoint upon a failover event
+     *
+     * @returns {Promise}   A promise which is resolved when the request is complete
+     *                      or rejected if an error occurs.
+     */
+    updateTriggerScripts() {
+        return Promise.all([
+            this.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
+            this.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
+        ])
+        .then(() => {
+            logger.info('Successfully wrote Failover trigger scripts to filesystem');
+        })
+        .catch((err) => {
+            logger.error(`Could not update Failover trigger scripts: ${util.stringify(err.message)}`);
+            return Promise.reject(err);
+        })
+    }
+
+    /**
+     * Generate the Bash command used to update the Failover Trigger scripts on the BIG-IP's local filesystem
+     * 
+     * @param {String}  scriptName  - Name of the specific failover trigger script to update
+     * 
+     * @returns {String}    A string containing the fully composed bash script to send to the iControl util/bash endpoint 
+     */
+    generateTriggerScript(scriptName) {
+        // base64 username and password to reduce needs to escape potential special characters
+        const auth = 'Basic ' + Buffer.from('admin:admin').toString('base64');
+        // single quotes in Bash command are replaced. Use Hex code for single quote, 27, instead
+        const singleQuoteFunc = 'function sq() { printf 27 | xxd -r -p; }';
+        const curlCommand = `curl -H $(sq)Authorization: ${auth}$(sq) localhost:8100/mgmt/shared/cloud-failover/trigger`;
+        return `'${singleQuoteFunc} && printf \"#!/bin/sh\n\n${curlCommand}\n\" > /config/failover/${scriptName}'`;
+    }
+
+    /**
+     * Calls the util/bash iControl endpoint, to execute a bash script, using the BIG-IP client
+     *
+     * @param {String}      command - Bash command for BIG-IP to execute
+     *
+     * @returns {Promise}   A promise which is resolved when the request is complete
+     *                      or rejected if an error occurs.
+     */
+    executeBigIpBashCmd(command) {
+        const commandBody = {
+            command: 'run',
+            utilCmdArgs: `-c ${command}`
+        };
+        return bigip.create('/tm/util/bash', commandBody, undefined, util.NO_RETRY);
+    }
+
+    /**
      * Process Configuration
      *
      * @param {Object} body
@@ -127,8 +180,17 @@ class ConfigWorker {
         logger.debug('Successfully validated declaration');
         this.setConfig(declaration);
 
-        // return declaration to user
-        return Promise.resolve(this.state.config);
+        // update failover trigger scripts
+        return this.updateTriggerScripts()
+            .then(() => {
+                // return declaration to user
+                return Promise.resolve(this.state.config);
+            })
+            .catch((err) => {
+                return Promise.reject(
+                    `Could not process configuration declaration: ${JSON.stringify(err.message)}`
+                );
+            })        
     }
 }
 
