@@ -11,6 +11,9 @@ coverage/
 # local test directory/files
 test/functional/logs/
 test/functional/*_harness_file.json
+**/.terraform/*
+*.tfstate
+*.tfstate.*
 # misc
 .vscode/
 **/.DS_Store
