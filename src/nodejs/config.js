@@ -16,11 +16,15 @@
 
 'use strict';
 
+const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+
 const util = require('./util.js');
 const Logger = require('./logger.js');
 const Validator = require('./validator.js');
 
 const logger = new Logger(module);
+const BigIp = f5CloudLibs.bigIp;
+const bigip = new BigIp({ logger });
 
 const DFL_CONFIG_IN_STATE = {
     config: {}
@@ -54,6 +58,20 @@ class ConfigWorker {
         })
             .then((state) => {
                 this.state = state || DFL_CONFIG_IN_STATE;
+            })
+            .then(() => {
+                bigip.init(
+                    'localhost',
+                    'admin',
+                    'admin',
+                    {
+                        port: '443',
+                        product: 'BIG-IP'
+                    }
+                )
+            })
+            .then(() => {
+                logger.debug('BIG-IP has been initialized');
             })
             .catch((err) => {
                 logger.error(`Could not initialize state: ${util.stringify(err.message)}`);
