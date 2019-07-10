@@ -68,7 +68,7 @@ class ConfigWorker {
                         port: '443',
                         product: 'BIG-IP'
                     }
-                )
+                );
             })
             .then(() => {
                 logger.debug('BIG-IP has been initialized');
@@ -122,28 +122,30 @@ class ConfigWorker {
             this.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
             this.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
         ])
-        .then(() => {
-            logger.info('Successfully wrote Failover trigger scripts to filesystem');
-        })
-        .catch((err) => {
-            logger.error(`Could not update Failover trigger scripts: ${util.stringify(err.message)}`);
-            return Promise.reject(err);
-        })
+            .then(() => {
+                logger.info('Successfully wrote Failover trigger scripts to filesystem');
+            })
+            .catch((err) => {
+                logger.error(`Could not update Failover trigger scripts: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 
     /**
      * Generate the Bash command used to update the Failover Trigger scripts on the BIG-IP's local filesystem
-     * 
+     *
      * @param {String}  scriptName  - Name of the specific failover trigger script to update
-     * 
-     * @returns {String}    A string containing the fully composed bash script to send to the iControl util/bash endpoint 
+     *
+     * @returns {String}    A string containing the fully composed bash script
+     *                      to send to the iControl util/bash endpoint
      */
     generateTriggerScript(scriptName) {
         // base64 username and password to reduce needs to escape potential special characters
-        const auth = 'Basic ' + Buffer.from('admin:admin').toString('base64');
+        const auth = `Basic ${Buffer.from('admin:admin').toString('base64')}`;
         // single quotes in Bash command are replaced. Use Hex code for single quote, 27, instead
         const singleQuoteFunc = 'function sq() { printf 27 | xxd -r -p; }';
         const curlCommand = `curl -H $(sq)Authorization: ${auth}$(sq) localhost:8100/mgmt/shared/cloud-failover/trigger`;
+        // eslint-disable-next-line no-useless-escape
         return `'${singleQuoteFunc} && printf \"#!/bin/sh\n\n${curlCommand}\n\" > /config/failover/${scriptName}'`;
     }
 
@@ -182,15 +184,14 @@ class ConfigWorker {
 
         // update failover trigger scripts
         return this.updateTriggerScripts()
+            // eslint-disable-next-line arrow-body-style
             .then(() => {
-                // return declaration to user
                 return Promise.resolve(this.state.config);
             })
             .catch((err) => {
-                return Promise.reject(
-                    `Could not process configuration declaration: ${JSON.stringify(err.message)}`
-                );
-            })        
+                logger.error(`Could not process configuration declaration: ${JSON.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 }
 
