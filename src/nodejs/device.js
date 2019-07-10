@@ -13,30 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 'use strict';
 
-const q = require('q');
+const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+
 const Logger = require('./logger.js');
 const util = require('./util.js');
+
 const logger = new Logger(module);
 
-const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+
 const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
-
-class Device{
-
+class Device {
     constructor(hostname, username, password, mgmtPort) {
-        //this.initialize(hostname, username, password, mgmtPort);
+        // this.initialize(hostname, username, password, mgmtPort);
         this.hostname = hostname;
         this.username = username;
         this.password = password;
         this.mgmtPort = mgmtPort;
     }
 
-    initialize(hostname, username, password, mgmtPort){
-
+    initialize(hostname, username, password, mgmtPort) {
         return bigip.init(
             hostname,
             username,
@@ -45,20 +45,20 @@ class Device{
                 port: mgmtPort,
                 product: 'BIG-IP'
             }
-        ).then( () => {
+        ).then(() => {
             logger.info('BIG-IP has been initialized');
-            return getConfig();
+            return this.getConfig();
         })
-        .then((results) => {
-            initFailoverConfig(results)
-        })
-        .catch((err) => {
-            logger.error(`device.initialize() error: ${util.stringify(err.message)}`);
-            return Promise.reject(err);
-        });
+            .then((results) => {
+                this.initFailoverConfig(results);
+            })
+            .catch((err) => {
+                logger.error(`device.initialize() error: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 
-    getConfig(){
+    getConfig() {
         return Promise.all([
             bigip.list('/tm/sys/global-settings'),
             bigip.list('/tm/cm/traffic-group/stats'),
@@ -67,8 +67,7 @@ class Device{
         ]);
     }
 
-    initFailoverConfig(results){
-
+    initFailoverConfig(results) {
         this.globalSettings = results[0];
         this.trafficGroups = results[1];
         this.selfAddresses = results[2];
@@ -77,22 +76,21 @@ class Device{
         logger.info('BIG IP Failover configuration has been initialized.');
     }
 
-    getGlobalSettings(){
+    getGlobalSettings() {
         return this.globalSettings;
     }
 
-    getTrafficGroupsStats(){
-         return this.trafficGroups;
+    getTrafficGroupsStats() {
+        return this.trafficGroups;
     }
 
-    getSelfAddresses(){
+    getSelfAddresses() {
         return this.selfAddresses;
     }
 
-    getVirtualAddresses(){
+    getVirtualAddresses() {
         return this.virtualAddresses;
     }
-
 }
 
 

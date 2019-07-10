@@ -16,68 +16,62 @@
 
 'use strict';
 
-
+const nock = require('nock');
 const assert = require('assert');
 const Device = require('../../src/nodejs/device');
-const nock = require('nock');
+
 
 const mockResults = [
-    "globalSettings",
-    "trafficGroups",
-    "selfAddresses",
-    "virtualAddresses"
-]
+    'globalSettings',
+    'trafficGroups',
+    'selfAddresses',
+    'virtualAddresses'
+];
 
 let device;
 
 
 describe('device', () => {
-
     beforeEach(() => {
-
-       nock(/.*/)
-          .persist()
-          .get(/.*/)
-          .reply(200, "Recieved")
-          .post(/.*/)
-          .reply(201, "Created")
+        nock(/.*/)
+            .persist()
+            .get(/.*/)
+            .reply(200, 'Recieved')
+            .post(/.*/)
+            .reply(201, 'Created');
 
         device = new Device('localhost', 'admin', 'admin', '443');
-        device.initFailoverConfig(mockResults)
+        device.initFailoverConfig(mockResults);
     });
 
 
     it('validate initialize', (done) => {
-        device.initialize('localhost', 'admin', 'admin', '443').then((response) => {
-
-
-        });
-        assert.equal("Created", "Created");
+        device.initialize('localhost', 'admin', 'admin', '443');
+        assert.equal('Created', 'Created');
         done();
     });
 
     it('validate initFailoverConfig', () => {
-        device.initFailoverConfig(mockResults)
-        assert.strictEqual(device.globalSettings, "globalSettings");
-        assert.strictEqual(device.trafficGroups, "trafficGroups");
-        assert.strictEqual(device.selfAddresses, "selfAddresses");
-        assert.strictEqual(device.virtualAddresses, "virtualAddresses");
+        device.initFailoverConfig(mockResults);
+        assert.strictEqual(device.globalSettings, 'globalSettings');
+        assert.strictEqual(device.trafficGroups, 'trafficGroups');
+        assert.strictEqual(device.selfAddresses, 'selfAddresses');
+        assert.strictEqual(device.virtualAddresses, 'virtualAddresses');
     });
 
     it('validate getGlobalSettings', () => {
-        assert.strictEqual(device.getGlobalSettings(), "globalSettings");
+        assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
     });
 
     it('validate getTrafficGroupsStats', () => {
-        assert.strictEqual(device.getTrafficGroupsStats(), "trafficGroups");
+        assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
     });
 
     it('validate getSelfAddresses', () => {
-        assert.strictEqual(device.getSelfAddresses(), "selfAddresses");
+        assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
     });
 
     it('validate getVirtualAddresses', () => {
-        assert.strictEqual(device.getVirtualAddresses(), "virtualAddresses");
+        assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
     });
-
 });
