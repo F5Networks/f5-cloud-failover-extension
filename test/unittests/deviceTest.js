@@ -16,10 +16,9 @@
 
 'use strict';
 
-const nock = require('nock');
+const sinon = require('sinon');
 const assert = require('assert');
 const Device = require('../../src/nodejs/device');
-
 
 const mockResults = [
     'globalSettings',
@@ -33,22 +32,14 @@ let device;
 
 describe('device', () => {
     beforeEach(() => {
-        nock(/.*/)
-            .persist()
-            .get(/.*/)
-            .reply(200, 'Recieved')
-            .post(/.*/)
-            .reply(201, 'Created');
-
         device = new Device('localhost', 'admin', 'admin', '443');
+        device.initialize = sinon.stub().returns('Initialized');
+        device.getConfig = sinon.stub().returns('ConfigRecieved');
         device.initFailoverConfig(mockResults);
     });
 
-
-    it('validate initialize', (done) => {
-        device.initialize('localhost', 'admin', 'admin', '443');
-        assert.equal('Created', 'Created');
-        done();
+    it('validate initialize', () => {
+        assert.equal('Initialized', device.initialize('localhost', 'admin', 'admin', '443'));
     });
 
     it('validate initFailoverConfig', () => {
@@ -57,6 +48,10 @@ describe('device', () => {
         assert.strictEqual(device.trafficGroups, 'trafficGroups');
         assert.strictEqual(device.selfAddresses, 'selfAddresses');
         assert.strictEqual(device.virtualAddresses, 'virtualAddresses');
+    });
+
+    it('validate getConfig', () => {
+        assert.equal('ConfigRecieved', device.getConfig());
     });
 
     it('validate getGlobalSettings', () => {

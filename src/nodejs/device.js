@@ -45,17 +45,7 @@ class Device {
                 port: mgmtPort,
                 product: 'BIG-IP'
             }
-        ).then(() => {
-            logger.info('BIG-IP has been initialized');
-            return this.getConfig();
-        })
-            .then((results) => {
-                this.initFailoverConfig(results);
-            })
-            .catch((err) => {
-                logger.error(`device.initialize() error: ${util.stringify(err.message)}`);
-                return Promise.reject(err);
-            });
+        )
     }
 
     getConfig() {
