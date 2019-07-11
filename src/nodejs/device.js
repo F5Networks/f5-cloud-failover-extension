@@ -28,22 +28,22 @@ const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
 class Device {
-    constructor(hostname, username, password, mgmtPort) {
-        // this.initialize(hostname, username, password, mgmtPort);
+    constructor(hostname, username, password, mgmtPort, product) {
         this.hostname = hostname;
         this.username = username;
         this.password = password;
         this.mgmtPort = mgmtPort;
+        this.product = product;
     }
 
-    initialize(hostname, username, password, mgmtPort) {
+    initialize() {
         return bigip.init(
-            hostname,
-            username,
-            password,
+            this.hostname,
+            this.username,
+            this.password,
             {
-                port: mgmtPort,
-                product: 'BIG-IP'
+                port: this.mgmtPort,
+                product: this.product
             }
         )
     }

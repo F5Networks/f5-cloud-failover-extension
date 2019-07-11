@@ -18,6 +18,7 @@
 
 const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
+const Device = require('./device.js');
 const Logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
@@ -35,6 +36,7 @@ function execute() {
     let cloudProvider;
     let globalSettings;
     let hostname;
+    let device;
 
     return configWorker.getConfig()
         .then((config) => {
@@ -49,31 +51,20 @@ function execute() {
         .then(() => {
             logger.info('Cloud provider has been initialized');
         })
-        .then(() => bigip.init(
-            'localhost',
-            'admin',
-            'admin',
-            {
-                port: '443',
-                product: 'BIG-IP'
-            }
-        ))
+        .then(() => {
+            device = new Device('localhost', 'admin', 'admin', '443', 'BIG-IP');
+            return device.initialize();
+        })
         .then(() => {
             logger.info('BIG-IP has been initialized');
         })
-        .then(() => Promise.all([
-            bigip.list('/tm/sys/global-settings'),
-            bigip.list('/tm/cm/traffic-group/stats'),
-            bigip.list('/tm/net/self'),
-            bigip.list('/tm/ltm/virtual-address')
-        ]))
+        .then(() => device.getConfig())
         .then((results) => {
-            globalSettings = results[0];
-            hostname = globalSettings.hostname;
-
-            const trafficGroups = getTrafficGroups(results[1], hostname);
-            const selfAddresses = getSelfAddresses(results[2], trafficGroups);
-            const virtualAddresses = getVirtualAddresses(results[3], trafficGroups);
+            device.initFailoverConfig(results);
+            hostname = device.getGlobalSettings().hostname;
+            const trafficGroups = getTrafficGroups(device.getTrafficGroupsStats(), hostname);
+            const selfAddresses = getSelfAddresses(device.getSelfAddresses(), trafficGroups);
+            const virtualAddresses = getVirtualAddresses(device.getVirtualAddresses(), trafficGroups);
             return getFailoverAddresses(selfAddresses, virtualAddresses);
         })
         .then((addresses) => {
