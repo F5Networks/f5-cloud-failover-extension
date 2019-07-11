@@ -26,6 +26,7 @@ describe('Failover', () => {
     let mockCloudFactory;
     let mockBigIpInit;
     let mockBigIpList;
+    // eslint-disable-next-line no-unused-vars
     let mockBigIpCreate;
 
     before(() => {

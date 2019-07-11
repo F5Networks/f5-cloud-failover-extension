@@ -26,6 +26,8 @@ const logger = new Logger(module);
 const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
+const cloudUtils = f5CloudLibs.util;
+
 const DFL_CONFIG_IN_STATE = {
     config: {}
 };
@@ -59,17 +61,15 @@ class ConfigWorker {
             .then((state) => {
                 this.state = state || DFL_CONFIG_IN_STATE;
             })
-            .then(() => {
-                return bigip.init(
-                    'localhost',
-                    'admin',
-                    'admin',
-                    {
-                        port: '443',
-                        product: 'BIG-IP'
-                    }
-                );
-            })
+            .then(() => bigip.init(
+                'localhost',
+                'admin',
+                'admin',
+                {
+                    port: '443',
+                    product: 'BIG-IP'
+                }
+            ))
             .then(() => {
                 logger.debug('BIG-IP has been initialized');
             })
@@ -163,7 +163,7 @@ class ConfigWorker {
             utilCmdArgs: `-c ${command}`
         };
         // TODO: util.NO_RETRY is undef. Import it
-        return bigip.create('/tm/util/bash', commandBody, undefined, util.NO_RETRY);
+        return bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
     }
 
     /**
