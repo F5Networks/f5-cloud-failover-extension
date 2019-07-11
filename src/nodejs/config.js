@@ -60,7 +60,7 @@ class ConfigWorker {
                 this.state = state || DFL_CONFIG_IN_STATE;
             })
             .then(() => {
-                bigip.init(
+                return bigip.init(
                     'localhost',
                     'admin',
                     'admin',

@@ -11,6 +11,7 @@
 /* eslint-disable global-require */
 
 const assert = require('assert');
+const sinon = require('sinon');
 const constants = require('../constants.js');
 
 const declaration = constants.declarations.basic;
@@ -18,9 +19,16 @@ const restWorker = constants.restWorker;
 
 describe('Config Worker', () => {
     let config;
+    let f5CloudLibs;
+
+    const mockBigIpInit;
+    let mockBigIpCreate;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
+        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+        mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
+        mockBigIpCreate = sinon.stub(f5CloudLibs.bigIp.prototype, 'create');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -28,11 +36,16 @@ describe('Config Worker', () => {
         });
     });
 
-    it('should process request', () => config.init(restWorker)
-        .then(() => config.processConfigRequest(declaration))
-        .then((response) => {
-            assert.strictEqual(response.class, declaration.class);
-        }));
+    it('should process request', () => {
+        mockBigIpCreate.onCall(0).returns({ hostname: 'foo' });
+        mockBigIpCreate.returns([]);
+
+        return config.init(restWorker)
+            .then(() => config.processConfigRequest(declaration))
+            .then((response) => {
+                assert.strictEqual(response.class, declaration.class);
+            });
+    });
 
     it('should reject invalid declaration', () => config.init(restWorker)
         .then(() => config.processConfigRequest({ foo: 'bar' }))
