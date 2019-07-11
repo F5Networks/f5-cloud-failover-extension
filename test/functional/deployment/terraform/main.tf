@@ -50,24 +50,13 @@ resource "azurerm_network_security_group" "deployment" {
   location            = "${azurerm_resource_group.deployment.location}"
   resource_group_name = "${azurerm_resource_group.deployment.name}"
   security_rule {
-    name                       = "ssh"
+    name                       = "allow_all"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-  security_rule {
-    name                       = "https"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
+    destination_port_range     = "*"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -82,7 +71,8 @@ resource "azurerm_network_interface" "mgmt0" {
   ip_configuration {
     name                          = "${var.env_prefix}-mgmt0"
     subnet_id                     = "${azurerm_subnet.mgmt.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.0.4"
     public_ip_address_id          = "${azurerm_public_ip.pip0.id}"
   }
 }
@@ -96,7 +86,8 @@ resource "azurerm_network_interface" "mgmt1" {
   ip_configuration {
     name                          = "${var.env_prefix}-mgmt1"
     subnet_id                     = "${azurerm_subnet.mgmt.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.0.5"
     public_ip_address_id          = "${azurerm_public_ip.pip1.id}"
   }
 }
@@ -110,7 +101,8 @@ resource "azurerm_network_interface" "internal0" {
   ip_configuration {
     name                          = "${var.env_prefix}-int0"
     subnet_id                     = "${azurerm_subnet.internal.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.1.4"
   }
 }
 
@@ -123,7 +115,8 @@ resource "azurerm_network_interface" "internal1" {
   ip_configuration {
     name                          = "${var.env_prefix}-int1"
     subnet_id                     = "${azurerm_subnet.internal.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.1.5"
   }
 }
 
@@ -136,7 +129,8 @@ resource "azurerm_network_interface" "external0" {
   ip_configuration {
     name                          = "${var.env_prefix}-ext0"
     subnet_id                     = "${azurerm_subnet.external.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.2.4"
   }
 }
 
@@ -149,7 +143,8 @@ resource "azurerm_network_interface" "external1" {
   ip_configuration {
     name                          = "${var.env_prefix}-ext1"
     subnet_id                     = "${azurerm_subnet.external.id}"
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.2.5"
   }
 }
 
@@ -261,7 +256,7 @@ resource "null_resource" "login0" {
 
 resource "null_resource" "onboard0" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain package install --component do"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_0.json"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -282,7 +277,7 @@ resource "null_resource" "login1" {
 
 resource "null_resource" "onboard1" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain package install --component do"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_1.json"
   }
   triggers = {
     always_run = "${timestamp()}"
