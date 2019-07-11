@@ -162,6 +162,7 @@ class ConfigWorker {
             command: 'run',
             utilCmdArgs: `-c ${command}`
         };
+        // TODO: util.NO_RETRY is undef. Import it
         return bigip.create('/tm/util/bash', commandBody, undefined, util.NO_RETRY);
     }
 

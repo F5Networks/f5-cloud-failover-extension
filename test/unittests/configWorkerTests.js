@@ -21,7 +21,7 @@ describe('Config Worker', () => {
     let config;
     let f5CloudLibs;
 
-    const mockBigIpInit;
+    let mockBigIpInit;
     let mockBigIpCreate;
 
     before(() => {
@@ -43,6 +43,7 @@ describe('Config Worker', () => {
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
             .then((response) => {
+                assert.strictEqual(mockBigIpCreate.called, true);
                 assert.strictEqual(response.class, declaration.class);
             });
     });

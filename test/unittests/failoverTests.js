@@ -26,6 +26,7 @@ describe('Failover', () => {
     let mockCloudFactory;
     let mockBigIpInit;
     let mockBigIpList;
+    let mockBigIpCreate;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
@@ -40,6 +41,7 @@ describe('Failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
         mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
         mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
+        mockBigIpCreate = sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
