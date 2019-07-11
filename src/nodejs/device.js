@@ -26,15 +26,37 @@ const logger = new Logger(module);
 const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
+
+/**
+ * @class Device
+ *
+ * @description a singleton class which represents BIG IP device
+ *
+ * @constructor
+ */
 class Device {
     constructor(hostname, username, password, mgmtPort, product) {
-        this.hostname = hostname;
-        this.username = username;
-        this.password = password;
-        this.mgmtPort = mgmtPort;
-        this.product = product;
+        if (Device.instance) {
+            return Device.instance;
+        }
+
+        Device.instance = this;
+
+        this.hostname = hostname || 'localhost';
+        this.username = username || 'admin';
+        this.password = password || 'admin';
+        this.mgmtPort = mgmtPort || '443';
+        this.product = product || 'BIG-IP';
+
+        return this;
     }
 
+    /**
+    * Initialize the BIG-IP device. Executed by failover.js module
+    * and intended for instantiating f5-cloud-libs BIG-IP object
+    *
+    * @returns {Promise}
+    */
     initialize() {
         return bigip.init(
             this.hostname,
@@ -47,6 +69,13 @@ class Device {
         );
     }
 
+    /**
+    * Retrieves BIG-IP configurations from provided endpoints
+    *
+    * @param {Array} [endpoints] - list of BIG-IP endpoints used for getting required configuration
+    *
+    * @returns {Promise}
+    */
     getConfig(endpoints) {
         const promises = [];
         for (let i = 0; i < endpoints.length; i += 1) {
@@ -55,6 +84,12 @@ class Device {
         return Promise.all(promises);
     }
 
+    /**
+    * Initializes device module configuration
+    *
+    * @param {Array} [results] - list of config objects recieved by quering BIG-IP endpoints in getConfig method
+    *
+    */
     initFailoverConfig(results) {
         this.globalSettings = results[0];
         this.trafficGroups = results[1];
@@ -64,18 +99,39 @@ class Device {
         logger.info('BIG IP Failover configuration has been initialized.');
     }
 
+    /**
+    * Intended for getting global settings config object
+    *
+    *  @returns {Object} global settings config object
+    */
     getGlobalSettings() {
         return this.globalSettings;
     }
 
+    /**
+    * Intended for getting global traffic groups stats config object
+    *
+    *  @returns {Object} global traffic groups stats config object
+    */
     getTrafficGroupsStats() {
         return this.trafficGroups;
     }
 
+    /**
+    * Intended for getting self addresses config object
+    *
+    *  @returns {Object} self addresses config object
+    */
     getSelfAddresses() {
         return this.selfAddresses;
     }
 
+
+    /**
+    * Intended for getting virtual addresses config object
+    *
+    *  @returns {Object} virtual addresses config object
+    */
     getVirtualAddresses() {
         return this.virtualAddresses;
     }
