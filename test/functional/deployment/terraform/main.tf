@@ -169,7 +169,7 @@ resource "azurerm_virtual_machine" "vm0" {
     publisher = "${var.publisher}"
     offer     = "${var.offer}"
     sku       = "${var.sku}"
-    version   = "latest"
+    version   = "13.1.104000"
   }
 
   plan {
@@ -216,7 +216,7 @@ resource "azurerm_virtual_machine" "vm1" {
     publisher = "${var.publisher}"
     offer     = "${var.offer}"
     sku       = "${var.sku}"
-    version   = "latest"
+    version   = "13.1.104000"
   }
 
   plan {
