@@ -16,17 +16,12 @@
 
 'use strict';
 
-const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
-
 const util = require('./util.js');
 const Logger = require('./logger.js');
 const Validator = require('./validator.js');
+const Device = require('./device.js');
 
 const logger = new Logger(module);
-const BigIp = f5CloudLibs.bigIp;
-const bigip = new BigIp({ logger });
-
-const cloudUtils = f5CloudLibs.util;
 
 const DFL_CONFIG_IN_STATE = {
     config: {}
@@ -60,18 +55,6 @@ class ConfigWorker {
         })
             .then((state) => {
                 this.state = state || DFL_CONFIG_IN_STATE;
-            })
-            .then(() => bigip.init(
-                'localhost',
-                'admin',
-                'admin',
-                {
-                    port: '443',
-                    product: 'BIG-IP'
-                }
-            ))
-            .then(() => {
-                logger.debug('BIG-IP has been initialized');
             })
             .catch((err) => {
                 logger.error(`Could not initialize state: ${util.stringify(err.message)}`);
@@ -118,9 +101,11 @@ class ConfigWorker {
      *                      or rejected if an error occurs.
      */
     updateTriggerScripts() {
+        const x = '1';
+        // TODO: Move 'this.executeBigIpBashCmd' > device.js
         return Promise.all([
-            this.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
-            this.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
+            this.device.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
+            this.device.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
         ])
             .then(() => {
                 logger.info('Successfully wrote Failover trigger scripts to filesystem');
@@ -140,30 +125,18 @@ class ConfigWorker {
      *                      to send to the iControl util/bash endpoint
      */
     generateTriggerScript(scriptName) {
+        // this.device.password
+        // this.device.username
+        // eslint-disable-next-line no-useless-escape
+        const command = `'echo \"#!/bin/sh\n\ncurl -u admin:admin localhost:8100/mgmt/shared/cloud-failover/trigger\" > /config/failover/${scriptName}'`;
         // base64 username and password to reduce needs to escape potential special characters
         const auth = `Basic ${Buffer.from('admin:admin').toString('base64')}`;
         // single quotes in Bash command are replaced. Use Hex code for single quote, 27, instead
         const singleQuoteFunc = 'function sq() { printf 27 | xxd -r -p; }';
         const curlCommand = `curl -H $(sq)Authorization: ${auth}$(sq) localhost:8100/mgmt/shared/cloud-failover/trigger`;
         // eslint-disable-next-line no-useless-escape
-        return `'${singleQuoteFunc} && printf \"#!/bin/sh\n\n${curlCommand}\n\" > /config/failover/${scriptName}'`;
-    }
-
-    /**
-     * Calls the util/bash iControl endpoint, to execute a bash script, using the BIG-IP client
-     *
-     * @param {String}      command - Bash command for BIG-IP to execute
-     *
-     * @returns {Promise}   A promise which is resolved when the request is complete
-     *                      or rejected if an error occurs.
-     */
-    executeBigIpBashCmd(command) {
-        const commandBody = {
-            command: 'run',
-            utilCmdArgs: `-c ${command}`
-        };
-        // TODO: util.NO_RETRY is undef. Import it
-        return bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
+        // return `'${singleQuoteFunc} && printf \"#!/bin/sh\n\n${curlCommand}\n\" > /config/failover/${scriptName}'`;
+        return command;
     }
 
     /**
@@ -183,9 +156,20 @@ class ConfigWorker {
         logger.debug('Successfully validated declaration');
         this.setConfig(declaration);
 
-        // update failover trigger scripts
-        return this.updateTriggerScripts()
-            // eslint-disable-next-line arrow-body-style
+        this.device = new Device(
+            'localhost',
+            'admin',
+            'admin',
+            '443',
+            'BIG-IP'
+        );
+
+        return this.device.initialize()
+            .then((data) => {
+                const y = data;
+                const x = '1';
+                return this.updateTriggerScripts();
+            })
             .then(() => {
                 return Promise.resolve(this.state.config);
             })

@@ -22,7 +22,7 @@ const Logger = require('./logger.js');
 
 const logger = new Logger(module);
 
-
+const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
 const bigip = new BigIp({ logger });
 
@@ -78,6 +78,23 @@ class Device {
 
     getVirtualAddresses() {
         return this.virtualAddresses;
+    }
+
+    /**
+     * Calls the util/bash iControl endpoint, to execute a bash script, using the BIG-IP client
+     *
+     * @param {String}      command - Bash command for BIG-IP to execute
+     *
+     * @returns {Promise}   A promise which is resolved when the request is complete
+     *                      or rejected if an error occurs.
+     */
+    executeBigIpBashCmd(command) {
+        const commandBody = {
+            command: 'run',
+            utilCmdArgs: `-c ${command}`
+        };
+        // TODO: util.NO_RETRY is undef. Import it
+        return bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
     }
 }
 
