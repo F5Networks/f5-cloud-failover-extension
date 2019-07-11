@@ -19,7 +19,6 @@
 const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
 const Logger = require('./logger.js');
-const util = require('./util.js');
 
 const logger = new Logger(module);
 
@@ -45,16 +44,15 @@ class Device {
                 port: this.mgmtPort,
                 product: this.product
             }
-        )
+        );
     }
 
-    getConfig() {
-        return Promise.all([
-            bigip.list('/tm/sys/global-settings'),
-            bigip.list('/tm/cm/traffic-group/stats'),
-            bigip.list('/tm/net/self'),
-            bigip.list('/tm/ltm/virtual-address')
-        ]);
+    getConfig(endpoints) {
+        const promises = [];
+        for (let i = 0; i < endpoints.length; i += 1) {
+            promises.push(bigip.list(endpoints[i]));
+        }
+        return Promise.all(promises);
     }
 
     initFailoverConfig(results) {

@@ -16,8 +16,6 @@
 
 'use strict';
 
-const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
-
 const Device = require('./device.js');
 const Logger = require('./logger.js');
 const util = require('./util.js');
@@ -25,8 +23,6 @@ const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 
 const logger = new Logger(module);
-const BigIp = f5CloudLibs.bigIp;
-const bigip = new BigIp({ logger });
 
 /**
  * Execute (primary function)
@@ -34,7 +30,6 @@ const bigip = new BigIp({ logger });
  */
 function execute() {
     let cloudProvider;
-    let globalSettings;
     let hostname;
     let device;
 
@@ -58,7 +53,12 @@ function execute() {
         .then(() => {
             logger.info('BIG-IP has been initialized');
         })
-        .then(() => device.getConfig())
+        .then(() => device.getConfig([
+            '/tm/sys/global-settings',
+            '/tm/cm/traffic-group/stats',
+            '/tm/net/self',
+            '/tm/ltm/virtual-address'
+        ]))
         .then((results) => {
             device.initFailoverConfig(results);
             hostname = device.getGlobalSettings().hostname;

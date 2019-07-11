@@ -51,7 +51,12 @@ describe('device', () => {
     });
 
     it('validate getConfig', () => {
-        assert.equal('ConfigRecieved', device.getConfig());
+        assert.equal('ConfigRecieved', device.getConfig([
+            '/tm/sys/global-settings',
+            '/tm/cm/traffic-group/stats',
+            '/tm/net/self',
+            '/tm/ltm/virtual-address'
+        ]));
     });
 
     it('validate getGlobalSettings', () => {
