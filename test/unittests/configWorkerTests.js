@@ -20,11 +20,12 @@ const restWorker = constants.restWorker;
 
 describe('Config Worker', () => {
     let config;
+    let mockExecuteBigIpBashCmd;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
         sinon.stub(Device.prototype, 'initialize').resolves();
-        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('my script');
+        mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves();
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -52,17 +53,35 @@ describe('Config Worker', () => {
     it('should generate failover trigger bash scripts', () => config.init(restWorker)
         .then(() => config.generateTriggerScript('test'))
         .then((response) => {
-            assert.strictEqual(response, 'hello');
+            // Fetch parts of formatted bash string
+            const cmdParts = response.split(' > ');
+            const curlParts = cmdParts[0].split('-u ')[1].split(' ');
+            const auth = curlParts[0];
+            const curlURL = curlParts[1].split('"')[0];
+            const scriptName = cmdParts[1].split('\'')[0];
+
+            assert.strictEqual(auth, 'admin:admin');
+            assert.strictEqual(curlURL, 'localhost:8100/mgmt/shared/cloud-failover/trigger');
+            assert.strictEqual(scriptName, '/config/failover/test');
         }));
 
     it('should send failover script to device executeBigIpBashCmd', () => {
+        let bashCommand;
+        const script = 'curl localhost';
+
+        // Stub config's generateTriggerScript() to easily validate command passed into executeBigIpBashCmd()
+        sinon.stub(Object.getPrototypeOf(config), 'generateTriggerScript').returns(script);
+        mockExecuteBigIpBashCmd.callsFake((command) => {
+            bashCommand = command;
+            return Promise.resolve();
+        });
+
         return config.init(restWorker)
             .then(() => {
-                sinon.stub(Object.getPrototypeOf(config), 'generateTriggerScript').returns('hello');
                 config.processConfigRequest(declaration);
             })
             .then(() => {
-                assert.strictEqual('data', '/tm/util/bash');
+                assert.strictEqual(bashCommand, script);
             });
     });
 

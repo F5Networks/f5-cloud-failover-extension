@@ -166,12 +166,9 @@ class ConfigWorker {
         );
 
         return this.device.initialize()
-            .then((data) => {
-                const y = data;
-                const x = '1';
+            .then(() => {
                 return this.updateTriggerScripts();
             })
-            .then(() => this.updateTriggerScripts())
             .then(() => {
                 return Promise.resolve(this.state.config);
             })
