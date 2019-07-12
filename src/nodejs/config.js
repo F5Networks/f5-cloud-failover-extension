@@ -164,7 +164,7 @@ class ConfigWorker {
             'BIG-IP'
         );
 
-        return this.device.initialize()
+        this.device.initialize()
             .then((data) => {
                 const y = data;
                 const x = '1';

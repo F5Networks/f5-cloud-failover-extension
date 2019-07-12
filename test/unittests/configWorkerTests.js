@@ -13,22 +13,17 @@
 const assert = require('assert');
 const sinon = require('sinon');
 const constants = require('../constants.js');
+const Device = require('../../src/nodejs/device');
 
 const declaration = constants.declarations.basic;
 const restWorker = constants.restWorker;
 
 describe('Config Worker', () => {
     let config;
-    let f5CloudLibs;
-
-    let mockBigIpInit;
-    let mockBigIpCreate;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
-        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
-        mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
-        mockBigIpCreate = sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
+        sinon.stub(Device.prototype, 'initialize').returns('blah');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
