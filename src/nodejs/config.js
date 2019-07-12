@@ -147,13 +147,7 @@ class ConfigWorker {
         logger.debug('Successfully validated declaration');
         this.setConfig(declaration);
 
-        this.device = new Device(
-            'localhost',
-            'admin',
-            'admin',
-            '443',
-            'BIG-IP'
-        );
+        this.device = new Device();
 
         return this.device.initialize()
             .then(() => this.updateTriggerScripts())
