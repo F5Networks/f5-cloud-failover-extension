@@ -46,7 +46,7 @@ describe('device', () => {
 
 
     it('validate initialize', () => {
-        assert.equal('Initialized', device.initialize());
+        assert.strictEqual('Initialized', device.initialize());
     });
 
     it('validate initFailoverConfig', () => {
@@ -58,7 +58,7 @@ describe('device', () => {
     });
 
     it('validate getConfig', () => {
-        assert.equal('ConfigRecieved', device.getConfig([
+        assert.strictEqual('ConfigRecieved', device.getConfig([
             '/tm/sys/global-settings',
             '/tm/cm/traffic-group/stats',
             '/tm/net/self',
