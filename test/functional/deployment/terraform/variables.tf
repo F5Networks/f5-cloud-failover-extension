@@ -20,7 +20,7 @@ variable "sku" {
 }
 variable "version" {
   description = "The BIG-IP version for the virtual machine"
-  default = "13.1.104000"
+  default = "latest"
 }
 
 variable "instance_size" {
