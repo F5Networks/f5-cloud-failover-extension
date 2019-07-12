@@ -47,7 +47,7 @@ function execute() {
             logger.info('Cloud provider has been initialized');
         })
         .then(() => {
-            device = new Device('localhost', 'admin', 'admin', '443', 'BIG-IP');
+            device = new Device({ hostname: 'localhost', username: 'admin', password: 'admin', port:'443' });
             return device.initialize();
         })
         .then(() => {

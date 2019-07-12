@@ -35,12 +35,13 @@ const bigip = new BigIp({ logger });
  * @constructor
  */
 class Device {
-    constructor(hostname, username, password, mgmtPort, product) {
-        this.hostname = hostname || 'localhost';
-        this.username = username || 'admin';
-        this.password = password || 'admin';
-        this.mgmtPort = mgmtPort || '443';
-        this.product = product || 'BIG-IP';
+    constructor(options) {
+        options = options || {};
+        this.hostname = options.hostname || 'localhost';
+        this.username = options.username || 'admin';
+        this.password = options.password || 'admin';
+        this.mgmtPort = options.mgmtPort || '443';
+        this.product = options.product || 'BIG-IP';
     }
 
     /**

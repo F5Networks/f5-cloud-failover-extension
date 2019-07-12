@@ -32,14 +32,21 @@ let device;
 
 describe('device', () => {
     beforeEach(() => {
-        device = new Device('localhost', 'admin', 'admin', '443');
+        device = new Device({ hostname: 'localhost', username: 'admin', password: 'admin', port:'443' });
         device.initialize = sinon.stub().returns('Initialized');
         device.getConfig = sinon.stub().returns('ConfigRecieved');
         device.initFailoverConfig(mockResults);
     });
 
+
+    it('validate constructor', () => {
+        assert.ok(new Device({ hostname: 'localhost', username: 'admin', password: 'admin', port:'443' }));
+        assert.ok(new Device());
+    });
+
+
     it('validate initialize', () => {
-        assert.equal('Initialized', device.initialize('localhost', 'admin', 'admin', '443'));
+        assert.equal('Initialized', device.initialize());
     });
 
     it('validate initFailoverConfig', () => {
@@ -58,6 +65,8 @@ describe('device', () => {
             '/tm/ltm/virtual-address'
         ]));
     });
+
+
 
     it('validate getGlobalSettings', () => {
         assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
