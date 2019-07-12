@@ -18,6 +18,15 @@ variable "offer" {
 variable "sku" {
   default = "f5-bigip-virtual-edition-25m-good-hourly"
 }
+variable "version" {
+  description = "The BIG-IP version for the virtual machine"
+  default = "13.1.104000"
+}
+
+variable "instance_size" {
+  description = "The instance size for the virtual machine"
+  default = "Standard_DS3_v2"
+}
 
 variable "admin_username" {
   description = "The admin username for the virtual machine"
@@ -27,3 +36,4 @@ variable "admin_username" {
 variable "admin_password" {
   description = "The admin password for the virtual machine"
 }
+

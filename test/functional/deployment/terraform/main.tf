@@ -155,7 +155,7 @@ resource "azurerm_virtual_machine" "vm0" {
   resource_group_name   = "${azurerm_resource_group.deployment.name}"
   network_interface_ids = ["${azurerm_network_interface.mgmt0.id}", "${azurerm_network_interface.internal0.id}", "${azurerm_network_interface.external0.id}"]
   primary_network_interface_id = "${azurerm_network_interface.mgmt0.id}"
-  vm_size               = "Standard_DS3_v2"
+  vm_size               = "${var.instance_size}"
 
   # This means the OS Disk will be deleted when Terraform destroys the Virtual Machine
   # NOTE: This may not be optimal in all cases.
@@ -169,7 +169,7 @@ resource "azurerm_virtual_machine" "vm0" {
     publisher = "${var.publisher}"
     offer     = "${var.offer}"
     sku       = "${var.sku}"
-    version   = "13.1.104000"
+    version   = "${var.version}"
   }
 
   plan {
@@ -202,7 +202,7 @@ resource "azurerm_virtual_machine" "vm1" {
   resource_group_name   = "${azurerm_resource_group.deployment.name}"
   network_interface_ids = ["${azurerm_network_interface.mgmt1.id}", "${azurerm_network_interface.internal1.id}", "${azurerm_network_interface.external1.id}"]
   primary_network_interface_id = "${azurerm_network_interface.mgmt1.id}"
-  vm_size               = "Standard_DS3_v2"
+  vm_size               = "${var.instance_size}"
 
   # This means the OS Disk will be deleted when Terraform destroys the Virtual Machine
   # NOTE: This may not be optimal in all cases.
@@ -216,7 +216,7 @@ resource "azurerm_virtual_machine" "vm1" {
     publisher = "${var.publisher}"
     offer     = "${var.offer}"
     sku       = "${var.sku}"
-    version   = "13.1.104000"
+    version   = "${var.version}"
   }
 
   plan {
