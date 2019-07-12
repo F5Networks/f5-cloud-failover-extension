@@ -107,7 +107,8 @@ class ConfigWorker {
             this.device.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
             this.device.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
         ])
-            .then(() => {
+            .then((data) => {
+                const x = data;
                 logger.info('Successfully wrote Failover trigger scripts to filesystem');
             })
             .catch((err) => {
@@ -164,12 +165,13 @@ class ConfigWorker {
             'BIG-IP'
         );
 
-        this.device.initialize()
+        return this.device.initialize()
             .then((data) => {
                 const y = data;
                 const x = '1';
                 return this.updateTriggerScripts();
             })
+            .then(() => this.updateTriggerScripts())
             .then(() => {
                 return Promise.resolve(this.state.config);
             })

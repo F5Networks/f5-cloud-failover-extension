@@ -23,7 +23,8 @@ describe('Config Worker', () => {
 
     before(() => {
         config = require('../../src/nodejs/config.js');
-        sinon.stub(Device.prototype, 'initialize').returns('blah');
+        sinon.stub(Device.prototype, 'initialize').resolves();
+        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('my script');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
