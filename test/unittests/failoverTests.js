@@ -26,8 +26,6 @@ describe('Failover', () => {
     let mockCloudFactory;
     let mockBigIpInit;
     let mockBigIpList;
-    // eslint-disable-next-line no-unused-vars
-    let mockBigIpCreate;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
@@ -42,7 +40,7 @@ describe('Failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
         mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').resolves();
         mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
-        mockBigIpCreate = sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
+        sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
         sinon.stub(Object.getPrototypeOf(config), 'updateTriggerScripts').resolves();
     });
     after(() => {
