@@ -14,3 +14,4 @@ test/functional/*_harness_file.json
 # misc
 .vscode/
 **/.DS_Store
+.idea/*
