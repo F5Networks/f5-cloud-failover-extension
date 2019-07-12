@@ -53,9 +53,7 @@
         "mocha": "^5.2.0",
         "nyc": "^14.0.0",
         "sinon": "^7.3.2",
-        "ssh2": "^0.8.2"
-    },
-    "optionalDependencies": {
+        "ssh2": "^0.8.2",
         "mermaid.cli": "^0.5.1"
     },
     "eslintConfig": {
