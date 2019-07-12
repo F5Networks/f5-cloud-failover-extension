@@ -45,6 +45,7 @@ class ConfigWorker {
 
         return new Promise((resolve, reject) => {
             this._restWorker.loadState(null, (err, state) => {
+                const x = 'data';
                 if (err) {
                     const message = `error loading state: ${err.message}`;
                     logger.warning(message);

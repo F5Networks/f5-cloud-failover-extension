@@ -91,4 +91,18 @@ describe('Config Worker', () => {
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
         }));
+
+    it('should reject if poorly formatted', () => {
+        const errMsg = 'no bigip here';
+        mockExecuteBigIpBashCmd.rejects(new Error(errMsg));
+        return config.init(restWorker)
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => {
+                assert.fail('processConfigRequest() should have caught and rejected.');
+            })
+            .catch((err) => {
+                assert.ok(true);
+                assert.strictEqual(err.message, errMsg);
+            });
+    });
 });
