@@ -101,14 +101,11 @@ class ConfigWorker {
      *                      or rejected if an error occurs.
      */
     updateTriggerScripts() {
-        const x = '1';
-        // TODO: Move 'this.executeBigIpBashCmd' > device.js
         return Promise.all([
             this.device.executeBigIpBashCmd(this.generateTriggerScript('tgactive')),
             this.device.executeBigIpBashCmd(this.generateTriggerScript('tgrefresh'))
         ])
-            .then((data) => {
-                const x = data;
+            .then(() => {
                 logger.info('Successfully wrote Failover trigger scripts to filesystem');
             })
             .catch((err) => {
@@ -126,17 +123,10 @@ class ConfigWorker {
      *                      to send to the iControl util/bash endpoint
      */
     generateTriggerScript(scriptName) {
-        // this.device.password
-        // this.device.username
+        const auth = '-u admin:admin';
+        const curlUrl = 'localhost:8100/mgmt/shared/cloud-failover/trigger';
         // eslint-disable-next-line no-useless-escape
-        const command = `'echo \"#!/bin/sh\n\ncurl -u admin:admin localhost:8100/mgmt/shared/cloud-failover/trigger\" > /config/failover/${scriptName}'`;
-        // base64 username and password to reduce needs to escape potential special characters
-        const auth = `Basic ${Buffer.from('admin:admin').toString('base64')}`;
-        // single quotes in Bash command are replaced. Use Hex code for single quote, 27, instead
-        const singleQuoteFunc = 'function sq() { printf 27 | xxd -r -p; }';
-        const curlCommand = `curl -H $(sq)Authorization: ${auth}$(sq) localhost:8100/mgmt/shared/cloud-failover/trigger`;
-        // eslint-disable-next-line no-useless-escape
-        // return `'${singleQuoteFunc} && printf \"#!/bin/sh\n\n${curlCommand}\n\" > /config/failover/${scriptName}'`;
+        const command = `'echo \"#!/bin/sh\n\ncurl ${auth} ${curlUrl}\" > /config/failover/${scriptName}'`;
         return command;
     }
 
