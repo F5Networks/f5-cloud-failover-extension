@@ -40,9 +40,10 @@ describe('Failover', () => {
             updateAddresses: () => {}
         };
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
-        mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').returns();
+        mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').resolves();
         mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
         mockBigIpCreate = sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
+        sinon.stub(Object.getPrototypeOf(config), 'updateTriggerScripts').resolves();
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {

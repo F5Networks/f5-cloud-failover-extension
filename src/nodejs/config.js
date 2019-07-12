@@ -166,12 +166,8 @@ class ConfigWorker {
         );
 
         return this.device.initialize()
-            .then(() => {
-                return this.updateTriggerScripts();
-            })
-            .then(() => {
-                return Promise.resolve(this.state.config);
-            })
+            .then(() => this.updateTriggerScripts())
+            .then(() => Promise.resolve(this.state.config))
             .catch((err) => {
                 logger.error(`Could not process configuration declaration: ${JSON.stringify(err.message)}`);
                 return Promise.reject(err);
