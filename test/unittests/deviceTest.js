@@ -32,14 +32,31 @@ let device;
 
 describe('device', () => {
     beforeEach(() => {
-        device = new Device('localhost', 'admin', 'admin', '443');
+        device = new Device({
+            hostname: 'localhost',
+            username: 'admin',
+            password: 'admin',
+            port: '443'
+        });
         device.initialize = sinon.stub().returns('Initialized');
         device.getConfig = sinon.stub().returns('ConfigRecieved');
         device.initFailoverConfig(mockResults);
     });
 
+
+    it('validate constructor', () => {
+        assert.ok(new Device({
+            hostname: 'localhost',
+            username: 'admin',
+            password: 'admin',
+            port: '443'
+        }));
+        assert.ok(new Device());
+    });
+
+
     it('validate initialize', () => {
-        assert.equal('Initialized', device.initialize('localhost', 'admin', 'admin', '443'));
+        assert.strictEqual('Initialized', device.initialize());
     });
 
     it('validate initFailoverConfig', () => {
@@ -51,13 +68,14 @@ describe('device', () => {
     });
 
     it('validate getConfig', () => {
-        assert.equal('ConfigRecieved', device.getConfig([
+        assert.strictEqual('ConfigRecieved', device.getConfig([
             '/tm/sys/global-settings',
             '/tm/cm/traffic-group/stats',
             '/tm/net/self',
             '/tm/ltm/virtual-address'
         ]));
     });
+
 
     it('validate getGlobalSettings', () => {
         assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
