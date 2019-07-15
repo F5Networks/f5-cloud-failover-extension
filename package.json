@@ -7,13 +7,22 @@
         "type": "git",
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
+    "config": {
+        "prefix": "cloudfailover",
+        "password": "Pass1word!Pass1word!",
+        "environment": "azure"
+    },
     "scripts": {
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
-        "report": "nyc report --reporter=html"
+        "report": "nyc report --reporter=html",
+        "tf-plan": "terraform init; terraform plan -out=failover-tf -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" test/functional/deployment/terraform/$npm_package_config_environment",
+        "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
+        "tf-destroy": "terraform destroy -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" -auto-approve",
+        "tf-delete-state": "rm -rf failover-tf *tfstate*"
     },
     "nyc": {
         "check-coverage": true,

@@ -255,9 +255,9 @@ resource "null_resource" "login0" {
 }
 
 
-resource "null_resource" "install_failover0" {
+resource "null_resource" "failover0" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain package install --component failover"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -267,12 +267,12 @@ resource "null_resource" "install_failover0" {
 
 resource "null_resource" "onboard0" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_0.json"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../../declarations/do_cluster_0.json"
   }
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = ["null_resource.install_failover0"]
+  depends_on = ["null_resource.failover0"]
 }
 
 resource "null_resource" "login1" {
@@ -286,9 +286,9 @@ resource "null_resource" "login1" {
   depends_on = ["azurerm_virtual_machine.vm1", "null_resource.onboard0"]
 }
 
-resource "null_resource" "install_failover1" {
+resource "null_resource" "failover1" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain package install --component failover"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -298,12 +298,12 @@ resource "null_resource" "install_failover1" {
 
 resource "null_resource" "onboard1" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_1.json"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../../declarations/do_cluster_1.json"
   }
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = ["null_resource.install_failover1"]
+  depends_on = ["null_resource.failover1"]
 }
 
 output "public_ip_address0" {
