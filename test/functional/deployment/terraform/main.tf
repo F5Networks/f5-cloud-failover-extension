@@ -254,6 +254,17 @@ resource "null_resource" "login0" {
   depends_on = ["azurerm_virtual_machine.vm0"]
 }
 
+
+resource "null_resource" "install_failover0" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain package install --component failover"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = ["null_resource.login0"]
+}
+
 resource "null_resource" "onboard0" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_0.json"
@@ -261,7 +272,7 @@ resource "null_resource" "onboard0" {
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = ["null_resource.login0"]
+  depends_on = ["null_resource.install_failover0"]
 }
 
 resource "null_resource" "login1" {
@@ -275,6 +286,16 @@ resource "null_resource" "login1" {
   depends_on = ["azurerm_virtual_machine.vm1", "null_resource.onboard0"]
 }
 
+resource "null_resource" "install_failover1" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain package install --component failover"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = ["null_resource.login1"]
+}
+
 resource "null_resource" "onboard1" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/../declarations/do_cluster_1.json"
@@ -282,7 +303,7 @@ resource "null_resource" "onboard1" {
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = ["null_resource.login1"]
+  depends_on = ["null_resource.install_failover1"]
 }
 
 output "public_ip_address0" {

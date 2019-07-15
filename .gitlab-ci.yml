@@ -67,6 +67,7 @@ publish_to_artifactory:
         - tags
         - master
         - develop
+        - ESECLDTPLT-1319
     tags:
         - cm-official-docker-executor
     script:
