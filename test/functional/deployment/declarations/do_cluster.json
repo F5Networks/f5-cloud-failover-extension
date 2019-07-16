@@ -5,7 +5,7 @@
     "label": "BIG-IP declaration for declarative onboarding",
     "Common": {
         "class": "Tenant",
-        "hostname": "failover0.local",
+        "hostname": "${hostname}",
         "myDns": {
             "class": "DNS",
             "nameServers": [
@@ -85,14 +85,19 @@
         "trust": {
             "class": "DeviceTrust",
             "localUsername": "azureuser",
-            "localPassword": "d3@thr@c32000",
+            "localPassword": "${admin_password}",
             "remoteHost": "10.0.0.4",
             "remoteUsername": "azureuser",
-            "remotePassword": "d3@thr@c32000"
+            "remotePassword": "${admin_password}"
         },
         "dbvars": {
         	"class": "DbVariables",
         	"config.allow.rfc3927": "enable"
+        },
+        "metadataRoute": {
+            "class": "ManagementRoute",
+            "network": "169.254.169.254/32",
+            "gw": "10.0.0.1"
         }
     }
 }

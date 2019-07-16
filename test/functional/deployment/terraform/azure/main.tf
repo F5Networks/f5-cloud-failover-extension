@@ -243,12 +243,12 @@ resource "azurerm_virtual_machine" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { internal_self = "10.0.1.4", external_self = "10.0.2.4" })
+    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = var.admin_password, internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24" })
     filename = "${path.module}/do0.json"
 }
 
 resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { internal_self = "10.0.1.5", external_self = "10.0.2.5" })
+    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = var.admin_password, internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24" })
     filename = "${path.module}/do1.json"
 }
 
