@@ -18,9 +18,7 @@ Best practices:
 
 ## Functional
 
-All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional```.
-
-Triggered: Recurring schedule, nightly - This could be extended in the future to commits pushed to stable branches such as develop.
+All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.
 
 Best Practices:
 

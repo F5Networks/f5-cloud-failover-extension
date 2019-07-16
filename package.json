@@ -17,12 +17,14 @@
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
+        "test-functional": "npm run tf-init; npm run tf-plan; npm run tf-apply; npm run tf-destroy; npm run tf-delete",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
-        "functional-plan": "terraform init; terraform plan -out=failover-tf -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" test/functional/deployment/terraform/$npm_package_config_environment",
-        "functional-apply": "terraform apply -auto-approve \"failover-tf\"",
-        "functional-destroy": "terraform destroy -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
-        "functional-delete": "rm -rf failover-tf *tfstate*"
+        "tf-init": "terraform init test/functional/deployment/terraform/$npm_package_config_environment",
+        "tf-plan": "terraform plan -out=failover-tf -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" test/functional/deployment/terraform/$npm_package_config_environment",
+        "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
+        "tf-destroy": "terraform destroy -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
+        "tf-delete": "rm -rf failover-tf *tfstate*"
     },
     "nyc": {
         "check-coverage": true,
