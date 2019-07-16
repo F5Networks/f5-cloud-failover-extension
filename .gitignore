@@ -18,3 +18,4 @@ failover-tf
 # misc
 .vscode/
 **/.DS_Store
+.idea/*
