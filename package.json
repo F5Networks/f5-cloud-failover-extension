@@ -19,10 +19,10 @@
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
-        "tf-plan": "terraform init; terraform plan -out=failover-tf -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" test/functional/deployment/terraform/$npm_package_config_environment",
-        "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
-        "tf-destroy": "terraform destroy -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" -auto-approve",
-        "tf-delete-state": "rm -rf failover-tf *tfstate*"
+        "functional-plan": "terraform init; terraform plan -out=failover-tf -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" test/functional/deployment/terraform/$npm_package_config_environment",
+        "functional-apply": "terraform apply -auto-approve \"failover-tf\"",
+        "functional-destroy": "terraform destroy -var=\"env_prefix=$npm_package_config_prefix\" -var=\"admin_password=$npm_package_config_password\" -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
+        "functional-delete": "rm -rf failover-tf *tfstate*"
     },
     "nyc": {
         "check-coverage": true,

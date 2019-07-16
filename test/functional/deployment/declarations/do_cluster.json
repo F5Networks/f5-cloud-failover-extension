@@ -5,7 +5,7 @@
     "label": "BIG-IP declaration for declarative onboarding",
     "Common": {
         "class": "Tenant",
-        "hostname": "failover1.local",
+        "hostname": "failover0.local",
         "myDns": {
             "class": "DNS",
             "nameServers": [
@@ -40,7 +40,7 @@
         },
         "internal-self": {
             "class": "SelfIp",
-            "address": "10.0.1.5/24",
+            "address": "${internal_self}",
             "vlan": "internal",
             "allowService": "default",
             "trafficGroup": "traffic-group-local-only"
@@ -58,7 +58,7 @@
         },
         "external-self": {
             "class": "SelfIp",
-            "address": "10.0.2.5/24",
+            "address": "${external_self}",
             "vlan": "external",
             "allowService": "default",
             "trafficGroup": "traffic-group-local-only"
