@@ -174,7 +174,6 @@ class Cloud extends AbstractCloud {
                         }
                     }
                 }
-
                 return this._updateAssociations(disassociate, associate);
             })
             .catch(err => Promise.reject(err));
@@ -248,7 +247,7 @@ class Cloud extends AbstractCloud {
                     const filteredNics = nics.filter((nic) => {
                         let matchedTags = 0;
                         tags.forEach((tag) => {
-                            if (Object.keys(nic.tags).includes(tag.key) && nic.tags[tag.key] === tag.value) {
+                            if (Object.keys(nic.tags).indexOf(tag.key) !== -1 && nic.tags[tag.key] === tag.value) {
                                 matchedTags += 1;
                             }
                         });
