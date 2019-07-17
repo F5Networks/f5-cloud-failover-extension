@@ -18,7 +18,7 @@ Best practices:
 
 ## Functional
 
-All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.
+All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.  Terraform 0.12+, A Python 3.7+ virtual environment, and the f5-cloud-cli are required.
 
 Best Practices:
 

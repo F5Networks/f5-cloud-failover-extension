@@ -1,6 +1,4 @@
-variable "env_prefix" {
-  description = "The Prefix used for all resources in this example"
-}
+
 
 variable "location" {
   description = "The Azure Region in which the resources in this example should exist"
@@ -32,9 +30,5 @@ variable "instance_size" {
 variable "admin_username" {
   description = "The admin username for the virtual machine"
   default     = "azureuser"
-}
-
-variable "admin_password" {
-  description = "The admin password for the virtual machine"
 }
 
