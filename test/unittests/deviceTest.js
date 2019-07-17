@@ -76,6 +76,20 @@ describe('device', () => {
         ]));
     });
 
+    it('validate executeBigIpBashCmd', () => {
+        const command = 'ls -la';
+        device.bigip = sinon.stub();
+        device.bigip.create = sinon.stub((path, commandBody, iControlOptions, retries) => {
+            assert.strictEqual(path, '/tm/util/bash');
+            assert.strictEqual(commandBody.command, 'run');
+            assert.strictEqual(commandBody.utilCmdArgs, '-c ls -la');
+            assert.strictEqual(iControlOptions, undefined);
+            assert.strictEqual(retries.maxRetries, 0);
+            assert.strictEqual(retries.retryIntervalMs, 0);
+        });
+        device.executeBigIpBashCmd(command);
+    });
+
 
     it('validate getGlobalSettings', () => {
         assert.strictEqual(device.getGlobalSettings(), 'globalSettings');

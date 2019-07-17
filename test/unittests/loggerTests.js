@@ -83,6 +83,12 @@ describe('logger', () => {
         assert.notStrictEqual(loggedMessages.info[0].indexOf('some string'), -1);
     });
 
+    it('validate log method when object is a second parameter', () => {
+        const myObj = { key01: 'test_value' };
+        logger.info('info message', myObj);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('test_value'), -1);
+    });
+
     it('should mask passwords', () => {
         const myPassword = 'foofoo';
         logger.info({ password: myPassword });

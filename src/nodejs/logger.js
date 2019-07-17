@@ -110,11 +110,7 @@ function log(level, message, extraArgs) {
 
     masked = mask(message);
     if (typeof masked === 'object') {
-        try {
-            fullMessage = JSON.stringify(masked);
-        } catch (err) {
-            fullMessage = masked;
-        }
+        fullMessage = JSON.stringify(masked);
     } else {
         fullMessage = masked;
     }
@@ -122,11 +118,7 @@ function log(level, message, extraArgs) {
     extraArgs.forEach((extraArg) => {
         masked = mask(extraArg);
         if (typeof masked === 'object') {
-            try {
-                expandedArg = JSON.stringify(masked);
-            } catch (err) {
-                expandedArg = masked;
-            }
+            expandedArg = JSON.stringify(masked);
         } else {
             expandedArg = masked;
         }

@@ -26,6 +26,10 @@ module.exports = {
         loadState: (first, cb) => { cb(null); },
         saveState: (first, state, cb) => { cb(null); }
     },
+    invalidRestWorker: {
+        loadState: (first, cb) => { cb(true); },
+        saveState: (first, state, cb) => { cb(null); }
+    },
     declarations: {
         basic: {
             class: 'Cloud_Failover',

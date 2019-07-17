@@ -17,6 +17,7 @@ const Device = require('../../src/nodejs/device');
 
 const declaration = constants.declarations.basic;
 const restWorker = constants.restWorker;
+const invalidRestWorker = constants.invalidRestWorker;
 
 describe('Config Worker', () => {
     let config;
@@ -43,6 +44,35 @@ describe('Config Worker', () => {
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
         }));
+
+    it('validate error case for init method', () => config.init(invalidRestWorker)
+        .then(() => {
+            // fails in a case when promise is resolved
+            assert.fail();
+        })
+        .catch(() => {
+            // succeeds when error recieved
+            assert.ok(true);
+        }));
+
+    it('validate error case for setConfig method', () => {
+        const mockConfig = {
+
+        };
+        config._restWorker = sinon.stub();
+        config._restWorker.saveState = sinon.stub().callsFake((first, state, callback) => {
+            callback(true);
+        });
+        return config.setConfig(mockConfig)
+            .then(() => {
+                // fails in a case when promise is resolved
+                assert.fail();
+            })
+            .catch(() => {
+                // succeeds when error recieved
+                assert.ok(true);
+            });
+    });
 
     it('should reject invalid declaration', () => config.init(restWorker)
         .then(() => config.processConfigRequest({ foo: 'bar' }))
