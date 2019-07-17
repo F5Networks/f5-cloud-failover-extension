@@ -60,6 +60,27 @@ build_package:
             - dist
         expire_in: 1 month
 
+publish_to_artifactory:
+    stage: publish
+    only:
+        - tags
+    tags:
+        - cm-official-docker-executor
+    script:
+        # If the tag contains a '-', then get RPM from the build artifact, otherwise, get it from dist
+        # since no '-' in the tag means it's s release and should have been committed to dist.
+        - if [[ $CI_COMMIT_TAG == *"-"* ]]; then
+        -     RPM_FILE=$(ls build/rpmbuild/RPMS/noarch/*.rpm)
+        - else
+        -     RPM_FILE=$(ls dist/new_build/*.rpm)
+        - fi
+        - RPM_NAME=$(basename $RPM_FILE)
+        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/${RPM_NAME}
+        - >-
+            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+        - echo $UPLOAD_RESULT
+
 # publish docs to internal pages: - this job MUST be named 'pages'
 pages:
     stage: publish

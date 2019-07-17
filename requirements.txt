@@ -1,4 +1,6 @@
+--extra-index-url https://***REMOVED***/artifactory/api/pypi/f5-cloud-solutions-pypi/simple
 awscli
+f5-cloud-cli==0.9.0
 f5-sphinx-theme>=1.0.5
 sphinx>=1.7.0
 recommonmark
