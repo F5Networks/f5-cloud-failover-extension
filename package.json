@@ -9,8 +9,8 @@
     },
     "config": {
         "prefix": "cloudfailover",
-        "password": "Pass1word!Pass1word!",
-        "environment": "azure"
+        "environment": "azure",
+        "password": "Pass1word!Pass1word!"
     },
     "scripts": {
         "install-production": "npm install --production --no-optional",

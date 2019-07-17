@@ -62,11 +62,8 @@ build_package:
 
 publish_to_artifactory:
     stage: publish
-    # for now publish on develop and master as well (instead of just tags)
     only:
         - tags
-        - master
-        - develop
     tags:
         - cm-official-docker-executor
     script:
