@@ -137,3 +137,4 @@ pages:
     only:
         - master
         - develop
+        - init_docs # temp
