@@ -13,12 +13,24 @@ resource "random_string" "env_prefix" {
 }
 
 resource "azurerm_resource_group" "deployment" {
-  name     = "${random_string.env_prefix.result}"
-  location = var.location
-  tags = {
+  name      = "${random_string.env_prefix.result}"
+  location  = var.location
+  tags  = {
     creator = "Terraform"
     delete  = "True"
   }
+}
+
+resource "azurerm_role_assignment" "vm0_assignment" {
+  scope                 = azurerm_resource_group.deployment.id
+  role_definition_name  = "Contributor"
+  principal_id          = lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")
+}
+
+resource "azurerm_role_assignment" "vm1_assignment" {
+  scope                 = azurerm_resource_group.deployment.id
+  role_definition_name  = "Contributor"
+  principal_id          = lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")
 }
 
 resource "azurerm_virtual_network" "deployment" {
@@ -122,6 +134,10 @@ resource "azurerm_network_interface" "internal0" {
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.4"
   }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
+  }
 }
 
 resource "azurerm_network_interface" "internal1" {
@@ -135,6 +151,10 @@ resource "azurerm_network_interface" "internal1" {
     subnet_id                     = azurerm_subnet.internal.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.5"
+  }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
   }
 }
 
@@ -150,6 +170,10 @@ resource "azurerm_network_interface" "external0" {
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.4"
   }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
+  }
 }
 
 resource "azurerm_network_interface" "external1" {
@@ -163,6 +187,18 @@ resource "azurerm_network_interface" "external1" {
     subnet_id                     = azurerm_subnet.external.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.5"
+    primary                       = true
+  }
+
+  ip_configuration {
+    name                          = "${random_string.env_prefix.result}-ext2"
+    subnet_id                     = azurerm_subnet.external.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.2.10"
+  }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
   }
 }
 
@@ -211,6 +247,10 @@ resource "azurerm_virtual_machine" "vm0" {
   os_profile_linux_config {
     disable_password_authentication = false
   }
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
 
 resource "azurerm_virtual_machine" "vm1" {
@@ -258,6 +298,10 @@ resource "azurerm_virtual_machine" "vm1" {
   os_profile_linux_config {
     disable_password_authentication = false
   }
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
 
 resource "local_file" "do0" {
@@ -278,6 +322,17 @@ resource "null_resource" "login0" {
     always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
   }
   depends_on = [azurerm_virtual_machine.vm0]
+}
+
+# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
+resource "null_resource" "create_virtual0" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [null_resource.login0]
 }
 
 resource "null_resource" "failover0" {
@@ -309,7 +364,7 @@ resource "null_resource" "login1" {
   }
   depends_on = [
     azurerm_virtual_machine.vm1,
-    null_resource.onboard0,
+    null_resource.onboard0
   ]
 }
 
