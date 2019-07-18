@@ -22,7 +22,8 @@
         "tf-plan": "terraform plan -out=failover-tf test/functional/deployment/terraform/$npm_package_config_environment",
         "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
         "tf-destroy": "terraform destroy -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
-        "tf-delete": "rm -rf failover-tf *tfstate*"
+        "tf-delete": "rm -rf failover-tf *tfstate*",
+        "make-docs": "make html"
     },
     "nyc": {
         "check-coverage": true,

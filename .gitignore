@@ -19,3 +19,4 @@ failover-tf
 .vscode/
 **/.DS_Store
 .idea/*
+temp_*
