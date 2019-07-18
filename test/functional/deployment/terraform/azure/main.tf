@@ -316,6 +316,7 @@ resource "null_resource" "login0" {
   depends_on = [azurerm_virtual_machine.vm0]
 }
 
+# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual0" {
   provisioner "local-exec" {
     command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
