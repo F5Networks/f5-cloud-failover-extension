@@ -24,7 +24,6 @@ const logger = new Logger(module);
 
 const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
-const bigip = new BigIp({ logger });
 
 
 /**
@@ -51,7 +50,8 @@ class Device {
     * @returns {Promise}
     */
     initialize() {
-        return bigip.init(
+        this.bigip = new BigIp({ logger });
+        return this.bigip.init(
             this.hostname,
             this.username,
             this.password,
@@ -72,7 +72,7 @@ class Device {
     getConfig(endpoints) {
         const promises = [];
         for (let i = 0; i < endpoints.length; i += 1) {
-            promises.push(bigip.list(endpoints[i]));
+            promises.push(this.bigip.list(endpoints[i]));
         }
         return Promise.all(promises);
     }
@@ -142,7 +142,7 @@ class Device {
             command: 'run',
             utilCmdArgs: `-c ${command}`
         };
-        return bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
+        return this.bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
     }
 }
 

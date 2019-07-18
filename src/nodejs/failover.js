@@ -99,7 +99,7 @@ function getTrafficGroups(trafficGroupStats, hostname) {
 
     const entries = trafficGroupStats.entries;
     Object.keys(entries).forEach((key) => {
-        const local = entries[key].nestedStats.entries.deviceName.description.includes(hostname)
+        const local = entries[key].nestedStats.entries.deviceName.description.indexOf(hostname) !== -1
             && entries[key].nestedStats.entries.failoverState.description === 'active';
 
         if (local) {
@@ -125,7 +125,7 @@ function getSelfAddresses(selfAddresses, trafficGroups) {
     selfAddresses.forEach((item) => {
         let trafficGroupMatch = false;
         trafficGroups.forEach((nestedItem) => {
-            if (nestedItem.name.includes(item.name)) {
+            if (nestedItem.name.indexOf(item.name) !== -1) {
                 trafficGroupMatch = true;
             }
         });
@@ -158,7 +158,7 @@ function getVirtualAddresses(virtualAddresses, trafficGroups) {
             const addressTrafficGroup = item.trafficGroup;
 
             trafficGroups.forEach((nestedItem) => {
-                if (nestedItem.name.includes(addressTrafficGroup)) {
+                if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
                     addresses.push({
                         address
                     });
