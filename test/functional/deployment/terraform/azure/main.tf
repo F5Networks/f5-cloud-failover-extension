@@ -13,24 +13,24 @@ resource "random_string" "env_prefix" {
 }
 
 resource "azurerm_resource_group" "deployment" {
-  name     = "${random_string.env_prefix.result}"
-  location = var.location
-  tags = {
+  name      = "${random_string.env_prefix.result}"
+  location  = var.location
+  tags  = {
     creator = "Terraform"
     delete  = "True"
   }
 }
 
 resource "azurerm_user_assigned_identity" "failover_identity" {
-  resource_group_name = "${azurerm_resource_group.deployment.name}"
-  location            = "${azurerm_resource_group.deployment.location}"
-  name = "failover-id"
+  resource_group_name = azurerm_resource_group.deployment.name
+  location            = azurerm_resource_group.deployment.location
+  name                = "${azurerm_resource_group.deployment.name}-failoverid"
 }
 
 resource "azurerm_role_assignment" "failover_assignment" {
-  scope                = "${azurerm_resource_group.deployment.id}"
+  scope                = azurerm_resource_group.deployment.id
   role_definition_name = "Contributor"
-  principal_id         = "${azurerm_user_assigned_identity.failover_identity.principal_id}"
+  principal_id         = azurerm_user_assigned_identity.failover_identity.principal_id
 }
 
 resource "azurerm_virtual_network" "deployment" {
