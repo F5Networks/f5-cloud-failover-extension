@@ -21,16 +21,16 @@ resource "azurerm_resource_group" "deployment" {
   }
 }
 
-resource "azurerm_user_assigned_identity" "failover_identity" {
-  resource_group_name = azurerm_resource_group.deployment.name
-  location            = azurerm_resource_group.deployment.location
-  name                = "${azurerm_resource_group.deployment.name}-failoverid"
+resource "azurerm_role_assignment" "vm0_assignment" {
+  scope                 = azurerm_resource_group.deployment.id
+  role_definition_name  = "Contributor"
+  principal_id          = lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")
 }
 
-resource "azurerm_role_assignment" "failover_assignment" {
-  scope                = azurerm_resource_group.deployment.id
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.failover_identity.principal_id
+resource "azurerm_role_assignment" "vm1_assignment" {
+  scope                 = azurerm_resource_group.deployment.id
+  role_definition_name  = "Contributor"
+  principal_id          = lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")
 }
 
 resource "azurerm_virtual_network" "deployment" {
@@ -247,6 +247,10 @@ resource "azurerm_virtual_machine" "vm0" {
   os_profile_linux_config {
     disable_password_authentication = false
   }
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
 
 resource "azurerm_virtual_machine" "vm1" {
@@ -293,6 +297,10 @@ resource "azurerm_virtual_machine" "vm1" {
 
   os_profile_linux_config {
     disable_password_authentication = false
+  }
+
+  identity {
+    type = "SystemAssigned"
   }
 }
 
@@ -356,7 +364,7 @@ resource "null_resource" "login1" {
   }
   depends_on = [
     azurerm_virtual_machine.vm1,
-    null_resource.onboard0,
+    null_resource.onboard0
   ]
 }
 
