@@ -21,6 +21,18 @@ resource "azurerm_resource_group" "deployment" {
   }
 }
 
+resource "azurerm_user_assigned_identity" "failover_identity" {
+  resource_group_name = "${azurerm_resource_group.deployment.name}"
+  location            = "${azurerm_resource_group.deployment.location}"
+  name = "failover-id"
+}
+
+resource "azurerm_role_assignment" "failover_assignment" {
+  scope                = "${azurerm_resource_group.deployment.id}"
+  role_definition_name = "Contributor"
+  principal_id         = "${azurerm_user_assigned_identity.failover_identity.principal_id}"
+}
+
 resource "azurerm_virtual_network" "deployment" {
   name                = "${random_string.env_prefix.result}-network"
   address_space       = ["10.0.0.0/16"]
@@ -122,6 +134,10 @@ resource "azurerm_network_interface" "internal0" {
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.4"
   }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
+  }
 }
 
 resource "azurerm_network_interface" "internal1" {
@@ -135,6 +151,10 @@ resource "azurerm_network_interface" "internal1" {
     subnet_id                     = azurerm_subnet.internal.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.5"
+  }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
   }
 }
 
@@ -150,6 +170,10 @@ resource "azurerm_network_interface" "external0" {
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.4"
   }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
+  }
 }
 
 resource "azurerm_network_interface" "external1" {
@@ -163,6 +187,18 @@ resource "azurerm_network_interface" "external1" {
     subnet_id                     = azurerm_subnet.external.id
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.5"
+    primary                       = true
+  }
+
+  ip_configuration {
+    name                          = "${random_string.env_prefix.result}-ext2"
+    subnet_id                     = azurerm_subnet.external.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.0.2.10"
+  }
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "mydeployment"
   }
 }
 
@@ -278,6 +314,16 @@ resource "null_resource" "login0" {
     always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
   }
   depends_on = [azurerm_virtual_machine.vm0]
+}
+
+resource "null_resource" "create_virtual0" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [null_resource.login0]
 }
 
 resource "null_resource" "failover0" {
