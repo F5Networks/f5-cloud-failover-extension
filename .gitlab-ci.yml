@@ -60,6 +60,22 @@ build_package:
             - dist
         expire_in: 1 month
 
+build_docs:
+    image: python:3.7
+    stage: build
+    script:
+        # install packages
+        - pip install -r requirements.txt
+        # generate docs
+        - make html
+    tags:
+        - docker-executor
+    artifacts:
+        name: docs
+        paths:
+            - docs/_build/html
+        expire_in: 1 month
+
 publish_to_artifactory:
     stage: publish
     only:
@@ -92,6 +108,10 @@ pages:
         - mkdir -p ${PUBLIC_DIR}
         # place index.html in public dir
         - cp docs/index.html ${PUBLIC_DIR}/index.html
+        #### place public facing docs under: /public-docs ####
+        - PUBLIC_DOCS=${PUBLIC_DIR}/public-docs
+        - mkdir -p ${PUBLIC_DOCS}
+        - cp -R docs/_build/html/* ${PUBLIC_DOCS}
         #### place code coverage docs under: /coverage-docs ####
         - COVERAGE_DOCS=${PUBLIC_DIR}/coverage
         - mkdir -p ${COVERAGE_DOCS}
@@ -115,4 +135,5 @@ pages:
         paths:
             - public
     only:
+        - master
         - develop
