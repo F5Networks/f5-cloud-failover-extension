@@ -157,7 +157,6 @@ pages:
     only:
         - master
         - develop
-        - api_updates # temp
 
 
 # Publish docs to clouddocs.f5.com
