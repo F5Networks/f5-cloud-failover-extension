@@ -28,6 +28,9 @@ Additional reasons for providing a consolidated solution include:
 #### AWS
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
+#### Google
+![diagram](images/GoogleFailoverExtensionHighLevel.gif)
+
 ---
 ### Components
 
@@ -105,8 +108,6 @@ How does the project handle a `POST` request to the configuration endpoint?
 }
 ```
 
----
-#### Anatomy of a Configuration Request (cont.)
 
 What happens in the system internals between request and response?
 
@@ -172,8 +173,6 @@ How does the project handle a `POST` request to the failover trigger endpoint?
 }
 ```
 
----
-#### Anatomy of a Failover Trigger Request (cont.)
 
 What happens in the system internals between request and response?
 
