@@ -23,7 +23,7 @@ Additional reasons for providing a consolidated solution include:
 ### Failover Event Diagrams
 
 #### Azure
-![diagram](images/FailoverExtensionHighLevel.gif)
+![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
 #### AWS
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
