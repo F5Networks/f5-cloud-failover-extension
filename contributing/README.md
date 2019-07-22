@@ -10,8 +10,8 @@ This is the top-level documentation which provides notes and information about c
 
 The purpose of the F5 Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP).  This requires moving/updating certain cloud resources during a failover event, as described below.
 
-- Failover IP(s) - Update IP configurations on a NIC, update EIP associations, update forwarding rule target instance, etc.
-- Failover Route(s) - Update User-Defined Routes (UDR), update route table, etc.
+- Failover IP(s) - Move Azure IP configuration(s) between NICs, update AWS EIP/private IP associations, and move GCP alias IP(s) between instances to point to a virtual address on the active BIG-IP device.
+- Failover Route(s) - Update Azure user-defined Routes (UDR), AWS route tables, and GCP forwarding rule targets to point to a self IP address of the active BIG-IP device.
 
 Additional reasons for providing a consolidated solution include:
 
@@ -38,7 +38,7 @@ The failover extension includes a number of key components, listed below.
 
 *Configuration*: Prepares the environment for failover.  Writes configuration and/or state to cloud provider storage and configures the /config/failover scripts on BIG-IP.
 
-*Failover*: Triggers a failover event.  Reads configuration from BIG-IP and the cloud provider storage, creates a desired configuration, and updates cloud resources.
+*Failover*: Triggers a failover event.  Reads configuration info from BIG-IP REST storage and state info from cloud provider storage, creates a desired configuration, and updates cloud resources accordingly.
 
 ---
 ### Configuration
@@ -51,7 +51,7 @@ The failover extension includes a number of key components, listed below.
 4. Cloud SDK uses storage client to write user-provided config data to storage location
 
 ---
-#### Anatomy of a Configuration Request
+#### Anatomy of a Failover Configuration Request
 
 How does the project handle a `POST` request to the configuration endpoint?
 
@@ -108,7 +108,6 @@ How does the project handle a `POST` request to the configuration endpoint?
 }
 ```
 
-
 What happens in the system internals between request and response?
 
 - LX worker receives request which validates URI, etc.
@@ -116,13 +115,13 @@ What happens in the system internals between request and response?
 - Request is validated using JSON schema and AJV
     - ref: [validator.js](../src/nodejs/validator.js)
 - A provider auth token is acquired from metadata and a storage management client is returned
-    - ref: [cloud.js](../src/nodejs/providers/cloud.js)
+    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - User data is written to cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/storage.js)
+    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
 - Failover declaration/API call is written to /config/failover scripts on BIG-IP
-    - ref: [device.js](../src/nodejs/providers/device.js)
+    - ref: [device.js](../src/nodejs/providers/config.js)
 - Client response sent with validated config
-    - ref: [response.js](../src/nodejs/response.js)
+    - ref: [response.js](../src/nodejs/restWorkers/main.js)
 
 
 ---
@@ -173,7 +172,6 @@ How does the project handle a `POST` request to the failover trigger endpoint?
 }
 ```
 
-
 What happens in the system internals between request and response?
 
 - LX worker receives request which validates URI, etc.
@@ -181,24 +179,35 @@ What happens in the system internals between request and response?
 - Request is validated using JSON schema and AJV
     - ref: [validator.js](../src/nodejs/validator.js)
 - A provider auth token is acquired from metadata and storage/network management clients are returned
-    - ref: [cloud.js](../src/nodejs/providers/cloud.js)
+    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - User data is read from cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/storage.js)
+    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
 - BIG-IP configuration is read from local device
     - ref: [device.js](../src/nodejs/providers/device.js)
 - Before/after configuration, timestamp are created and written to provider storage
-    - ref: [failover.js](../src/nodejs/providers/failover.js), [storage.js](../src/nodejs/providers/storage.js)
+    - ref: [failover.js](../src/nodejs/providers/failover.js), [storage.js](../src/nodejs/providers/azure/cloud.js)
 - Provider resources are updated to match "after" configuration
     - ref: [failover.js](../src/nodejs/providers/failover.js)
 - Completed task info is written from cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/storage.js)
+    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
 - Client response sent with failover result
-    - ref: [response.js](../src/nodejs/response.js)
+    - ref: [response.js](../src/nodejs/restWorkers/main.js)
 
 ---
 #### Failover Flow Diagram
 
 ![diagram](images/FailoverExtensionSequence.png)
+
+
+---
+### Reconciliation/Recovery
+
+Due to unpredictability of the cloud environment where BIG-IP clusters are running, the Cloud Failover extension must be able to recover gracefully from these failure scenarios:
+
+- Flapping: The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
+    - The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
+- Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
+    - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
 
 
 ---
@@ -213,41 +222,30 @@ Ok, overview done!  Now let's dive into the major areas to be aware of as a deve
 - [Public documentation methodology](#public-documentation-methodology)
 
 ---
-### Software Design
-
-Design: Object model driven by cloud...
-
-Directory structure: `src/nodejs/providers/<azure|aws|google>/*`
-
-#### Class Diagram
-
-![diagram](../diagrams/artifacts/object_model_by_cloud.png)
-
----
 ### Core modules
 
 All core modules are included inside `../src/nodejs/`
 
 - [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
-    - Purpose: Hook for incoming HTTP requests
-- [cloud.js](../src/nodejs/providers/cloud.js)
-    - Purpose: When passed an environment name, gets an authentication token from local metadata and returns a provider management client object for use in making calls to provider APIs
+    - Purpose: Hook for incoming/outgoing HTTP requests and managing application state
+- [cloud.js](../src/nodejs/providers/abstract/cloud.js)
+    - Purpose: When passed an environment name, creates an instance of a specific cloud provider
+- [cloud.js](../src/nodejs/providers/azure/cloud.js)
+    - Purpose: Provider for a specific cloud environment
 - [device.js](../src/nodejs/providers/device.js)
     - Purpose: When passed a iControl REST resource URI, returns the desired configuration from the local BIG-IP device (using f5-cloud-libs bigIp class)
+- [config.js](../src/nodejs/config.js)
+    - Purpose: Write configuration changes to the BIG-IP device (currently only creates POST to trigger endpoint in /config/failover)
 - [failover.js](../src/nodejs/providers/failover.js)
     - Purpose: Gets and munges the user data, provider configuration, and local BIG-IP configuration and returns the 'before failover' and 'after failover' configurations
-- [storage.js](../src/nodejs/providers/storage.js)
-    - Purpose: Creates storage client, reads/writes user data and failover state to provider storage location
 - [logger.js](../src/nodejs/logger.js)
     - Purpose: Log events to /var/log/restnoded/restnoded.log
 - [validator.js](../src/nodejs/validator.js)
     - Purpose: Validate POST data against schema(s) using ajv
-- [state.js](../src/nodejs/state.js)
-    - Purpose: Create, update, and return application state; in addition to returning the last successful declaration, we can extend this to include config details, history, etc
-- [response.js](../src/nodejs/response.js)
-    - Purpose: Send REST response to client
 - [constants.js](../src/nodejs/constants.js)
     - Purpose: Define shared variables
+- [util.js](../src/nodejs/util.js)
+    - Purpose: Perform common tasks
 
 ---
 ### Testing methodology
