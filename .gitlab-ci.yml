@@ -76,6 +76,22 @@ build_docs:
             - docs/_build/html
         expire_in: 1 month
 
+build_api_docs:
+    stage: build
+    script:
+        # install packages
+        - npm install
+        # generate docs
+        - npm run make-api-docs
+        - mkdir apidocs && mv redoc-static.html apidocs/index.html
+    tags:
+        - docker-executor
+    artifacts:
+        name: docs
+        paths:
+            - apidocs
+        expire_in: 1 month
+
 publish_to_artifactory:
     stage: publish
     only:
@@ -112,6 +128,10 @@ pages:
         - PUBLIC_DOCS=${PUBLIC_DIR}/public-docs
         - mkdir -p ${PUBLIC_DOCS}
         - cp -R docs/_build/html/* ${PUBLIC_DOCS}
+        #### place API docs under: /api-docs ####
+        - API_DOCS=${PUBLIC_DIR}/api-docs
+        - mkdir -p ${API_DOCS}
+        - cp -R apidocs/* ${API_DOCS}
         #### place code coverage docs under: /coverage-docs ####
         - COVERAGE_DOCS=${PUBLIC_DIR}/coverage
         - mkdir -p ${COVERAGE_DOCS}
