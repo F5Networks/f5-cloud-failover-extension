@@ -20,6 +20,7 @@ const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
+const util = require('../../util.js');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
@@ -295,26 +296,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Retrier
-    *
-    * @param {Object} func - Function to try
-    * @param {Object} args - args
-    *
-    * @returns {Promise}
-    */
-    _retrier(func, args) {
-        return new Promise((resolve, reject) => {
-            cloudLibsUtil.tryUntil(this, { maxRetries: 4, retryIntervalMs: 15000 }, func, args)
-                .then(() => {
-                    resolve();
-                })
-                .catch((error) => {
-                    reject(error);
-                });
-        });
-    }
-
-    /**
     * Update Nics
     *
     * @param {String} group     - group
@@ -358,10 +339,10 @@ class Cloud extends AbstractCloud {
             this.logger.debug('No associations to update.');
             return Promise.resolve();
         }
-
+        const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(this._retrier(this._updateNics, item));
+            disassociatePromises.push(util.retrier(this._updateNics, item, shortRetry));
         });
         return Promise.all(disassociatePromises)
             .then(() => {
@@ -369,7 +350,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(this._retrier(this._updateNics, item));
+                    associatePromises.push(util.retrier(this._updateNics, item, shortRetry));
                 });
                 return Promise.all(associatePromises);
             })

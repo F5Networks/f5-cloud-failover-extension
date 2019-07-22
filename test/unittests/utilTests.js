@@ -9,14 +9,17 @@
 'use strict';
 
 const assert = require('assert');
+const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 
 /* eslint-disable global-require */
 
 describe('Util', () => {
     let util;
+    let cloudLibsUtil;
 
     before(() => {
         util = require('../../src/nodejs/util.js');
+        cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -32,7 +35,7 @@ describe('Util', () => {
     MockRestOperation.prototype.setMethod = function (method) { this.method = method; };
     MockRestOperation.prototype.setBody = function (body) { this.body = body; };
     MockRestOperation.prototype.setStatusCode = function (code) { this.statusCode = code; };
-    MockRestOperation.prototype.complete = function () {};
+    MockRestOperation.prototype.complete = function () { };
 
     it('should stringify object', () => {
         const obj = {
@@ -56,5 +59,51 @@ describe('Util', () => {
         util.restOperationResponder(mockRestOperation, statusCode, body);
         assert.strictEqual(mockRestOperation.body, body);
         assert.strictEqual(mockRestOperation.statusCode, statusCode);
+    });
+
+    describe('retrier', () => {
+        it('should validate resolve', () => {
+            const fakeFunc = () => Promise.resolve();
+            return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
+                .then(() => {
+                    assert.ok(true);
+                })
+                .catch(() => {
+                    // fails when error recieved
+                    assert.fail();
+                });
+        });
+
+        it('should validate reject', () => {
+            cloudLibsUtil.tryUntil = sinon.stub().rejects();
+            const fakeFunc = () => 'fake func return';
+            return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
+                    // fails when error recieved
+                    assert.ok(true);
+                });
+        });
+
+        it('should accept custom retryOptions', () => {
+            const fakeFunc = () => Promise.resolve();
+            const customRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+            let retryParms;
+            cloudLibsUtil.tryUntil = sinon.stub().callsFake((thisArg, retryOptions) => {
+                retryParms = retryOptions;
+                return Promise.resolve();
+            });
+            return util.retrier(fakeFunc, {}, customRetry)
+                .then(() => {
+                    assert.ok(true);
+                    assert.deepEqual(retryParms, customRetry);
+                })
+                .catch(() => {
+                    // fails when error recieved
+                    assert.fail();
+                });
+        });
     });
 });

@@ -8,6 +8,8 @@
 
 'use strict';
 
+const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
+
 module.exports = {
     /**
      * Stringify a message
@@ -38,5 +40,30 @@ module.exports = {
         restOperation.setStatusCode(status);
         restOperation.setBody(body);
         restOperation.complete();
+    },
+
+    /**
+    * Retrier function, that wraps tryUntil() from f5-cloud-libs in a native Promise
+    *
+    * @param {Object}   func - Function to try
+    * @param {Object}   args - Arguments to pass to function
+    * @param {Object}   [retryOptions]                 - Options for retrying the request.
+    * @param {Integer}  [retryOptions.maxRetries]      - Number of times to retry if first try fails.
+    *                                                   0 to not retry. Default 90.
+    * @param {Integer}  [retryOptions.retryIntervalMs] - Milliseconds between retries. Default 10000.
+    *
+    * @returns {Promise}
+    */
+    retrier(func, args, retryOptions) {
+        const retry = retryOptions || cloudLibsUtil.DEFAULT_RETRY;
+        return new Promise((resolve, reject) => {
+            cloudLibsUtil.tryUntil(this, retry, func, args)
+                .then(() => {
+                    resolve();
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        });
     }
 };
