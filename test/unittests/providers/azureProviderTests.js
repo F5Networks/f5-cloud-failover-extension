@@ -400,32 +400,4 @@ describe('Provider - Azure', () => {
                 assert.ok(true);
             });
     });
-
-    it('validate resolve _retrier', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-
-        const fakeFunc = () => Promise.resolve();
-        return provider._retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
-            .then(() => {
-                assert.ok(true);
-            })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
-    });
-
-    it('validate reject _retrier', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-        cloudLibsUtil.tryUntil = sinon.stub().rejects();
-        const fakeFunc = () => Promise.reject();
-        return provider._retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
-            .then(() => {
-                assert.fail();
-            })
-            .catch(() => {
-                // fails when error recieved
-                assert.ok(true);
-            });
-    });
 });
