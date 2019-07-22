@@ -117,7 +117,7 @@ What happens in the system internals between request and response?
 - A provider auth token is acquired from metadata and a storage management client is returned
     - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - User data is written to cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
+    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - Failover declaration/API call is written to /config/failover scripts on BIG-IP
     - ref: [device.js](../src/nodejs/providers/config.js)
 - Client response sent with validated config
@@ -181,15 +181,15 @@ What happens in the system internals between request and response?
 - A provider auth token is acquired from metadata and storage/network management clients are returned
     - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - User data is read from cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
+    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - BIG-IP configuration is read from local device
     - ref: [device.js](../src/nodejs/providers/device.js)
 - Before/after configuration, timestamp are created and written to provider storage
-    - ref: [failover.js](../src/nodejs/providers/failover.js), [storage.js](../src/nodejs/providers/azure/cloud.js)
+    - ref: [failover.js](../src/nodejs/providers/failover.js), [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - Provider resources are updated to match "after" configuration
     - ref: [failover.js](../src/nodejs/providers/failover.js)
 - Completed task info is written from cloud provider storage
-    - ref: [storage.js](../src/nodejs/providers/azure/cloud.js)
+    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - Client response sent with failover result
     - ref: [response.js](../src/nodejs/restWorkers/main.js)
 
