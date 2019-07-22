@@ -18,6 +18,7 @@
 
 const CLOUD_PROVIDERS = require('../constants').CLOUD_PROVIDERS;
 const AzureCloud = require('./azure/cloud.js').Cloud;
+const AWSCloud = require('./aws/cloud.js').Cloud;
 
 /**
  * Given the name of a Cloud Provider return a Cloud Instance.
@@ -29,6 +30,8 @@ function getCloudProvider(providerName, options) {
     switch (providerName) {
     case CLOUD_PROVIDERS.AZURE:
         return new AzureCloud(options);
+    case CLOUD_PROVIDERS.AWS:
+        return new AWSCloud(options);
     default:
         throw new Error('Unsupported cloud');
     }
