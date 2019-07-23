@@ -189,7 +189,7 @@ What happens in the system internals between request and response?
 - IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
 - User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
 
-
+---
 #### AWS
 #### Prerequisites
 - 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
@@ -209,7 +209,7 @@ What happens in the system internals between request and response?
 - Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device
 - Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device
 
-
+---
 #### Google
 #### Prerequisites
 - 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
