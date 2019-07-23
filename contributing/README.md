@@ -116,15 +116,6 @@ What happens in the system internals between request and response?
 
 ![diagram](images/failover.png)
 
-#### Failover Prerequisites
-*AWS:*
--  2 clustered BIG-IPs, in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
-- Virtual Addresses created, corresponding to _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
-- Elastic IP Addresses, tagged with:
-    1. the key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
-    2. the Private IP addresses that each Elastic IP is associated with, separated by a comma.
-    Example:
-    ![diagram](images/AWSEIPTags.png)
 
 #### Failover Sequence
 
@@ -184,12 +175,47 @@ What happens in the system internals between request and response?
 ### Failover Event Diagrams
 
 #### Azure
+#### Prerequisites
+- 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
+- Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
+- The aforementioned Azure network interfaces tagged with:
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    Example:
+    ![diagram](images/AzureTags.png)
+- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
+- Route table(s) tagged with:
+    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
+    Example:  
+
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
 #### AWS
+#### Prerequisites
+- 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
+- Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
+- Elastic IP addresses tagged with:
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    2. The Private IP addresses that each Elastic IP is associated with, separated by a comma.
+    Example:
+    ![diagram](images/AWSEIPTags.png)
+- Route table(s) tagged with:
+    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
+    Example:  
+- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
+    Example:
+
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
 #### Google
+#### Prerequisites
+- 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
+- Virtual addresses created in a named traffic group and matching _Alias IP_ addresses on the BIG-IP NICs serving application traffic
+- Virtual machine instances tagged with:
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    Example:
+    ![diagram](images/GoogleTags.png)
+- Forwarding rules(s) configured with targets that match the self IP address of the active BIG-IP
+
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
 
 #### Failover Flow Diagram
