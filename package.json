@@ -23,7 +23,8 @@
         "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
         "tf-destroy": "terraform destroy -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
         "tf-delete": "rm -rf failover-tf *tfstate*",
-        "make-docs": "make html"
+        "make-docs": "make html",
+        "make-api-docs": "redoc-cli bundle specs/openapi.yaml"
     },
     "nyc": {
         "check-coverage": true,
@@ -66,7 +67,9 @@
         "ssh2": "^0.8.2"
     },
     "optionalDependencies": {
-        "mermaid.cli": "^0.5.1"
+        "mermaid.cli": "^0.5.1",
+        "redoc": "^2.0.0-rc.10",
+        "redoc-cli": "^0.8.5"
     },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
