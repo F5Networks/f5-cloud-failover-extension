@@ -20,18 +20,6 @@ Additional reasons for providing a consolidated solution include:
 - Lifecyle: I should be able to upgrade my BIG-IP software without having to call F5 support to "fix failover"
 
 ---
-### Failover Event Diagrams
-
-#### Azure
-![diagram](images/AzureFailoverExtensionHighLevel.gif)
-
-#### AWS
-![diagram](images/AWSFailoverExtensionHighLevel.gif)
-
-#### Google
-![diagram](images/GoogleFailoverExtensionHighLevel.gif)
-
----
 ### Components
 
 The failover extension includes a number of key components, listed below.
@@ -121,8 +109,7 @@ What happens in the system internals between request and response?
 - Failover declaration/API call is written to /config/failover scripts on BIG-IP
     - ref: [device.js](../src/nodejs/providers/config.js)
 - Client response sent with validated config
-    - ref: [response.js](../src/nodejs/restWorkers/main.js)
-
+    - ref: [main.js](../src/nodejs/restWorkers/main.js)
 
 ---
 ### Failover
@@ -191,13 +178,22 @@ What happens in the system internals between request and response?
 - Completed task info is written from cloud provider storage
     - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - Client response sent with failover result
-    - ref: [response.js](../src/nodejs/restWorkers/main.js)
+    - ref: [main.js](../src/nodejs/restWorkers/main.js)
 
 ---
+### Failover Event Diagrams
+
+#### Azure
+![diagram](images/AzureFailoverExtensionHighLevel.gif)
+
+#### AWS
+![diagram](images/AWSFailoverExtensionHighLevel.gif)
+
+#### Google
+![diagram](images/GoogleFailoverExtensionHighLevel.gif)
+
 #### Failover Flow Diagram
-
 ![diagram](images/FailoverExtensionSequence.png)
-
 
 ---
 ### Reconciliation/Recovery
@@ -208,7 +204,6 @@ Due to unpredictability of the cloud environment where BIG-IP clusters are runni
     - The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
 - Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
     - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
-
 
 ---
 ## Contributing
