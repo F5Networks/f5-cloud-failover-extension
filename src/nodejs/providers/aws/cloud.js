@@ -90,17 +90,16 @@ class Cloud extends AbstractCloud {
 
     /**
      * Actually move the EIPs
-     * @param {Object} EIPConfig - EIP Configuration we should set
+     * @param {Object} EIPConfigs - EIP Configuration we should set
      *
      * @returns {Promise} - Resolves or rejects with status of moving the EIP
      */
-    _reassociateEIPs(EIPConfig) {
-        // const disassociatePromises = [];
+    _reassociateEIPs(EIPConfigs) {
+        const disassociatePromises = [];
         // const associatePromises = [];
-        Object.keys(EIPConfig).forEach((eip) => {
-            // disassociatePromises.push(util.retrier(this._disassociateIpAddress, eip.current.AssociationId));
-            this.logger.info('going to disassociate:');
-            this.logger.info(eip.current.AssociationId);
+        Object.keys(EIPConfigs).forEach((eipKeys) => {
+            const associationIdToDisassociate = EIPConfigs[eipKeys].current.AssociationId;
+            disassociatePromises.push(util.retrier(this._disassociateIpAddress, associationIdToDisassociate));
         });
     }
 
