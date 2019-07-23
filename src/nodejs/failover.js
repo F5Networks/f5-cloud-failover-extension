@@ -75,7 +75,11 @@ function execute() {
         .then((addresses) => {
             logger.info('Performing Failover - Updating addresses');
 
-            return cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses);
+            return cloudProvider.updateAddresses({
+                localAddresses: addresses.localAddresses,
+                failoverAddresses: addresses.failoverAddresses,
+                allVirtualAddresses: device.getVirtualAddresses()
+            });
         })
         .then(() => {
             logger.info('Failover complete');

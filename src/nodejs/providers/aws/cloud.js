@@ -39,6 +39,8 @@ class Cloud extends AbstractCloud {
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
                 this.region = metadata.region;
+                this.instanceId = metadata.instanceId;
+
                 AWS.config.update({ region: this.region });
                 this.ec2 = new AWS.EC2();
             })
@@ -48,21 +50,97 @@ class Cloud extends AbstractCloud {
     /**
     * Update Addresses
     *
-    * @param {Object} localAddresses    - Local addresses
-    * @param {String} failoverAddresses - Failover addresses
+    * @param {Object}   deviceInfo
+    * @param {Object}   [deviceInfo.allVirtualAddresses]    - All virtual addresses on the BIG-IP
     *
     * @returns {Object}
     */
-    updateAddresses(localAddresses, failoverAddresses) {
+    updateAddresses(deviceInfo) {
         this.logger.info('got some addresses:');
-        this.logger.info(`localAddresses: ${localAddresses}`); // 10.0.11.136
-        this.logger.info(`failoverAddresses: ${failoverAddresses}`); // undef
+        this.logger.info(`localAddresses: ${deviceInfo.localAddresses}`); // 10.0.11.136
+        this.logger.info(`failoverAddresses: ${deviceInfo.failoverAddresses}`); // undef
+        this.logger.info('allVirtuals:');
+        this.logger.info(deviceInfo.allVirtualAddresses);
 
         return this._getElasticIPs(this.tags)
             .then((eips) => {
+                this.logger.info('EIPS:');
                 this.logger.info(eips);
+                // TODO: shouldn't be global in future
+                this.eips = eips.Addresses;
+            })
+            .then(() => {
+                deviceInfo.allVirtualAddresses.forEach((vip) => {
+                    this.logger.info(vip);
+                });
+                return this._getPrivateSecondaryIPs();
+            })
+            .then((data) => {
+                this.logger.info('secondary private IP');
+                this.logger.info(data);
+                // for each EIP, we should re-assoc
+                return this._reassociateEIPs(data);
+            })
+            .then((data) => {
+                this.logger.info(data);
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * _reassociateEIPs();
+     * @param data - IPs for this instance
+     * // TODO: Not much thought here yet
+     */
+    _reassociateEIPs(data) {
+        this.eips.forEach((eip) => {
+            // TODO: 'VIPS' should be a constant. Question: Should it be defined in the POST payload?
+            const targetAddresses = eip.Tags.find(tag => tag.Key === 'VIPS').Value.split(',');
+            targetAddresses.forEach((targetAddr) => {
+                this.logger.info('target:');
+                this.logger.info(targetAddr);
+                this.logger.info('IPs on instance:');
+                this.logger.info(data);
+                if (data.indexOf(targetAddr) !== -1) {
+                    this.logger.info('found canditate to move!');
+                    this.logger.info(`should move: ${eip.PublicIp} to ${targetAddr}, and off ${eip.PrivateIpAddress}`);
+                }
+            });
+        });
+    }
+
+    /**
+     * Get all Private Secondary IP addresses for this BIG-IP
+     *
+     * @returns {Promise}   - A Promise that will be resolved with all of the Private Secondary IP address, or
+     *                          rejected if an error occurs
+     */
+    _getPrivateSecondaryIPs() {
+        const params = {
+            Filters: [
+                {
+                    Name: 'attachment.instance-id',
+                    Values: [this.instanceId]
+                }
+            ]
+        };
+
+        return new Promise((resolve, reject) => {
+            this.ec2.describeNetworkInterfaces(params).promise()
+                .then((data) => {
+                    // resolve(data);
+                    const privateIps = [];
+                    data.NetworkInterfaces.forEach((nic) => {
+                        nic.PrivateIpAddresses.forEach((privateIp) => {
+                            if (privateIp.Primary === false) {
+                                privateIps.push(privateIp.PrivateIpAddress);
+                            }
+                        });
+                    });
+                    resolve(privateIps);
+                })
+                .catch(err => reject(err));
+        });
     }
 
     /**
