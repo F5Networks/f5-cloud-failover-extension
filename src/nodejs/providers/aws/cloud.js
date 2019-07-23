@@ -61,7 +61,7 @@ class Cloud extends AbstractCloud {
             const eips = results[0].Addresses;
             const secondaryPrivateIps = results[1];
 
-            return this._generateNewEIPConfigs(eips, secondaryPrivateIps);
+            return this._generateEIPConfigs(eips, secondaryPrivateIps);
         }).then((results) => {
             this.logger.info('Reassociating Elastic IP addresses');
             return this._reassociateEIPs(results);
@@ -72,7 +72,7 @@ class Cloud extends AbstractCloud {
      * Re-associates the Elastic IP Addresses. Will first attempt to disassociate and then associate
      * the Elastic IP Address(es) to the newly active BIG-IP
      *
-     * @param {Object} EIPConfigs - EIP Configuration we should set // TODO: expected structure
+     * @param {Object} EIPConfigs - EIP Configuration we should set
      *
      * @returns {Promise} - Resolves or rejects with status of moving the EIP
      */
@@ -173,12 +173,14 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * @param eips - all tagged EIPs TODO: What is expected structure?
-     * @param privateInstanceIPs - IPs for this instance TODO: What is the expected structure?
-     * // TODO: If EIP is already where it belongs, don't need to do any work
-     * // TODO: What is the structure of the returned object?
+     * Generate the Elastic IP configuration data required to reassociate the Elastic IP addresses
+     *
+     * @param {Object} eips                 - Array of Elastic IP information, as returned from AWS.
+     * @param {Object} privateInstanceIPs   - Collection of Secondary Private IP addresses, and their associated NIC ID
+     *
+     * @returns {Promise} - A Promise that is resolved with the Elastic IP configuration, or rejected if an error occurs
      */
-    _generateNewEIPConfigs(eips, privateInstanceIPs) {
+    _generateEIPConfigs(eips, privateInstanceIPs) {
         const updatedState = {};
         // TODO: 'VIPS' should be a constant. Question: Should it be defined in the POST payload?
         const vipTagKey = 'VIPS';
@@ -209,11 +211,20 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get all Private Secondary IP addresses for this BIG-IP
-     * TODO: What does the returned structure look like?
+     * Get all Private Secondary IP addresses for this BIG-IP, and their associated NIC ID
      *
      * @returns {Promise}   - A Promise that will be resolved with all of the Private Secondary IP address, or
-     *                          rejected if an error occurs
+     *                          rejected if an error occurs. Example response:
+     *                          {
+     *                              "10.0.11.139":
+     *                              {
+     *                                  "NetworkInterfaceId":"eni-034a05fef728d501b"
+     *                              },
+     *                              "10.0.11.82":
+     *                              {
+     *                                  "NetworkInterfaceId":"eni-034a05fef728d501b"
+     *                              }
+     *                          }
      */
     _getPrivateSecondaryIPs() {
         const params = {
@@ -246,7 +257,6 @@ class Cloud extends AbstractCloud {
 
     /**
      * Returns the Elastic IP address(es) associated with this BIG-IP cluster
-     * TODO: What does the returned structure look like?
      *
      * @param   {Object}    tags    - Array containing tags to filter on [{'key': 'myKey', 'value': 'myValue' }]
      *
