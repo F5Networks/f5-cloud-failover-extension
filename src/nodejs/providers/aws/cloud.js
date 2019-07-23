@@ -48,49 +48,31 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update Addresses
+    * Updates the Public IP Addresses on the BIG-IP Cluster, by re-associating AWS Elastic IP Addresses
     *
-    * @param {Object}   deviceInfo
-    * @param {Object}   [deviceInfo.allVirtualAddresses]    - All virtual addresses on the BIG-IP
-    *
-    * @returns {Object}
+    * @returns {Promise} - Resolves or rejects with the status of re-associating the Elastic IP Address(es)
     */
-    updateAddresses(deviceInfo) {
-        this.logger.info('got some addresses:');
-        this.logger.info(`localAddresses: ${deviceInfo.localAddresses}`); // 10.0.11.136
-        this.logger.info(`failoverAddresses: ${deviceInfo.failoverAddresses}`); // undef
-        this.logger.info('allVirtuals:');
-        this.logger.info(deviceInfo.allVirtualAddresses);
+    // TODO: Need VirtualAddresses from BIG-IP, or just failover with what we know from AWS?
+    updateAddresses() {
+        return Promise.all([
+            this._getElasticIPs(this.tags),
+            this._getPrivateSecondaryIPs()
+        ]).then((results) => {
+            const eips = results[0].Addresses;
+            const secondaryPrivateIps = results[1];
 
-        return this._getElasticIPs(this.tags)
-            .then((eips) => {
-                this.logger.info('EIPS:');
-                this.logger.info(eips);
-                // TODO: shouldn't be global in future. Or should it?
-                this.eips = eips.Addresses;
-            })
-            .then(() => {
-                deviceInfo.allVirtualAddresses.forEach((vip) => {
-                    this.logger.info(vip);
-                });
-                return this._getPrivateSecondaryIPs();
-            })
-            .then((data) => {
-                this.logger.info('secondary private IP');
-                this.logger.info(data);
-                // for each EIP, we should re-assoc
-                return this._generateNewEIPConfigs(data);
-            })
-            .then((data) => {
-                this.logger.info(data);
-                this._reassociateEIPs(data);
-            })
-            .catch(err => Promise.reject(err));
+            return this._generateNewEIPConfigs(eips, secondaryPrivateIps);
+        }).then((results) => {
+            this.logger.info('Reassociating Elastic IP addresses');
+            return this._reassociateEIPs(results);
+        }).catch(err => Promise.reject(err));
     }
 
     /**
-     * Actually move the EIPs
-     * @param {Object} EIPConfigs - EIP Configuration we should set
+     * Re-associates the Elastic IP Addresses. Will first attempt to disassociate and then associate
+     * the Elastic IP Address(es) to the newly active BIG-IP
+     *
+     * @param {Object} EIPConfigs - EIP Configuration we should set // TODO: expected structure
      *
      * @returns {Promise} - Resolves or rejects with status of moving the EIP
      */
@@ -139,6 +121,13 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    /**
+     * Disassociate the Elastic IP address
+     *
+     * @param {String} associationIdToDisassociate  - Elastic IP associate to disassociate
+     *
+     * @returns {Promise} - A promise resolved or rejected based on the status of disassociating the Elastic IP Address
+     */
     _disassociateIpAddress(associationIdToDisassociate) {
         return new Promise((resolve, reject) => {
             this.logger.debug(`disassociating: ${associationIdToDisassociate}`);
@@ -156,13 +145,22 @@ class Cloud extends AbstractCloud {
         });
     }
 
+    /**
+     * Associate the Elastic IP address to a PrivateIP address on a given NIC
+     * @param {String} allocationId         - Elastic IP allocation ID
+     * @param {String} networkInterfaceId   - ID of NIC with the Private IP address
+     * @param {String} privateIpAddress     - Private IP Address on the NIC to attach the Elastic IP address to
+     *
+     * @returns {Promise} - A Promise rejected or resolved based on the status of associating the Elastic IP address
+     */
     _associateIpAddress(allocationId, networkInterfaceId, privateIpAddress) {
         return new Promise((resolve, reject) => {
             this.logger.debug(`associating: ${allocationId} to ${privateIpAddress}`);
             const params = {
                 AllocationId: allocationId,
                 NetworkInterfaceId: networkInterfaceId,
-                PrivateIpAddress: privateIpAddress
+                PrivateIpAddress: privateIpAddress,
+                AllowReassociation: true
             };
             this.ec2.associateAddress(params, (err, data) => {
                 if (err) {
@@ -175,28 +173,28 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * _generateNewEIPConfigs();
-     * @param privateInstanceIPs - IPs for this instance
-     * // TODO: Not much thought here yet
+     * @param eips - all tagged EIPs TODO: What is expected structure?
+     * @param privateInstanceIPs - IPs for this instance TODO: What is the expected structure?
+     * // TODO: If EIP is already where it belongs, don't need to do any work
+     * // TODO: What is the structure of the returned object?
      */
-    _generateNewEIPConfigs(privateInstanceIPs) {
+    _generateNewEIPConfigs(eips, privateInstanceIPs) {
         const updatedState = {};
-        this.eips.forEach((eip) => {
-            // TODO: 'VIPS' should be a constant. Question: Should it be defined in the POST payload?
-            // TODO: How does Terraform do tagging? Would this change how we'd set our tags?
-            const targetAddresses = eip.Tags.find(tag => tag.Key === 'VIPS').Value.split(',');
-            targetAddresses.forEach((targetAddr) => {
-                this.logger.info('target:');
-                this.logger.info(targetAddr);
-                this.logger.info('IPs on instance:');
-                this.logger.info(privateInstanceIPs);
-                if (targetAddr in privateInstanceIPs) {
-                    this.logger.info('found canditate to move!');
-                    this.logger.info(`should move: ${eip.PublicIp} to ${targetAddr}, and off ${eip.PrivateIpAddress}`);
+        // TODO: 'VIPS' should be a constant. Question: Should it be defined in the POST payload?
+        const vipTagKey = 'VIPS';
+        eips.forEach((eip) => {
+            const targetAddresses = eip.Tags.find(tag => tag.Key === vipTagKey).Value.split(',');
+            targetAddresses.forEach((targetAddress) => {
+                // Check if the target address is present on local BIG-IP, and if the EIP isn't already associated
+                if (targetAddress in privateInstanceIPs && targetAddress !== eip.PrivateIpAddress) {
+                    this.logger.info(
+                        `Moving Elastic IP: ${eip.PublicIp} to Private IP: ${targetAddress}, and off of ${eip.PrivateIpAddress}`
+                    );
+
                     updatedState[eip.PublicIp] = {
                         target: {
-                            PrivateIpAddress: targetAddr,
-                            NetworkInterfaceId: privateInstanceIPs[targetAddr].NetworkInterfaceId
+                            PrivateIpAddress: targetAddress,
+                            NetworkInterfaceId: privateInstanceIPs[targetAddress].NetworkInterfaceId
                         },
                         current: {
                             PrivateIpAddress: eip.PrivateIpAddress,
@@ -212,6 +210,7 @@ class Cloud extends AbstractCloud {
 
     /**
      * Get all Private Secondary IP addresses for this BIG-IP
+     * TODO: What does the returned structure look like?
      *
      * @returns {Promise}   - A Promise that will be resolved with all of the Private Secondary IP address, or
      *                          rejected if an error occurs
@@ -247,6 +246,7 @@ class Cloud extends AbstractCloud {
 
     /**
      * Returns the Elastic IP address(es) associated with this BIG-IP cluster
+     * TODO: What does the returned structure look like?
      *
      * @param   {Object}    tags    - Array containing tags to filter on [{'key': 'myKey', 'value': 'myValue' }]
      *
