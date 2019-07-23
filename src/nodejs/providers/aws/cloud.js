@@ -96,16 +96,52 @@ class Cloud extends AbstractCloud {
      */
     _reassociateEIPs(EIPConfigs) {
         const disassociatePromises = [];
-        // const associatePromises = [];
+        const associatePromises = [];
+
         Object.keys(EIPConfigs).forEach((eipKeys) => {
-            const associationIdToDisassociate = EIPConfigs[eipKeys].current.AssociationId;
-            disassociatePromises.push(util.retrier(this._disassociateIpAddress, associationIdToDisassociate));
+            const AssociationId = EIPConfigs[eipKeys].current.AssociationId;
+            // Disassociate EIP only if it is currently associated
+            if (AssociationId) {
+                disassociatePromises.push(util.retrier.call(this, this._disassociateIpAddress, [AssociationId]));
+            }
         });
+        // Disassociate EIP, in case EIP wasn't created with ability to reassociate when already associated
+        return Promise.all(disassociatePromises)
+            .then(() => {
+                if (disassociatePromises.length === 0) {
+                    this.logger.info('Disassociation of Elastic IP addresses not required');
+                } else {
+                    this.logger.info('Disassociation of Elastic IP addresses successful');
+                }
+
+                Object.keys(EIPConfigs).forEach((eipKeys) => {
+                    const allocationId = EIPConfigs[eipKeys].AllocationId;
+                    const networkInterfaceId = EIPConfigs[eipKeys].target.NetworkInterfaceId;
+                    const privateIpAddress = EIPConfigs[eipKeys].target.PrivateIpAddress;
+
+                    // Associate EIP only if all variables are present
+                    if (allocationId && networkInterfaceId && privateIpAddress) {
+                        associatePromises.push(
+                            util.retrier.call(this, this._associateIpAddress,
+                                [allocationId, networkInterfaceId, privateIpAddress])
+                        );
+                    }
+                });
+                return Promise.all(associatePromises);
+            })
+            .then(() => {
+                if (associatePromises.length === 0) {
+                    this.logger.info('Association of Elastic IP addresses not required');
+                } else {
+                    this.logger.info('Association of Elastic IP addresses successful');
+                }
+            })
+            .catch(err => Promise.reject(err));
     }
 
     _disassociateIpAddress(associationIdToDisassociate) {
         return new Promise((resolve, reject) => {
-            this.logger.info('disassociating');
+            this.logger.debug(`disassociating: ${associationIdToDisassociate}`);
             const params = {
                 AssociationId: associationIdToDisassociate
             };
@@ -120,8 +156,22 @@ class Cloud extends AbstractCloud {
         });
     }
 
-    _associateIpAddress() {
-
+    _associateIpAddress(allocationId, networkInterfaceId, privateIpAddress) {
+        return new Promise((resolve, reject) => {
+            this.logger.debug(`associating: ${allocationId} to ${privateIpAddress}`);
+            const params = {
+                AllocationId: allocationId,
+                NetworkInterfaceId: networkInterfaceId,
+                PrivateIpAddress: privateIpAddress
+            };
+            this.ec2.associateAddress(params, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
+        });
     }
 
     /**
@@ -152,7 +202,7 @@ class Cloud extends AbstractCloud {
                             PrivateIpAddress: eip.PrivateIpAddress,
                             AssociationId: eip.AssociationId
                         },
-                        allocationId: eip.allocationId
+                        AllocationId: eip.AllocationId
                     };
                 }
             });
