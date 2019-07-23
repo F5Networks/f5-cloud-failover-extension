@@ -24,9 +24,9 @@ Additional reasons for providing a consolidated solution include:
 
 The failover extension includes a number of key components, listed below.
 
-*Configuration*: Prepares the environment for failover.  Writes configuration and/or state to cloud provider storage and configures the /config/failover scripts on BIG-IP.
+*Configuration*: Prepares the environment for failover.  Writes configuration info to REST storage and state info to cloud provider storage and configures the /config/failover/tgactive and /config/failover/tgrefresh scripts on BIG-IP.
 
-*Failover*: Triggers a failover event.  Reads configuration info from BIG-IP REST storage and state info from cloud provider storage, creates a desired configuration, and updates cloud resources accordingly.
+*Failover*: Triggers a failover event.  Reads configuration info from BIG-IP REST storage and state info from cloud provider storage, creates a desired configuration, and updates cloud resources accordingly.  Recovers from previously failed events, if required.
 
 ---
 ### Configuration
@@ -170,6 +170,8 @@ What happens in the system internals between request and response?
 #### Azure
 #### Prerequisites
 - 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
+- An Azure system-assigned or user-managed identity with Contributor role to the virtual machines and resource group where network interfaces and route tables are configured
+- Network access to the Azure metadata service
 - Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
 - The aforementioned Azure network interfaces tagged with:
     1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
@@ -179,52 +181,51 @@ What happens in the system internals between request and response?
 - Route table(s) tagged with:
     1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
     Example:  
+    ![diagram](images/AzureRouteTags.png)
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
-### Result
-- IP configuration(s) with secondary private addresses that match a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
-- User-defined routes with a destination and appropriately tagged parent route table are updated with a next hop attribute corresponding to the self IP address of the active BIG-IP    
+#### Result
+- IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
+- User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
+
 
 #### AWS
 #### Prerequisites
 - 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
+- An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
+- Network access to the AWS metadata service
 - Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
 - Elastic IP addresses tagged with:
     1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
     2. The Private IP addresses that each Elastic IP is associated with, separated by a comma
     Example:
-    ![diagram](images/AWSEIPTags.png)
-- Route table(s) tagged with:
-    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
-    Example:  
-- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
-    Example:
+    ![diagram](images/AWSEIPTags.png) 
+- Route(s) in a route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
-### Result
+#### Result
 - Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device
 - Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device
+
 
 #### Google
 #### Prerequisites
 - 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
+- Network access to the Google metadata service
+- A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
 - Virtual addresses created in a named traffic group and matching _Alias IP_ addresses on the BIG-IP NICs serving application traffic
 - Virtual machine instances tagged with:
     1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
-    Example:
-    ![diagram](images/GoogleTags.png)
 - Forwarding rules(s) configured with targets that match the self IP address of the active BIG-IP
 
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
 
-#### Failover Flow Diagram
-![diagram](images/FailoverExtensionSequence.png)
-
-### Result
+#### Result
 - Alias IPs are updated to point to the network interface of the active BIG-IP device
 - Forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device
+
 
 ---
 ### Reconciliation/Recovery
@@ -235,6 +236,11 @@ Due to unpredictability of the cloud environment where BIG-IP clusters are runni
     - The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
 - Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
     - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
+
+---
+
+#### Generic Failover Flow Diagram
+![diagram](images/FailoverExtensionSequence.png)
 
 ---
 ## Contributing
