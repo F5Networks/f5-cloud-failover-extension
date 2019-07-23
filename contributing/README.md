@@ -174,13 +174,11 @@ What happens in the system internals between request and response?
 - Network access to the Azure metadata service
 - Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
 - The aforementioned Azure network interfaces tagged with:
-    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
-    Example:
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request:
     ![diagram](images/AzureTags.png)
 - Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
 - Route table(s) tagged with:
-    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
-    Example:  
+    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices:  
     ![diagram](images/AzureRouteTags.png)
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
@@ -198,8 +196,7 @@ What happens in the system internals between request and response?
 - Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
 - Elastic IP addresses tagged with:
     1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
-    2. The Private IP addresses that each Elastic IP is associated with, separated by a comma
-    Example:
+    2. The Private IP addresses that each Elastic IP is associated with, separated by a comma:
     ![diagram](images/AWSEIPTags.png) 
 - Route(s) in a route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
 
@@ -234,6 +231,8 @@ Due to unpredictability of the cloud environment where BIG-IP clusters are runni
 
 - Flapping: The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
     - The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
+![diagram](images/Reconciliation.gif)
+
 - Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
     - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
 
