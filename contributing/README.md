@@ -126,13 +126,6 @@ What happens in the system internals between request and response?
 5. Cloud SDK uses management client to create network client
 6. Cloud SDK uses network client to update route destination(s) to point to active device's NIC
 7. Cloud SDK uses network client to update IP > NIC association(s)
-
-    *Azure*:
-    1. removes targeted IP(s) from standby NIC
-    2. adds targeted IP(s) to active NIC
-
-    *AWS*:
-    1. updates EIP association(s)
 8. Cloud SDK uses storage client to write task completed to storage location
 
 ---
@@ -179,7 +172,7 @@ What happens in the system internals between request and response?
 - 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
 - Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
 - The aforementioned Azure network interfaces tagged with:
-    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
     Example:
     ![diagram](images/AzureTags.png)
 - Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
@@ -189,22 +182,30 @@ What happens in the system internals between request and response?
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
+### Result
+- IP configuration(s) with secondary private addresses that match a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
+- User-defined routes with a destination and appropriately tagged parent route table are updated with a next hop attribute corresponding to the self IP address of the active BIG-IP    
+
 #### AWS
 #### Prerequisites
 - 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
 - Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
 - Elastic IP addresses tagged with:
-    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
-    2. The Private IP addresses that each Elastic IP is associated with, separated by a comma.
+    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
+    2. The Private IP addresses that each Elastic IP is associated with, separated by a comma
     Example:
     ![diagram](images/AWSEIPTags.png)
 - Route table(s) tagged with:
     1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices
     Example:  
-- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
+- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
     Example:
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
+
+### Result
+- Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device
+- Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device
 
 #### Google
 #### Prerequisites
@@ -220,6 +221,10 @@ What happens in the system internals between request and response?
 
 #### Failover Flow Diagram
 ![diagram](images/FailoverExtensionSequence.png)
+
+### Result
+- Alias IPs are updated to point to the network interface of the active BIG-IP device
+- Forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device
 
 ---
 ### Reconciliation/Recovery
