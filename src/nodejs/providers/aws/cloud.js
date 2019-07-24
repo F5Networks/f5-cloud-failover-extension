@@ -297,7 +297,9 @@ class Cloud extends AbstractCloud {
         return new Promise((resolve, reject) => {
             const metadata = new AWS.MetadataService();
             const iidPath = '/latest/dynamic/instance-identity/document';
+            console.log(metadata.request.toString()); // TODO: remove me after getting unit test to pass
             metadata.request(iidPath, (err, data) => {
+                console.log(data);
                 if (err) {
                     this.logger.error('Unable to retrieve Instance Identity');
                     reject(err);
