@@ -12,14 +12,11 @@
 
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
-const AWS = require('aws-sdk');
 
 const cloud = 'aws';
 
 describe('Provider - AWS', () => {
     let AWSCloudProvider;
-    let f5CloudLibs;
-    let cloudLibsUtil;
     let provider;
     let metadataPathRequest;
 
@@ -40,8 +37,6 @@ describe('Provider - AWS', () => {
 
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
-        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
-        cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -139,5 +134,90 @@ it('should call functions when updateAddresses is called', () => {
             .catch(() => {
                 assert.fail();
             });
+    });
+
+    describe('function _getPrivateSecondaryIPs', () => {
+        const describeNetworkInterfacesResponse = {
+            NetworkInterfaces: [
+                {
+                    NetworkInterfaceId: 'eni-123',
+                    PrivateIpAddresses: [
+                        {
+                            Primary: true,
+                            PrivateIpAddress: '1.2.3.4'
+                        },
+                        {
+                            Primary: false,
+                            PrivateIpAddress: '2.3.4.5'
+                        }
+                    ]
+                },
+                {
+                    NetworkInterfaceId: 'eni-456',
+                    PrivateIpAddresses: [
+                        {
+                            Primary: false,
+                            PrivateIpAddress: '3.4.5.6'
+                        }
+                    ]
+                }
+            ]
+        };
+        it('should get Private Secondary IPs from AWS', () => provider.init(mockInitData)
+            .then(() => {
+                // eslint-disable-next-line arrow-body-style
+                provider.ec2.describeNetworkInterfaces = sinon.stub().callsFake(() => {
+                    return {
+                        promise() {
+                            return Promise.resolve(describeNetworkInterfacesResponse);
+                        }
+                    };
+                });
+                return provider._getPrivateSecondaryIPs();
+            })
+            .then((results) => {
+                assert.deepEqual(results,
+                    {
+                        '2.3.4.5': {
+                            NetworkInterfaceId: 'eni-123'
+                        },
+                        '3.4.5.6': {
+                            NetworkInterfaceId: 'eni-456'
+                        }
+                    });
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+
+        it('should pass correct parameters', () => {
+            let passedParams;
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider.ec2.describeNetworkInterfaces = sinon.stub().callsFake((params) => {
+                        passedParams = params;
+                        return {
+                            promise() {
+                                return Promise.resolve(describeNetworkInterfacesResponse);
+                            }
+                        };
+                    });
+                    return provider._getPrivateSecondaryIPs();
+                })
+                .then(() => {
+                    assert.deepEqual(passedParams,
+                        {
+                            Filters: [
+                                {
+                                    Name: 'attachment.instance-id',
+                                    Values: [mockMetadata.instanceId]
+                                }
+                            ]
+                        });
+                })
+                .catch(() => {
+                    assert.fail();
+                });
+        });
     });
 });
