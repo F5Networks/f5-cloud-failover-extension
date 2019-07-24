@@ -236,6 +236,12 @@ Due to unpredictability of the cloud environment where BIG-IP clusters are runni
 - Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
     - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
 
+## Normal operation:
+![diagram](images/RecoveryNormal.gif)
+
+## Recovering from lost configuration:
+![diagram](images/RecoveryFail.gif)
+
 ---
 
 #### Generic Failover Flow Diagram
