@@ -24,6 +24,8 @@ const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AWS, options);
+
+        this.metadata = new AWS.MetadataService();
     }
 
     /**
@@ -295,11 +297,8 @@ class Cloud extends AbstractCloud {
      */
     _getInstanceIdentityDoc() {
         return new Promise((resolve, reject) => {
-            const metadata = new AWS.MetadataService();
             const iidPath = '/latest/dynamic/instance-identity/document';
-            console.log(metadata.request.toString()); // TODO: remove me after getting unit test to pass
-            metadata.request(iidPath, (err, data) => {
-                console.log(data);
+            this.metadata.request(iidPath, (err, data) => {
                 if (err) {
                     this.logger.error('Unable to retrieve Instance Identity');
                     reject(err);

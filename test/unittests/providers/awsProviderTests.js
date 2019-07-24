@@ -20,6 +20,8 @@ describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let f5CloudLibs;
     let cloudLibsUtil;
+    let provider;
+    let metadataPathRequest;
 
     const mockInitData = {
         tags: [
@@ -43,7 +45,10 @@ describe('Provider - AWS', () => {
         });
     });
     beforeEach(() => {
-        sinon.stub(AWS.MetadataService.prototype, 'request').callsFake((path, callback) => {
+        provider = new AWSCloudProvider(mockInitData);
+
+        provider.metadata.request = sinon.stub().callsFake((path, callback) => {
+            metadataPathRequest = path;
             callback(null, JSON.stringify(mockMetadata));
         });
     });
@@ -52,22 +57,19 @@ describe('Provider - AWS', () => {
     });
 
     it('should validate constructor', () => {
-        const provider = new AWSCloudProvider(mockInitData);
+        provider = new AWSCloudProvider(mockInitData);
 
         assert.strictEqual(provider.environment, cloud);
     });
 
-    it('should initialize AWS provider', () => {
-        const provider = new AWSCloudProvider(mockInitData);
-
-        return provider.init(mockInitData)
-            .then(() => {
-                assert.strictEqual(provider.region, mockMetadata.region);
-                assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
-            })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
-    });
+    it('should initialize AWS provider', () => provider.init(mockInitData)
+        .then(() => {
+            assert.strictEqual(metadataPathRequest, '/latest/dynamic/instance-identity/document');
+            assert.strictEqual(provider.region, mockMetadata.region);
+            assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+        })
+        .catch(() => {
+            // fails when error recieved
+            assert.fail();
+        }));
 });
