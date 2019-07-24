@@ -24,10 +24,18 @@ describe('Cloud Factory', () => {
         });
     });
 
-    it('should get cloud provider', () => {
-        const provider = CloudFactory.getCloudProvider('azure');
+    it('should get azure cloud provider', () => {
+        const cloud = 'azure';
+        const provider = CloudFactory.getCloudProvider(cloud);
 
-        assert.strictEqual(provider.environment, 'azure');
+        assert.strictEqual(provider.environment, cloud);
+    });
+
+    it('should get aws cloud provider', () => {
+        const cloud = 'aws';
+        const provider = CloudFactory.getCloudProvider(cloud);
+
+        assert.strictEqual(provider.environment, cloud);
     });
 
     it('should get cloud provider', () => {
