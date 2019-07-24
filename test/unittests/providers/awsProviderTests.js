@@ -26,8 +26,12 @@ describe('Provider - AWS', () => {
     const mockInitData = {
         tags: [
             {
-                key: 'zyx',
-                value: 'abc'
+                key: 'key1',
+                value: 'value1'
+            },
+            {
+                key: 'key2',
+                value: 'value2'
             }
         ]
     };
@@ -69,7 +73,71 @@ describe('Provider - AWS', () => {
             assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
         })
         .catch(() => {
-            // fails when error recieved
             assert.fail();
         }));
+
+    it('should initialize EC2 client with updated region', () => provider.init(mockInitData)
+        .then(() => {
+            assert.strictEqual(provider.ec2.config.region, mockMetadata.region);
+        }));
+
+    /*
+it('should call functions when updateAddresses is called', () => {
+    let passedTags;
+    provider._getElasticIPs = sinon.stub().callsFake((tags) => {
+        passedTags = tags;
+        Promise.resolve();
+    });
+    return provider.updateAddresses()
+        .then(() => {
+            assert.strictEqual(provider.ec2.region, mockMetadata.region);
+        })
+        .catch(() => {
+            assert.fail();
+        });
+});
+*/
+    it('should get Elastic IPs from AWS', () => {
+        let returnedParams;
+        let mockedResult;
+
+        return provider.init(mockInitData)
+            .then(() => {
+                provider.ec2.describeAddresses = sinon.stub().callsFake((params) => {
+                    returnedParams = params;
+                    // TODO: Can this be global?
+                    mockedResult = {
+                        Addresses: [
+                            {
+                                PublicIp: '1.2.3.4'
+                            }
+                        ]
+                    };
+                    return {
+                        promise() {
+                            return Promise.resolve(mockedResult);
+                        }
+                    };
+                });
+                return provider._getElasticIPs(mockInitData.tags);
+            })
+            .then((results) => {
+                assert.deepEqual(results, mockedResult);
+                assert.deepEqual(returnedParams, {
+                    Filters: [
+                        {
+                            Name: 'tag:key1',
+                            Values: ['value1']
+                        },
+                        {
+                            Name: 'tag:key2',
+                            Values: ['value2']
+                        }
+                    ]
+                });
+            })
+            .catch(() => {
+                assert.fail();
+            });
+    });
 });
