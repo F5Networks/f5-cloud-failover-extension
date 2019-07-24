@@ -137,13 +137,11 @@ class Cloud extends AbstractCloud {
                 AssociationId: associationIdToDisassociate
             };
 
-            this.ec2.disassociateAddress(params, (err, data) => {
-                if (err) {
-                    reject(err);
-                } else {
+            this.ec2.disassociateAddress(params).promise()
+                .then((data) => {
                     resolve(data);
-                }
-            });
+                })
+                .catch(err => reject(err));
         });
     }
 
@@ -164,13 +162,11 @@ class Cloud extends AbstractCloud {
                 PrivateIpAddress: privateIpAddress,
                 AllowReassociation: true
             };
-            this.ec2.associateAddress(params, (err, data) => {
-                if (err) {
-                    reject(err);
-                } else {
+            this.ec2.associateAddress(params).promise()
+                .then((data) => {
                     resolve(data);
-                }
-            });
+                })
+                .catch(err => reject(err));
         });
     }
 
