@@ -225,21 +225,25 @@ What happens in the system internals between request and response?
 
 
 ---
-### Reconciliation/Recovery
+## Reconciliation/Recovery
 
 Due to unpredictability of the cloud environment where BIG-IP clusters are running, the Cloud Failover extension must be able to recover gracefully from these failure scenarios:
 
-- Flapping: The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
+### Flapping
+The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
     - The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
 ![diagram](images/Reconciliation.gif)
 
-- Loss of configuration: The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
+---
+
+### Loss of configuration 
+The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
     - The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
 
-## Normal operation:
+#### Normal operation:
 ![diagram](images/RecoveryNormal.gif)
 
-## Recovering from lost configuration:
+#### Recovering from lost configuration:
 ![diagram](images/RecoveryFail.gif)
 
 ---
