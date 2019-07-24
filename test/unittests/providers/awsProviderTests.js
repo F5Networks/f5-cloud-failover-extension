@@ -12,7 +12,7 @@
 
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
-
+const AWS = require('aws-sdk');
 
 const cloud = 'aws';
 
@@ -20,6 +20,17 @@ describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let f5CloudLibs;
     let cloudLibsUtil;
+
+    const mockInitData = {
+        tags: [
+            {
+                key: 'zyx',
+                value: 'abc'
+            }
+        ]
+    };
+
+    const mockMetadata = { region: 'us-west', instanceId: 'i-123' };
 
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
@@ -31,13 +42,32 @@ describe('Provider - AWS', () => {
             delete require.cache[key];
         });
     });
+    beforeEach(() => {
+        sinon.stub(AWS.MetadataService.prototype, 'request').callsFake((path, callback) => {
+            callback(null, JSON.stringify(mockMetadata));
+        });
+    });
     afterEach(() => {
         sinon.restore();
     });
 
-    it('validate constructor', () => {
-        const provider = new AWSCloudProvider();
+    it('should validate constructor', () => {
+        const provider = new AWSCloudProvider(mockInitData);
 
         assert.strictEqual(provider.environment, cloud);
+    });
+
+    it('should initialize AWS provider', () => {
+        const provider = new AWSCloudProvider(mockInitData);
+
+        return provider.init(mockInitData)
+            .then(() => {
+                assert.strictEqual(provider.region, mockMetadata.region);
+                assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+            })
+            .catch(() => {
+                // fails when error recieved
+                assert.fail();
+            });
     });
 });

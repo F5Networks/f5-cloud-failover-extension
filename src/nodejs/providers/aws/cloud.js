@@ -215,6 +215,7 @@ class Cloud extends AbstractCloud {
      *
      * @returns {Promise}   - A Promise that will be resolved with all of the Private Secondary IP address, or
      *                          rejected if an error occurs. Example response:
+     *
      *                          {
      *                              "10.0.11.139":
      *                              {
