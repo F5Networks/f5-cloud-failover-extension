@@ -288,3 +288,97 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
 }
 EOF
 }
+
+resource "aws_network_interface" "mgmt1" {
+  subnet_id = "${aws_subnet.mgmtAz1.id}"
+  security_groups = ["${aws_security_group.mgmt.id}"]
+  description = "Management Interface for BIG-IP"
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "Mgmt Network Interface Az1: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_eip" "mgmt1" {
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "ElasticIP Mgmt Az1: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+
+resource "aws_network_interface" "mgmt2" {
+  subnet_id = "${aws_subnet.mgmtAz2.id}"
+  security_groups = ["${aws_security_group.mgmt.id}"]
+  description = "Management Interface for BIG-IP"
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "Mgmt Network Interface Az2: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_eip" "mgmt2" {
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "ElasticIP Mgmt Az2: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_network_interface" "external1" {
+  subnet_id = "${aws_subnet.externalAz1.id}"
+  security_groups = ["${aws_security_group.external.id}"]
+  description = "Public External Interface for the BIG-IP"
+
+  private_ips_count = 1
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "External Network Interface Az1: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_eip" "external1" {
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "ElasticIP External Az1: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_network_interface" "external2" {
+  subnet_id = "${aws_subnet.externalAz2.id}"
+  security_groups = ["${aws_security_group.external.id}"]
+  description = "Public External Interface for the BIG-IP"
+
+  private_ips_count = 1
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "External Network Interface Az2: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_eip" "external2" {
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "ElasticIP External Az2: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
+
+resource "aws_eip" "vip1" {
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "ElasticIP VIP Elastic IP: Failover Extension-${random_string.env_prefix.result}"
+    F5_CLOUD_FAILOVER_LABEL = "deployment-${random_string.env_prefix.result}"
+  }
+}
