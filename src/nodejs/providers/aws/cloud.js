@@ -54,7 +54,6 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise} - Resolves or rejects with the status of re-associating the Elastic IP Address(es)
     */
-    // TODO: Need VirtualAddresses from BIG-IP, or just failover with what we know from AWS?
     updateAddresses() {
         return Promise.all([
             this._getElasticIPs(this.tags),
