@@ -1,8 +1,10 @@
 F5 Cloud Failover
 =================
 
+Welcome to the F5 Cloud Failover User Guide. To provide feedback on this documentation, you can file a [GitHub Issue](https://github.com/f5networks/f5-cloud-failover/issues).
+
 Introduction
-============
+------------
 
 The purpose of the F5 Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP).  This requires moving/updating certain cloud resources during a failover event, as described below.
 
