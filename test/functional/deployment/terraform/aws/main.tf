@@ -137,3 +137,73 @@ resource "aws_route_table_association" "externalAz2" {
 }
 
 # Create the BIG-IPs used for Failover testing
+resource "aws_security_group" "external" {
+  description = "External interface rules"
+  vpc_id = "${aws_vpc.main.id}"
+
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = 6
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 443
+    to_port = 443
+    protocol = 6
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 4353
+    to_port = 4353
+    protocol = 6
+    self = true
+  }
+
+  ingress {
+    from_port = 1026
+    to_port = 1026
+    protocol = 17
+    self = true
+  }
+
+  tags = {
+    Name = "External Security Group: Failover Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+  }
+}
+
+resource "aws_security_group" "mgmt" {
+  description = "External interface rules"
+  vpc_id = "${aws_vpc.main.id}"
+
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = 6
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 443
+    to_port = 443
+    protocol = 6
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 443
+    to_port = 443
+    protocol = 6
+    security_groups = ["${aws_security_group.external.id}"]
+  }
+
+  tags = {
+    Name = "Mgmt Security Group: Failover Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+  }
+}
