@@ -119,6 +119,7 @@ class Cloud extends AbstractCloud {
                 } else {
                     this.logger.info('Association of Elastic IP addresses successful');
                 }
+                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }

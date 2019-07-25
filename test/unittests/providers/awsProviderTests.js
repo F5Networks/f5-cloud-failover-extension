@@ -94,6 +94,7 @@ describe('Provider - AWS', () => {
         provider.logger = sinon.stub();
         provider.logger.info = sinon.stub();
         provider.logger.debug = sinon.stub();
+        provider.logger.error = sinon.stub();
 
         provider.metadata.request = sinon.stub().callsFake((path, callback) => {
             metadataPathRequest = path;
@@ -119,52 +120,96 @@ describe('Provider - AWS', () => {
             assert.fail();
         }));
 
-    it('should call _getInstanceIdentityDoc to get instance data', () => provider._getInstanceIdentityDoc()
-        .then(() => {
-            assert.strictEqual(metadataPathRequest, '/latest/dynamic/instance-identity/document');
-        })
-        .catch(() => {
-            assert.fail();
-        }));
+    describe('_getInstanceIdentityDoc function', () => {
+        it('should call _getInstanceIdentityDoc to get instance data', () => provider._getInstanceIdentityDoc()
+            .then(() => {
+                assert.strictEqual(metadataPathRequest, '/latest/dynamic/instance-identity/document');
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+
+        it('should reject upon error', () => {
+            const expectedError = 'cannot contact AWS metadata service';
+            return provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.metadata.request = sinon.stub().callsFake((path, callback) => {
+                        callback(new Error(expectedError, null));
+                    });
+                    return provider._getInstanceIdentityDoc();
+                })
+                .then(() => {
+                    assert.ok(false, 'should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, expectedError);
+                });
+        });
+    });
 
     it('should initialize EC2 client with updated region', () => provider.init(mockInitData)
         .then(() => {
             assert.strictEqual(provider.ec2.config.region, mockMetadata.region);
         }));
 
-    it('should get Elastic IPs from AWS', () => {
-        let returnedParams;
+    describe('_getElasticIPs function', () => {
+        it('should get Elastic IPs from AWS', () => {
+            let returnedParams;
 
-        return provider.init(mockInitData)
-            .then(() => {
-                provider.ec2.describeAddresses = sinon.stub().callsFake((params) => {
-                    returnedParams = params;
-                    return {
-                        promise() {
-                            return Promise.resolve(_getElasticIPsStubResponse);
-                        }
-                    };
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider.ec2.describeAddresses = sinon.stub().callsFake((params) => {
+                        returnedParams = params;
+                        return {
+                            promise() {
+                                return Promise.resolve(_getElasticIPsStubResponse);
+                            }
+                        };
+                    });
+                    return provider._getElasticIPs(mockInitData.tags);
+                })
+                .then((results) => {
+                    assert.deepEqual(results, _getElasticIPsStubResponse);
+                    assert.deepEqual(returnedParams, {
+                        Filters: [
+                            {
+                                Name: 'tag:key1',
+                                Values: ['value1']
+                            },
+                            {
+                                Name: 'tag:key2',
+                                Values: ['value2']
+                            }
+                        ]
+                    });
+                })
+                .catch(() => {
+                    assert.fail();
                 });
-                return provider._getElasticIPs(mockInitData.tags);
-            })
-            .then((results) => {
-                assert.deepEqual(results, _getElasticIPsStubResponse);
-                assert.deepEqual(returnedParams, {
-                    Filters: [
-                        {
-                            Name: 'tag:key1',
-                            Values: ['value1']
-                        },
-                        {
-                            Name: 'tag:key2',
-                            Values: ['value2']
-                        }
-                    ]
+        });
+
+        it('should reject upon error', () => {
+            const expectedError = 'cannot describe the EIP adddresses';
+            return provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.ec2.describeAddresses = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject(new Error(expectedError));
+                            }
+                        };
+                    });
+                    return provider._getElasticIPs(mockInitData.tags);
+                })
+                .then(() => {
+                    assert.ok(false, 'should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, expectedError);
                 });
-            })
-            .catch(() => {
-                assert.fail();
-            });
+        });
     });
 
     describe('function _getPrivateSecondaryIPs', () => {
@@ -246,6 +291,28 @@ describe('Provider - AWS', () => {
                     assert.fail();
                 });
         });
+
+        it('should reject upon error', () => {
+            const expectedError = 'cannot describe the Network Interfaces';
+            return provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.ec2.describeNetworkInterfaces = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject(new Error(expectedError));
+                            }
+                        };
+                    });
+                    return provider._getPrivateSecondaryIPs();
+                })
+                .then(() => {
+                    assert.ok(false, 'should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, expectedError);
+                });
+        });
     });
 
     describe('function _generateEIPConfigs', () => {
@@ -316,6 +383,28 @@ describe('Provider - AWS', () => {
             .catch(() => {
                 assert.fail();
             }));
+
+        it('should reject upon error', () => {
+            const expectedError = 'cannot associate Elastic IP';
+            return provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.ec2.associateAddress = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject(new Error(expectedError));
+                            }
+                        };
+                    });
+                    return provider._associateIpAddress();
+                })
+                .then(() => {
+                    assert.ok(false, 'should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, expectedError);
+                });
+        });
     });
 
     describe('function _disassociateIpAddress', () => {
@@ -403,6 +492,15 @@ describe('Provider - AWS', () => {
                     assert.fail();
                 });
         });
+
+        it('should not reject if there is no work to do', () => provider.init(mockInitData)
+            .then(() => provider._reassociateEIPs([]))
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
     });
 
     describe('AWS Provider\'s updateAddress function', () => {
@@ -452,6 +550,23 @@ describe('Provider - AWS', () => {
                 })
                 .catch(() => {
                     assert.fail();
+                });
+        });
+
+        it('should reject upon error', () => {
+            const expectedError = '_getPrivateSecondaryIPs error';
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._getElasticIPs = sinon.stub().resolves();
+                    provider._getPrivateSecondaryIPs = sinon.stub().rejects(new Error(expectedError));
+
+                    return provider.updateAddresses();
+                })
+                .then(() => {
+                    assert.ok(false, 'should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, expectedError);
                 });
         });
     });
