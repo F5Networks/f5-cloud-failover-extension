@@ -1,12 +1,12 @@
 
 
-variable "location" {
+variable "aws_region" {
   description = "The AWS Region in which the resources in this example should exist"
-  default     = "westus"
+  default     = "us-west-2"
 }
 
-variable "publisher" {
-  default = "f5-networks"
+variable "aws_bigip_ami_id" {
+  default = "ami-0659b06e79b146b53"
 }
 
 variable "offer" {

@@ -12,97 +12,60 @@ resource "random_string" "env_prefix" {
   special = false
 }
 
-# Put AWS-specific resources here
-
-resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24" })
-    filename = "${path.module}/temp_do0.json"
+provider "aws" {
+  region  =   var.aws_region
 }
 
-resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24" })
-    filename = "${path.module}/temp_do1.json"
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "vpc: Failover-Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+  }
 }
 
-resource "null_resource" "login0" {
-  provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+resource "aws_internet_gateway" "mgmtIpGateway" {
+  vpc_id = aws_vpc.main.id
+  
+  tags = {
+    Name = "InternetGateway: Failover Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
   }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
-  }
-  depends_on = [aws_instance.vm0]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-resource "null_resource" "create_virtual0" {
-  provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+
+resource "aws_subnet" "mgmtAz1" {
+  vpc_id = aws_vpc.main.id
+  availability_zone = "${var.aws_region}a"
+  cidr_block = "10.0.0.0/24"
+
+  tags = {
+    Name = "Az1 Mgmt Subnet: Failover Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
   }
-  triggers = {
-    always_run = timestamp()
-  }
-  depends_on = [null_resource.login0]
 }
 
-resource "null_resource" "failover0" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
+resource "aws_route_table" "mgmt" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.mgmtIpGateway.id}"
   }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
+
+  tags = {
+    Name = "Mgmt Route Table: Failover Extension-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
   }
-  depends_on = [null_resource.login0]
 }
 
-resource "null_resource" "onboard0" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
-  }
-  depends_on = [local_file.do0, null_resource.failover0]
+resource "aws_route_table_association" "mgmtAz1" {
+  subnet_id      = "${aws_subnet.mgmtAz1.id}"
+  route_table_id = "${aws_route_table.mgmt.id}"
 }
-
-resource "null_resource" "login1" {
-  provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
-  }
-  depends_on = [
-    aws_instance.vm1,
-    null_resource.onboard0
-  ]
-}
-
-resource "null_resource" "failover1" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
-  }
-  depends_on = [null_resource.login1]
-}
-
-resource "null_resource" "onboard1" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
-  }
-  depends_on = [local_file.do1, null_resource.failover1]
-}
-
-output "stack_name" {
-  value = random_string.env_prefix.result
-}
-
-output "admin_password" {
-  value = random_string.admin_password.result
-}
-
