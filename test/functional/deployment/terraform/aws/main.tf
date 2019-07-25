@@ -289,6 +289,11 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
 EOF
 }
 
+resource "aws_iam_instance_profile" "instance_profile" {
+  name = "Failover-Extension-IAM-role-${random_string.env_prefix.result}"
+  role = "${aws_iam_role.main.id}"
+}
+
 resource "aws_network_interface" "mgmt1" {
   subnet_id = "${aws_subnet.mgmtAz1.id}"
   security_groups = ["${aws_security_group.mgmt.id}"]
@@ -302,6 +307,10 @@ resource "aws_network_interface" "mgmt1" {
 }
 
 resource "aws_eip" "mgmt1" {
+  vpc = true
+  network_interface = "${aws_network_interface.mgmt1.id}"
+  associate_with_private_ip = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}"
+
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
@@ -323,6 +332,10 @@ resource "aws_network_interface" "mgmt2" {
 }
 
 resource "aws_eip" "mgmt2" {
+  vpc = true
+  network_interface = "${aws_network_interface.mgmt2.id}"
+  associate_with_private_ip = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
+
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
@@ -345,6 +358,10 @@ resource "aws_network_interface" "external1" {
 }
 
 resource "aws_eip" "external1" {
+  vpc = true
+  network_interface = "${aws_network_interface.external1.id}"
+  associate_with_private_ip = "${tolist(aws_network_interface.external1.private_ips)[0]}"
+
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
@@ -367,6 +384,10 @@ resource "aws_network_interface" "external2" {
 }
 
 resource "aws_eip" "external2" {
+  vpc = true
+  network_interface = "${aws_network_interface.external2.id}"
+  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[0]}"
+  
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
@@ -375,13 +396,30 @@ resource "aws_eip" "external2" {
 }
 
 resource "aws_eip" "vip1" {
+  vpc = true
+  network_interface = "${aws_network_interface.external2.id}"
+  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[1]}"
+
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
     Name = "ElasticIP VIP: Failover Extension-${random_string.env_prefix.result}"
     F5_CLOUD_FAILOVER_LABEL = "deployment-${random_string.env_prefix.result}"
-    # VIPS = "tostring(element(tolist(${aws_network_interface.external1.private_ips}), 1))"
-    # VIPS = "${aws_network_interface.external1.private_ips}"
     VIPS = "${tolist(aws_network_interface.external1.private_ips)[1]},${tolist(aws_network_interface.external2.private_ips)[1]}"
+  }
+}
+
+resource "aws_instance" "vm0" {
+  ami = "${var.aws_bigip_ami_id}"
+  instance_type = "m5.xlarge"
+  availability_zone = "${var.aws_region}a"
+  key_name = "dewpt"
+
+  associate_public_ip_address = false
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "BigIp 1: Failover Extension-${random_string.env_prefix.result}"
   }
 }
