@@ -8,7 +8,7 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "config": {
-        "environment": "azure"
+        "environment": "aws"
     },
     "scripts": {
         "install-production": "npm install --production --no-optional",
