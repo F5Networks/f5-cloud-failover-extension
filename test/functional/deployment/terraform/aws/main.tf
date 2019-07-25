@@ -207,3 +207,84 @@ resource "aws_security_group" "mgmt" {
     delete = "True"
   }
 }
+
+resource "aws_s3_bucket" "configdb" {
+  bucket = "failoverextension-${random_string.env_prefix.result}-s3bucket"
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "failoverextension-${random_string.env_prefix.result}-s3bucket"
+  }
+}
+
+resource "aws_iam_role" "main" {
+  name = "Failover-Extension-IAM-role-${random_string.env_prefix.result}"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+  tags = {
+    Name = "Failover Extension IAM role-${random_string.env_prefix.result}"
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+  }
+}
+
+resource "aws_iam_role_policy" "BigIpPolicy" {
+  name = "BigIpPolicy"
+  role = "${aws_iam_role.main.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Action": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeInstanceStatus",
+            "ec2:DescribeAddresses",
+            "ec2:AssociateAddress",
+            "ec2:DisassociateAddress",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribeNetworkInterfaceAttribute",
+            "ec2:DescribeRouteTables",
+            "ec2:ReplaceRoute",
+            "ec2:assignprivateipaddresses",
+            "sts:AssumeRole"
+        ],
+        "Resource": [
+            "*"
+        ],
+        "Effect": "Allow"
+    },
+    {
+        "Action": [
+            "s3:ListBucket"
+        ],
+        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}",
+        "Effect": "Allow"
+    },
+    {
+        "Action": [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject"
+        ],
+        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}/*",
+        "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
