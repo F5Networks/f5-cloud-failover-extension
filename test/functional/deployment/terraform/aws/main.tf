@@ -378,7 +378,10 @@ resource "aws_eip" "vip1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP VIP Elastic IP: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP VIP: Failover Extension-${random_string.env_prefix.result}"
     F5_CLOUD_FAILOVER_LABEL = "deployment-${random_string.env_prefix.result}"
+    # VIPS = "tostring(element(tolist(${aws_network_interface.external1.private_ips}), 1))"
+    # VIPS = "${aws_network_interface.external1.private_ips}"
+    VIPS = "${tolist(aws_network_interface.external1.private_ips)[1]},${tolist(aws_network_interface.external2.private_ips)[1]}"
   }
 }
