@@ -1,3 +1,5 @@
+.. _prereqs:
+
 Prerequisites and Requirements
 ------------------------------
 
