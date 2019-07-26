@@ -423,6 +423,15 @@ resource "aws_eip" "vip1" {
   }
 }
 
+data "template_file" "user_data" {
+  template = "${file("${path.module}/../user_data.tpl")}"
+
+  vars = {
+    admin_username        = "${var.admin_username}"
+    admin_password        = "${random_string.admin_password.result}"
+  }
+}
+
 resource "aws_instance" "vm0" {
   ami = "${var.aws_bigip_ami_id}"
   instance_type = "m5.xlarge"
@@ -440,6 +449,8 @@ resource "aws_instance" "vm0" {
   }
 
   iam_instance_profile = "${aws_iam_instance_profile.instance_profile.name}"
+
+  user_data = "${data.template_file.user_data.rendered}"
 
   tags = {
     creator = "Terraform - Failover Extension"
@@ -465,6 +476,8 @@ resource "aws_instance" "vm1" {
   }
 
   iam_instance_profile = "${aws_iam_instance_profile.instance_profile.name}"
+
+  user_data = "${data.template_file.user_data.rendered}"
 
   tags = {
     creator = "Terraform - Failover Extension"

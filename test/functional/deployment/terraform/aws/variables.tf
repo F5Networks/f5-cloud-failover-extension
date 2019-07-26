@@ -29,6 +29,6 @@ variable "instance_size" {
 
 variable "admin_username" {
   description = "The admin username for the virtual machine"
-  default     = "azureuser"
+  default     = "awsuser"
 }
 
