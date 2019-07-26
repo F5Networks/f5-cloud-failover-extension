@@ -169,6 +169,13 @@ resource "aws_security_group" "external" {
     self = true
   }
 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = {
     Name = "External Security Group: Failover Extension-${random_string.env_prefix.result}"
     creator = "Terraform - Failover Extension"
@@ -199,6 +206,13 @@ resource "aws_security_group" "mgmt" {
     to_port = 443
     protocol = 6
     security_groups = ["${aws_security_group.external.id}"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
