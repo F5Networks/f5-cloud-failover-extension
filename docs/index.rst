@@ -22,5 +22,5 @@ User Guide Index
    :includehidden:
    :glob:
 
-   prereqs
+   userguide/prereqs
    revision-history
