@@ -472,3 +472,43 @@ resource "aws_instance" "vm1" {
     Name = "BigIp 2: Failover Extension-${random_string.env_prefix.result}"
   }
 }
+
+resource "local_file" "do0" {
+    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
+      hostname = "failover0.local",
+      admin_password = "${random_string.admin_password.result}",
+      external_self = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}/24",
+      remoteHost = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
+    })
+    filename = "${path.module}/temp_do0.json"
+}
+
+resource "local_file" "do1" {
+    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", {
+      hostname = "failover1.local",
+      admin_password = "${random_string.admin_password.result}",
+      external_self = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}/24",
+      remoteHost = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}"
+    })
+    filename = "${path.module}/temp_do1.json"
+}
+
+resource "null_resource" "login0" {
+  provisioner "local-exec" {
+    command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+  }
+  depends_on = [aws_instance.vm0]
+}
+
+resource "null_resource" "failover0" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_aws.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/failover_aws.json")
+  }
+  depends_on = [null_resource.login0]
+}
