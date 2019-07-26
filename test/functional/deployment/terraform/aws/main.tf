@@ -433,3 +433,28 @@ resource "aws_instance" "vm0" {
     Name = "BigIp 1: Failover Extension-${random_string.env_prefix.result}"
   }
 }
+
+resource "aws_instance" "vm1" {
+  ami = "${var.aws_bigip_ami_id}"
+  instance_type = "m5.xlarge"
+  availability_zone = "${var.aws_region}b"
+  key_name = "dewpt"
+
+  network_interface {
+    network_interface_id = "${aws_network_interface.mgmt2.id}"
+    device_index = 0
+  }
+
+  network_interface {
+    network_interface_id = "${aws_network_interface.external2.id}"
+    device_index = 1
+  }
+
+  iam_instance_profile = "${aws_iam_instance_profile.instance_profile.name}"
+
+  tags = {
+    creator = "Terraform - Failover Extension"
+    delete = "True"
+    Name = "BigIp 2: Failover Extension-${random_string.env_prefix.result}"
+  }
+}
