@@ -23,4 +23,5 @@ User Guide Index
    :glob:
 
    userguide/prereqs
+   userguide/example-declarations
    revision-history
