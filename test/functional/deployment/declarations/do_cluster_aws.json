@@ -70,7 +70,7 @@
             "localPassword": "${admin_password}",
             "remoteHost": "${remoteHost}",
             "remoteUsername": "awsuser",
-            "remotePassword": "${admin_password}",
+            "remotePassword": "${admin_password}"
         },
         "dbvars": {
         	"class": "DbVariables",

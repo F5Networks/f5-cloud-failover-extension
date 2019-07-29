@@ -491,9 +491,6 @@ resource "aws_instance" "vm1" {
   }
 
   # Wait until the instance is in a running state
-  # TODO: This doesnt wait long enough. Some ideas here: https://github.com/hashicorp/terraform/issues/4668
-  # Would prefer to not have to use remote-exec (as requires path to SSH key, which may be different between environments)
-  # Thought: Could continue to use the 'wait instance-status-ok', and then have a separate 'pause' resource provisioner (1 minute?)
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm1.id} --region ${var.aws_region}"
   } 
