@@ -500,7 +500,7 @@ resource "local_file" "do0" {
     content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
       hostname = "failover0.local",
       admin_password = "${random_string.admin_password.result}",
-      external_self = "${tolist(aws_network_interface.external2.private_ips)[0]}/24",
+      external_self = "${tolist(aws_network_interface.external1.private_ips)[0]}/24",
       remoteHost = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
     })
     filename = "${path.module}/temp_do0.json"
@@ -543,7 +543,7 @@ resource "null_resource" "login1" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
   }
-  depends_on = [aws_instance.failover0]
+  depends_on = [null_resource.failover0]
 }
 
 resource "null_resource" "failover1" {
@@ -554,4 +554,21 @@ resource "null_resource" "failover1" {
     always_run = fileexists("${path.module}/../../declarations/failover_aws.json")
   }
   depends_on = [null_resource.login1]
+}
+
+# Outputs
+output "public_ip_address_vm0" {
+  value = "${aws_eip.mgmt1.public_ip}"
+}
+
+output "public_ip_address_vm1" {
+  value = "${aws_eip.mgmt2.public_ip}"
+}
+
+output "public_vip_address" {
+  value = "${aws_eip.vip1.public_ip}"
+}
+
+output "admin_password" {
+  value = random_string.admin_password.result
 }
