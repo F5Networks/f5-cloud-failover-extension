@@ -125,7 +125,7 @@ resource "aws_subnet" "externalAz2" {
   cidr_block = "10.0.11.0/24"
 
   tags = {
-    Name = "Az1 External Subnet: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Az2 External Subnet: Failover Extension-${random_string.env_prefix.result}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
