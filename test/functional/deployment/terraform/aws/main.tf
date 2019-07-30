@@ -500,8 +500,8 @@ resource "local_file" "do0" {
     content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
       hostname = "failover0.local",
       admin_password = "${random_string.admin_password.result}",
-      external_self = "${tolist(aws_network_interface.external1.private_ips)[0]}/24",
-      remoteHost = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
+      external_self = "${aws_network_interface.external1.private_ip}/24",
+      remoteHost = "${aws_network_interface.mgmt2.private_ip}"
     })
     filename = "${path.module}/temp_do0.json"
 }
@@ -510,8 +510,8 @@ resource "local_file" "do1" {
     content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", {
       hostname = "failover1.local",
       admin_password = "${random_string.admin_password.result}",
-      external_self = "${tolist(aws_network_interface.external2.private_ips)[0]}/24",
-      remoteHost = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}"
+      external_self = "${aws_network_interface.external2.private_ip}/24",
+      remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
     filename = "${path.module}/temp_do1.json"
 }
