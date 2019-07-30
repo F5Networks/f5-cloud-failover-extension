@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Disable 1nic auto configuration
+/usr/bin/setdb provision.1nicautoconfig disable
+
 adminUsername='${admin_username}'
 adminPassword='${admin_password}'
 
