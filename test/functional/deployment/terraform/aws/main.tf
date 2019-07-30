@@ -553,7 +553,7 @@ resource "null_resource" "login1" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
   }
-  depends_on = [null_resource.failover0]
+  depends_on = [aws_instance.vm1, null_resource.onboard0]
 }
 
 resource "null_resource" "failover1" {
