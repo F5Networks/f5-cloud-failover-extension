@@ -3,6 +3,9 @@
 # Disable 1nic auto configuration
 /usr/bin/setdb provision.1nicautoconfig disable
 
+# What is in ifconfig?
+echo $(ifconfig)
+
 adminUsername='${admin_username}'
 adminPassword='${admin_password}'
 
@@ -19,8 +22,14 @@ while [ $checks -lt 120 ]; do echo checking mcpd
     sleep 10
 done
 
-tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
-tmsh save /sys config
+echo tmsh create sys folder /LOCAL_ONLY device-group none traffic-group traffic-group-local-only
+tmsh create sys folder /LOCAL_ONLY device-group none traffic-group traffic-group-local-only
 
-# echo that we are done
-echo "Admin user provisioned in user_data"
+echo tmsh create net route /LOCAL_ONLY/default network default gw $${gateway}
+tmsh create net route /LOCAL_ONLY/default network default gw $${gateway}
+
+echo create auth user $${adminUsername} password ..... shell bash partition-access replace-all-with { all-partitions { role admin } }
+tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
+
+echo tmsh save sys config
+tmsh save sys config

@@ -423,12 +423,23 @@ resource "aws_eip" "vip1" {
   }
 }
 
-data "template_file" "user_data" {
-  template = "${file("${path.module}/../user_data.tpl")}"
+data "template_file" "user_data_vm0" {
+  template = "${file("${path.module}/user_data.tpl")}"
 
   vars = {
     admin_username        = "${var.admin_username}"
     admin_password        = "${random_string.admin_password.result}"
+    gateway               = "10.0.1.1"
+  }
+}
+
+data "template_file" "user_data_vm1" {
+  template = "${file("${path.module}/user_data.tpl")}"
+
+  vars = {
+    admin_username        = "${var.admin_username}"
+    admin_password        = "${random_string.admin_password.result}"
+    gateway               = "10.0.11.1"
   }
 }
 
@@ -450,7 +461,7 @@ resource "aws_instance" "vm0" {
 
   iam_instance_profile = "${aws_iam_instance_profile.instance_profile.name}"
 
-  user_data = "${data.template_file.user_data.rendered}"
+  user_data = "${data.template_file.user_data_vm0.rendered}"
 
   tags = {
     creator = "Terraform - Failover Extension"
@@ -482,7 +493,7 @@ resource "aws_instance" "vm1" {
 
   iam_instance_profile = "${aws_iam_instance_profile.instance_profile.name}"
 
-  user_data = "${data.template_file.user_data.rendered}"
+  user_data = "${data.template_file.user_data_vm1.rendered}"
 
   tags = {
     creator = "Terraform - Failover Extension"
@@ -536,7 +547,17 @@ resource "null_resource" "failover0" {
   depends_on = [null_resource.login0]
 }
 
-resource "null_resource" "onboard0" {
+resource "null_resource" "routeConfig0" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+  }
+  depends_on = [local_file.do0, null_resource.failover0]
+}
+
+resource "null_resource" "cluster0" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
   }
@@ -553,7 +574,7 @@ resource "null_resource" "login1" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
   }
-  depends_on = [aws_instance.vm1, null_resource.onboard0]
+  depends_on = [aws_instance.vm1, null_resource.cluster0]
 }
 
 resource "null_resource" "failover1" {
@@ -566,7 +587,7 @@ resource "null_resource" "failover1" {
   depends_on = [null_resource.login1]
 }
 
-resource "null_resource" "onboard1" {
+resource "null_resource" "cluster1" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
   }
