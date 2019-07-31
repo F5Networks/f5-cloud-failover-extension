@@ -31,4 +31,3 @@ variable "admin_username" {
   description = "The admin username for the virtual machine"
   default     = "awsuser"
 }
-

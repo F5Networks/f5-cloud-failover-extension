@@ -429,7 +429,6 @@ data "template_file" "user_data_vm0" {
   vars = {
     admin_username        = "${var.admin_username}"
     admin_password        = "${random_string.admin_password.result}"
-    gateway               = "10.0.1.1"
   }
 }
 
@@ -439,7 +438,6 @@ data "template_file" "user_data_vm1" {
   vars = {
     admin_username        = "${var.admin_username}"
     admin_password        = "${random_string.admin_password.result}"
-    gateway               = "10.0.11.1"
   }
 }
 
@@ -508,23 +506,23 @@ resource "aws_instance" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
+    content  = templatefile("${path.module}/../../declarations/do_onboard_aws.json", { 
       hostname = "failover0.local",
       admin_password = "${random_string.admin_password.result}",
       external_self = "${aws_network_interface.external1.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
-    filename = "${path.module}/temp_do0.json"
+    filename = "${path.module}/temp_onboard_do0.json"
 }
 
 resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", {
+    content  = templatefile("${path.module}/../../declarations/do_onboard_aws.json", {
       hostname = "failover1.local",
       admin_password = "${random_string.admin_password.result}",
       external_self = "${aws_network_interface.external2.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
-    filename = "${path.module}/temp_do1.json"
+    filename = "${path.module}/temp_onboard_do1.json"
 }
 
 resource "null_resource" "login0" {
@@ -532,7 +530,7 @@ resource "null_resource" "login0" {
     command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
   depends_on = [aws_instance.vm0]
 }
@@ -547,22 +545,12 @@ resource "null_resource" "failover0" {
   depends_on = [null_resource.login0]
 }
 
-resource "null_resource" "routeConfig0" {
+resource "null_resource" "onboard0" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_onboard_do0.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
-  }
-  depends_on = [local_file.do0, null_resource.failover0]
-}
-
-resource "null_resource" "cluster0" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
   depends_on = [local_file.do0, null_resource.failover0]
 }
@@ -572,9 +560,9 @@ resource "null_resource" "login1" {
     command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
-  depends_on = [aws_instance.vm1, null_resource.cluster0]
+  depends_on = [aws_instance.vm1, null_resource.onboard0]
 }
 
 resource "null_resource" "failover1" {
@@ -587,12 +575,12 @@ resource "null_resource" "failover1" {
   depends_on = [null_resource.login1]
 }
 
-resource "null_resource" "cluster1" {
+resource "null_resource" "onboard1" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_onboard_do1.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
   depends_on = [local_file.do1, null_resource.failover1]
 }
