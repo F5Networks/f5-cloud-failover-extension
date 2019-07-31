@@ -514,6 +514,15 @@ resource "local_file" "do0" {
     })
     filename = "${path.module}/temp_onboard_do0.json"
 }
+resource "local_file" "doCluster0" {
+    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
+      hostname = "failover0.local",
+      admin_password = "${random_string.admin_password.result}",
+      external_self = "${aws_network_interface.external1.private_ip}/24",
+      remoteHost = "${aws_network_interface.mgmt1.private_ip}"
+    })
+    filename = "${path.module}/temp_cluster_do0.json"
+}
 
 resource "local_file" "do1" {
     content  = templatefile("${path.module}/../../declarations/do_onboard_aws.json", {
@@ -523,6 +532,16 @@ resource "local_file" "do1" {
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
     filename = "${path.module}/temp_onboard_do1.json"
+}
+
+resource "local_file" "doCluster1" {
+    content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", {
+      hostname = "failover1.local",
+      admin_password = "${random_string.admin_password.result}",
+      external_self = "${aws_network_interface.external2.private_ip}/24",
+      remoteHost = "${aws_network_interface.mgmt1.private_ip}"
+    })
+    filename = "${path.module}/temp_cluster_do1.json"
 }
 
 resource "null_resource" "login0" {
@@ -555,6 +574,26 @@ resource "null_resource" "onboard0" {
   depends_on = [local_file.do0, null_resource.failover0]
 }
 
+resource "null_resource" "addRoute0" {
+  provisioner "local-exec" {
+    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt1.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${random_string.admin_password.result}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.1.1\", \"partition\":\"LOCAL_ONLY\"}'"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
+  }
+  depends_on = [null_resource.onboard0]
+}
+
+resource "null_resource" "cluster0" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_cluster_do0.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
+  }
+  depends_on = [local_file.doCluster0, null_resource.addRoute0]
+}
+
 resource "null_resource" "login1" {
   provisioner "local-exec" {
     command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
@@ -562,7 +601,7 @@ resource "null_resource" "login1" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
-  depends_on = [aws_instance.vm1, null_resource.onboard0]
+  depends_on = [aws_instance.vm1, null_resource.cluster0]
 }
 
 resource "null_resource" "failover1" {
@@ -583,6 +622,26 @@ resource "null_resource" "onboard1" {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
   }
   depends_on = [local_file.do1, null_resource.failover1]
+}
+
+resource "null_resource" "addRoute1" {
+  provisioner "local-exec" {
+    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt2.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${random_string.admin_password.result}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.11.1\", \"partition\":\"LOCAL_ONLY\"}'"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
+  }
+  depends_on = [null_resource.onboard1]
+}
+
+resource "null_resource" "cluster1" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_cluster_do1.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_cluster_aws.json")
+  }
+  depends_on = [local_file.doCluster1, null_resource.addRoute1]
 }
 
 # Outputs
