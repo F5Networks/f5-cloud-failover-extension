@@ -3,9 +3,6 @@
 # Disable 1nic auto configuration
 /usr/bin/setdb provision.1nicautoconfig disable
 
-# What is in ifconfig? TODO: Remove me when no longer needed
-echo $(ifconfig)
-
 adminUsername='${admin_username}'
 adminPassword='${admin_password}'
 
