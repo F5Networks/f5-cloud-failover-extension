@@ -419,7 +419,7 @@ resource "aws_eip" "vip1" {
     delete = "True"
     Name = "ElasticIP VIP: Failover Extension-${random_string.env_prefix.result}"
     F5_CLOUD_FAILOVER_LABEL = "deployment-${random_string.env_prefix.result}"
-    VIPS = "${tolist(aws_network_interface.external1.private_ips)[1]},${tolist(aws_network_interface.external2.private_ips)[1]}"
+    VIPS = "${tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[0]}"
   }
 }
 
