@@ -73,8 +73,8 @@
             "remotePassword": "${admin_password}"
         },
         "dbvars": {
-        	"class": "DbVariables",
-        	"config.allow.rfc3927": "enable",
+            "class": "DbVariables",
+            "config.allow.rfc3927": "enable",
             "tm.tcpudptxchecksum": "Software-only"
         }
     }

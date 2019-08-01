@@ -46,7 +46,7 @@
             "trafficGroup": "traffic-group-local-only"
         },
         "dbvars": {
-        	"class": "DbVariables",
+            "class": "DbVariables",
             "config.allow.rfc3927": "enable",
             "tm.tcpudptxchecksum": "Software-only"
         }
