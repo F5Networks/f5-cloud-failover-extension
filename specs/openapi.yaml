@@ -3,9 +3,9 @@ info:
   version: 0.9.0
   title: Cloud Failover (CF) Extension
   license:
-    name: MIT
+    name: Apache License 2.0
 servers:
-  - url: http://192.0.2.1:443/mgmt/shared/cloud-failover
+  - url: https://192.0.2.1:443/mgmt/shared/cloud-failover
 paths:
   /declare:
     get:
@@ -18,11 +18,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Configuration"
-              example:
-                message: 'success'
-                declaration:
-                  $ref: "#/components/examples/configurationExample"
+                $ref: "#/components/schemas/ConfigurationResponse"
         default:
           description: Unexpected Error
           content:
@@ -44,7 +40,7 @@ paths:
           content:
             application/json:    
               schema:
-                $ref: "#/components/schemas/Configuration"
+                $ref: "#/components/schemas/ConfigurationResponse"
         default:
           description: Unexpected Error
           content:
@@ -66,8 +62,6 @@ paths:
                 properties:
                   message:
                     type: string
-              example:
-                message: success
         default:
           description: Unexpected Error
           content:
@@ -82,12 +76,31 @@ components:
           type: string
         environment:
           type: string
-        externalStorage:
+        schemaVersion:
+          type: string
+        useMetadata:
+          type: string
+        storageResource:
+          type: string
+        storageTags:
+          type: array
+          items:
+            type: object
+        managedRoutes:
+          type: array
+          items:
+            type: object
+        addressTags:
+          type: array
+          items:
+            type: object
+    ConfigurationResponse:
+      properties:
+        message:
+          type: string
+        declaration:
           type: object
-        failoverAddresses:
-          type: object
-        failoverRoutes:
-          type: object 
+          $ref: "#/components/schemas/Configuration"
     Error:
       required:
         - code
