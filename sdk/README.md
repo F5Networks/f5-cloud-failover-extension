@@ -2,10 +2,25 @@
 
 ## Generate SDK
 
+Python:
 ```bash
 openapi-generator generate -i specs/openapi.yaml -g python -o sdk/dist/python
 ```
+JavaScript:
+```bash
+openapi-generator generate -i specs/openapi.yaml -g javascript -o sdk/dist/js
+```
+## Configure SDK
 
+JavaScript
+
+Set Environment Variable: ```NODE_TLS_REJECT_UNAUTHORIZED=0```
+```bash
+npm install
+npm link
+npm link cloud_failover__cf_extension
+npm run build
+```
 ## Use SDK
 
 ```python
@@ -30,4 +45,25 @@ try:
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling ConfigurationApi->declare_get: %s\n" % e)
+```
+```javascript
+var CloudFailoverCfExtension = require('cloud_failover__cf_extension');
+
+var defaultClient = CloudFailoverCfExtension.ApiClient.instance;
+// Configure HTTP basic authorization: BasicAuth
+var BasicAuth = defaultClient.authentications['BasicAuth'];
+BasicAuth.username = 'YOUR USERNAME'
+BasicAuth.password = 'YOUR PASSWORD'
+defaultClient.basePath = 'LINK-TO-BIG-IP-HOST'
+
+var api = new CloudFailoverCfExtension.ConfigurationApi()
+var callback = function(error, data, response) {
+    if (error) {
+        console.error(error);
+    } else {
+        console.log('API called successfully. Returned data: ' + JSON.stringify(data));
+    }
+};
+api.declareGet(callback);
+
 ```
