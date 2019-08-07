@@ -14,9 +14,9 @@ paths:
         - Configuration
       responses:
         '200':
-          description: Configuration response
+          description: Configuration Response
           content:
-            application/json:
+            'application/json; charset=UTF-8':
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
         default:
@@ -38,7 +38,7 @@ paths:
         '200':
           description: Configuration response
           content:
-            application/json:    
+            'application/json; charset=UTF-8':
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
         default:
@@ -52,16 +52,22 @@ paths:
       summary: Trigger failover
       tags:
         - Trigger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
         '200':
           description: Configuration response
           content:
-            application/json:    
+            'application/json; charset=UTF-8':
               schema:
                 type: object
                 properties:
                   message:
                     type: string
+                    default: 'in_progress'
         default:
           description: Unexpected Error
           content:
@@ -71,15 +77,20 @@ paths:
 components:
   schemas:
     Configuration:
+      type: object
       properties:
         class:
           type: string
+          default: "Cloud_Failover"
         environment:
           type: string
+          default: "azure"
         schemaVersion:
           type: string
+          default: "0.9.0"
         useMetadata:
           type: string
+          default: "true"
         storageResource:
           type: string
         storageTags:
@@ -89,15 +100,18 @@ components:
         managedRoutes:
           type: array
           items:
-            type: object
+            type: string
+            default: "192.0.2.0/24"
         addressTags:
           type: array
           items:
             type: object
     ConfigurationResponse:
+      type: object
       properties:
         message:
           type: string
+          default: 'success'
         declaration:
           type: object
           $ref: "#/components/schemas/Configuration"
@@ -114,6 +128,5 @@ components:
     BasicAuth:
       type: http
       scheme: basic
-
 security:
   - BasicAuth: []
