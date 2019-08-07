@@ -20,3 +20,4 @@ failover-tf
 **/.DS_Store
 .idea/*
 temp_*
+openapi/dist/*

@@ -10,7 +10,6 @@ paths:
   /declare:
     get:
       summary: List configuration
-      operationId: ops.declare
       tags:
         - Configuration
       responses:
@@ -32,7 +31,6 @@ paths:
                 $ref: "#/components/schemas/Error"
     post:
       summary: Update configuration
-      operationId: ops.declare
       tags:
         - Configuration
       requestBody:
@@ -40,19 +38,13 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Configuration"
-            example:
-              $ref: "#/components/examples/configurationExample"
       responses:
         '200':
           description: Configuration response
           content:
             application/json:    
               schema:
-                $ref: "#/components/examples/configurationExample"
-              example:
-                message: 'success'
-                declaration:
-                  $ref: "#/components/examples/configurationExample"
+                $ref: "#/components/schemas/Configuration"
         default:
           description: Unexpected Error
           content:
@@ -62,7 +54,6 @@ paths:
   /trigger:
     post:
       summary: Trigger failover
-      operationId: ops.trigger
       tags:
         - Trigger
       responses:
@@ -106,18 +97,10 @@ components:
           type: integer
         message:
           type: string
-  examples:
-    configurationExample:
-      class: Cloud_Failover
-      environment: azure
-      externalStorage:
-        scopingTags:
-          F5_CLOUD_FAILOVER_LABEL: mydeployment
-      failoverAddresses:
-        scopingTags:
-          F5_CLOUD_FAILOVER_LABEL: mydeployment
-      failoverRoutes:
-        scopingTags:
-          F5_CLOUD_FAILOVER_LABEL: mydeployment
-        scopingAddressRanges:
-          - '192.168.1.0/24'
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+
+security:
+  - BasicAuth: []
