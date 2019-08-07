@@ -1,6 +1,12 @@
 # Usage
 
-openapi-generator generate -i specs/openapi.yaml -g python -o openapi/dist/python
+## Generate SDK
+
+```bash
+openapi-generator generate -i specs/openapi.yaml -g python -o sdk/dist/python
+```
+
+## Use SDK
 
 ```python
 from __future__ import print_function
