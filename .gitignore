@@ -22,3 +22,4 @@ venv/
 **/.DS_Store
 .idea/*
 temp_*
+sdk/dist/*

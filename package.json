@@ -24,7 +24,8 @@
         "tf-destroy": "terraform destroy -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
         "tf-delete": "rm -rf failover-tf *tfstate*",
         "make-docs": "make html",
-        "make-api-docs": "redoc-cli bundle specs/openapi.yaml"
+        "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
+        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin"
     },
     "nyc": {
         "check-coverage": true,
@@ -69,7 +70,8 @@
     "optionalDependencies": {
         "mermaid.cli": "^0.5.1",
         "redoc": "^2.0.0-rc.10",
-        "redoc-cli": "^0.8.5"
+        "redoc-cli": "^0.8.5",
+        "dredd": "^11.2.15"
     },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
