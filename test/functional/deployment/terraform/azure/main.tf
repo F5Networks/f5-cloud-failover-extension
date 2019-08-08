@@ -12,7 +12,7 @@ resource "azurerm_resource_group" "deployment" {
 }
 
 resource "azurerm_role_assignment" "vm0_assignment" {
-  scope                 = azurerm_resource_group.deployment.id
+  scope                 = "${azurerm_resource_group.deployment.id}"
   role_definition_name  = "Contributor"
   principal_id          = lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")
 }
@@ -378,23 +378,22 @@ resource "null_resource" "onboard1" {
   depends_on = [local_file.do1, null_resource.failover1]
 }
 
-output "resource_group_name" {
-  value = module.utils.env_prefix
-}
-
-output "public_ip_address_0" {
-  value = azurerm_public_ip.pip0.ip_address
-}
-
-output "public_ip_address_1" {
-  value = azurerm_public_ip.pip1.ip_address
-}
-
-output "admin_username" {
-  value = var.admin_username
-}
-
-output "admin_password" {
-  value = module.utils.admin_password
+output "deployment_info" {
+  value = [
+    {
+      "admin_username": var.admin_username,
+      "admin_password": module.utils.admin_password,
+      "mgmt_address": azurerm_public_ip.pip0.ip_address,
+      "mgmt_port": 443,
+      "primary": true
+    },
+    {
+      "admin_username": var.admin_username,
+      "admin_password": module.utils.admin_password,
+      "mgmt_address": azurerm_public_ip.pip1.ip_address,
+      "mgmt_port": 443,
+      "primary": false
+    }
+  ]
 }
 

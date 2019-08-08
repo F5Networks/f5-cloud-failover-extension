@@ -35,5 +35,9 @@ module.exports = {
             class: 'Cloud_Failover',
             environment: 'azure'
         }
+    },
+    REQUEST: {
+        PORT: 443,
+        PROTOCOL: 'https'
     }
 };

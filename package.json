@@ -8,24 +8,22 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "config": {
-        "environment": "aws"
+        "set-host-env-vars": "export CF_ENV_HOST=$(cat deployment_info.json | jq .[0].mgmt_address -r); export CF_ENV_USER=$(cat deployment_info.json | jq .[0].admin_username -r); export CF_ENV_PWD=$(cat deployment_info.json | jq .[0].admin_password -r)"
     },
     "scripts": {
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
-        "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/unittests/.mocha.opts",
+        "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/.mocha.opts",
         "test": "nyc npm run test-only",
-        "test-functional": "npm run tf-init; npm run tf-plan; npm run tf-apply; npm run tf-destroy; npm run tf-delete",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
-        "tf-init": "terraform init test/functional/deployment/terraform/$npm_package_config_environment",
-        "tf-plan": "terraform plan -out=failover-tf test/functional/deployment/terraform/$npm_package_config_environment",
-        "tf-apply": "terraform apply -auto-approve \"failover-tf\"",
-        "tf-destroy": "terraform destroy -auto-approve test/functional/deployment/terraform/$npm_package_config_environment",
-        "tf-delete": "rm -rf failover-tf *tfstate*",
+        "test-functional": "mocha --recursive \"./test/functional/tests/**/*.js\" --opts ./test/.mocha.opts",
+        "deployment-create": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" create",
+        "deployment-delete": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" delete",
+        "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin"
+        "validate-api": "export NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD}"
     },
     "nyc": {
         "check-coverage": true,

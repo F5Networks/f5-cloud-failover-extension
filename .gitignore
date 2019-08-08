@@ -17,6 +17,8 @@ test/functional/*_harness_file.json
 failover-tf
 # virtual envs
 venv/
+# deployment info
+deployment_info.json
 # misc
 .vscode/
 **/.DS_Store

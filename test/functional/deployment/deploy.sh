@@ -1,10 +1,16 @@
 #!/bin/bash
 # helper script to deploy infrastructure based on environment
-# usage: ./deploy.sh azure
+# usage: ./deploy.sh azure create
 
-environment=${1:-azure}
+environment=${1}
 action=${2:-create}
 script_location=$(dirname "$0")
+
+# validate input
+if [[ -z "$environment" ]]; then
+  echo "Environment must be provided!"
+  exit 1
+fi
 
 # install python dependencies
 python3 -m venv venv && source venv/bin/activate
@@ -19,6 +25,7 @@ elif [[ ${action} == "delete" ]]; then
     terraform destroy -auto-approve ${script_location}/terraform/${environment}
 elif [[ ${action} == "show" ]]; then
     terraform output -json
+    echo $(terraform output -json) | jq .deployment_info.value -r > deployment_info.json
 else
     echo "Unknown action: ${action}"
     exit 1
