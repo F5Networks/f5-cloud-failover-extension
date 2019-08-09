@@ -73,6 +73,7 @@ test_package:
         paths:
             - coverage
 
+# run functional tests: azure
 test_functional_azure:
     stage: test_functional
     image: python:3

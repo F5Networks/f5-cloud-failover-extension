@@ -93,11 +93,6 @@
         "dbvars": {
             "class": "DbVariables",
             "config.allow.rfc3927": "enable"
-        },
-        "metadataRoute": {
-            "class": "ManagementRoute",
-            "network": "169.254.169.254/32",
-            "gw": "10.0.0.1"
         }
     }
 }
