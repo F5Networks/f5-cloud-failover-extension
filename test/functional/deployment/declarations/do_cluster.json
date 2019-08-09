@@ -86,7 +86,7 @@
             "class": "DeviceTrust",
             "localUsername": "azureuser",
             "localPassword": "${admin_password}",
-            "remoteHost": "10.0.0.4",
+            "remoteHost": "${remote_host}",
             "remoteUsername": "azureuser",
             "remotePassword": "${admin_password}"
         },

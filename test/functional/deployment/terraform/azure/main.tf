@@ -295,12 +295,12 @@ resource "azurerm_virtual_machine" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24" })
+    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24", remote_host = "10.0.0.4" })
     filename = "${path.module}/temp_do0.json"
 }
 
 resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24" })
+    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24", remote_host = "10.0.0.4" })
     filename = "${path.module}/temp_do1.json"
 }
 
