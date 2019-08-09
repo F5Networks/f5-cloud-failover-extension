@@ -39,5 +39,6 @@ module.exports = {
     REQUEST: {
         PORT: 443,
         PROTOCOL: 'https'
-    }
+    },
+    BASE_ENDPOINT: '/mgmt/shared/cloud-failover'
 };

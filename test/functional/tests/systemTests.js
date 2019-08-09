@@ -8,14 +8,15 @@
 
 'use strict';
 
+/* eslint-disable global-require */
+
 const path = require('path');
 const assert = require('assert');
 
+const constants = require('../../constants.js');
 const utils = require('../../shared/util.js');
 
 const deploymentFile = process.env.CF_DEPLOYMENT_FILE || path.join(process.cwd(), 'deployment_info.json');
-
-/* eslint-disable global-require */
 
 /**
  * Get host info
@@ -37,7 +38,10 @@ function getHostInfo() {
 
 const duts = getHostInfo();
 const dutPrimary = duts[0];
-// const dutSecondary = duts[1];
+
+const packageDetails = utils.getPackageDetails();
+const packageFile = packageDetails.name;
+const packagePath = packageDetails.path;
 
 describe(`DUT - ${dutPrimary.ip}`, () => {
     const dutHost = dutPrimary.ip;
@@ -45,12 +49,18 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
     const dutPassword = dutPrimary.password;
 
     let authToken = null;
+    let options = {};
 
     before(() => {
     });
     beforeEach(() => utils.getAuthToken(dutHost, dutUser, dutPassword)
         .then((data) => {
             authToken = data.token;
+            options = {
+                headers: {
+                    'x-f5-auth-token': authToken
+                }
+            };
         }));
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -58,7 +68,21 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
         });
     });
 
-    it('should have auth token', () => {
-        assert.notStrictEqual(authToken, null);
+    it(`should install package: ${packageFile}`, () => {
+        const fullPath = `${packagePath}/${packageFile}`;
+        return utils.installPackage(dutHost, authToken, fullPath)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should verify installation', function () {
+        this.retries(10);
+        const uri = `${constants.BASE_ENDPOINT}/info`;
+
+        return new Promise(resolve => setTimeout(resolve, 1000))
+            .then(() => utils.makeRequest(dutHost, uri, options))
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            });
     });
 });

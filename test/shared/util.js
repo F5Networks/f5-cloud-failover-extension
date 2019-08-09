@@ -40,7 +40,7 @@ module.exports = {
      * @returns {Object} { name: 'foo.rpm', path: '/tmp/foo.rpm' }
      */
     getPackageDetails() {
-        const dir = fs.existsSync(`${__dirname}/../../../dist/new_build`);
+        const dir = `${__dirname}/../../dist/new_build`;
         const distFiles = fs.readdirSync(dir);
         const packageFiles = distFiles.filter(f => f.endsWith('.rpm'));
 
