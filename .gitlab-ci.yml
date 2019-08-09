@@ -67,6 +67,9 @@ test_functional_azure:
     script:
         # install node modules
         - npm install
+        # install python dependencies
+        - apt-get update
+        - apt-get -y install python3-venv
         # functional tests
         - export CF_ENV_CLOUD=azure
         - npm run deployment-create
