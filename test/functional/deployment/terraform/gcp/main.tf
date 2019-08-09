@@ -451,20 +451,22 @@ resource "null_resource" "onboard02" {
   depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
 }
 
-resource "local_file" "deployment_info" {
-  content  = templatefile("${path.module}/../../declarations/template_deployment_info.json", { admin_password = "${random_string.admin_password.result}", admin_username = "${var.admin_username}", primary_ip_addr = "${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}", secondary_ip_addr="${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}" })
-  filename = "${path.module}/deployment_info.json"
-
-  depends_on = [null_resource.onboard02]
-}
-
-
-
-output "deployment_name" {
-  value = random_string.env_prefix.result
-}
-
-output "admin_password" {
-  value = random_string.admin_password.result
+output "deployment_info" {
+  value = [
+    {
+      "admin_username": var.admin_username,
+      "admin_password": random_string.admin_password.result,
+      "mgmt_address": google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
+      "mgmt_port": 443,
+      "primary": true
+    },
+    {
+      "admin_username": var.admin_username,
+      "admin_password": random_string.admin_password.result,
+      "mgmt_address": google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
+      "mgmt_port": 443,
+      "primary": false
+    }
+  ]
 }
 

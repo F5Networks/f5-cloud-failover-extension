@@ -7,6 +7,15 @@ stages:
     - build
     - publish
 
+variables:
+    # normalize env var options between ansible and terraform
+    AZURE_TENANT: "$AZURE_TENANT_ID"
+    AZURE_SECRET: "$AZURE_CLIENT_SECRET"
+    ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
+    ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
+    ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+    ARM_TENANT_ID: "$AZURE_TENANT_ID"
+
 build_package:
     image: f5devcentral/containthedocs:rpmbuild
     stage: build_package
@@ -70,6 +79,8 @@ test_functional_azure:
         # install python dependencies
         - apt-get update
         - apt-get -y install python3-venv
+        # install terraform
+        - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
         # functional tests
         - export CF_ENV_CLOUD=azure
         - npm run deployment-create
