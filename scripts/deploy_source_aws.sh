@@ -18,7 +18,7 @@ sshpass -p $PASSWORD ssh -o "StrictHostKeyChecking no" awsuser@$FIRST_IP 'bigsta
 echo "done with ${FIRST_IP}"
 echo "connecting to ${SECOND_IP}"
 
-sshpass -p $PASSWORD scp -r src/nodejs/* azureuser@$SECOND_IP:/var/config/rest/iapps/f5-cloud-failover/nodejs
+sshpass -p $PASSWORD scp -r src/nodejs/* awsuser@$SECOND_IP:/var/config/rest/iapps/f5-cloud-failover/nodejs
 sshpass -p $PASSWORD ssh -o "StrictHostKeyChecking no" awsuser@$SECOND_IP 'bigstart restart restnoded'
 
 echo "done with ${SECOND_IP}"
