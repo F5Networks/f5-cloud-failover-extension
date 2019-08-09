@@ -39,6 +39,12 @@ describe('Cloud Factory', () => {
     });
 
     it('should get cloud provider', () => {
+        const provider = CloudFactory.getCloudProvider('gce');
+
+        assert.strictEqual(provider.environment, 'gce');
+    });
+
+    it('should get cloud provider', () => {
         assert.throws(
             () => {
                 CloudFactory.getCloudProvider('foo');

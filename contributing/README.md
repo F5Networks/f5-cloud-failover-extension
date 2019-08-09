@@ -20,6 +20,20 @@ Additional reasons for providing a consolidated solution include:
 - Lifecyle: I should be able to upgrade my BIG-IP software without having to call F5 support to "fix failover"
 
 ---
+
+### Failover Event Diagrams
+
+#### Azure
+![diagram](images/FailoverExtensionHighLevel.gif)
+
+#### AWS
+![diagram](images/AWSFailoverExtensionHighLevel.gif)
+
+#### GCP
+![diagram](images/GCPFailoverExtensionHighLevel.gif)
+
+---
+
 ### Components
 
 The failover extension includes a number of key components, listed below.
@@ -117,6 +131,17 @@ What happens in the system internals between request and response?
 ![diagram](images/failover.png)
 
 
+#### Failover Prerequisites
+*AWS:*
+-  2 clustered BIG-IPs, in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
+- Virtual Addresses created, corresponding to _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
+- Elastic IP Addresses, tagged with:
+    1. the key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    2. the Private IP addresses that each Elastic IP is associated with, separated by a comma.
+    Example:
+    ![diagram](images/AWSEIPTags.png)
+     
+
 #### Failover Sequence
 
 1. Heartbeat lost from active device; client POST failover declaration to extension endpoint
@@ -126,6 +151,19 @@ What happens in the system internals between request and response?
 5. Cloud SDK uses management client to create network client
 6. Cloud SDK uses network client to update route destination(s) to point to active device's NIC
 7. Cloud SDK uses network client to update IP > NIC association(s)
+
+
+    *Azure*:
+    1. removes targeted IP(s) from standby NIC
+    2. adds targeted IP(s) to active NIC
+
+    *AWS*:
+    1. updates EIP association(s)
+    
+    *GCP*
+    1. re-associate alias ip addresses from Active to Standby host
+    2. re-associate forwarding rule from Primary to Standby host
+    
 8. Cloud SDK uses storage client to write task completed to storage location
 
 ---

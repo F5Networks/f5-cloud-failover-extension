@@ -20,6 +20,7 @@ describe('Provider - Azure', () => {
     let AzureCloudProvider;
     let f5CloudLibs;
     let cloudLibsUtil;
+    let util;
 
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
@@ -33,6 +34,7 @@ describe('Provider - Azure', () => {
 
     before(() => {
         AzureCloudProvider = require('../../../src/nodejs/providers/azure/cloud.js').Cloud;
+        util = require('../../../src/nodejs/util.js');
         f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
         cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
@@ -397,6 +399,31 @@ describe('Provider - Azure', () => {
             })
             .catch(() => {
                 // succeeds when rejection recieved
+                assert.ok(true);
+            });
+    });
+
+    it('validate resolve _retrier', () => {
+        const fakeFunc = () => Promise.resolve();
+        return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch(() => {
+                // fails when error recieved
+                assert.fail();
+            });
+    });
+
+    it('validate reject _retrier', () => {
+        cloudLibsUtil.tryUntil = sinon.stub().rejects();
+        const fakeFunc = () => Promise.reject();
+        return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
+            .then(() => {
+                assert.fail();
+            })
+            .catch(() => {
+                // fails when error recieved
                 assert.ok(true);
             });
     });

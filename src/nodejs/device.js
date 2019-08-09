@@ -88,8 +88,6 @@ class Device {
         this.trafficGroups = results[1];
         this.selfAddresses = results[2];
         this.virtualAddresses = results[3];
-
-        logger.info('BIG IP Failover configuration has been initialized.');
     }
 
     /**

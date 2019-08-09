@@ -17,8 +17,11 @@
 'use strict';
 
 const CLOUD_PROVIDERS = require('../constants').CLOUD_PROVIDERS;
-const AzureCloud = require('./azure/cloud.js').Cloud;
-const AWSCloud = require('./aws/cloud.js').Cloud;
+
+/* eslint-disable global-require */
+let AzureCloud;
+let GoogleCloud;
+let AWSCloud;
 
 /**
  * Given the name of a Cloud Provider return a Cloud Instance.
@@ -29,8 +32,13 @@ const AWSCloud = require('./aws/cloud.js').Cloud;
 function getCloudProvider(providerName, options) {
     switch (providerName) {
     case CLOUD_PROVIDERS.AZURE:
+        AzureCloud = require('./azure/cloud.js').Cloud;
         return new AzureCloud(options);
+    case CLOUD_PROVIDERS.GCE:
+        GoogleCloud = require('./gce/cloud.js').Cloud;
+        return new GoogleCloud(options);
     case CLOUD_PROVIDERS.AWS:
+        AWSCloud = require('./aws/cloud.js').Cloud;
         return new AWSCloud(options);
     default:
         throw new Error('Unsupported cloud');
