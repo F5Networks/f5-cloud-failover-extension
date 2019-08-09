@@ -74,7 +74,6 @@ function execute() {
         })
         .then((addresses) => {
             logger.info('Performing Failover - Updating addresses');
-
             return cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses);
         })
         .then(() => {
@@ -121,11 +120,10 @@ function getTrafficGroups(trafficGroupStats, hostname) {
 */
 function getSelfAddresses(selfAddresses, trafficGroups) {
     const addresses = [];
-
     selfAddresses.forEach((item) => {
         let trafficGroupMatch = false;
         trafficGroups.forEach((nestedItem) => {
-            if (nestedItem.name.indexOf(item.name) !== -1) {
+            if (nestedItem.name.indexOf(item.trafficGroup) !== -1) {
                 trafficGroupMatch = true;
             }
         });
