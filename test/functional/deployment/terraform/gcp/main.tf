@@ -6,97 +6,459 @@ resource "random_string" "admin_password" {
   special           = false
 }
 
+
+resource "random_integer" "ip_alias_4octet_vm01" {
+  min               = 10
+  max               = 250
+}
+
+resource "random_integer" "ip_alias_4octet_vm02" {
+  min               = 10
+  max               = 250
+}
+
 resource "random_string" "env_prefix" {
   length = 8
   upper = false
   special = false
 }
 
+
+resource "local_file" "failover_do" {
+  content  = templatefile("${path.module}/../../declarations/failover_do.json", { enviroment = "gce", storage_resource = "myuniquestorageaccount", storage_key = "some_storage_key", storage_value="some_storage_value", managed_routes="192.168.1.0/24", tag_name="f5_cloud_failover_label", tag_value="mydeployment" })
+  filename = "${path.module}/temp_failover_do.json"
+
+}
+
+
+
 # Put GCP-specific resources here
-
-resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24" })
-    filename = "${path.module}/temp_do0.json"
+provider "google" {
+  project = "${var.projectId}"
+  region  = "${var.region}"
+  zone    = "${var.zone}"
 }
 
-resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24" })
-    filename = "${path.module}/temp_do1.json"
+// Gathering info about existent resources
+
+data "google_compute_image" "f5-bigip-image" {
+  name = "f5-bigip-14-1-0-3-0-0-6-payg-good-5gbps-190326001429"
+  project = "${var.imageProjectId}"
 }
 
-resource "null_resource" "login0" {
+resource "google_compute_network" "ext_network" {
+  name                    = "ext-net-${random_string.env_prefix.result}"
+  project                 = "${var.projectId}"
+}
+
+resource "google_compute_subnetwork" "ext_subnetwork" {
+  name          = "ext-subnet-${random_string.env_prefix.result}"
+  region        = "${var.region}"
+  ip_cidr_range = "${var.ext-subnet-cidr-range}"
+  network       = "${google_compute_network.ext_network.self_link}"
+}
+
+resource "google_compute_network" "mgmt_network" {
+  name                    = "mgmt-net-${random_string.env_prefix.result}"
+  project                 = "${var.projectId}"
+}
+
+resource "google_compute_subnetwork" "mgmt_subnetwork" {
+  name          = "mgmt-subnet-${random_string.env_prefix.result}"
+  region        = "${var.region}"
+  ip_cidr_range = "${var.mgmt-subnet-cidr-range}"
+  network       = "${google_compute_network.mgmt_network.self_link}"
+}
+
+
+resource "google_compute_network" "int_network" {
+  name                    = "int-net-${random_string.env_prefix.result}"
+  project                 = "${var.projectId}"
+}
+
+resource "google_compute_subnetwork" "int_subnetwork" {
+  name          = "int-subnet-${random_string.env_prefix.result}"
+  region        = "${var.region}"
+  ip_cidr_range = "${var.int-subnet-cidr-range}"
+  network       = "${google_compute_network.int_network.self_link}"
+}
+
+resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
+  name = "tf-func-test-forwarding-rule-vm01-us-west1-${random_string.env_prefix.result}"
+  ip_protocol = "TCP"
+  load_balancing_scheme = "EXTERNAL"
+  target = "${google_compute_target_instance.vm01.self_link}"
+}
+/*
+resource "google_storage_bucket" "cloud-libs-storage" {
+  name     = "tf-funct-test-cloud-libs-storage"
+  location = "US"
+}
+*/
+
+resource "google_compute_target_instance" "vm01" {
+  name        = "tf-func-test-target-vm01-${random_string.env_prefix.result}"
+  nat_policy  = "NO_NAT"
+  instance    = "${google_compute_instance.vm01.self_link}"
+}
+
+resource "google_compute_target_instance" "vm02" {
+  name        = "tf-func-test-target-vm02-${random_string.env_prefix.result}"
+  nat_policy  = "NO_NAT"
+  instance    = "${google_compute_instance.vm02.self_link}"
+}
+
+resource "google_compute_firewall" "internal" {
+  name    = "tf-func-test-bigip-traffic-internal-firewall-${random_string.env_prefix.result}"
+  network = "${google_compute_network.int_network.name}"
+
+  allow {
+    protocol = "icmp"
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["4353"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports = ["1026"]
+  }
+
+}
+
+
+resource "google_compute_firewall" "mgmt" {
+  name    = "tf-func-test-bigip-traffic-mgmt-firewall-${random_string.env_prefix.result}"
+  network = "${google_compute_network.mgmt_network.name}"
+
+  allow {
+    protocol = "icmp"
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["4353"]
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443", "22"]
+  }
+
+}
+
+
+resource "google_compute_firewall" "ext" {
+  name    = "tf-func-test-bigip-traffic-ext-firewall-${random_string.env_prefix.result}"
+  network = "${google_compute_network.ext_network.name}"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443", "22"]
+  }
+
+  allow {
+    protocol = "icmp"
+  }
+
+}
+
+
+data "template_file" "vm01_cloud_init_script" {
+  template = "${file("${path.module}/user_data.tpl")}"
+
+  vars = {
+    admin_username        = "${var.admin_username}"
+    admin_password        = "${random_string.admin_password.result}"
+    hostname              = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal"
+    ext_subnet_cidr_range =  "${var.ext-subnet-cidr-range}"
+    int_subnet_cidr_range =  "${var.int-subnet-cidr-range}"
+    mgmt_subnet_cidr_range =  "${var.mgmt-subnet-cidr-range}"
+    ext_subnet_gateway    = "${var.ext-subnet-getway}"
+    int_subnet_gateway    = "${var.int-subnet-getway}"
+    mgmt_subnet_gateway    = "${var.mgmt-subnet-getway}"
+    ext_private_ip        = "${var.vm01-ext-private-ip}"
+    int_private_ip        = "${var.vm01-int-private-ip}"
+    mgmt_private_ip        = "${var.vm01-mgmt-private-ip}/24"
+  }
+}
+
+
+data "template_file" "vm02_cloud_init_script" {
+  template = "${file("${path.module}/user_data.tpl")}"
+
+  vars = {
+    admin_username        = "${var.admin_username}"
+    admin_password        = "${random_string.admin_password.result}"
+    hostname              = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"
+    ext_subnet_cidr_range =  "${var.ext-subnet-cidr-range}"
+    int_subnet_cidr_range =  "${var.int-subnet-cidr-range}"
+    mgmt_subnet_cidr_range =  "${var.mgmt-subnet-cidr-range}"
+    mgmt_subnet_gateway    = "${var.mgmt-subnet-getway}"
+    int_subnet_gateway    = "${var.int-subnet-getway}"
+    ext_subnet_gateway    = "${var.ext-subnet-getway}"
+    ext_private_ip        = "${var.vm02-ext-private-ip}"
+    int_private_ip        = "${var.vm02-int-private-ip}"
+    mgmt_private_ip        = "${var.vm02-mgmt-private-ip}/24"
+  }
+}
+
+
+// Creating GCP resources for First BIGIP Instance
+
+
+resource "google_compute_instance" "vm01" {
+  name         = "tf-func-test-vm01-${random_string.env_prefix.result}"
+  machine_type = "n1-standard-4"
+  zone         = "${var.zone}"
+  can_ip_forward = true
+
+  labels = {
+    f5_cloud_failover_label = "mydeployment"
+  }
+
+  boot_disk {
+    initialize_params {
+      image = "${data.google_compute_image.f5-bigip-image.self_link}"
+    }
+  }
+
+  network_interface {
+    network = "${google_compute_network.ext_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.ext_subnetwork.self_link}"
+    network_ip = "${var.vm01-ext-private-ip}"
+
+    access_config {
+    }
+
+    alias_ip_range {
+      ip_cidr_range = "${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}/32"
+    }
+
+  }
+
+  network_interface {
+    network = "${google_compute_network.mgmt_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.mgmt_subnetwork.self_link}"
+    network_ip = "${var.vm01-mgmt-private-ip}"
+
+    access_config {
+    }
+
+  }
+
+  network_interface {
+    network = "${google_compute_network.int_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.int_subnetwork.self_link}"
+    network_ip = "${var.vm01-int-private-ip}"
+  }
+
+  metadata = {
+    foo = "bar"
+  }
+
+  metadata_startup_script = "${data.template_file.vm01_cloud_init_script.rendered}"
+
+  service_account {
+    scopes = ["compute-rw", "storage-rw"]
+  }
+
+}
+
+// Creating GCP resources for Second BIGIP Instance
+
+
+resource "google_compute_instance" "vm02" {
+  name         = "tf-func-test-vm02-${random_string.env_prefix.result}"
+  machine_type = "n1-standard-4"
+  zone         = "${var.zone}"
+  can_ip_forward = true
+
+  labels = {
+    f5_cloud_failover_label = "mydeployment"
+  }
+
+  boot_disk {
+    initialize_params {
+      image = "${data.google_compute_image.f5-bigip-image.self_link}"
+    }
+  }
+
+  network_interface {
+    network = "${google_compute_network.ext_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.ext_subnetwork.self_link}"
+    network_ip = "${var.vm02-ext-private-ip}"
+
+    access_config {
+    }
+    /*
+    Alias-IP is only on active host; the alias ip will be re-assigned to stand-by host as part of failover
+    alias_ip_range {
+      ip_cidr_range = "${join( ".", concat(slice(split(".",data.google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm02.result)))}/32"
+    }
+    */
+  }
+
+  network_interface {
+    network = "${google_compute_network.mgmt_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.mgmt_subnetwork.self_link}"
+    network_ip = "${var.vm02-mgmt-private-ip}"
+
+    access_config {
+    }
+  }
+
+  network_interface {
+    network = "${google_compute_network.int_network.self_link}"
+    subnetwork = "${google_compute_subnetwork.int_subnetwork.self_link}"
+    network_ip = "${var.vm02-int-private-ip}"
+  }
+
+  metadata = {
+    foo = "bar"
+  }
+  metadata_startup_script = "${data.template_file.vm02_cloud_init_script.rendered}"
+
+  service_account {
+    scopes = ["compute-rw", "storage-rw"]
+  }
+
+}
+
+// Onboarding
+
+
+resource "local_file" "do01" {
+  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+filename = "${path.module}/temp_do01.json"
+
+  depends_on = [google_compute_instance.vm01]
+}
+
+resource "local_file" "do02" {
+  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  filename = "${path.module}/temp_do02.json"
+
+  depends_on = [google_compute_instance.vm02]
+}
+
+// Login into the first BIGIP host
+
+resource "null_resource" "login01" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
   }
-  depends_on = [google_compute_instance.vm0]
+  depends_on = [google_compute_instance.vm01]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-resource "null_resource" "create_virtual0" {
+resource "null_resource" "delay_one_minute01" {
   provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+    command = "sleep 60"
+  }
+  depends_on = [null_resource.login01]
+}
+
+
+resource "null_resource" "failover01" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
+  }
+  depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover_do]
+}
+
+
+# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
+
+resource "null_resource" "create_virtual01" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}\",\"trafficGroup\":\"traffic-group-1\"}'"
   }
   triggers = {
     always_run = timestamp()
   }
-  depends_on = [null_resource.login0]
+  depends_on = [null_resource.login01]
 }
 
-resource "null_resource" "failover0" {
+
+resource "null_resource" "onboard01" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
+    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
   }
-  depends_on = [null_resource.login0]
+  depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
 }
 
-resource "null_resource" "onboard0" {
+
+
+resource "null_resource" "create_virtual02" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual -d '{\"name\":\"external-pool\",\"destination\":\"${google_compute_forwarding_rule.vm01-forwarding-rule.ip_address}:80\"}'"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = timestamp()
   }
-  depends_on = [local_file.do0, null_resource.failover0]
+  depends_on = [null_resource.onboard01]
 }
 
-resource "null_resource" "login1" {
+resource "null_resource" "login02" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
   }
   depends_on = [
-    google_compute_instance.vm1,
-    null_resource.onboard0
+    google_compute_instance.vm02,
+    null_resource.create_virtual02
   ]
 }
 
-resource "null_resource" "failover1" {
+
+resource "null_resource" "delay_one_minute02" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
+    command = "sleep 60"
   }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
-  }
-  depends_on = [null_resource.login1]
+  depends_on = [null_resource.login02]
 }
 
-resource "null_resource" "onboard1" {
+resource "null_resource" "failover02" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
   }
-  depends_on = [local_file.do1, null_resource.failover1]
+  depends_on = [null_resource.login02, null_resource.delay_one_minute02, local_file.failover_do]
 }
+
+resource "null_resource" "onboard02" {
+  provisioner "local-exec" {
+    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
+  }
+  triggers = {
+    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+  }
+  depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
+}
+
+resource "local_file" "deployment_info" {
+  content  = templatefile("${path.module}/../../declarations/template_deployment_info.json", { admin_password = "${random_string.admin_password.result}", admin_username = "${var.admin_username}", primary_ip_addr = "${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}", secondary_ip_addr="${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}" })
+  filename = "${path.module}/deployment_info.json"
+
+  depends_on = [null_resource.onboard02]
+}
+
+
 
 output "deployment_name" {
   value = random_string.env_prefix.result

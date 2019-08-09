@@ -1,0 +1,20 @@
+{
+	"class": "Cloud_Failover",
+	"environment": "${enviroment}",
+	"storageResource": "${storage_resource}",
+	"storageTags": [
+		{
+			"key": "${storage_key}",
+			"value": "${storage_value}"
+		}
+	],
+	"managedRoutes": [
+		"${managed_routes}"
+	],
+	"addressTags": [
+		{
+			"key": "${tag_name}",
+			"value": "${tag_value}"
+		}
+	]
+}

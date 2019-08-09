@@ -58,8 +58,8 @@ module.exports = {
         const retry = retryOptions || cloudLibsUtil.DEFAULT_RETRY;
         return new Promise((resolve, reject) => {
             cloudLibsUtil.tryUntil(this, retry, func, args)
-                .then(() => {
-                    resolve();
+                .then((data) => {
+                    resolve(data);
                 })
                 .catch((error) => {
                     reject(error);
