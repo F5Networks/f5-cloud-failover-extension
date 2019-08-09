@@ -142,6 +142,35 @@ module.exports = {
     },
 
     /**
+     * Query installed ILX packages
+     *
+     * @param {String} host      - host
+     * @param {String} authToken - auth token
+     *
+     * @returns {Promise} Returns promise resolved upon completion
+     */
+    queryPackages(host, authToken) {
+        const opts = {
+            HOST: host,
+            AUTH_TOKEN: authToken,
+            // below should not be required, there is a bug in icrdk
+            // https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/lib/util.js#L322
+            headers: {
+                'x-f5-auth-token': authToken
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            icrdk.queryInstalledPackages(opts, (err, results) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve(results);
+            });
+        });
+    },
+
+    /**
      * Install ILX package
      *
      * @param {String} host      - host

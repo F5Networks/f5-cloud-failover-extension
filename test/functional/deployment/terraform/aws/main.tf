@@ -1,15 +1,5 @@
-resource "random_string" "admin_password" {
-  length            = 16
-  min_upper         = 1
-  min_lower         = 1
-  min_numeric       = 1
-  special           = false
-}
-
-resource "random_string" "env_prefix" {
-  length = 8
-  upper = false
-  special = false
+module "utils" {
+  source = "../utils"
 }
 
 provider "aws" {
@@ -22,7 +12,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "vpc: Failover-Extension-${random_string.env_prefix.result}"
+    Name = "vpc: Failover-Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -32,7 +22,7 @@ resource "aws_internet_gateway" "gateway" {
   vpc_id = "${aws_vpc.main.id}"
   
   tags = {
-    Name = "InternetGateway: Failover Extension-${random_string.env_prefix.result}"
+    Name = "InternetGateway: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -47,7 +37,7 @@ resource "aws_route_table" "mgmt" {
   }
 
   tags = {
-    Name = "Mgmt Route Table: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Mgmt Route Table: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -62,7 +52,7 @@ resource "aws_route_table" "external" {
   }
 
   tags = {
-    Name = "External Route Table: Failover Extension-${random_string.env_prefix.result}"
+    Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -74,7 +64,7 @@ resource "aws_subnet" "mgmtAz1" {
   cidr_block = "10.0.0.0/24"
 
   tags = {
-    Name = "Az1 Mgmt Subnet: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Az1 Mgmt Subnet: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -91,7 +81,7 @@ resource "aws_subnet" "mgmtAz2" {
   cidr_block = "10.0.10.0/24"
 
   tags = {
-    Name = "Az2 Mgmt Subnet: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Az2 Mgmt Subnet: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -108,7 +98,7 @@ resource "aws_subnet" "externalAz1" {
   cidr_block = "10.0.1.0/24"
 
   tags = {
-    Name = "Az1 External Subnet: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Az1 External Subnet: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -125,7 +115,7 @@ resource "aws_subnet" "externalAz2" {
   cidr_block = "10.0.11.0/24"
 
   tags = {
-    Name = "Az2 External Subnet: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Az2 External Subnet: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -177,7 +167,7 @@ resource "aws_security_group" "external" {
   }
 
   tags = {
-    Name = "External Security Group: Failover Extension-${random_string.env_prefix.result}"
+    Name = "External Security Group: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -216,23 +206,23 @@ resource "aws_security_group" "mgmt" {
   }
 
   tags = {
-    Name = "Mgmt Security Group: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Mgmt Security Group: Failover Extension-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
 }
 
 resource "aws_s3_bucket" "configdb" {
-  bucket = "failoverextension-${random_string.env_prefix.result}-s3bucket"
+  bucket = "failoverextension-${module.utils.env_prefix}-s3bucket"
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "failoverextension-${random_string.env_prefix.result}-s3bucket"
+    Name = "failoverextension-${module.utils.env_prefix}-s3bucket"
   }
 }
 
 resource "aws_iam_role" "main" {
-  name = "Failover-Extension-IAM-role-${random_string.env_prefix.result}"
+  name = "Failover-Extension-IAM-role-${module.utils.env_prefix}"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -249,7 +239,7 @@ resource "aws_iam_role" "main" {
 }
 EOF
   tags = {
-    Name = "Failover Extension IAM role-${random_string.env_prefix.result}"
+    Name = "Failover Extension IAM role-${module.utils.env_prefix}"
     creator = "Terraform - Failover Extension"
     delete = "True"
   }
@@ -304,7 +294,7 @@ EOF
 }
 
 resource "aws_iam_instance_profile" "instance_profile" {
-  name = "Failover-Extension-IAM-role-${random_string.env_prefix.result}"
+  name = "Failover-Extension-IAM-role-${module.utils.env_prefix}"
   role = "${aws_iam_role.main.id}"
 }
 
@@ -316,7 +306,7 @@ resource "aws_network_interface" "mgmt1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "Mgmt Network Interface Az1: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Mgmt Network Interface Az1: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -328,7 +318,7 @@ resource "aws_eip" "mgmt1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP Mgmt Az1: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP Mgmt Az1: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -341,7 +331,7 @@ resource "aws_network_interface" "mgmt2" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "Mgmt Network Interface Az2: Failover Extension-${random_string.env_prefix.result}"
+    Name = "Mgmt Network Interface Az2: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -353,7 +343,7 @@ resource "aws_eip" "mgmt2" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP Mgmt Az2: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP Mgmt Az2: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -367,7 +357,7 @@ resource "aws_network_interface" "external1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "External Network Interface Az1: Failover Extension-${random_string.env_prefix.result}"
+    Name = "External Network Interface Az1: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -379,7 +369,7 @@ resource "aws_eip" "external1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP External Az1: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP External Az1: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -393,7 +383,7 @@ resource "aws_network_interface" "external2" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "External Network Interface Az2: Failover Extension-${random_string.env_prefix.result}"
+    Name = "External Network Interface Az2: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -405,7 +395,7 @@ resource "aws_eip" "external2" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP External Az2: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP External Az2: Failover Extension-${module.utils.env_prefix}"
   }
 }
 
@@ -417,7 +407,7 @@ resource "aws_eip" "vip1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "ElasticIP VIP: Failover Extension-${random_string.env_prefix.result}"
+    Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}"
     F5_CLOUD_FAILOVER_LABEL = "deployment-functional-testing"
     VIPS = "${tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[0]}"
   }
@@ -428,7 +418,7 @@ data "template_file" "user_data_vm0" {
 
   vars = {
     admin_username        = "${var.admin_username}"
-    admin_password        = "${random_string.admin_password.result}"
+    admin_password        = "${module.utils.admin_password}"
   }
 }
 
@@ -437,7 +427,7 @@ data "template_file" "user_data_vm1" {
 
   vars = {
     admin_username        = "${var.admin_username}"
-    admin_password        = "${random_string.admin_password.result}"
+    admin_password        = "${module.utils.admin_password}"
   }
 }
 
@@ -464,7 +454,7 @@ resource "aws_instance" "vm0" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "BigIp 1: Failover Extension-${random_string.env_prefix.result}"
+    Name = "BigIp 1: Failover Extension-${module.utils.env_prefix}"
   }
 
   # Wait until the instance is in a running state
@@ -496,7 +486,7 @@ resource "aws_instance" "vm1" {
   tags = {
     creator = "Terraform - Failover Extension"
     delete = "True"
-    Name = "BigIp 2: Failover Extension-${random_string.env_prefix.result}"
+    Name = "BigIp 2: Failover Extension-${module.utils.env_prefix}"
   }
 
   # Wait until the instance is in a running state
@@ -508,7 +498,7 @@ resource "aws_instance" "vm1" {
 resource "local_file" "do0" {
     content  = templatefile("${path.module}/../../declarations/do_onboard_aws.json", { 
       hostname = "failover0.local",
-      admin_password = "${random_string.admin_password.result}",
+      admin_password = "${module.utils.admin_password}",
       external_self = "${aws_network_interface.external1.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
@@ -517,7 +507,7 @@ resource "local_file" "do0" {
 resource "local_file" "doCluster0" {
     content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", { 
       hostname = "failover0.local",
-      admin_password = "${random_string.admin_password.result}",
+      admin_password = "${module.utils.admin_password}",
       external_self = "${aws_network_interface.external1.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
@@ -527,7 +517,7 @@ resource "local_file" "doCluster0" {
 resource "local_file" "do1" {
     content  = templatefile("${path.module}/../../declarations/do_onboard_aws.json", {
       hostname = "failover1.local",
-      admin_password = "${random_string.admin_password.result}",
+      admin_password = "${module.utils.admin_password}",
       external_self = "${aws_network_interface.external2.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
@@ -537,7 +527,7 @@ resource "local_file" "do1" {
 resource "local_file" "doCluster1" {
     content  = templatefile("${path.module}/../../declarations/do_cluster_aws.json", {
       hostname = "failover1.local",
-      admin_password = "${random_string.admin_password.result}",
+      admin_password = "${module.utils.admin_password}",
       external_self = "${aws_network_interface.external2.private_ip}/24",
       remoteHost = "${aws_network_interface.mgmt1.private_ip}"
     })
@@ -546,7 +536,7 @@ resource "local_file" "doCluster1" {
 
 resource "null_resource" "login0" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
@@ -576,7 +566,7 @@ resource "null_resource" "onboard0" {
 
 resource "null_resource" "addRoute0" {
   provisioner "local-exec" {
-    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt1.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${random_string.admin_password.result}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.1.1\", \"partition\":\"LOCAL_ONLY\"}'"
+    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt1.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${module.utils.admin_password}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.1.1\", \"partition\":\"LOCAL_ONLY\"}'"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
@@ -596,7 +586,7 @@ resource "null_resource" "cluster0" {
 
 resource "null_resource" "login1" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
@@ -626,7 +616,7 @@ resource "null_resource" "onboard1" {
 
 resource "null_resource" "addRoute1" {
   provisioner "local-exec" {
-    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt2.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${random_string.admin_password.result}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.11.1\", \"partition\":\"LOCAL_ONLY\"}'"
+    command = "curl -H 'content-type: application/json' -k -X POST https://${aws_eip.mgmt2.public_ip}/mgmt/tm/net/route -u '${var.admin_username}:${module.utils.admin_password}' -d '{\"name\":\"default\", \"network\":\"default\", \"gw\":\"10.0.11.1\", \"partition\":\"LOCAL_ONLY\"}'"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do_onboard_aws.json")
@@ -644,19 +634,25 @@ resource "null_resource" "cluster1" {
   depends_on = [local_file.doCluster1, null_resource.addRoute1]
 }
 
-# Outputs
-output "public_ip_address_vm0" {
-  value = "${aws_eip.mgmt1.public_ip}"
-}
-
-output "public_ip_address_vm1" {
-  value = "${aws_eip.mgmt2.public_ip}"
-}
-
 output "public_vip_address" {
   value = "${aws_eip.vip1.public_ip}"
 }
 
-output "admin_password" {
-  value = random_string.admin_password.result
+output "deployment_info" {
+  value = [
+    {
+      "admin_username": var.admin_username,
+      "admin_password": module.utils.admin_password,
+      "mgmt_address": aws_eip.mgmt1.public_ips,
+      "mgmt_port": 443,
+      "primary": true
+    },
+    {
+      "admin_username": var.admin_username,
+      "admin_password": module.utils.admin_password,
+      "mgmt_address": aws_eip.mgmt2.public_ip,
+      "mgmt_port": 443,
+      "primary": false
+    }
+  ]
 }

@@ -40,5 +40,6 @@ module.exports = {
         PORT: 443,
         PROTOCOL: 'https'
     },
-    BASE_ENDPOINT: '/mgmt/shared/cloud-failover'
+    BASE_ENDPOINT: '/mgmt/shared/cloud-failover',
+    PKG_NAME: 'f5-cloud-failover'
 };

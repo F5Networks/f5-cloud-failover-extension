@@ -29,7 +29,8 @@ function getHostInfo() {
         item = {
             ip: item.mgmt_address,
             username: item.admin_username,
-            password: item.admin_password
+            password: item.admin_password,
+            primary: item.primary
         };
         return item;
     });
@@ -37,7 +38,7 @@ function getHostInfo() {
 }
 
 const duts = getHostInfo();
-const dutPrimary = duts[0];
+const dutPrimary = duts.filter(dut => dut.primary)[0];
 
 const packageDetails = utils.getPackageDetails();
 const packageFile = packageDetails.name;
@@ -68,21 +69,29 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
         });
     });
 
+    it('should uninstall package (if exists)', () => {
+        const packageName = constants.PKG_NAME;
+        return utils.queryPackages(dutHost, authToken)
+            .then(data => Promise.all(data.queryResponse
+                .filter(pkg => pkg.packageName.includes(packageName))
+                .map(pkg => utils.uninstallPackage(dutHost, authToken, pkg.packageName))))
+            .catch(err => Promise.reject(err));
+    });
+
     it(`should install package: ${packageFile}`, () => {
         const fullPath = `${packagePath}/${packageFile}`;
         return utils.installPackage(dutHost, authToken, fullPath)
             .catch(err => Promise.reject(err));
     });
 
-    it('should verify installation', function () {
-        this.retries(10);
+    it('should verify installation', () => {
         const uri = `${constants.BASE_ENDPOINT}/info`;
 
-        return new Promise(resolve => setTimeout(resolve, 1000))
-            .then(() => utils.makeRequest(dutHost, uri, options))
+        return utils.makeRequest(dutHost, uri, options)
             .then((data) => {
                 data = data || {};
                 assert.strictEqual(data.message, 'success');
-            });
+            })
+            .catch(err => Promise.reject(err));
     });
 });
