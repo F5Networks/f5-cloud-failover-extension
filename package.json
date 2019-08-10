@@ -8,7 +8,7 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "config": {
-        "set-host-env-vars": "export CF_ENV_HOST=$(cat deployment_info.json | jq .[0].mgmt_address -r); export CF_ENV_USER=$(cat deployment_info.json | jq .[0].admin_username -r); export CF_ENV_PWD=$(cat deployment_info.json | jq .[0].admin_password -r)"
+        "set-host-env-vars": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_password' -r)"
     },
     "scripts": {
         "install-production": "npm install --production --no-optional",

@@ -78,6 +78,9 @@ test_functional_azure:
     stage: test_functional
     image: python:3
     script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
         # install terraform
         - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
         # install node (and package dependencies)
