@@ -26,7 +26,8 @@
         "tf-delete": "rm -rf failover-tf *tfstate*",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin"
+        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin",
+        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p"
     },
     "nyc": {
         "check-coverage": true,
@@ -45,7 +46,6 @@
         "@google-cloud/compute": "^1.0.1",
         "@google-cloud/storage": "^2.5.0",
         "ajv": "^6.10.0",
-        "ipaddr.js": "^1.7.0",
         "ajv-async": "^1.0.1",
         "ajv-cli": "^3.0.0",
         "aws-sdk": "^2.369.0",
@@ -53,7 +53,9 @@
         "azure-storage": "^2.8.1",
         "commander": "^2.19.0",
         "gtoken": "3.0.0",
+        "ipaddr.js": "^1.7.0",
         "ms-rest-azure": "^2.6.0",
+        "openapi-to-postmanv2": "0.0.16",
         "request": "^2.83.0",
         "uuid": "^3.3.2"
     },
