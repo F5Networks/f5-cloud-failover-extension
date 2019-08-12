@@ -14,6 +14,7 @@
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/unittests/.mocha.opts",
+        "test-only-node-4": "mocha --recursive \"./test/unittests/**/*.js\" --exclude ./test/unittests/providers/gceProviderTests.js --exclude ./test/unittests/providers/cloudFactoryTests.js --opts ./test/unittests/.mocha.opts",
         "test": "nyc npm run test-only",
         "test-functional": "npm run tf-init; npm run tf-plan; npm run tf-apply; npm run tf-destroy; npm run tf-delete",
         "check": "nyc check-coverage",
@@ -44,6 +45,7 @@
         "@google-cloud/compute": "^1.0.1",
         "@google-cloud/storage": "^2.5.0",
         "ajv": "^6.10.0",
+        "ipaddr.js": "^1.7.0",
         "ajv-async": "^1.0.1",
         "ajv-cli": "^3.0.0",
         "aws-sdk": "^2.369.0",
@@ -63,8 +65,8 @@
         "eslint-plugin-import": "^2.17.3",
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^5.2.0",
-        "nyc": "^14.0.0",
-        "sinon": "^7.3.2",
+        "nyc": "^14.1.1",
+        "sinon": "7.3.2",
         "ssh2": "^0.8.2"
     },
     "optionalDependencies": {
