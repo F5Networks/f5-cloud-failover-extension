@@ -23,6 +23,12 @@
             ],
             "timezone": "UTC"
         },
+        "${admin_username}": {
+            "class": "User",
+            "userType": "regular",
+            "password": "${admin_password}",
+            "shell": "bash"
+        },
         "myProvisioning": {
             "class": "Provision",
             "ltm": "nominal"
@@ -38,7 +44,7 @@
                 }
             ]
         },
-        "internal-self": {
+        "internalSelf": {
             "class": "SelfIp",
             "address": "${internal_self}",
             "vlan": "internal",
@@ -56,20 +62,20 @@
                 }
             ]
         },
-        "external-self": {
+        "externalSelf": {
             "class": "SelfIp",
             "address": "${external_self}",
             "vlan": "external",
             "allowService": "default",
             "trafficGroup": "traffic-group-local-only"
         },
-        "configsync": {
+        "configSync": {
             "class": "ConfigSync",
-            "configsyncIp": "/Common/internal-self/address"
+            "configsyncIp": "/Common/internalSelf/address"
         },
         "failoverAddress": {
             "class": "FailoverUnicast",
-            "address": "/Common/internal-self/address"
+            "address": "/Common/internalSelf/address"
         },
         "failoverGroup": {
             "class": "DeviceGroup",
@@ -84,13 +90,13 @@
         },
         "trust": {
             "class": "DeviceTrust",
-            "localUsername": "azureuser",
+            "localUsername": "${admin_username}",
             "localPassword": "${admin_password}",
-            "remoteHost": "/Common/failoverGroup/members/0",
-            "remoteUsername": "azureuser",
+            "remoteHost": "${remote_host}",
+            "remoteUsername": "${admin_username}",
             "remotePassword": "${admin_password}"
         },
-        "dbvars": {
+        "dbVars": {
         	"class": "DbVariables",
         	"config.allow.rfc3927": "enable"
         }

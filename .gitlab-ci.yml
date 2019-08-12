@@ -73,8 +73,7 @@ test_package:
         paths:
             - coverage
 
-# run functional tests: azure
-test_functional_azure:
+.test_functional_generic: &test_functional_generic
     stage: test_functional
     image: python:3
     script:
@@ -87,14 +86,21 @@ test_functional_azure:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # setup environment
-        - export CF_ENV_CLOUD=azure
         - npm run deployment-create
         # run functional tests
         - npm run test-functional
+        # run API smoke tests
+        - npm run validate-api
         # teardown environment
         - npm run deployment-delete
     tags:
         - cm-official-docker-executor
+
+# run functional tests: azure
+test_functional_azure:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
 
 build_docs:
     image: python:3.7
@@ -193,7 +199,6 @@ pages:
     only:
         - master
         - develop
-
 
 # Publish docs to clouddocs.f5.com
 docs to production:

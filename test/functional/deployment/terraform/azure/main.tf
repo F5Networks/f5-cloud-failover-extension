@@ -295,12 +295,12 @@ resource "azurerm_virtual_machine" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24", remote_host = "10.0.0.4" })
+    content  = templatefile("${path.module}/../../declarations/do/do_template.json", { hostname = "failover0.local", admin_username = "${var.admin_username}", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24", remote_host = "10.0.0.4" })
     filename = "${path.module}/temp_do0.json"
 }
 
 resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24", remote_host = "10.0.0.4" })
+    content  = templatefile("${path.module}/../../declarations/do/do_template.json", { hostname = "failover1.local", admin_username = "${var.admin_username}", admin_password = "${module.utils.admin_password}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24", remote_host = "10.0.0.4" })
     filename = "${path.module}/temp_do1.json"
 }
 
@@ -309,7 +309,7 @@ resource "null_resource" "login0" {
     command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/do_template.json")
   }
   depends_on = [azurerm_virtual_machine.vm0]
 }
@@ -340,7 +340,7 @@ resource "null_resource" "onboard0" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/do_template.json")
   }
   depends_on = [local_file.do0, null_resource.failover0]
 }
@@ -350,7 +350,7 @@ resource "null_resource" "login1" {
     command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/do_template.json")
   }
   depends_on = [
     azurerm_virtual_machine.vm1,
@@ -373,7 +373,7 @@ resource "null_resource" "onboard1" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/do_template.json")
   }
   depends_on = [local_file.do1, null_resource.failover1]
 }
