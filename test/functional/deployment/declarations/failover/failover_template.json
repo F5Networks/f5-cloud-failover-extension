@@ -8,9 +8,14 @@
 			"value": "${storage_value}"
 		}
 	],
-	"managedRoutes": [
-		"${managed_routes}"
-	],
+	"failoverRoutes": {
+		"scopingTags": {
+			"${tag_name}": "${tag_value}"
+		},
+		"scopingAddressRanges":[
+			"${managed_routes}"
+		]
+	},
 	"addressTags": [
 		{
 			"key": "${tag_name}",
