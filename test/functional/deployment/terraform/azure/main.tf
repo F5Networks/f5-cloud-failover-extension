@@ -295,7 +295,7 @@ resource "azurerm_virtual_machine" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content = templatefile(
+    content = "${templatefile(
       "${path.module}/../../declarations/do/azure_do_template.json",
       {
         hostname = "failover0.local",
@@ -305,12 +305,12 @@ resource "local_file" "do0" {
         external_self = "10.0.2.4/24",
         remote_host = "10.0.0.4"
       }
-    )
+    )}"
     filename = "${path.module}/temp_do0.json"
 }
 
 resource "local_file" "do1" {
-    content = templatefile(
+    content = "${templatefile(
       "${path.module}/../../declarations/do/azure_do_template.json",
       {
         hostname = "failover1.local",
@@ -320,12 +320,12 @@ resource "local_file" "do1" {
         external_self = "10.0.2.5/24",
         remote_host = "10.0.0.4" 
       }
-    )
+    )}"
     filename = "${path.module}/temp_do1.json"
 }
 
 resource "local_file" "failover" {
-  content  = templatefile(
+  content = "${templatefile(
     "${path.module}/../../declarations/failover/failover_template.json",
     {
       enviroment = "azure",
@@ -336,7 +336,7 @@ resource "local_file" "failover" {
       tag_name="F5_CLOUD_FAILOVER_LABEL",
       tag_value="mydeployment"
     }
-  )
+  )}"
   filename = "${path.module}/temp_failover.json"
 }
 
@@ -347,7 +347,7 @@ resource "null_resource" "login0" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = ["${azurerm_virtual_machine.vm0}"]
+  depends_on = [azurerm_virtual_machine.vm0]
 }
 
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
@@ -358,7 +358,7 @@ resource "null_resource" "create_virtual0" {
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = ["${null_resource.login0}"]
+  depends_on = [null_resource.login0]
 }
 
 resource "null_resource" "failover0" {
@@ -366,9 +366,9 @@ resource "null_resource" "failover0" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = "${fileexists("${path.module}/temp_failover.json")}"
+    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json"
   }
-  depends_on = ["${null_resource.login0}"]
+  depends_on = [null_resource.login0]
 }
 
 resource "null_resource" "onboard0" {
@@ -378,7 +378,7 @@ resource "null_resource" "onboard0" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = ["${local_file.do0}", "${null_resource.failover0}"]
+  depends_on = [local_file.do0, null_resource.failover0]
 }
 
 resource "null_resource" "login1" {
@@ -388,10 +388,7 @@ resource "null_resource" "login1" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [
-    "${azurerm_virtual_machine.vm1}",
-    "${null_resource.onboard0}"
-  ]
+  depends_on = [azurerm_virtual_machine.vm1, null_resource.onboard0]
 }
 
 resource "null_resource" "failover1" {
@@ -399,9 +396,9 @@ resource "null_resource" "failover1" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = "${fileexists("${path.module}/temp_failover.json")}"
+    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json"
   }
-  depends_on = ["${null_resource.login1}"]
+  depends_on = [null_resource.login1]
 }
 
 resource "null_resource" "onboard1" {
@@ -411,7 +408,7 @@ resource "null_resource" "onboard1" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = ["${local_file.do1}", "${null_resource.failover1}"]
+  depends_on = [local_file.do1, null_resource.failover1]
 }
 
 output "deployment_info" {

@@ -531,29 +531,35 @@ resource "aws_instance" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content = "${templatefile("${path.module}/../../declarations/do/aws_do_template.json", {
-      hostname = "failover0.local",
-      admin_username = "${var.admin_username}",
-      admin_password = "${module.utils.admin_password}",
-      external_self = "${aws_network_interface.external1.private_ip}",
-      remote_host = "${aws_network_interface.mgmt1.private_ip}"
-    })}"
+    content = "${templatefile(
+      "${path.module}/../../declarations/do/aws_do_template.json",
+      {
+        hostname = "failover0.local",
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        external_self = "${aws_network_interface.external1.private_ip}",
+        remote_host = "${aws_network_interface.mgmt1.private_ip}"
+      }
+    )}"
     filename = "${path.module}/temp_do0.json"
 }
 
 resource "local_file" "do1" {
-    content = "${templatefile("${path.module}/../../declarations/do/aws_do_template.json", {
-      hostname = "failover1.local",
-      admin_username = "${var.admin_username}",
-      admin_password = "${module.utils.admin_password}",
-      external_self = "${aws_network_interface.external2.private_ip}",
-      remote_host = "${aws_network_interface.mgmt1.private_ip}"
-    })}"
+    content = "${templatefile(
+      "${path.module}/../../declarations/do/aws_do_template.json",
+      {
+        hostname = "failover1.local",
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        external_self = "${aws_network_interface.external2.private_ip}",
+        remote_host = "${aws_network_interface.mgmt1.private_ip}"
+      }
+    )}"
     filename = "${path.module}/temp_do1.json"
 }
 
 resource "local_file" "failover" {
-  content  = templatefile(
+  content = "${templatefile(
     "${path.module}/../../declarations/failover/failover_template.json",
     {
       enviroment = "aws",
@@ -564,7 +570,7 @@ resource "local_file" "failover" {
       tag_name="F5_CLOUD_FAILOVER_LABEL",
       tag_value="deployment-functional-testing"
     }
-  )
+  )}"
   filename = "${path.module}/temp_failover.json"
 }
 
@@ -583,7 +589,7 @@ resource "null_resource" "failover0" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/temp_failover.json")
+    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
   }
   depends_on = [null_resource.login0]
 }
@@ -613,7 +619,7 @@ resource "null_resource" "failover1" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/temp_failover.json")
+    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
   }
   depends_on = [null_resource.login1]
 }

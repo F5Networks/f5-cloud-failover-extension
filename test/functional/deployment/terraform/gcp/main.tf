@@ -23,14 +23,11 @@ resource "random_string" "env_prefix" {
   special = false
 }
 
-
-resource "local_file" "failover_do" {
-  content  = templatefile("${path.module}/../../declarations/failover_do.json", { enviroment = "gce", storage_resource = "myuniquestorageaccount", storage_key = "some_storage_key", storage_value="some_storage_value", managed_routes="192.168.1.0/24", tag_name="f5_cloud_failover_label", tag_value="mydeployment" })
-  filename = "${path.module}/temp_failover_do.json"
+resource "local_file" "failover" {
+  content  = templatefile("${path.module}/../../declarations/failover/failover_template.json", { enviroment = "gce", storage_resource = "myuniquestorageaccount", storage_key = "some_storage_key", storage_value="some_storage_value", managed_routes="192.168.1.0/24", tag_name="f5_cloud_failover_label", tag_value="mydeployment" })
+  filename = "${path.module}/temp_failover.json"
 
 }
-
-
 
 # Put GCP-specific resources here
 provider "google" {
@@ -366,12 +363,12 @@ resource "null_resource" "delay_one_minute01" {
 
 resource "null_resource" "failover01" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
+    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
   }
-  depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover_do]
+  depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover]
 }
 
 
@@ -433,12 +430,12 @@ resource "null_resource" "delay_one_minute02" {
 
 resource "null_resource" "failover02" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
+    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
   }
-  depends_on = [null_resource.login02, null_resource.delay_one_minute02, local_file.failover_do]
+  depends_on = [null_resource.login02, null_resource.delay_one_minute02, local_file.failover]
 }
 
 resource "null_resource" "onboard02" {

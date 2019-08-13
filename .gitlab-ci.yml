@@ -20,6 +20,8 @@ variables:
     AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
     AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
     AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+    # gcp vars
+    GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
     # debug vars
     F5_SDK_LOG_LEVEL: "TRACE"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
@@ -113,6 +115,12 @@ test_functional_aws:
     <<: *test_functional_generic
     variables:
         CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+test_functional_gcp:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
 
 build_docs:
     image: python:3.7
