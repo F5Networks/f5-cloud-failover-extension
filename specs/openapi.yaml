@@ -2,6 +2,7 @@ openapi: '3.0.0'
 info:
   version: 0.9.0
   title: Cloud Failover (CF) Extension
+  description: F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the TS Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
     name: Apache License 2.0
 servers:
@@ -57,6 +58,10 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                action:
+                  type: string
+                  default: 'execute'
       responses:
         '200':
           description: Configuration response
@@ -84,6 +89,10 @@ components:
           default: "Cloud_Failover"
         environment:
           type: string
+          enum:
+            - azure
+            - aws
+            - gce
           default: "azure"
         schemaVersion:
           type: string
@@ -93,16 +102,30 @@ components:
           default: "true"
         storageResource:
           type: string
+          default: "mystorageaccount"
         storageTags:
           type: array
           items:
             type: object
+            properties:
+              key:
+                type: string
+                default: "F5_CLOUD_FAILOVER_STORAGE_LABEL"
+              value:
+                type: string
+                default: "mydeployment"
         failoverRoutes:
           type: object
           properties:
             scopingTags:
               type: object
-              default: { "F5_CLOUD_FAILOVER_LABEL": "mydeployment" }
+              properties:
+                key:
+                  type: string
+                  default: "F5_CLOUD_FAILOVER_STORAGE_LABEL"
+                value:
+                  type: string
+                  default: "mydeployment"
             scopingAddressRanges:
               type: array
               default: "192.0.2.0/24"
@@ -110,6 +133,13 @@ components:
           type: array
           items:
             type: object
+            properties:
+              key:
+                type: string
+                default: "F5_CLOUD_FAILOVER_LABEL"
+              value:
+                type: string
+                default: "mydeployment"
     ConfigurationResponse:
       type: object
       properties:

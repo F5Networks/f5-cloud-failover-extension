@@ -1,0 +1,682 @@
+{
+    "item": [
+        {
+            "id": "5ce61054-6c69-4e45-9bb7-d7c4fccc86f3",
+            "name": "declare",
+            "item": [
+                {
+                    "id": "3b597377-bd85-4b4c-aac8-4785a39e755a",
+                    "name": "List configuration",
+                    "request": {
+                        "name": "List configuration",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "declare"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "method": "GET",
+                        "auth": {
+                            "type": "basic"
+                        }
+                    },
+                    "response": [
+                        {
+                            "id": "9d403579-84f1-436e-8647-157b604f1151",
+                            "name": "Configuration Response",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "343e5dd0-b32b-45a0-a241-2a42d31ad25a",
+                            "name": "Unexpected Error",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": []
+                },
+                {
+                    "id": "9b37d05f-15c2-4dce-86a8-e18793494663",
+                    "name": "Update configuration",
+                    "request": {
+                        "name": "Update configuration",
+                        "description": {},
+                        "url": {
+                            "path": [
+                                "declare"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "auth": {
+                            "type": "basic"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                        }
+                    },
+                    "response": [
+                        {
+                            "id": "bdcc3e8d-1ec5-4ab2-9821-47e116575479",
+                            "name": "Configuration response",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "47753ddc-f60b-4073-b34a-d6fac42089a1",
+                            "name": "Unexpected Error",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                }
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        }
+                    ],
+                    "event": []
+                },
+                {
+                    "id": "6632ab4a-2428-43dc-bb15-04b50e2b3878",
+                    "name": "examples",
+                    "item": [
+                        {
+                            "id": "ad9546df-e8b3-47ba-bbee-21c510e69129",
+                            "name": "(AWS) Update configuration",
+                            "request": {
+                                "name": "Update configuration",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "auth": {
+                                    "type": "basic"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                }
+                            },
+                            "response": [
+                                {
+                                    "id": "bdcc3e8d-1ec5-4ab2-9821-47e116575479",
+                                    "name": "Configuration response",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json; charset=UTF-8"
+                                        }
+                                    ],
+                                    "body": "",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "text"
+                                },
+                                {
+                                    "id": "47753ddc-f60b-4073-b34a-d6fac42089a1",
+                                    "name": "Unexpected Error",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "Internal Server Error",
+                                    "code": 500,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": []
+                        },
+                        {
+                            "id": "38669d26-2b4f-4bdb-9c22-e93715afda3d",
+                            "name": "(AZURE) Update configuration",
+                            "request": {
+                                "name": "Update configuration",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "auth": {
+                                    "type": "basic"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                }
+                            },
+                            "response": [
+                                {
+                                    "id": "bdcc3e8d-1ec5-4ab2-9821-47e116575479",
+                                    "name": "Configuration response",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json; charset=UTF-8"
+                                        }
+                                    ],
+                                    "body": "",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "text"
+                                },
+                                {
+                                    "id": "47753ddc-f60b-4073-b34a-d6fac42089a1",
+                                    "name": "Unexpected Error",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "Internal Server Error",
+                                    "code": 500,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": []
+                        },
+                        {
+                            "id": "27e8e0aa-09e2-4c54-8008-aa75b8c01973",
+                            "name": "(GCE) Update configuration",
+                            "request": {
+                                "name": "Update configuration",
+                                "description": {},
+                                "url": {
+                                    "path": [
+                                        "declare"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "auth": {
+                                    "type": "basic"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                }
+                            },
+                            "response": [
+                                {
+                                    "id": "bdcc3e8d-1ec5-4ab2-9821-47e116575479",
+                                    "name": "Configuration response",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "OK",
+                                    "code": 200,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json; charset=UTF-8"
+                                        }
+                                    ],
+                                    "body": "",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "text"
+                                },
+                                {
+                                    "id": "47753ddc-f60b-4073-b34a-d6fac42089a1",
+                                    "name": "Unexpected Error",
+                                    "originalRequest": {
+                                        "url": {
+                                            "path": [
+                                                "declare"
+                                            ],
+                                            "host": [
+                                                "{{baseUrl}}"
+                                            ],
+                                            "query": [],
+                                            "variable": []
+                                        },
+                                        "header": [
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "method": "POST",
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"schemaVersion\": \"0.9.0\",\n    \"useMetadata\": \"true\",\n    \"storageResource\": \"mystorageaccount\",\n    \"storageTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ],\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"key\": \"F5_CLOUD_FAILOVER_STORAGE_LABEL\",\n            \"value\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": \"192.0.2.0/24\"\n    },\n    \"addressTags\": [\n        {\n            \"key\": \"F5_CLOUD_FAILOVER_LABEL\",\n            \"value\": \"mydeployment\"\n        }\n    ]\n}"
+                                        }
+                                    },
+                                    "status": "Internal Server Error",
+                                    "code": 500,
+                                    "header": [
+                                        {
+                                            "key": "Content-Type",
+                                            "value": "application/json"
+                                        }
+                                    ],
+                                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                                    "cookie": [],
+                                    "_postman_previewlanguage": "json"
+                                }
+                            ],
+                            "event": []
+                        }
+                    ],
+                    "event": []
+                }
+            ],
+            "event": []
+        },
+        {
+            "id": "cd7be2dc-189e-40c9-b6ee-7da05a7c147a",
+            "name": "Trigger failover",
+            "request": {
+                "name": "Trigger failover",
+                "description": {},
+                "url": {
+                    "path": [
+                        "trigger"
+                    ],
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "query": [],
+                    "variable": []
+                },
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "method": "POST",
+                "auth": {
+                    "type": "basic"
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"action\": \"execute\"\n}"
+                }
+            },
+            "response": [
+                {
+                    "id": "0061cc50-e3bf-4049-ae11-0a9c619e5673",
+                    "name": "Configuration response",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "trigger"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"execute\"\n}"
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json; charset=UTF-8"
+                        }
+                    ],
+                    "body": "",
+                    "cookie": [],
+                    "_postman_previewlanguage": "text"
+                },
+                {
+                    "id": "e95955d7-2511-4476-995e-e6e1d5503045",
+                    "name": "Unexpected Error",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "trigger"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"action\": \"execute\"\n}"
+                        }
+                    },
+                    "status": "Internal Server Error",
+                    "code": 500,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                }
+            ],
+            "event": []
+        }
+    ],
+    "event": [],
+    "variable": [
+        {
+            "id": "baseUrl",
+            "type": "string",
+            "value": "https://192.0.2.1:443/mgmt/shared/cloud-failover"
+        }
+    ],
+    "info": {
+        "_postman_id": "f327ae63-101d-49fc-9973-82ef44451d1a",
+        "name": "Cloud Failover (CF) Extension",
+        "version": {
+            "raw": "0.9.0",
+            "major": 0,
+            "minor": 9,
+            "patch": 0,
+            "prerelease": [],
+            "build": [],
+            "string": "0.9.0"
+        },
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": {
+            "content": "F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the TS Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.",
+            "type": "text/plain"
+        }
+    }
+}
