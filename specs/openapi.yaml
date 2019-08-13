@@ -53,6 +53,11 @@ paths:
       summary: Trigger failover
       tags:
         - Trigger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
         '200':
           description: Configuration response

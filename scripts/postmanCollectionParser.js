@@ -95,7 +95,6 @@ const addExamples = (declareEndpoints) => {
     return declareEndpoints;
 };
 
-// updateCollection();
 const parsedCollection = JSON.parse(fs.readFileSync(INPUT_FILE));
 const declareEndpoints = parseDeclareEndpoints(parsedCollection);
 parsedCollection.item.forEach((item) => {

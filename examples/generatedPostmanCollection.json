@@ -1,11 +1,11 @@
 {
     "item": [
         {
-            "id": "e33b2d65-ff4c-4854-9002-b1bcb9475454",
+            "id": "73a22e1c-a6fb-4adf-b9a8-e432202ab52b",
             "name": "declare",
             "item": [
                 {
-                    "id": "699721e1-3098-4327-8a41-a80285e5d387",
+                    "id": "f15ae031-9d43-4f93-9f71-2d2f304cf979",
                     "name": "List configuration",
                     "request": {
                         "name": "List configuration",
@@ -27,7 +27,7 @@
                     },
                     "response": [
                         {
-                            "id": "48045ebd-c7e1-4230-aea4-6f1f7bac6d19",
+                            "id": "30738531-c4f2-4d11-9c7a-c26cbbd69ab4",
                             "name": "Configuration Response",
                             "originalRequest": {
                                 "url": {
@@ -56,7 +56,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "0de677ea-4fea-4edb-bfc4-b8b39af2411d",
+                            "id": "77ca1850-b67f-406e-81bc-182fd0f4fdcf",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -88,7 +88,7 @@
                     "event": []
                 },
                 {
-                    "id": "4184d954-cf37-4152-9ffa-249888e83da1",
+                    "id": "c31b2152-fc87-4f69-85c9-598568c66dd3",
                     "name": "Update configuration",
                     "request": {
                         "name": "Update configuration",
@@ -120,7 +120,7 @@
                     },
                     "response": [
                         {
-                            "id": "bf80b240-09fc-4b2d-ad1e-5d5f5568ad47",
+                            "id": "87e53646-5414-4855-8af3-c8972deba5d8",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -158,7 +158,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "ebeb86e1-bb55-4c72-9cd2-85bb60373437",
+                            "id": "a017424a-af71-42c1-ad1b-9ecfecf118b7",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -199,11 +199,11 @@
                     "event": []
                 },
                 {
-                    "id": "d47600ee-368e-4612-8348-5b0a356e7c2d",
+                    "id": "ee9688ef-5d07-496c-a14f-ee851e81acfb",
                     "name": "examples",
                     "item": [
                         {
-                            "id": "c6ddcb5f-2119-4137-ad7d-e60c96e8ae24",
+                            "id": "a688b654-73aa-48b5-8dae-bda9d782dbc6",
                             "name": "(AWS) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -235,7 +235,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "bf80b240-09fc-4b2d-ad1e-5d5f5568ad47",
+                                    "id": "87e53646-5414-4855-8af3-c8972deba5d8",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -273,7 +273,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "ebeb86e1-bb55-4c72-9cd2-85bb60373437",
+                                    "id": "a017424a-af71-42c1-ad1b-9ecfecf118b7",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -314,7 +314,7 @@
                             "event": []
                         },
                         {
-                            "id": "d7185b9b-455b-4785-a4a3-520843354361",
+                            "id": "98071a1b-bf42-4937-9ef0-1111a5fa8110",
                             "name": "(AZURE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -346,7 +346,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "bf80b240-09fc-4b2d-ad1e-5d5f5568ad47",
+                                    "id": "87e53646-5414-4855-8af3-c8972deba5d8",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -384,7 +384,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "ebeb86e1-bb55-4c72-9cd2-85bb60373437",
+                                    "id": "a017424a-af71-42c1-ad1b-9ecfecf118b7",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -425,7 +425,7 @@
                             "event": []
                         },
                         {
-                            "id": "c1ec3bf2-0aca-4976-bb13-59abd6d04ca5",
+                            "id": "aa10aeed-b35e-4aff-883e-63ea16f603a7",
                             "name": "(GCE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -457,7 +457,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "bf80b240-09fc-4b2d-ad1e-5d5f5568ad47",
+                                    "id": "87e53646-5414-4855-8af3-c8972deba5d8",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -495,7 +495,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "ebeb86e1-bb55-4c72-9cd2-85bb60373437",
+                                    "id": "a017424a-af71-42c1-ad1b-9ecfecf118b7",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -542,7 +542,7 @@
             "event": []
         },
         {
-            "id": "1a019dd3-2482-4202-b947-5fea3e481714",
+            "id": "2c12604f-bf0c-44d3-bf87-738ab2d1f237",
             "name": "Trigger failover",
             "request": {
                 "name": "Trigger failover",
@@ -557,14 +557,24 @@
                     "query": [],
                     "variable": []
                 },
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
                 "method": "POST",
                 "auth": {
                     "type": "basic"
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "\"<object>\""
                 }
             },
             "response": [
                 {
-                    "id": "cf3317dd-46f7-473c-80ab-3139817bc78c",
+                    "id": "ba45f895-76a2-4b53-828d-e87dc0229128",
                     "name": "Configuration response",
                     "originalRequest": {
                         "url": {
@@ -577,8 +587,17 @@
                             "query": [],
                             "variable": []
                         },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "method": "POST",
-                        "body": {}
+                        "body": {
+                            "mode": "raw",
+                            "raw": "\"<object>\""
+                        }
                     },
                     "status": "OK",
                     "code": 200,
@@ -593,7 +612,7 @@
                     "_postman_previewlanguage": "text"
                 },
                 {
-                    "id": "19d509e4-95fa-4256-a2f2-ff41f9ce5440",
+                    "id": "e50cd77a-4bc6-4282-80c3-4d1ef44ef701",
                     "name": "Unexpected Error",
                     "originalRequest": {
                         "url": {
@@ -606,8 +625,17 @@
                             "query": [],
                             "variable": []
                         },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "method": "POST",
-                        "body": {}
+                        "body": {
+                            "mode": "raw",
+                            "raw": "\"<object>\""
+                        }
                     },
                     "status": "Internal Server Error",
                     "code": 500,
@@ -634,7 +662,7 @@
         }
     ],
     "info": {
-        "_postman_id": "60c96d24-2945-44d7-a3d0-1d2968e3a568",
+        "_postman_id": "7fddccec-afc6-4f50-acd9-68a99568f10b",
         "name": "Cloud Failover (CF) Extension",
         "version": {
             "raw": "0.9.0",
