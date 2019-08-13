@@ -29,14 +29,11 @@ resource "local_file" "failover" {
 
 }
 
-# Put GCP-specific resources here
 provider "google" {
   project = "${var.projectId}"
   region  = "${var.region}"
   zone    = "${var.zone}"
 }
-
-// Gathering info about existent resources
 
 data "google_compute_image" "f5-bigip-image" {
   name = "f5-bigip-14-1-0-3-0-0-6-payg-good-5gbps-190326001429"
@@ -45,7 +42,7 @@ data "google_compute_image" "f5-bigip-image" {
 
 resource "google_compute_network" "ext_network" {
   name                    = "ext-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "ext_subnetwork" {
@@ -57,7 +54,7 @@ resource "google_compute_subnetwork" "ext_subnetwork" {
 
 resource "google_compute_network" "mgmt_network" {
   name                    = "mgmt-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "mgmt_subnetwork" {
@@ -67,10 +64,9 @@ resource "google_compute_subnetwork" "mgmt_subnetwork" {
   network       = "${google_compute_network.mgmt_network.self_link}"
 }
 
-
 resource "google_compute_network" "int_network" {
   name                    = "int-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "int_subnetwork" {
@@ -86,12 +82,6 @@ resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
   load_balancing_scheme = "EXTERNAL"
   target = "${google_compute_target_instance.vm01.self_link}"
 }
-/*
-resource "google_storage_bucket" "cloud-libs-storage" {
-  name     = "tf-funct-test-cloud-libs-storage"
-  location = "US"
-}
-*/
 
 resource "google_compute_target_instance" "vm01" {
   name        = "tf-func-test-target-vm01-${random_string.env_prefix.result}"
@@ -125,7 +115,6 @@ resource "google_compute_firewall" "internal" {
 
 }
 
-
 resource "google_compute_firewall" "mgmt" {
   name    = "tf-func-test-bigip-traffic-mgmt-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.mgmt_network.name}"
@@ -146,7 +135,6 @@ resource "google_compute_firewall" "mgmt" {
 
 }
 
-
 resource "google_compute_firewall" "ext" {
   name    = "tf-func-test-bigip-traffic-ext-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.ext_network.name}"
@@ -161,7 +149,6 @@ resource "google_compute_firewall" "ext" {
   }
 
 }
-
 
 data "template_file" "vm01_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
@@ -182,7 +169,6 @@ data "template_file" "vm01_cloud_init_script" {
   }
 }
 
-
 data "template_file" "vm02_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 
@@ -202,9 +188,7 @@ data "template_file" "vm02_cloud_init_script" {
   }
 }
 
-
 // Creating GCP resources for First BIGIP Instance
-
 
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${random_string.env_prefix.result}"
@@ -266,7 +250,6 @@ resource "google_compute_instance" "vm01" {
 
 // Creating GCP resources for Second BIGIP Instance
 
-
 resource "google_compute_instance" "vm02" {
   name         = "tf-func-test-vm02-${random_string.env_prefix.result}"
   machine_type = "n1-standard-4"
@@ -326,7 +309,6 @@ resource "google_compute_instance" "vm02" {
 
 // Onboarding
 
-
 resource "local_file" "do01" {
   content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
 filename = "${path.module}/temp_do01.json"
@@ -348,7 +330,7 @@ resource "null_resource" "login01" {
     command = "f5 bigip login --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
   depends_on = [google_compute_instance.vm01]
 }
@@ -390,7 +372,7 @@ resource "null_resource" "onboard01" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
   depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
 }
@@ -412,7 +394,7 @@ resource "null_resource" "login02" {
     command = "f5 bigip login --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
   depends_on = [
     google_compute_instance.vm02,
@@ -443,7 +425,7 @@ resource "null_resource" "onboard02" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
   depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
 }
