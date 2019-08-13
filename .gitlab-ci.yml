@@ -81,6 +81,8 @@ test_package:
         paths:
             - coverage
 
+# run functional tests: generic template
+# note: the tests will run on production/release branch(es) only
 .test_functional_generic: &test_functional_generic
     stage: test_functional
     image: python:3
@@ -103,6 +105,9 @@ test_package:
         - npm run deployment-delete
     tags:
         - cm-official-docker-executor
+    only:
+        - master
+        - develop
 
 # run functional tests: azure
 test_functional_azure:
