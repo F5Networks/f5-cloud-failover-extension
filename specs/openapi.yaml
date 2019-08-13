@@ -114,11 +114,21 @@ components:
               value:
                 type: string
                 default: "mydeployment"
-        managedRoutes:
-          type: array
-          items:
-            type: string
-            default: "192.0.2.0/24"
+        failoverRoutes:
+          type: object
+          properties:
+            scopingTags:
+              type: object
+              properties:
+                key:
+                  type: string
+                  default: "F5_CLOUD_FAILOVER_STORAGE_LABEL"
+                value:
+                  type: string
+                  default: "mydeployment"
+            scopingAddressRanges:
+              type: array
+              default: "192.0.2.0/24"
         addressTags:
           type: array
           items:
