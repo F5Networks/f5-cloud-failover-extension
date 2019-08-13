@@ -58,6 +58,10 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                action:
+                  type: string
+                  default: 'execute'
       responses:
         '200':
           description: Configuration response
