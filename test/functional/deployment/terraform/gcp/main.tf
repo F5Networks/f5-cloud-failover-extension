@@ -328,14 +328,14 @@ resource "google_compute_instance" "vm02" {
 
 
 resource "local_file" "do01" {
-  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
 filename = "${path.module}/temp_do01.json"
 
   depends_on = [google_compute_instance.vm01]
 }
 
 resource "local_file" "do02" {
-  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
   filename = "${path.module}/temp_do02.json"
 
   depends_on = [google_compute_instance.vm02]
@@ -348,7 +348,7 @@ resource "null_resource" "login01" {
     command = "f5 bigip login --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
   }
   depends_on = [google_compute_instance.vm01]
 }
@@ -390,7 +390,7 @@ resource "null_resource" "onboard01" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
   }
   depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
 }
@@ -412,7 +412,7 @@ resource "null_resource" "login02" {
     command = "f5 bigip login --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
   }
   depends_on = [
     google_compute_instance.vm02,
@@ -443,7 +443,7 @@ resource "null_resource" "onboard02" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json.json")
   }
   depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
 }

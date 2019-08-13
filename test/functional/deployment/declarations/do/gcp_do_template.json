@@ -23,6 +23,12 @@
             ],
             "timezone": "UTC"
         },
+        "${admin_username}": {
+            "class": "User",
+            "userType": "regular",
+            "password": "${admin_password}",
+            "shell": "bash"
+        },
         "myProvisioning": {
             "class": "Provision",
             "ltm": "nominal"
@@ -48,10 +54,10 @@
         },
         "trust": {
             "class": "DeviceTrust",
-            "localUsername": "azureuser",
+            "localUsername": "${admin_username}",
             "localPassword": "${admin_password}",
             "remoteHost": "${remote_mgmt_private_ip}",
-            "remoteUsername": "azureuser",
+            "remoteUsername": "${admin_username}",
             "remotePassword": "${admin_password}"
         }
     }

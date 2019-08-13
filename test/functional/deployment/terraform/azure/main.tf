@@ -366,7 +366,7 @@ resource "null_resource" "failover0" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json"
+    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json")}"
   }
   depends_on = [null_resource.login0]
 }
@@ -396,7 +396,7 @@ resource "null_resource" "failover1" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json"
+    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json")}"
   }
   depends_on = [null_resource.login1]
 }
