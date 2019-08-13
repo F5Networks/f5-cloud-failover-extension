@@ -23,6 +23,12 @@
             ],
             "timezone": "UTC"
         },
+        "${admin_username}": {
+            "class": "User",
+            "userType": "regular",
+            "password": "${admin_password}",
+            "shell": "bash"
+        },
         "myProvisioning": {
             "class": "Provision",
             "ltm": "nominal"
@@ -38,20 +44,20 @@
                 }
             ]
         },
-        "external-self": {
+        "externalSelf": {
             "class": "SelfIp",
-            "address": "${external_self}",
+            "address": "${external_self}/24",
             "vlan": "external",
             "allowService": "default",
             "trafficGroup": "traffic-group-local-only"
         },
-        "configsync": {
+        "configSync": {
             "class": "ConfigSync",
-            "configsyncIp": "/Common/external-self/address"
+            "configsyncIp": "${external_self}"
         },
         "failoverAddress": {
             "class": "FailoverUnicast",
-            "address": "/Common/external-self/address"
+            "address": "${external_self}"
         },
         "failoverGroup": {
             "class": "DeviceGroup",
@@ -66,14 +72,14 @@
         },
         "trust": {
             "class": "DeviceTrust",
-            "localUsername": "awsuser",
+            "localUsername": "${admin_username}",
             "localPassword": "${admin_password}",
-            "remoteHost": "${remoteHost}",
-            "remoteUsername": "awsuser",
+            "remoteHost": "${remote_host}",
+            "remoteUsername": "${admin_username}",
             "remotePassword": "${admin_password}"
         },
-        "dbvars": {
-            "class": "DbVariables",
+        "dbVars": {
+        	"class": "DbVariables",
             "config.allow.rfc3927": "enable",
             "tm.tcpudptxchecksum": "Software-only"
         }

@@ -10,13 +10,17 @@ stages:
 variables:
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
-    # normalize env var options between ansible and terraform
+    # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
     AZURE_SECRET: "$AZURE_CLIENT_SECRET"
     ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
     ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
     ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
     ARM_TENANT_ID: "$AZURE_TENANT_ID"
+    # aws vars
+    AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
+    AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
+    AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
 
 build_package:
     image: f5devcentral/containthedocs:rpmbuild
@@ -101,6 +105,12 @@ test_functional_azure:
     <<: *test_functional_generic
     variables:
         CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_aws:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
 
 build_docs:
     image: python:3.7
