@@ -69,14 +69,14 @@
         "mocha": "^5.2.0",
         "nyc": "^14.1.1",
         "sinon": "7.3.2",
-        "ssh2": "^0.8.2",
-        "openapi-to-postmanv2": "0.0.16"
+        "ssh2": "^0.8.2"
     },
     "optionalDependencies": {
         "mermaid.cli": "^0.5.1",
         "redoc": "^2.0.0-rc.10",
         "redoc-cli": "^0.8.5",
-        "dredd": "^11.2.15"
+        "dredd": "^11.2.15",
+        "openapi-to-postmanv2": "0.0.16"
     },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
