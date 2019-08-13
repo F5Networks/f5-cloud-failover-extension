@@ -27,7 +27,8 @@
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
         "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin",
-        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p"
+        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
+        "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
     "nyc": {
         "check-coverage": true,

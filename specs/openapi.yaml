@@ -80,6 +80,10 @@ components:
           default: "Cloud_Failover"
         environment:
           type: string
+          enum:
+            - azure
+            - aws
+            - gce
           default: "azure"
         schemaVersion:
           type: string
@@ -89,10 +93,18 @@ components:
           default: "true"
         storageResource:
           type: string
+          default: "mystorageaccount"
         storageTags:
           type: array
           items:
             type: object
+            properties:
+              key:
+                type: string
+                default: "F5_CLOUD_FAILOVER_STORAGE_LABEL"
+              value:
+                type: string
+                default: "mydeployment"
         managedRoutes:
           type: array
           items:
@@ -102,6 +114,13 @@ components:
           type: array
           items:
             type: object
+            properties:
+              key:
+                type: string
+                default: "F5_CLOUD_FAILOVER_LABEL"
+              value:
+                type: string
+                default: "mydeployment"
     ConfigurationResponse:
       type: object
       properties:
