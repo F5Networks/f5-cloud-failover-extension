@@ -342,7 +342,6 @@ resource "null_resource" "delay_one_minute01" {
   depends_on = [null_resource.login01]
 }
 
-
 resource "null_resource" "failover01" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
@@ -353,9 +352,7 @@ resource "null_resource" "failover01" {
   depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover]
 }
 
-
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-
 resource "null_resource" "create_virtual01" {
   provisioner "local-exec" {
     command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}\",\"trafficGroup\":\"traffic-group-1\"}'"
@@ -366,7 +363,6 @@ resource "null_resource" "create_virtual01" {
   depends_on = [null_resource.login01]
 }
 
-
 resource "null_resource" "onboard01" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
@@ -376,8 +372,6 @@ resource "null_resource" "onboard01" {
   }
   depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
 }
-
-
 
 resource "null_resource" "create_virtual02" {
   provisioner "local-exec" {
@@ -401,7 +395,6 @@ resource "null_resource" "login02" {
     null_resource.create_virtual02
   ]
 }
-
 
 resource "null_resource" "delay_one_minute02" {
   provisioner "local-exec" {

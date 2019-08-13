@@ -188,10 +188,7 @@ module.exports = {
         return new Promise((resolve, reject) => {
             icrdk.deployToBigIp(opts, file, (err) => {
                 if (err) {
-                    // resolve if error is because the package is already installed
-                    // in that case error is of type 'string' - instead of in .message
-                    if (process.env[constants.ENV_VARS.TEST_CONTROLS.REUSE_INSTALLED_PACKAGE] !== undefined
-                            && /already installed/.test(err)) {
+                    if (/already installed/.test(err)) {
                         resolve();
                     } else {
                         reject(err);

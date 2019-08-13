@@ -72,8 +72,11 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
     it('should uninstall package (if exists)', () => {
         const packageName = constants.PKG_NAME;
         return utils.queryPackages(dutHost, authToken)
-            .then(data => Promise.all(data.queryResponse
-                .filter(pkg => pkg.packageName.includes(packageName))
+            .then((data) => {
+                data = data.queryResponse || [];
+                return Promise.resolve(data.filter(pkg => pkg.packageName.includes(packageName)));
+            })
+            .then(pkgs => Promise.all(pkgs
                 .map(pkg => utils.uninstallPackage(dutHost, authToken, pkg.packageName))))
             .catch(err => Promise.reject(err));
     });
@@ -84,7 +87,8 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should verify installation', () => {
+    it('should verify installation', function () {
+        this.retries(10);
         const uri = `${constants.BASE_ENDPOINT}/info`;
 
         return utils.makeRequest(dutHost, uri, options)

@@ -23,7 +23,7 @@ variables:
     # gcp vars
     GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
     # debug vars
-    F5_SDK_LOG_LEVEL: "TRACE"
+    F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
 
 build_package:
