@@ -3,9 +3,15 @@
 const fs = require('fs');
 const uuidv4 = require('uuid/v4');
 
+// constants
 const INPUT_FILE = 'examples/generatedPostmanCollection.json';
 const OUTPUT_FILE = 'examples/generatedPostmanCollection.json';
 const ENVIRONMENTS = ['aws', 'azure', 'gce'];
+const COLLECTION_CONSTANTS = {
+    DECLARE_ENDPOINT: 'declare',
+    UPDATE_REQUEST: 'Update configuration',
+    EXAMPLE_FOLDER: 'examples'
+};
 
 // Deep copy by converting object to / from JSON
 const deepCopy = obj => JSON.parse(JSON.stringify(obj));
@@ -38,7 +44,7 @@ const environmentRequest = (endpoint, env) => {
 const parseDeclareEndpoints = (collection) => {
     let declareFolder;
     collection.item.forEach((item) => {
-        if (item.name === 'declare') {
+        if (item.name === COLLECTION_CONSTANTS.DECLARE_ENDPOINT) {
             declareFolder = item;
         }
     });
@@ -54,7 +60,7 @@ const parseDeclareEndpoints = (collection) => {
     };
 
     declareFolder.item.forEach((item) => {
-        if (item.name === 'Update configuration') {
+        if (item.name === COLLECTION_CONSTANTS.UPDATE_REQUEST) {
             // Shorten the request
             const requestBody = shortenArray(JSON.parse(item.request.body.raw));
             item.request.body.raw = JSON.stringify(requestBody, null, 4);
@@ -74,14 +80,14 @@ const parseDeclareEndpoints = (collection) => {
 const addExamples = (declareEndpoints) => {
     let exampleUpdateEndpoint;
     declareEndpoints.item.forEach((item) => {
-        if (item.name === 'Update configuration') {
+        if (item.name === COLLECTION_CONSTANTS.UPDATE_REQUEST) {
             exampleUpdateEndpoint = deepCopy(item);
         }
     });
 
     const exampleFolder = {
         id: uuidv4(),
-        name: 'examples',
+        name: COLLECTION_CONSTANTS.EXAMPLE_FOLDER,
         item: [],
         event: []
     };
@@ -98,7 +104,7 @@ const addExamples = (declareEndpoints) => {
 const parsedCollection = JSON.parse(fs.readFileSync(INPUT_FILE));
 const declareEndpoints = parseDeclareEndpoints(parsedCollection);
 parsedCollection.item.forEach((item) => {
-    if (item.name === 'declare') {
+    if (item.name === COLLECTION_CONSTANTS.DECLARE_ENDPOINT) {
         item = addExamples(declareEndpoints);
     }
 });
