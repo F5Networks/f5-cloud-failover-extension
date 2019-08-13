@@ -552,6 +552,22 @@ resource "local_file" "do1" {
     filename = "${path.module}/temp_do1.json"
 }
 
+resource "local_file" "failover" {
+  content  = templatefile(
+    "${path.module}/../../declarations/failover/failover_template.json",
+    {
+      enviroment = "aws",
+      storage_resource = "myuniquestorageaccount",
+      storage_key = "some_storage_key",
+      storage_value="some_storage_value",
+      managed_routes="192.168.1.0/24",
+      tag_name="F5_CLOUD_FAILOVER_LABEL",
+      tag_value="deployment-functional-testing"
+    }
+  )
+  filename = "${path.module}/temp_failover.json"
+}
+
 resource "null_resource" "login0" {
   provisioner "local-exec" {
     command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
@@ -564,10 +580,10 @@ resource "null_resource" "login0" {
 
 resource "null_resource" "failover0" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_aws.json"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_aws.json")
+    always_run = fileexists("${path.module}/temp_failover.json")
   }
   depends_on = [null_resource.login0]
 }
@@ -594,10 +610,10 @@ resource "null_resource" "login1" {
 
 resource "null_resource" "failover1" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_aws.json"
+    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_aws.json")
+    always_run = fileexists("${path.module}/temp_failover.json")
   }
   depends_on = [null_resource.login1]
 }

@@ -8,7 +8,6 @@ stages:
     - publish
 
 variables:
-    PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
     # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
@@ -21,6 +20,9 @@ variables:
     AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
     AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
     AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+    # debug vars
+    F5_SDK_LOG_LEVEL: "TRACE"
+    PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
 
 build_package:
     image: f5devcentral/containthedocs:rpmbuild
