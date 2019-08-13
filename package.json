@@ -26,7 +26,9 @@
         "tf-delete": "rm -rf failover-tf *tfstate*",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin"
+        "validate-api": " NODE_TLS_REJECT_UNAUTHORIZED=0 && dredd specs/openapi.yaml https://192.0.2.1:443/mgmt/shared/cloud-failover --user admin:admin",
+        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
+        "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
     "nyc": {
         "check-coverage": true,
@@ -45,7 +47,6 @@
         "@google-cloud/compute": "^1.0.1",
         "@google-cloud/storage": "^2.5.0",
         "ajv": "^6.10.0",
-        "ipaddr.js": "^1.7.0",
         "ajv-async": "^1.0.1",
         "ajv-cli": "^3.0.0",
         "aws-sdk": "^2.369.0",
@@ -53,6 +54,7 @@
         "azure-storage": "^2.8.1",
         "commander": "^2.19.0",
         "gtoken": "3.0.0",
+        "ipaddr.js": "^1.7.0",
         "ms-rest-azure": "^2.6.0",
         "request": "^2.83.0",
         "uuid": "^3.3.2"
@@ -73,7 +75,8 @@
         "mermaid.cli": "^0.5.1",
         "redoc": "^2.0.0-rc.10",
         "redoc-cli": "^0.8.5",
-        "dredd": "^11.2.15"
+        "dredd": "^11.2.15",
+        "openapi-to-postmanv2": "0.0.16"
     },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
