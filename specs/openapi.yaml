@@ -97,11 +97,15 @@ components:
           type: array
           items:
             type: object
-        managedRoutes:
-          type: array
-          items:
-            type: string
-            default: "192.0.2.0/24"
+        failoverRoutes:
+          type: object
+          properties:
+            scopingTags:
+              type: object
+              default: { "F5_CLOUD_FAILOVER_LABEL": "mydeployment" }
+            scopingAddressRanges:
+              type: array
+              default: "192.0.2.0/24"
         addressTags:
           type: array
           items:
