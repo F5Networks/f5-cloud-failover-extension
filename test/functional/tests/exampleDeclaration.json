@@ -1,0 +1,25 @@
+{
+    "class": "Cloud_Failover",
+    "environment": "azure",
+    "schemaVersion": "0.9.0",
+    "useMetadata": "true",
+    "storageResource": "mystorageaccount",
+    "storageTags": [
+      {
+        "key": "F5_CLOUD_FAILOVER_STORAGE_LABEL",
+        "value": "mydeployment"
+      }
+    ],
+    "failoverRoutes": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+      },
+      "scopingAddressRanges": []
+    },
+    "addressTags": [
+      {
+        "key": "F5_CLOUD_FAILOVER_LABEL",
+        "value": "mydeployment"
+      }
+    ]
+}

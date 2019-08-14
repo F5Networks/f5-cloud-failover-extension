@@ -69,7 +69,7 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
         });
     });
 
-    it('should uninstall package (if exists)', () => {
+    xit('should uninstall package (if exists)', () => {
         const packageName = constants.PKG_NAME;
         return utils.queryPackages(dutHost, authToken)
             .then((data) => {
@@ -81,7 +81,7 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
             .catch(err => Promise.reject(err));
     });
 
-    it(`should install package: ${packageFile}`, () => {
+    xit(`should install package: ${packageFile}`, () => {
         const fullPath = `${packagePath}/${packageFile}`;
         return utils.installPackage(dutHost, authToken, fullPath)
             .catch(err => Promise.reject(err));
@@ -91,6 +91,19 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
         this.retries(10);
         const uri = `${constants.BASE_ENDPOINT}/info`;
 
+        return utils.makeRequest(dutHost, uri, options)
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should post declaration', () => {
+        const uri = `${constants.BASE_ENDPOINT}/declare`;
+
+        options.method = 'POST';
+        options.body = require('../../../examples/declarations/azure.json');
         return utils.makeRequest(dutHost, uri, options)
             .then((data) => {
                 data = data || {};
