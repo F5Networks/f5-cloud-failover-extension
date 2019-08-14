@@ -106,9 +106,12 @@ test_package:
     tags:
         - cm-official-docker-executor
     only:
-        - master
-        - develop
-
+        refs:
+            - master
+            - develop
+        # allow manual "trigger" using environment variable
+        variables:
+            - $RUN_FUNCTIONAL_TESTS == "true"
 # run functional tests: azure
 test_functional_azure:
     <<: *test_functional_generic
@@ -226,9 +229,6 @@ pages:
         refs:
             - master
             - develop
-        # allow manual "trigger" using environment variable
-        variables:
-            - $RUN_FUNCTIONAL_TESTS == "true"
 
 # Publish docs to clouddocs.f5.com
 docs to production:
