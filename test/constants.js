@@ -35,5 +35,11 @@ module.exports = {
             class: 'Cloud_Failover',
             environment: 'azure'
         }
-    }
+    },
+    REQUEST: {
+        PORT: 443,
+        PROTOCOL: 'https'
+    },
+    BASE_ENDPOINT: '/mgmt/shared/cloud-failover',
+    PKG_NAME: 'f5-cloud-failover'
 };

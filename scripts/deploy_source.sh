@@ -2,11 +2,11 @@
 
 PATH_TO_DEPLOYMENT_INFO=$1
 
-FIRST_IP=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.primary.mgmt_address' | tr -d '"')
-SECOND_IP=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.secondary.mgmt_address' | tr -d '"')
+FIRST_IP=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.[] | select(.primary == true) | .mgmt_address' -r)
+SECOND_IP=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.[] | select(.primary == false) | .mgmt_address' -r)
 
-PASSWORD=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.primary.admin_password' | tr -d '"')
-USERNAME=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.primary.admin_username' | tr -d '"')
+USERNAME=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.[] | select(.primary == true) | .admin_username' -r)
+PASSWORD=$(cat $PATH_TO_DEPLOYMENT_INFO | jq '.[] | select(.primary == true) | .admin_password' -r)
 
 echo "FIRST IP:${FIRST_IP}"
 echo "SECOND IP: ${SECOND_IP}"

@@ -23,23 +23,11 @@ resource "random_string" "env_prefix" {
   special = false
 }
 
-
-resource "local_file" "failover_do" {
-  content  = templatefile("${path.module}/../../declarations/failover_do.json", { enviroment = "gce", storage_resource = "myuniquestorageaccount", storage_key = "some_storage_key", storage_value="some_storage_value", managed_routes="192.168.1.0/24", tag_name="f5_cloud_failover_label", tag_value="mydeployment" })
-  filename = "${path.module}/temp_failover_do.json"
-
-}
-
-
-
-# Put GCP-specific resources here
 provider "google" {
   project = "${var.projectId}"
   region  = "${var.region}"
   zone    = "${var.zone}"
 }
-
-// Gathering info about existent resources
 
 data "google_compute_image" "f5-bigip-image" {
   name = "f5-bigip-14-1-0-3-0-0-6-payg-good-5gbps-190326001429"
@@ -48,7 +36,7 @@ data "google_compute_image" "f5-bigip-image" {
 
 resource "google_compute_network" "ext_network" {
   name                    = "ext-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "ext_subnetwork" {
@@ -60,7 +48,7 @@ resource "google_compute_subnetwork" "ext_subnetwork" {
 
 resource "google_compute_network" "mgmt_network" {
   name                    = "mgmt-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "mgmt_subnetwork" {
@@ -70,10 +58,9 @@ resource "google_compute_subnetwork" "mgmt_subnetwork" {
   network       = "${google_compute_network.mgmt_network.self_link}"
 }
 
-
 resource "google_compute_network" "int_network" {
   name                    = "int-net-${random_string.env_prefix.result}"
-  project                 = "${var.projectId}"
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "int_subnetwork" {
@@ -89,12 +76,6 @@ resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
   load_balancing_scheme = "EXTERNAL"
   target = "${google_compute_target_instance.vm01.self_link}"
 }
-/*
-resource "google_storage_bucket" "cloud-libs-storage" {
-  name     = "tf-funct-test-cloud-libs-storage"
-  location = "US"
-}
-*/
 
 resource "google_compute_target_instance" "vm01" {
   name        = "tf-func-test-target-vm01-${random_string.env_prefix.result}"
@@ -128,7 +109,6 @@ resource "google_compute_firewall" "internal" {
 
 }
 
-
 resource "google_compute_firewall" "mgmt" {
   name    = "tf-func-test-bigip-traffic-mgmt-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.mgmt_network.name}"
@@ -149,7 +129,6 @@ resource "google_compute_firewall" "mgmt" {
 
 }
 
-
 resource "google_compute_firewall" "ext" {
   name    = "tf-func-test-bigip-traffic-ext-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.ext_network.name}"
@@ -164,7 +143,6 @@ resource "google_compute_firewall" "ext" {
   }
 
 }
-
 
 data "template_file" "vm01_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
@@ -185,7 +163,6 @@ data "template_file" "vm01_cloud_init_script" {
   }
 }
 
-
 data "template_file" "vm02_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 
@@ -205,9 +182,7 @@ data "template_file" "vm02_cloud_init_script" {
   }
 }
 
-
 // Creating GCP resources for First BIGIP Instance
-
 
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${random_string.env_prefix.result}"
@@ -269,7 +244,6 @@ resource "google_compute_instance" "vm01" {
 
 // Creating GCP resources for Second BIGIP Instance
 
-
 resource "google_compute_instance" "vm02" {
   name         = "tf-func-test-vm02-${random_string.env_prefix.result}"
   machine_type = "n1-standard-4"
@@ -329,16 +303,15 @@ resource "google_compute_instance" "vm02" {
 
 // Onboarding
 
-
 resource "local_file" "do01" {
-  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
 filename = "${path.module}/temp_do01.json"
 
   depends_on = [google_compute_instance.vm01]
 }
 
 resource "local_file" "do02" {
-  content  = templatefile("${path.module}/../../declarations/do_gcp_cluster.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
   filename = "${path.module}/temp_do02.json"
 
   depends_on = [google_compute_instance.vm02]
@@ -351,7 +324,7 @@ resource "null_resource" "login01" {
     command = "f5 bigip login --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
   depends_on = [google_compute_instance.vm01]
 }
@@ -363,20 +336,7 @@ resource "null_resource" "delay_one_minute01" {
   depends_on = [null_resource.login01]
 }
 
-
-resource "null_resource" "failover01" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
-  }
-  depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover_do]
-}
-
-
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-
 resource "null_resource" "create_virtual01" {
   provisioner "local-exec" {
     command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}\",\"trafficGroup\":\"traffic-group-1\"}'"
@@ -384,21 +344,18 @@ resource "null_resource" "create_virtual01" {
   triggers = {
     always_run = timestamp()
   }
-  depends_on = [null_resource.login01]
+  depends_on = [null_resource.delay_one_minute01]
 }
-
 
 resource "null_resource" "onboard01" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
+  depends_on = [local_file.do01, null_resource.create_virtual01]
 }
-
-
 
 resource "null_resource" "create_virtual02" {
   provisioner "local-exec" {
@@ -415,14 +372,10 @@ resource "null_resource" "login02" {
     command = "f5 bigip login --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [
-    google_compute_instance.vm02,
-    null_resource.create_virtual02
-  ]
+  depends_on = [google_compute_instance.vm02,null_resource.create_virtual02]
 }
-
 
 resource "null_resource" "delay_one_minute02" {
   provisioner "local-exec" {
@@ -431,40 +384,32 @@ resource "null_resource" "delay_one_minute02" {
   depends_on = [null_resource.login02]
 }
 
-resource "null_resource" "failover02" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover_do.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_do.json")
-  }
-  depends_on = [null_resource.login02, null_resource.delay_one_minute02, local_file.failover_do]
-}
-
 resource "null_resource" "onboard02" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_gcp_cluster.json")
+    always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
+  depends_on = [local_file.do02, null_resource.login02, null_resource.delay_one_minute02]
 }
 
-resource "local_file" "deployment_info" {
-  content  = templatefile("${path.module}/../../declarations/template_deployment_info.json", { admin_password = "${random_string.admin_password.result}", admin_username = "${var.admin_username}", primary_ip_addr = "${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}", secondary_ip_addr="${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}" })
-  filename = "${path.module}/deployment_info.json"
-
-  depends_on = [null_resource.onboard02]
-}
-
-
-
-output "deployment_name" {
-  value = random_string.env_prefix.result
-}
-
-output "admin_password" {
-  value = random_string.admin_password.result
+output "deployment_info" {
+  value = [
+    {
+      "admin_username": var.admin_username,
+      "admin_password": random_string.admin_password.result,
+      "mgmt_address": google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
+      "mgmt_port": 443,
+      "primary": true
+    },
+    {
+      "admin_username": var.admin_username,
+      "admin_password": random_string.admin_password.result,
+      "mgmt_address": google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
+      "mgmt_port": 443,
+      "primary": false
+    }
+  ]
 }
 

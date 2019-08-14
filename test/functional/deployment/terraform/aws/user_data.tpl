@@ -1,30 +1,25 @@
 #!/bin/bash
 
-# Disable 1nic auto configuration
-/usr/bin/setdb provision.1nicautoconfig disable
-
 adminUsername='${admin_username}'
 adminPassword='${admin_password}'
 
-# Wait for mcpd ready before attempting to create admin user
-checks=0
-while [ $checks -lt 120 ]; do echo checking mcpd
-    tmsh -a show sys mcp-state field-fmt | grep -q running
-    if [ $? == 0 ]; then
-        echo mcpd ready
-        break
-    fi
-    echo mcpd not ready yet
-    let checks=checks+1
-    sleep 10
-done
+# disable 1nic auto configuration
+/usr/bin/setdb provision.1nicautoconfig disable
 
-# Create LOCAL_ONLY partition
-echo tmsh create sys folder /LOCAL_ONLY device-group none traffic-group traffic-group-local-only
+# wait for mcpd ready before attempting any tmsh command(s)
+source /usr/lib/bigstart/bigip-ready-functions
+wait_bigip_ready
+
+# create LOCAL_ONLY partition
 tmsh create sys folder /LOCAL_ONLY device-group none traffic-group traffic-group-local-only
 
-echo create auth user $${adminUsername} password ..... shell bash partition-access replace-all-with { all-partitions { role admin } }
+# create external VLAN, self IP, default route here - workaround for DO until JIRA ID AUTOTOOL-616 is complete
+tmsh create net vlan external interfaces replace-all-with { 1.1 }
+tmsh create net self externalSelf address ${external_self} vlan external allow-service default traffic-group traffic-group-local-only
+tmsh create net route /LOCAL_ONLY/default network default gw ${default_gw}
+
+# create user
 tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
 
-echo tmsh save sys config
+# save config
 tmsh save sys config

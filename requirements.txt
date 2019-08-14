@@ -1,5 +1,3 @@
---extra-index-url https://***REMOVED***/artifactory/api/pypi/f5-cloud-solutions-pypi/simple
-f5-cloud-cli==0.9.0
 # doc requirements
 awscli
 f5-sphinx-theme>=2.0.1
