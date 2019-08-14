@@ -69,7 +69,7 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
         });
     });
 
-    xit('should uninstall package (if exists)', () => {
+    it('should uninstall package (if exists)', () => {
         const packageName = constants.PKG_NAME;
         return utils.queryPackages(dutHost, authToken)
             .then((data) => {
@@ -81,7 +81,7 @@ describe(`DUT - ${dutPrimary.ip}`, () => {
             .catch(err => Promise.reject(err));
     });
 
-    xit(`should install package: ${packageFile}`, () => {
+    it(`should install package: ${packageFile}`, () => {
         const fullPath = `${packagePath}/${packageFile}`;
         return utils.installPackage(dutHost, authToken, fullPath)
             .catch(err => Promise.reject(err));
