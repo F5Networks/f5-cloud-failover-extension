@@ -106,8 +106,10 @@ test_package:
     tags:
         - cm-official-docker-executor
     only:
-        - master
-        - develop
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
 
 # run functional tests: azure
 test_functional_azure:
@@ -223,10 +225,8 @@ pages:
         paths:
             - public
     only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $RUN_FUNCTIONAL_TESTS == "true"
+        - master
+        - develop
 
 # Publish docs to clouddocs.f5.com
 docs to production:
