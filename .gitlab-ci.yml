@@ -108,7 +108,6 @@ test_package:
     only:
         - master
         - develop
-        - $RUN_FUNCTIONAL_TESTS == "true"
 
 # run functional tests: azure
 test_functional_azure:
