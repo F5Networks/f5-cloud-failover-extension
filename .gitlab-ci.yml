@@ -223,8 +223,10 @@ pages:
         paths:
             - public
     only:
-        - master
-        - develop
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
 
 # Publish docs to clouddocs.f5.com
 docs to production:
