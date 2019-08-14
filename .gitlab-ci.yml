@@ -82,7 +82,7 @@ test_package:
             - coverage
 
 # run functional tests: generic template
-# note: the tests will run on production/release branch(es) only
+# note: the tests will run on production/release branch(es) and merge requests only
 .test_functional_generic: &test_functional_generic
     stage: test_functional
     image: python:3
@@ -223,8 +223,12 @@ pages:
         paths:
             - public
     only:
-        - master
-        - develop
+        refs:
+            - master
+            - develop
+        # allow manual "trigger" using environment variable
+        variables:
+            - $RUN_FUNCTIONAL_TESTS == "true"
 
 # Publish docs to clouddocs.f5.com
 docs to production:

@@ -23,12 +23,6 @@ resource "random_string" "env_prefix" {
   special = false
 }
 
-resource "local_file" "failover" {
-  content  = templatefile("${path.module}/../../declarations/failover/failover_template.json", { enviroment = "gce", storage_resource = "myuniquestorageaccount", storage_key = "some_storage_key", storage_value="some_storage_value", managed_routes="192.168.1.0/24", tag_name="f5_cloud_failover_label", tag_value="mydeployment" })
-  filename = "${path.module}/temp_failover.json"
-
-}
-
 provider "google" {
   project = "${var.projectId}"
   region  = "${var.region}"
@@ -342,16 +336,6 @@ resource "null_resource" "delay_one_minute01" {
   depends_on = [null_resource.login01]
 }
 
-resource "null_resource" "failover01" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
-  }
-  depends_on = [null_resource.login01, null_resource.delay_one_minute01, local_file.failover]
-}
-
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual01" {
   provisioner "local-exec" {
@@ -360,7 +344,7 @@ resource "null_resource" "create_virtual01" {
   triggers = {
     always_run = timestamp()
   }
-  depends_on = [null_resource.login01]
+  depends_on = [null_resource.delay_one_minute01]
 }
 
 resource "null_resource" "onboard01" {
@@ -370,7 +354,7 @@ resource "null_resource" "onboard01" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [null_resource.create_virtual01, local_file.do01, null_resource.failover01]
+  depends_on = [local_file.do01, null_resource.create_virtual01]
 }
 
 resource "null_resource" "create_virtual02" {
@@ -390,10 +374,7 @@ resource "null_resource" "login02" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [
-    google_compute_instance.vm02,
-    null_resource.create_virtual02
-  ]
+  depends_on = [google_compute_instance.vm02,null_resource.create_virtual02]
 }
 
 resource "null_resource" "delay_one_minute02" {
@@ -403,16 +384,6 @@ resource "null_resource" "delay_one_minute02" {
   depends_on = [null_resource.login02]
 }
 
-resource "null_resource" "failover02" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover/failover_template.json")
-  }
-  depends_on = [null_resource.login02, null_resource.delay_one_minute02, local_file.failover]
-}
-
 resource "null_resource" "onboard02" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
@@ -420,7 +391,7 @@ resource "null_resource" "onboard02" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [local_file.do02,null_resource.login02, null_resource.failover02]
+  depends_on = [local_file.do02, null_resource.login02, null_resource.delay_one_minute02]
 }
 
 output "deployment_info" {

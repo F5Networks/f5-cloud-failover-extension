@@ -324,22 +324,6 @@ resource "local_file" "do1" {
     filename = "${path.module}/temp_do1.json"
 }
 
-resource "local_file" "failover" {
-  content = "${templatefile(
-    "${path.module}/../../declarations/failover/failover_template.json",
-    {
-      enviroment = "azure",
-      storage_resource = "myuniquestorageaccount",
-      storage_key = "some_storage_key",
-      storage_value="some_storage_value",
-      managed_routes="192.168.1.0/24",
-      tag_name="F5_CLOUD_FAILOVER_LABEL",
-      tag_value="mydeployment"
-    }
-  )}"
-  filename = "${path.module}/temp_failover.json"
-}
-
 resource "null_resource" "login0" {
   provisioner "local-exec" {
     command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
@@ -361,16 +345,6 @@ resource "null_resource" "create_virtual0" {
   depends_on = [null_resource.login0]
 }
 
-resource "null_resource" "failover0" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
-  }
-  triggers = {
-    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json")}"
-  }
-  depends_on = [null_resource.login0]
-}
-
 resource "null_resource" "onboard0" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
@@ -378,7 +352,7 @@ resource "null_resource" "onboard0" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [local_file.do0, null_resource.failover0]
+  depends_on = [local_file.do0, null_resource.login0]
 }
 
 resource "null_resource" "login1" {
@@ -391,16 +365,6 @@ resource "null_resource" "login1" {
   depends_on = [azurerm_virtual_machine.vm1, null_resource.onboard0]
 }
 
-resource "null_resource" "failover1" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/temp_failover.json"
-  }
-  triggers = {
-    always_run = "${fileexists("${path.module}/../../declarations/failover/failover_template.json")}"
-  }
-  depends_on = [null_resource.login1]
-}
-
 resource "null_resource" "onboard1" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
@@ -408,7 +372,7 @@ resource "null_resource" "onboard1" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [local_file.do1, null_resource.failover1]
+  depends_on = [local_file.do1, null_resource.login1]
 }
 
 output "deployment_info" {
