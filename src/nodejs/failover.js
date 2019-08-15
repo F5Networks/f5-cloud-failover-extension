@@ -21,6 +21,7 @@ const Logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
+const constants = require('./constants.js');
 
 const logger = new Logger(module);
 
@@ -32,16 +33,22 @@ function execute() {
     let cloudProvider;
     let hostname;
     let device;
+    let config;
 
     return configWorker.getConfig()
-        .then((config) => {
+        .then((data) => {
+            config = data;
             if (!config.environment) {
                 const err = new Error('Environment not provided');
                 return Promise.reject(err);
             }
 
             cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
-            return cloudProvider.init({ tags: config.addressTags });
+            return cloudProvider.init({
+                tags: config.addressTags,
+                routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
+                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges')
+            });
         })
         .then(() => {
             logger.info('Cloud provider has been initialized');
@@ -73,8 +80,16 @@ function execute() {
             return getFailoverAddresses(selfAddresses, virtualAddresses);
         })
         .then((addresses) => {
-            logger.info('Performing Failover - Updating addresses');
-            return cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses);
+            logger.info('Performing Failover');
+            const actions = [
+                cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
+            ];
+            // updating routes is conditional - TODO: rethink this...
+            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
+            if (config.environment.indexOf(routeFeatureEnvironments) !== -1) {
+                actions.push(cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
+            }
+            return Promise.all(actions);
         })
         .then(() => {
             logger.info('Failover complete');

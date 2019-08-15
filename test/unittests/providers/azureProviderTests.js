@@ -21,6 +21,7 @@ describe('Provider - Azure', () => {
     let f5CloudLibs;
     let cloudLibsUtil;
     let util;
+    let provider;
 
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
@@ -38,6 +39,15 @@ describe('Provider - Azure', () => {
         f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
         cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
+    beforeEach(() => {
+        provider = new AzureCloudProvider(mockMetadata);
+
+        provider.logger = sinon.stub();
+        provider.logger.debug = sinon.stub();
+        provider.logger.error = sinon.stub();
+        provider.logger.info = sinon.stub();
+        provider.logger.silly = sinon.stub();
+    });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
             delete require.cache[key];
@@ -48,15 +58,11 @@ describe('Provider - Azure', () => {
     });
 
     it('validate constructor', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-
         assert.strictEqual(provider.environment, cloud);
     });
 
 
     it('should initialize azure provider', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-
         sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         return provider.init()
@@ -64,14 +70,10 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.subscriptionId, mockSubscriptionId);
             })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _getInstanceMetadata with promise rejection', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
         cloudLibsUtil.getDataFromUrl = sinon.stub().rejects();
 
         return provider._getInstanceMetadata()
@@ -86,13 +88,6 @@ describe('Provider - Azure', () => {
     });
 
     it('validate updateAddresses with resolved promise', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-        provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
-        provider.logger.error = sinon.stub();
-        provider.logger.info = sinon.stub();
-        provider.logger.silly = sinon.stub();
-
         const _getNicConfigSpy = sinon.spy(provider, '_getNicConfig');
         const localAddresses = ['1.1.1.1', '4.4.4.4', '5.5.5.5'];
         const failoverAddresses = ['2.2.2.2', '3.3.3.3', '5.5.5.5'];
@@ -176,20 +171,10 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(_getNicConfigSpy.args[1].pop().privateIPAddress, '3.3.3.3');
                 assert.strictEqual(_getNicConfigSpy.args[2].pop().privateIPAddress, '3.3.3.3');
             })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _updateNics promise callback for valid case', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-
-        provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
-        provider.logger.error = sinon.stub();
-        provider.logger.info = sinon.stub();
-
         provider.networkClient = sinon.stub();
         provider.networkClient.networkInterfaces = sinon.stub();
         provider.networkClient.networkInterfaces.createOrUpdate = sinon.stub()
@@ -211,20 +196,10 @@ describe('Provider - Azure', () => {
             .then((updateNicsResponse) => {
                 assert.strictEqual(updateNicsResponse, 'some_data');
             })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _updateNics promise rejection', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-
-        provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
-        provider.logger.error = sinon.stub();
-        provider.logger.info = sinon.stub();
-
         provider.networkClient = sinon.stub();
         provider.networkClient.networkInterfaces = sinon.stub();
         provider.networkClient.networkInterfaces.createOrUpdate = sinon.stub()
@@ -254,28 +229,17 @@ describe('Provider - Azure', () => {
     });
 
     it('validate _updateAssociations method with empty parameters', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-        provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
-        provider.logger.info = sinon.stub();
+        const firstValue = false;
+        const secondValue = false;
 
-        return provider._updateAssociations(false, false)
+        return provider._updateAssociations(firstValue, secondValue)
             .then(() => {
-                // verifies that promise gets resolved
                 assert.ok(true);
-            }).catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _updateAssociations method with valid parameters', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
-        provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
-        provider.logger.error = sinon.stub();
-        provider.logger.info = sinon.stub();
-
         const disassociate = [['resourceGroup01', 'nic01',
             {
                 enableIPForwarding: true,
@@ -308,14 +272,11 @@ describe('Provider - Azure', () => {
             .then(() => {
                 // suceeds when promise gets resolved
                 assert.ok(true);
-            }).catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _listNics with resolved promise', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
         const options = {
             tags: [{ key: 'tag01', value: 'value01' }]
         };
@@ -373,15 +334,11 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(response[1].location, 'location02');
                 assert.strictEqual(response[1].networkSecurityGroup, 'nsgNic02');
             })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            .catch(err => Promise.reject(err));
     });
 
 
     it('validate _listNics rejection', () => {
-        const provider = new AzureCloudProvider(mockMetadata);
         const options = {
             tags: [{ key: 'tag01', value: 'value01' }]
         };
@@ -409,14 +366,11 @@ describe('Provider - Azure', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                // fails when error recieved
-                assert.fail();
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate reject _retrier', () => {
-        cloudLibsUtil.tryUntil = sinon.stub().rejects();
+        sinon.stub(cloudLibsUtil, 'tryUntil').rejects(new Error('reject _retrier'));
         const fakeFunc = () => Promise.reject();
         return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
             .then(() => {
@@ -426,5 +380,47 @@ describe('Provider - Azure', () => {
                 // fails when error recieved
                 assert.ok(true);
             });
+    });
+
+    it('validate updateRoutes with resolved promise', () => {
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+
+        const routeTable01 = {
+            id: '/foo/foo/foo/rg01/id_rt01',
+            name: 'rt01',
+            provisioningState: 'Succeeded',
+            tags: {
+                F5_LABEL: 'foo',
+                F5_SELF_IPS: '10.0.1.10,10.0.1.11'
+            },
+            routes: [
+                {
+                    id: 'id_route01',
+                    name: 'route01',
+                    addressPrefix: '192.0.0.0/24',
+                    nextHopType: 'VirtualAppliance',
+                    nextHopIpAddress: '10.0.1.10'
+                }
+            ]
+        };
+
+        provider.networkClient = sinon.stub();
+        provider.networkClient.routeTables = sinon.stub();
+        provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable01]);
+        provider.networkClient.routes = sinon.stub();
+
+        const providerRouteUpdateSpy = sinon.stub().yields(null, []);
+        provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
+
+        const localAddresses = ['10.0.1.11'];
+        provider.routeTags = { F5_LABEL: 'foo' };
+        provider.routeAddresses = ['192.0.0.0/24'];
+        provider.routeSelfIpsTag = 'F5_SELF_IPS';
+
+        return provider.updateRoutes({ localAddresses })
+            .then(() => {
+                assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+            })
+            .catch(err => Promise.reject(err));
     });
 });

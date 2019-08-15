@@ -59,7 +59,8 @@ describe('Failover', () => {
     it('validate that it performs failover', () => {
         const mockCloudProvider = {
             init: () => {},
-            updateAddresses: () => {}
+            updateAddresses: () => {},
+            updateRoutes: () => {}
         };
 
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
