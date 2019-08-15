@@ -9,10 +9,14 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const request = require('request');
 const icrdk = require('icrdk'); // eslint-disable-line import/no-extraneous-dependencies
 
 const constants = require('../constants.js');
+
+const deploymentFile = process.env[constants.DEPLOYMENT_FILE_VAR]
+    || path.join(process.cwd(), constants.DEPLOYMENT_FILE);
 
 module.exports = {
 
@@ -224,5 +228,40 @@ module.exports = {
                 }
             });
         });
+    },
+
+    /**
+     * Get host info
+     *
+     * @returns {Object} Returns
+     * [ { ip: x.x.x.x, username: admin, password: admin, primary: true } ]
+     */
+    getHostInfo() {
+        // eslint-disable-next-line import/no-dynamic-require, global-require
+        const hosts = require(deploymentFile).instances.map((item) => {
+            item = {
+                ip: item.mgmt_address,
+                username: item.admin_username,
+                password: item.admin_password,
+                primary: item.primary
+            };
+            return item;
+        });
+        return hosts;
+    },
+
+    /**
+     * Get environment info
+     *
+     * @returns {Object} Returns
+     * { deploymentId: foo, environment: bar }
+     */
+    getEnvironmentInfo() {
+        // eslint-disable-next-line import/no-dynamic-require, global-require
+        const deploymentInfo = require(deploymentFile);
+        return {
+            environment: deploymentInfo.environment,
+            deploymentId: deploymentInfo.deploymentId
+        };
     }
 };

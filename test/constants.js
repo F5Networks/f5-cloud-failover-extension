@@ -41,5 +41,7 @@ module.exports = {
         PROTOCOL: 'https'
     },
     BASE_ENDPOINT: '/mgmt/shared/cloud-failover',
-    PKG_NAME: 'f5-cloud-failover'
+    PKG_NAME: 'f5-cloud-failover',
+    DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
+    DEPLOYMENT_FILE: 'deployment_info.json'
 };

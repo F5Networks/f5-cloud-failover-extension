@@ -15,7 +15,7 @@
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
-        "test-functional": "mocha --recursive \"./test/functional/tests/**/*.js\" --opts ./test/.mocha.opts",
+        "test-functional": "mocha --recursive \"./test/functional/tests/testRunner.js\" --opts ./test/.mocha.opts",
         "deployment-create": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" create",
         "deployment-delete": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" delete",
         "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
@@ -64,7 +64,8 @@
         "mocha": "^5.2.0",
         "nyc": "^14.1.1",
         "sinon": "7.3.2",
-        "ssh2": "^0.8.2"
+        "ssh2": "^0.8.2",
+        "mustache": "^3.0.1"
     },
     "optionalDependencies": {
         "mermaid.cli": "^0.5.1",

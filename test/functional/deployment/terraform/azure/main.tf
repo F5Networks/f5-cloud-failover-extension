@@ -206,6 +206,7 @@ resource "azurerm_route_table" "route_table" {
 
   tags = {
     F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    F5_SELF_IPS = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
 }
 
@@ -393,21 +394,25 @@ resource "null_resource" "onboard1" {
 }
 
 output "deployment_info" {
-  value = [
-    {
-      admin_username = "${var.admin_username}",
-      admin_password = "${module.utils.admin_password}",
-      mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
-      mgmt_port = 443,
-      primary = true
-    },
-    {
-      admin_username = "${var.admin_username}",
-      admin_password = "${module.utils.admin_password}",
-      mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
-      mgmt_port = 443,
-      primary = false
-    }
-  ]
+  value = {
+    instances: [
+      {
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
+        mgmt_port = 443,
+        primary = false
+      },
+      {
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
+        mgmt_port = 443,
+        primary = true
+      }
+    ],
+    deploymentId: "${module.utils.env_prefix}",
+    environment: "azure"
+  }
 }
 
