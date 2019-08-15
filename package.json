@@ -55,6 +55,8 @@
         "uuid": "^3.3.2"
     },
     "devDependencies": {
+        "@azure/arm-network": "^14.0.0",
+        "@azure/ms-rest-nodeauth": "^3.0.1",
         "@f5devcentral/eslint-config-f5-atg": "^0.1.1",
         "acorn": "^6.0.0",
         "eslint": "^5.16.0",

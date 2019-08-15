@@ -11,21 +11,18 @@
 /* eslint-disable global-require */
 
 const assert = require('assert');
-const mustache = require('mustache'); /* eslint-disable-line import/no-extraneous-dependencies */
 
 const constants = require('../../constants.js');
 const utils = require('../../shared/util.js');
+const funcUtils = require('./shared/util.js');
 
-const environmentInfo = utils.getEnvironmentInfo();
-const duts = utils.getHostInfo();
+const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const packageDetails = utils.getPackageDetails();
 const packageFile = packageDetails.name;
 const packagePath = packageDetails.path;
-
-const exampleDeclaration = require('./shared/exampleDeclaration.json');
 
 [dutPrimary, dutSecondary].forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
@@ -84,13 +81,10 @@ const exampleDeclaration = require('./shared/exampleDeclaration.json');
         });
 
         it('should post declaration', () => {
-            const uri = `${constants.BASE_ENDPOINT}/declare`;
+            const uri = constants.DECLARE_ENDPOINT;
 
             options.method = 'POST';
-            options.body = mustache.render(utils.stringify(exampleDeclaration), {
-                deploymentId: environmentInfo.deploymentId,
-                environment: environmentInfo.environment
-            });
+            options.body = funcUtils.getDeploymentDeclaration();
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};

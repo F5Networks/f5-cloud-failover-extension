@@ -10,14 +10,14 @@
 
 /* eslint-disable global-require */
 /* eslint-disable import/no-dynamic-require */
-const utils = require('../../shared/util.js');
+const funcUtils = require('./shared/util.js');
 
 // add test files in a defined order
 const testFiles = [
-    './systemTests.js'
+    //'./systemTests.js'
 ];
 // add specific provider test
-testFiles.push(`./providers/${utils.getEnvironmentInfo().environment}/tests.js`);
+testFiles.push(`./providers/${funcUtils.getEnvironmentInfo().environment}/tests.js`);
 
 testFiles.forEach((file) => {
     require(file);
