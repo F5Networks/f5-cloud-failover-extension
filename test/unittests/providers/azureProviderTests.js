@@ -278,7 +278,7 @@ describe('Provider - Azure', () => {
 
     it('validate _listNics with resolved promise', () => {
         const options = {
-            tags: [{ key: 'tag01', value: 'value01' }]
+            tags: { tag01: 'value01' }
         };
 
         const nic01 = {
