@@ -69,6 +69,11 @@ class Cloud extends AbstractCloud {
         }).catch(err => Promise.reject(err));
     }
 
+    updateRoutes() {
+        this.logger.info('YoHo');
+        return this.logger.info(this.ec2.describeRouteTables(this.tags));
+    }
+
     /**
      * Re-associates the Elastic IP Addresses. Will first attempt to disassociate and then associate
      * the Elastic IP Address(es) to the newly active BIG-IP
