@@ -603,20 +603,24 @@ output "public_vip_address" {
 }
 
 output "deployment_info" {
-  value = [
-    {
-      "admin_username": var.admin_username,
-      "admin_password": module.utils.admin_password,
-      "mgmt_address": aws_eip.mgmt1.public_ip,
-      "mgmt_port": 443,
-      "primary": true
-    },
-    {
-      "admin_username": var.admin_username,
-      "admin_password": module.utils.admin_password,
-      "mgmt_address": aws_eip.mgmt2.public_ip,
-      "mgmt_port": 443,
-      "primary": false
-    }
-  ]
+  value = {
+    instances: [
+      {
+        admin_username = var.admin_username,
+        admin_password = module.utils.admin_password,
+        mgmt_address = aws_eip.mgmt1.public_ip,
+        mgmt_port = 443,
+        primary = true
+      },
+      {
+        admin_username = var.admin_username,
+        admin_password = module.utils.admin_password,
+        mgmt_address = aws_eip.mgmt2.public_ip,
+        mgmt_port = 443,
+        primary = false
+      }
+    ],
+    deploymentId: module.utils.env_prefix,
+    environment: "aws"
+  }
 }

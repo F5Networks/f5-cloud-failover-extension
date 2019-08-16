@@ -395,21 +395,25 @@ resource "null_resource" "onboard02" {
 }
 
 output "deployment_info" {
-  value = [
-    {
-      "admin_username": var.admin_username,
-      "admin_password": random_string.admin_password.result,
-      "mgmt_address": google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
-      "mgmt_port": 443,
-      "primary": true
-    },
-    {
-      "admin_username": var.admin_username,
-      "admin_password": random_string.admin_password.result,
-      "mgmt_address": google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
-      "mgmt_port": 443,
-      "primary": false
-    }
-  ]
+  value = {
+    instances: [
+      {
+        admin_username = var.admin_username,
+        admin_password = random_string.admin_password.result,
+        mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
+        mgmt_port = 443,
+        primary = true
+      },
+      {
+        admin_username = var.admin_username,
+        admin_password = random_string.admin_password.result,
+        mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
+        mgmt_port = 443,
+        primary = false
+      }
+    ],
+    deploymentId: random_string.env_prefix.result,
+    environment: "gcp"
+  }
 }
 
