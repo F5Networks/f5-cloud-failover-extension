@@ -7,11 +7,12 @@ Azure
 Failover Event Diagram
 ----------------------
 
-.. image:: ../contributing/images/AzureFailoverExtensionHighLevel.gif
+.. image:: ../images/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
 Prerequisites
 -------------
+
 
 
 

@@ -6,7 +6,7 @@ Amazon Web Services
 Failover Event Diagram
 ----------------------
 
-.. image:: ../contributing/images/AWSFailoverExtensionHighLevel.gif
+.. image:: ../images/AWSFailoverExtensionHighLevel.gif
   :width: 800
 
 Prerequisites
