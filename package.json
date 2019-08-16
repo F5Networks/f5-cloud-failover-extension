@@ -21,7 +21,7 @@
         "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD}",
+        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD}",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
