@@ -8,7 +8,7 @@
 
 'use strict';
 
-describe('Provider: AWS', () => {
+describe('Provider: GCP', () => {
     before(() => {
     });
     after(() => {
