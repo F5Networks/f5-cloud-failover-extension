@@ -109,6 +109,10 @@ describe('Provider - GCE', () => {
             });
     });
 
+    it('validate updateRoute method', () => {
+        assert.strictEqual(typeof provider.updateRoutes, 'function');
+    });
+
     it('validate updateAddresses method', () => {
         assert.strictEqual(typeof provider.updateAddresses, 'function');
         sinon.stub(provider, '_updateFwdRules').callsFake((fwdRules, targetInstances, failoverIpAddresses) => {
