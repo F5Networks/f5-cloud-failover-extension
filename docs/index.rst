@@ -11,7 +11,7 @@ F5 Cloud Failover (CF) iControl LX extension provides L3 failover functionality 
 - Failover IP(s) - Update IP configurations on a NIC, update EIP associations, update forwarding rule target instance, etc.
 - Failover Route(s) - Update User-Defined Routes (UDR), update route table, etc.
 
-.. image:: ../contributing/images//FailoverExtensionHighLevel.gif
+.. image:: ../contributing/images/AWSFailoverExtensionHighLevel.gif
   :width: 800
 
 User Guide Index
@@ -24,5 +24,7 @@ User Guide Index
 
    userguide/prereqs
    userguide/faq
+   userguide/quickstart
    userguide/example-declarations
+   userguide/troubleshooting
    revision-history
