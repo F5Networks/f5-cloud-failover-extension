@@ -14,7 +14,7 @@ const funcUtils = require('./shared/util.js');
 
 // add test files in a defined order
 const testFiles = [
-    //'./systemTests.js'
+    './systemTests.js'
 ];
 // add specific provider test
 testFiles.push(`./providers/${funcUtils.getEnvironmentInfo().environment}/tests.js`);

@@ -12,6 +12,7 @@ const assert = require('assert');
 
 /* eslint-disable import/no-extraneous-dependencies */
 const AzureCliCredentials = require('@azure/ms-rest-nodeauth').AzureCliCredentials;
+const AzureSPCredentials = require('@azure/ms-rest-nodeauth').loginWithServicePrincipalSecretWithAuthResponse;
 const NetworkManagementClient = require('@azure/arm-network').NetworkManagementClient;
 
 const utils = require('../../../../shared/util.js');
@@ -23,11 +24,65 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const declaration = funcUtils.getDeploymentDeclaration();
 
+const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
+const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
+// helper functions
+const routeTableFilter = i => i.tags
+    && Object.keys(i.tags).indexOf(routeTagKey) !== -1
+    && i.tags[routeTagKey] === routeTagValue;
+const routeMatch = (routeTables, selfIps) => {
+    let match = false;
+    // filter
+    routeTables = routeTables.filter(routeTableFilter);
+    // check
+    routeTables.forEach((routeTable) => {
+        routeTable.routes.forEach((route) => {
+            if (selfIps.indexOf(route.nextHopIpAddress) !== -1) {
+                match = true;
+            }
+        });
+    });
+    // assert
+    if (!match) {
+        assert.fail('Matching next hop not found');
+    }
+};
+
 describe('Provider: Azure', () => {
     let primarySelfIps = [];
     let secondarySelfIps = [];
 
+    let networkClient;
+
     before(() => {
+        // support both Azure CLI and Service Principal Authentication schemes
+        let promise;
+        const clientId = process.env.ARM_CLIENT_ID;
+        const clientSecret = process.env.ARM_CLIENT_SECRET;
+        const tenantId = process.env.ARM_TENANT_ID;
+        const subscriptionId = process.env.ARM_SUBSCRIPTION_ID;
+
+        if (clientId && clientSecret && subscriptionId && tenantId) {
+            promise = AzureSPCredentials(clientId, clientSecret, tenantId)
+                .then((data) => {
+                    const credentials = data.credentials;
+                    return { credentials, subscriptionId: data.subscriptions[0].id };
+                })
+                .catch(err => Promise.reject(err));
+        } else {
+            promise = AzureCliCredentials.create()
+                .then((data) => {
+                    const credentials = data;
+                    return { credentials, subscriptionId: data.tokenInfo.subscription };
+                })
+                .catch(err => Promise.reject(err));
+        }
+
+        return Promise.resolve(promise)
+            .then((creds) => {
+                networkClient = new NetworkManagementClient(creds.credentials, creds.subscriptionId);
+            })
+            .catch(err => Promise.reject(err));
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -49,34 +104,12 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check Azure route table route(s) next hop matches self IP (primary)', () => {
-        let networkClient;
+    it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
+        this.retries(25);
 
-        return AzureCliCredentials.create()
-            .then((creds) => {
-                networkClient = new NetworkManagementClient(creds, creds.tokenInfo.subscription);
-                return networkClient.routeTables.listAll();
-            })
+        return networkClient.routeTables.listAll()
             .then((routeTables) => {
-                let match = false;
-                // filter
-                const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
-                const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
-                routeTables = routeTables.filter(i => i.tags
-                    && Object.keys(i.tags).indexOf(routeTagKey) !== -1
-                    && i.tags[routeTagKey] === routeTagValue);
-                // check
-                routeTables.forEach((routeTable) => {
-                    routeTable.routes.forEach((route) => {
-                        if (primarySelfIps.indexOf(route.nextHopIpAddress) !== -1) {
-                            match = true;
-                        }
-                    });
-                });
-                // assert
-                if (!match) {
-                    assert.fail('Matching next hop not found');
-                }
+                routeMatch(routeTables, primarySelfIps);
             })
             .catch(err => Promise.reject(err));
     });
@@ -117,33 +150,10 @@ describe('Provider: Azure', () => {
 
     it('should check Azure route table route(s) next hop matches self IP (secondary)', function () {
         this.retries(25);
-        let networkClient;
 
-        return AzureCliCredentials.create()
-            .then((creds) => {
-                networkClient = new NetworkManagementClient(creds, creds.tokenInfo.subscription);
-                return networkClient.routeTables.listAll();
-            })
+        return networkClient.routeTables.listAll()
             .then((routeTables) => {
-                let match = false;
-                // filter
-                const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
-                const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
-                routeTables = routeTables.filter(i => i.tags
-                    && Object.keys(i.tags).indexOf(routeTagKey) !== -1
-                    && i.tags[routeTagKey] === routeTagValue);
-                // check
-                routeTables.forEach((routeTable) => {
-                    routeTable.routes.forEach((route) => {
-                        if (secondarySelfIps.indexOf(route.nextHopIpAddress) !== -1) {
-                            match = true;
-                        }
-                    });
-                });
-                // assert
-                if (!match) {
-                    assert.fail('Matching next hop not found');
-                }
+                routeMatch(routeTables, secondarySelfIps);
             })
             .catch(err => Promise.reject(err));
     });
