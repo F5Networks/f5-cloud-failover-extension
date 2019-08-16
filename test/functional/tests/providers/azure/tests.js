@@ -66,7 +66,7 @@ describe('Provider: Azure', () => {
             promise = AzureSPCredentials(clientId, clientSecret, tenantId)
                 .then((data) => {
                     const credentials = data.credentials;
-                    return { credentials, subscriptionId: data.subscriptions[0].id };
+                    return { credentials, subscriptionId };
                 })
                 .catch(err => Promise.reject(err));
         } else {
