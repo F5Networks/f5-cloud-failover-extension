@@ -33,20 +33,18 @@
             "title": "Environment",
             "description": "Cloud provider environment.",
             "type": "string",
-            "enum": ["gce", "aws", "azure"]
+            "enum": ["aws", "azure", "gcp"]
         },
-        "addressTags": {
-            "title": "Address tags",
-            "description": "Unique tag(s) for identifying network interfaces and elastic IPs to be managed.",
-            "type": "array",
-            "items": [
-                {
-                    "key": {"type":"string"}
-                },
-                {
-                    "value": {"type":"string"}
+        "failoverAddresses": {
+            "title": "Failover Addresses",
+            "description": "Addresses this deployment will manage.",
+            "type": "object",
+            "properties": {
+                "scopingTags": {
+                    "type": "object",
+                    "additionalProperties": true
                 }
-            ]
+            }
         },
         "failoverRoutes": {
             "title": "Failover Routes",
@@ -63,63 +61,29 @@
                 }
             }
         },
-        "storageResource": {
-            "title": "Storage resource name",
-            "description": "The name of the provider resource (Azure storage account, S3 bucket) to use for config and state storage.",
-            "type": "string"
-        },
-        "storageTags": {
-            "title": "Storage tags",
-            "description": "Unique tag(s) for identifying network interfaces or elastic IPs to be managed.",
-            "type": "array",
-            "items": [
-                {
-                    "key": {"type":"string"}
-                },
-                {
-                    "value": {"type":"string"}
+        "externalStorage": {
+            "title": "External Storage",
+            "description": "External storage this deployment will manage.",
+            "type": "object",
+            "properties": {
+                "scopingTags": {
+                    "type": "object",
+                    "additionalProperties": true
                 }
-            ]
-        },
-        "useMetadata": {
-            "title": "Metdata override",
-            "description": "Option to override gathering info from provider metadata.",
-            "type": "boolean",
-            "default": true
+            }
         }
     },
     "allOf": [
         {
             "if": { "properties": { "environment": { "const": "azure" } } },
-            "then": {
-                "if": { "properties": { "useMetadata": { "const": false } } },
-                "then": {
-                    "required": ["subscription", "resourceGroupName", "location"],
-                    "subscription": {
-                        "title": "Subscription ID",
-                        "description": "Azure subscription ID.",
-                        "type": "string"
-                    },
-                    "resourceGroupName": {
-                        "title": "Resource group",
-                        "description": "Azure resource group name.",
-                        "type": "string"
-                    },
-                    "location": {
-                        "title": "Location",
-                        "description": "Azure deployment location.",
-                        "type": "string",
-                        "enum": ["eastasia","southeastasia","centralus","eastus","eastus2","westus","northcentralus","southcentralus","northeurope","westeurope","japanwest","japaneast","brazilsouth","australiaeast","australiasoutheast","southindia","centralindia","westindia","canadacentral","canadaeast","uksouth","ukwest","westcentralus","westus2","koreacentral","koreasouth","francecentral","francesouth","australiacentral","australiacentral2","southafricanorth","southafricawest","usdodcentral","usdodeast","usgovarizona","usgoviowa","usgovtexas","usgovvirginia","ussecwest","usseceast"]
-                    }
-                }
-            }
+            "then": {}
         },
         {
             "if": { "properties": { "environment": { "const": "aws" } } },
             "then": {}
         },
         {
-            "if": { "properties": { "environment": { "const": "gce" } } },
+            "if": { "properties": { "environment": { "const": "gcp" } } },
             "then": {
                 "then": {}
             }

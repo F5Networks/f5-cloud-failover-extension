@@ -28,7 +28,7 @@ const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
-        super(CLOUD_PROVIDERS.GCE, options);
+        super(CLOUD_PROVIDERS.GCP, options);
         this.BASE_URL = 'https://www.googleapis.com/compute/v1';
         this.compute = new Compute();
     }
@@ -37,8 +37,8 @@ class Cloud extends AbstractCloud {
     /**
      * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
      *
-     * @param {Object} options       - function options
-     * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
+     * @param {Object} options        - function options
+     * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
      */
     init(options) {
         options = options || {};
@@ -63,8 +63,9 @@ class Cloud extends AbstractCloud {
                 this.computeRegion = this.compute.region(this.region);
 
                 this.logger.info('Getting GCP resources');
+                const firstKey = Object.keys(this.tags)[0]; // should support multiple
                 return Promise.all([
-                    this._getVmsByTag(this.tags[0]),
+                    this._getVmsByTag({ key: firstKey, value: this.tags[firstKey] }),
                     this._getFwdRules(),
                     this._getTargetInstances()
                 ]);
@@ -74,7 +75,7 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = vmsData[1];
                 this.targetInstances = vmsData[2];
 
-                this.logger.info('GCP resources have been collected; gce provider initialization is completed.');
+                this.logger.info('GCP resources have been collected; gcp provider initialization is completed.');
                 return Promise.resolve();
             })
 

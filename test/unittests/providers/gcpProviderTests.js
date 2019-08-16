@@ -13,12 +13,12 @@
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
-const GoogleCloudProvider = require('../../../src/nodejs/providers/gce/cloud.js').Cloud;
+const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
 
-const cloud = 'gce';
+const cloud = 'gcp';
 let provider;
 
-describe('Provider - GCE', () => {
+describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
     const mockMetadata = {
