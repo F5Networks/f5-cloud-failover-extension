@@ -70,7 +70,7 @@ const packagePath = packageDetails.path;
 
         it('should verify installation', function () {
             this.retries(10);
-            const uri = `${constants.BASE_ENDPOINT}/info`;
+            const uri = constants.INFO_ENDPOINT;
 
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
