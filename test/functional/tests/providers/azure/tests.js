@@ -135,11 +135,7 @@ describe('Provider: Azure', () => {
 
         return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
             .then((data) => {
-                const options = {
-                    headers: {
-                        'x-f5-auth-token': data.token
-                    }
-                };
+                const options = funcUtils.makeOptions({ authToken: data.token });
                 return utils.makeRequest(dutSecondary.ip, uri, options);
             })
             .then((data) => {
