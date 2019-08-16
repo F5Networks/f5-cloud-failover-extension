@@ -24,7 +24,7 @@ Additional reasons for providing a consolidated solution include:
 ### Failover Event Diagrams
 
 #### Azure
-![diagram](images/FailoverExtensionHighLevel.gif)
+![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
 #### AWS
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
@@ -47,10 +47,8 @@ The failover extension includes a number of key components, listed below.
 
 ![diagram](images/init.png)
 
-1. Client POST declaration to extension endpoint
-2. Cloud SDK creates management client using token from local metadata
-3. Cloud SDK uses management client to create storage client 
-4. Cloud SDK uses storage client to write user-provided config data to storage location
+1. Client POST declaration to extension `/declare` endpoint
+2. The extension stores user configuration using local REST storage
 
 ---
 #### Anatomy of a Failover Configuration Request
@@ -61,24 +59,26 @@ How does the project handle a `POST` request to the configuration endpoint?
 
 ```json
 {
-	"class": "Cloud_Failover",
-	"environment": "azure",
-	"storageResource": "myuniquestorageaccount",
-	"storageTags": [
-		{
-			"key": "value",
-			"value": "myvalue"
+    "class": "Cloud_Failover",
+    "environment": "azure",
+	"externalStorage": {
+		"scopingTags": {
+			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
 		}
-	],
-	"managedRoutes": [
-		"192.168.1.0/24"
-	],
-	"addressTags": [
-		{
-			"key": "F5_CLOUD_FAILOVER_LABEL",
-			"value": "mydeployment"
+    },
+	"failoverAddresses": {
+		"scopingTags": {
+			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
 		}
-	]
+    },
+    "failoverRoutes": {
+		"scopingTags": {
+			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+		},
+		"scopingAddressRanges": [
+			"192.168.1.0/24"
+		]
+    }
 }
 ```
 
@@ -90,22 +90,24 @@ How does the project handle a `POST` request to the configuration endpoint?
     "declaration": {
         "class": "Cloud_Failover",
         "environment": "azure",
-        "storageResource": "myuniquestorageaccount",
-        "storageTags": [
-            {
-                "key": "value",
-                "value": "myvalue"
+        "externalStorage": {
+            "scopingTags": {
+                "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
             }
-        ],
-        "managedRoutes": [
-            "192.168.1.0/24"
-        ],
-        "addressTags": [
-            {
-                "key": "F5_CLOUD_FAILOVER_LABEL",
-                "value": "mydeployment"
+        },
+        "failoverAddresses": {
+            "scopingTags": {
+                "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
             }
-        ]
+        },
+        "failoverRoutes": {
+            "scopingTags": {
+                "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            },
+            "scopingAddressRanges": [
+                "192.168.1.0/24"
+            ]
+        }
     }
 }
 ```
@@ -116,8 +118,6 @@ What happens in the system internals between request and response?
     - ref: [restWorkers/main.js](../src/nodejs/restWorkers/main.js)
 - Request is validated using JSON schema and AJV
     - ref: [validator.js](../src/nodejs/validator.js)
-- A provider auth token is acquired from metadata and a storage management client is returned
-    - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - User data is written to cloud provider storage
     - ref: [cloud.js](../src/nodejs/providers/azure/cloud.js)
 - Failover declaration/API call is written to /config/failover scripts on BIG-IP

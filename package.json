@@ -11,17 +11,17 @@
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test",
         "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/.mocha.opts",
-        "test-only-node-4": "mocha --recursive \"./test/unittests/**/*.js\" --exclude ./test/unittests/providers/gceProviderTests.js --exclude ./test/unittests/providers/cloudFactoryTests.js --opts ./test/.mocha.opts",
+        "test-only-node-4": "mocha --recursive \"./test/unittests/**/*.js\" --exclude ./test/unittests/providers/gcpProviderTests.js --exclude ./test/unittests/providers/cloudFactoryTests.js --opts ./test/.mocha.opts",
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
-        "test-functional": "mocha --recursive \"./test/functional/tests/**/*.js\" --opts ./test/.mocha.opts",
+        "test-functional": "mocha --recursive \"./test/functional/tests/testRunner.js\" --opts ./test/.mocha.opts",
         "deployment-create": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" create",
         "deployment-delete": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" delete",
         "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD}",
+        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD}",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
@@ -55,6 +55,8 @@
         "uuid": "^3.3.2"
     },
     "devDependencies": {
+        "@azure/arm-network": "^14.0.0",
+        "@azure/ms-rest-nodeauth": "^3.0.1",
         "@f5devcentral/eslint-config-f5-atg": "^0.1.1",
         "acorn": "^6.0.0",
         "eslint": "^5.16.0",
@@ -64,7 +66,8 @@
         "mocha": "^5.2.0",
         "nyc": "^14.1.1",
         "sinon": "7.3.2",
-        "ssh2": "^0.8.2"
+        "ssh2": "^0.8.2",
+        "mustache": "^3.0.1"
     },
     "optionalDependencies": {
         "mermaid.cli": "^0.5.1",

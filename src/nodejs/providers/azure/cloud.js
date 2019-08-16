@@ -25,6 +25,8 @@ const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
+const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
@@ -38,12 +40,18 @@ class Cloud extends AbstractCloud {
     /**
     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
     *
-    * @param {Object} options       - function options
-    * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
+    * @param {Object} options                   - function options
+    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
+    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
     */
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.routeTags = options.routeTags || null;
+        this.routeAddresses = options.routeAddresses || null;
+        this.routeSelfIpsTag = options.routeSelfIpsTag || 'F5_SELF_IPS';
 
         return this._getInstanceMetadata()
             .then((metadata) => {
@@ -62,6 +70,7 @@ class Cloud extends AbstractCloud {
                     this.subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
+                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
@@ -181,6 +190,42 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Update routes
+    *
+    * @param {Object} options                  - function options
+    * @param {Object} [options.localAddresses] - object containing 1+ local (self) addresses [ '192.0.2.1' ]
+    *
+    * @returns {Promise}
+    */
+    updateRoutes(options) {
+        const localAddresses = options.localAddresses || [];
+        this.logger.debug('Local addresses', localAddresses);
+
+        return this._getRouteTables({ tags: this.routeTags })
+            .then((routeTables) => {
+                this.logger.debug('Route tables', routeTables);
+                const promises = [];
+
+                // for each route table go through routes and update any necessary
+                routeTables.forEach((routeTable) => {
+                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+
+                    routeTable.routes.forEach((route) => {
+                        if (this.routeAddresses.indexOf(route.addressPrefix) !== -1) {
+                            // update route
+                            route.nextHopIpAddress = selfIpToUse;
+                            const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
+                            promises.push(util.retrier.call(this, this._updateRoute, parameters, shortRetry));
+                        }
+                    });
+                });
+                return Promise.all(promises);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
     * Get Azure environment
     *
     * @returns {String}
@@ -222,8 +267,8 @@ class Cloud extends AbstractCloud {
     /**
     * Lists all network interface configurations in this resource group
     *
-    * @param {Object} options       - function options
-    * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
     *
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
@@ -245,14 +290,15 @@ class Cloud extends AbstractCloud {
             .then((nics) => {
                 // if true, filter nics based on an array of tags
                 if (tags) {
+                    const tagKeys = Object.keys(tags);
                     const filteredNics = nics.filter((nic) => {
                         let matchedTags = 0;
-                        tags.forEach((tag) => {
-                            if (Object.keys(nic.tags).indexOf(tag.key) !== -1 && nic.tags[tag.key] === tag.value) {
+                        tagKeys.forEach((tagKey) => {
+                            if (Object.keys(nic.tags).indexOf(tagKey) !== -1 && nic.tags[tagKey] === tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
-                        return tags.length === matchedTags;
+                        return tagKeys.length === matchedTags;
                     });
                     return Promise.resolve(filteredNics);
                 }
@@ -308,7 +354,7 @@ class Cloud extends AbstractCloud {
     _updateNics(group, nicName, nicParams, action) {
         return new Promise(
             ((resolve, reject) => {
-                this.logger.info(action, 'NIC: ', nicName);
+                this.logger.debug(action, 'NIC: ', nicName);
 
                 this.networkClient.networkInterfaces.createOrUpdate(group, nicName,
                     nicParams,
@@ -339,10 +385,9 @@ class Cloud extends AbstractCloud {
             this.logger.debug('No associations to update.');
             return Promise.resolve();
         }
-        const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(util.retrier(this._updateNics, item, shortRetry));
+            disassociatePromises.push(util.retrier.call(this, this._updateNics, item, shortRetry));
         });
         return Promise.all(disassociatePromises)
             .then(() => {
@@ -350,7 +395,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(util.retrier(this._updateNics, item, shortRetry));
+                    associatePromises.push(util.retrier.call(this, this._updateNics, item, shortRetry));
                 });
                 return Promise.all(associatePromises);
             })
@@ -358,6 +403,72 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Associate NICs successful.');
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get route tables
+    *
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing 1+ tags to filter on { 'key': 'value' }
+    *
+    * @returns {Promise}
+    */
+    _getRouteTables(options) {
+        const tags = options.tags || {};
+
+        return new Promise((resolve, reject) => {
+            this.networkClient.routeTables.listAll((error, data) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(data);
+                }
+            });
+        })
+            .then((routeTables) => {
+                if (tags) {
+                    // filter route tables based on tag(s)
+                    routeTables = routeTables.filter((item) => {
+                        let matchedTags = 0;
+                        const tagKeys = Object.keys(tags);
+                        tagKeys.forEach((key) => {
+                            if (Object.keys(item.tags).indexOf(key) !== -1 && item.tags[key] === tags[key]) {
+                                matchedTags += 1;
+                            }
+                        });
+                        return tagKeys.length === matchedTags;
+                    });
+                }
+                return Promise.resolve(routeTables);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Updates specified Azure user defined routes
+    *
+    * @param {String} routeTableGroup - Name of the route table resource group
+    * @param {String} routeTableName  - Name of the route table
+    * @param {String} routeName       - Name of the route to update
+    * @param {Array} routeOptions     - route options
+    *
+    * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
+    */
+    _updateRoute(routeTableGroup, routeTableName, routeName, routeOptions) {
+        this.logger.debug('Updating route table: ', routeTableName, routeName, routeOptions);
+
+        return new Promise((resolve, reject) => {
+            this.networkClient.routes.beginCreateOrUpdate(
+                routeTableGroup, routeTableName, routeName, routeOptions,
+                (error, data) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(data);
+                    }
+                }
+            );
+        });
     }
 }
 

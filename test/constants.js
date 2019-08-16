@@ -16,6 +16,8 @@
 
 'use strict';
 
+const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
+
 /**
  * Constants used across two or more files
  *
@@ -40,6 +42,11 @@ module.exports = {
         PORT: 443,
         PROTOCOL: 'https'
     },
-    BASE_ENDPOINT: '/mgmt/shared/cloud-failover',
-    PKG_NAME: 'f5-cloud-failover'
+    BASE_ENDPOINT,
+    DECLARE_ENDPOINT: `${BASE_ENDPOINT}/declare`,
+    INFO_ENDPOINT: `${BASE_ENDPOINT}/info`,
+    TRIGGER_ENDPOINT: `${BASE_ENDPOINT}/trigger`,
+    PKG_NAME: 'f5-cloud-failover',
+    DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
+    DEPLOYMENT_FILE: 'deployment_info.json'
 };

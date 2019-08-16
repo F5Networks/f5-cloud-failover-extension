@@ -1,4 +1,4 @@
-openapi: '3.0.0'
+openapi: "3.0.0"
 info:
   version: 0.9.0
   title: Cloud Failover (CF) Extension
@@ -14,10 +14,10 @@ paths:
       tags:
         - Configuration
       responses:
-        '200':
+        "200":
           description: Configuration Response
           content:
-            'application/json; charset=UTF-8':
+            "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
         default:
@@ -35,13 +35,44 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Configuration"
+            example:
+              class: Cloud_Failover
+              environment: azure
+              externalStorage:
+                scopingTags:
+                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+              failoverAddresses:
+                scopingTags:
+                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+              failoverRoutes:
+                scopingTags:
+                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+                scopingAddressRanges:
+                  - "192.0.2.0/24"
       responses:
-        '200':
+        "200":
           description: Configuration response
           content:
-            'application/json; charset=UTF-8':
+            "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
+              example:
+                message: success
+                declaration:
+                  class: Cloud_Failover
+                  environment: azure
+                  schemaVersion: "0.9.0"
+                  externalStorage:
+                    scopingTags:
+                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                  failoverAddresses:
+                    scopingTags:
+                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                  failoverRoutes:
+                    scopingTags:
+                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                    scopingAddressRanges:
+                      - "192.0.2.0/24"
         default:
           description: Unexpected Error
           content:
@@ -61,18 +92,20 @@ paths:
               properties:
                 action:
                   type: string
-                  default: 'execute'
+            example:
+              action: execute
       responses:
-        '200':
+        "200":
           description: Configuration response
           content:
-            'application/json; charset=UTF-8':
+            "application/json; charset=UTF-8":
               schema:
                 type: object
                 properties:
                   message:
                     type: string
-                    default: 'in_progress'
+              example:
+                message: in_progress
         default:
           description: Unexpected Error
           content:
@@ -92,58 +125,34 @@ components:
           enum:
             - azure
             - aws
-            - gce
-          default: "azure"
+            - gcp
         schemaVersion:
           type: string
-          default: "0.9.0"
-        useMetadata:
-          type: string
-          default: "true"
-        storageResource:
-          type: string
-          default: "mystorageaccount"
-        storageTags:
-          type: array
-          items:
-            type: object
-            properties:
-              key:
-                type: string
-                default: "F5_CLOUD_FAILOVER_LABEL"
-              value:
-                type: string
-                default: "mydeployment"
+        externalStorage:
+          type: object
+          properties:
+            scopingTags:
+              type: object
+              additionalProperties: true
+        failoverAddresses:
+          type: object
+          properties:
+            scopingTags:
+              type: object
+              additionalProperties: true
         failoverRoutes:
           type: object
           properties:
             scopingTags:
               type: object
-              properties:
-                F5_CLOUD_FAILOVER_LABEL:
-                  type: string
-                  default: "mydeployment"
+              additionalProperties: true
             scopingAddressRanges:
               type: array
-              default:
-                - "192.0.2.0/24"
-        addressTags:
-          type: array
-          items:
-            type: object
-            properties:
-              key:
-                type: string
-                default: "F5_CLOUD_FAILOVER_LABEL"
-              value:
-                type: string
-                default: "mydeployment"
     ConfigurationResponse:
       type: object
       properties:
         message:
           type: string
-          default: 'success'
         declaration:
           type: object
           $ref: "#/components/schemas/Configuration"

@@ -30,6 +30,17 @@ module.exports = {
     },
 
     /**
+     * Deep copy
+     *
+     * @param {Object} obj - object to copy
+     *
+     * @returns {Object} deep copy of source object
+     */
+    deepCopy(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    },
+
+    /**
      * LX rest operation responder
      *
      * @param {Object} restOperation  - restOperation to complete
@@ -65,5 +76,26 @@ module.exports = {
                     reject(error);
                 });
         });
+    },
+
+    /**
+     * Get data using nested key(s)
+     *
+     * @param {Object} data - data
+     * @param {String} key  - key to use when accessing item in data
+     *
+     * @returns {Object} Returns data in key
+     */
+    getDataByKey(data, key) {
+        const keys = key.split('.');
+        let ret = this.deepCopy(data);
+        keys.forEach((i) => {
+            if (ret && typeof ret === 'object' && i in ret) {
+                ret = ret[i];
+            } else {
+                ret = null;
+            }
+        });
+        return ret;
     }
 };

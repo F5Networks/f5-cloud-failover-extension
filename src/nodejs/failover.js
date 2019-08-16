@@ -44,7 +44,11 @@ function execute() {
             }
 
             cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
-            return cloudProvider.init({ tags: config.addressTags });
+            return cloudProvider.init({
+                tags: util.getDataByKey(config, 'failoverAddresses.scopingTags'),
+                routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
+                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges')
+            });
         })
         .then(() => {
             logger.info('Cloud provider has been initialized');
@@ -81,7 +85,7 @@ function execute() {
                 cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
             ];
             // updating routes is conditional - TODO: rethink this...
-            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.GCE];
+            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE, constants.CLOUD_PROVIDERS.GCE];
             if (config.environment.indexOf(routeFeatureEnvironments) !== -1) {
                 actions.push(cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
             }

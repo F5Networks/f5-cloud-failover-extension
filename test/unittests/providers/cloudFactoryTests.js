@@ -39,9 +39,9 @@ describe('Cloud Factory', () => {
     });
 
     it('should get cloud provider', () => {
-        const provider = CloudFactory.getCloudProvider('gce');
+        const provider = CloudFactory.getCloudProvider('gcp');
 
-        assert.strictEqual(provider.environment, 'gce');
+        assert.strictEqual(provider.environment, 'gcp');
     });
 
     it('should get cloud provider', () => {

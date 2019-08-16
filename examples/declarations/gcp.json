@@ -1,6 +1,6 @@
 {
     "class": "Cloud_Failover",
-    "environment": "aws",
+    "environment": "gcp",
 	"externalStorage": {
 		"scopingTags": {
 			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"

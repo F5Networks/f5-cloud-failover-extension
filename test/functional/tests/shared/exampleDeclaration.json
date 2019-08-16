@@ -1,0 +1,22 @@
+{
+    "class": "Cloud_Failover",
+    "environment": "{{environment}}",
+    "externalStorage": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+      }
+    },
+    "failoverAddresses": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+      }
+    },
+    "failoverRoutes": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+      },
+      "scopingAddressRanges": [
+        "192.0.2.0/24"
+      ]
+    }
+}
