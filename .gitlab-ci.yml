@@ -1,9 +1,49 @@
 image: node:8
 
 stages:
-    - build
+    - build_package
     - test
+    - test_functional
+    - build
     - publish
+
+variables:
+    TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
+    # azure vars - normalize env var options between ansible and terraform
+    AZURE_TENANT: "$AZURE_TENANT_ID"
+    AZURE_SECRET: "$AZURE_CLIENT_SECRET"
+    ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
+    ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
+    ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+    ARM_TENANT_ID: "$AZURE_TENANT_ID"
+    # aws vars
+    AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
+    AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
+    AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+    # gcp vars
+    GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
+    # debug vars
+    F5_SDK_LOG_LEVEL: "INFO"
+    PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
+
+build_package:
+    image: f5devcentral/containthedocs:rpmbuild
+    stage: build_package
+    script:
+        - echo 'CI BUILD'
+        # install packages: jq
+        - apt-get update
+        - apt-get install -y jq
+        # install node modules
+        - npm run install-production
+        - bash ./scripts/build_rpm.sh
+    tags:
+        - cm-official-docker-executor
+    artifacts:
+        name: f5-cloud-failover-$CI_BUILD_REF
+        paths:
+            - dist
+        expire_in: 1 month
 
 test_node4:
     stage: test
@@ -41,24 +81,54 @@ test_package:
         paths:
             - coverage
 
-build_package:
-    image: f5devcentral/containthedocs:rpmbuild
-    stage: build
+# run functional tests: generic template
+# note: the tests will run on production/release branch(es) and merge requests only
+.test_functional_generic: &test_functional_generic
+    stage: test_functional
+    image: python:3
     script:
-        - echo 'CI BUILD'
-        # install packages: jq
+        # install jq
         - apt-get update
         - apt-get install -y jq
-        # install node modules
-        - npm run install-production
-        - bash ./scripts/build_rpm.sh
+        # install terraform
+        - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # setup environment
+        - npm run deployment-create
+        # run functional tests
+        - npm run test-functional
+        # run API smoke tests
+        - npm run validate-api
+        # teardown environment
+        - npm run deployment-delete
     tags:
         - cm-official-docker-executor
-    artifacts:
-        name: f5-cloud-failover-$CI_BUILD_REF
-        paths:
-            - dist
-        expire_in: 1 month
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+
+# run functional tests: azure
+test_functional_azure:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_aws:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+# note: disabled until quota for compute network and subnetwork limit is increased
+.test_functional_gcp:
+    <<: *test_functional_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
 
 build_docs:
     image: python:3.7
@@ -157,7 +227,6 @@ pages:
     only:
         - master
         - develop
-
 
 # Publish docs to clouddocs.f5.com
 docs to production:

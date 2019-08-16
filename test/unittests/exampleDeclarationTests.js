@@ -26,7 +26,7 @@ const validate = ajv
     .compile(baseSchema);
 
 describe('Declarations', () => {
-    const baseDir = `${__dirname}/../../examples`;
+    const baseDir = `${__dirname}/../../examples/declarations`;
     const files = fs.readdirSync(baseDir);
 
     files.forEach((file) => {

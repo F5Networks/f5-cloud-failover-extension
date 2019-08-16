@@ -5,6 +5,7 @@ rpmbuild/
 dist/new_build/
 # docs build
 _build/
+redoc-static.html
 # coverage
 coverage/
 .nyc_output/
@@ -15,6 +16,10 @@ test/functional/*_harness_file.json
 *.tfstate
 *.tfstate.*
 failover-tf
+# virtual envs
+venv/
+# deployment info
+deployment_info.json
 # misc
 .vscode/
 **/.DS_Store

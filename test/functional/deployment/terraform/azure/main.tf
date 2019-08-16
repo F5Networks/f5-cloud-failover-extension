@@ -1,20 +1,10 @@
-resource "random_string" "admin_password" {
-  length            = 16
-  min_upper         = 1
-  min_lower         = 1
-  min_numeric       = 1
-  special           = false
-}
-
-resource "random_string" "env_prefix" {
-  length = 8
-  upper = false
-  special = false
+module "utils" {
+  source = "../utils"
 }
 
 resource "azurerm_resource_group" "deployment" {
-  name      = "${random_string.env_prefix.result}"
-  location  = var.location
+  name      = "${module.utils.env_prefix}"
+  location  = "${var.location}"
   tags  = {
     creator = "Terraform"
     delete  = "True"
@@ -22,63 +12,63 @@ resource "azurerm_resource_group" "deployment" {
 }
 
 resource "azurerm_role_assignment" "vm0_assignment" {
-  scope                 = azurerm_resource_group.deployment.id
+  scope                 = "${azurerm_resource_group.deployment.id}"
   role_definition_name  = "Contributor"
-  principal_id          = lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")
+  principal_id          = "${lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")}"
 }
 
 resource "azurerm_role_assignment" "vm1_assignment" {
-  scope                 = azurerm_resource_group.deployment.id
+  scope                 = "${azurerm_resource_group.deployment.id}"
   role_definition_name  = "Contributor"
-  principal_id          = lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")
+  principal_id          = "${lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")}"
 }
 
 resource "azurerm_virtual_network" "deployment" {
-  name                = "${random_string.env_prefix.result}-network"
+  name                = "${module.utils.env_prefix}-network"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.deployment.location
-  resource_group_name = azurerm_resource_group.deployment.name
+  location            = "${azurerm_resource_group.deployment.location}"
+  resource_group_name = "${azurerm_resource_group.deployment.name}"
 }
 
 resource "azurerm_subnet" "mgmt" {
   name                 = "mgmt"
-  resource_group_name  = azurerm_resource_group.deployment.name
-  virtual_network_name = azurerm_virtual_network.deployment.name
+  resource_group_name  = "${azurerm_resource_group.deployment.name}"
+  virtual_network_name = "${azurerm_virtual_network.deployment.name}"
   address_prefix       = "10.0.0.0/24"
 }
 
 resource "azurerm_subnet" "internal" {
   name                 = "internal"
-  resource_group_name  = azurerm_resource_group.deployment.name
-  virtual_network_name = azurerm_virtual_network.deployment.name
+  resource_group_name  = "${azurerm_resource_group.deployment.name}"
+  virtual_network_name = "${azurerm_virtual_network.deployment.name}"
   address_prefix       = "10.0.1.0/24"
 }
 
 resource "azurerm_subnet" "external" {
   name                 = "external"
-  resource_group_name  = azurerm_resource_group.deployment.name
-  virtual_network_name = azurerm_virtual_network.deployment.name
+  resource_group_name  = "${azurerm_resource_group.deployment.name}"
+  virtual_network_name = "${azurerm_virtual_network.deployment.name}"
   address_prefix       = "10.0.2.0/24"
 }
 
 resource "azurerm_public_ip" "pip0" {
-  name                = "${random_string.env_prefix.result}-mgmt-pip0"
-  location            = azurerm_resource_group.deployment.location
-  resource_group_name = azurerm_resource_group.deployment.name
+  name                = "${module.utils.env_prefix}-mgmt-pip0"
+  location            = "${azurerm_resource_group.deployment.location}"
+  resource_group_name = "${azurerm_resource_group.deployment.name}"
   allocation_method   = "Static"
 }
 
 resource "azurerm_public_ip" "pip1" {
-  name                = "${random_string.env_prefix.result}-mgmt-pip1"
-  location            = azurerm_resource_group.deployment.location
-  resource_group_name = azurerm_resource_group.deployment.name
+  name                = "${module.utils.env_prefix}-mgmt-pip1"
+  location            = "${azurerm_resource_group.deployment.location}"
+  resource_group_name = "${azurerm_resource_group.deployment.name}"
   allocation_method   = "Static"
 }
 
 resource "azurerm_network_security_group" "deployment" {
-  name                = "${random_string.env_prefix.result}-sg"
-  location            = azurerm_resource_group.deployment.location
-  resource_group_name = azurerm_resource_group.deployment.name
+  name                = "${module.utils.env_prefix}-sg"
+  location            = "${azurerm_resource_group.deployment.location}"
+  resource_group_name = "${azurerm_resource_group.deployment.name}"
   security_rule {
     name                       = "allow_all"
     priority                   = 110
@@ -93,44 +83,44 @@ resource "azurerm_network_security_group" "deployment" {
 }
 
 resource "azurerm_network_interface" "mgmt0" {
-  name                      = "${random_string.env_prefix.result}-mgmt0"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-mgmt0"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-mgmt0"
-    subnet_id                     = azurerm_subnet.mgmt.id
+    name                          = "${module.utils.env_prefix}-mgmt0"
+    subnet_id                     = "${azurerm_subnet.mgmt.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.0.4"
-    public_ip_address_id          = azurerm_public_ip.pip0.id
+    public_ip_address_id          = "${azurerm_public_ip.pip0.id}"
   }
 }
 
 resource "azurerm_network_interface" "mgmt1" {
-  name                      = "${random_string.env_prefix.result}-mgmt1"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-mgmt1"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-mgmt1"
-    subnet_id                     = azurerm_subnet.mgmt.id
+    name                          = "${module.utils.env_prefix}-mgmt1"
+    subnet_id                     = "${azurerm_subnet.mgmt.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.0.5"
-    public_ip_address_id          = azurerm_public_ip.pip1.id
+    public_ip_address_id          = "${azurerm_public_ip.pip1.id}"
   }
 }
 
 resource "azurerm_network_interface" "internal0" {
-  name                      = "${random_string.env_prefix.result}-int0"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-int0"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-int0"
-    subnet_id                     = azurerm_subnet.internal.id
+    name                          = "${module.utils.env_prefix}-int0"
+    subnet_id                     = "${azurerm_subnet.internal.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.4"
   }
@@ -141,14 +131,14 @@ resource "azurerm_network_interface" "internal0" {
 }
 
 resource "azurerm_network_interface" "internal1" {
-  name                      = "${random_string.env_prefix.result}-int1"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-int1"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-int1"
-    subnet_id                     = azurerm_subnet.internal.id
+    name                          = "${module.utils.env_prefix}-int1"
+    subnet_id                     = "${azurerm_subnet.internal.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.5"
   }
@@ -159,14 +149,14 @@ resource "azurerm_network_interface" "internal1" {
 }
 
 resource "azurerm_network_interface" "external0" {
-  name                      = "${random_string.env_prefix.result}-ext0"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-ext0"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-ext0"
-    subnet_id                     = azurerm_subnet.external.id
+    name                          = "${module.utils.env_prefix}-ext0"
+    subnet_id                     = "${azurerm_subnet.external.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.4"
   }
@@ -177,22 +167,22 @@ resource "azurerm_network_interface" "external0" {
 }
 
 resource "azurerm_network_interface" "external1" {
-  name                      = "${random_string.env_prefix.result}-ext1"
-  location                  = azurerm_resource_group.deployment.location
-  resource_group_name       = azurerm_resource_group.deployment.name
-  network_security_group_id = azurerm_network_security_group.deployment.id
+  name                      = "${module.utils.env_prefix}-ext1"
+  location                  = "${azurerm_resource_group.deployment.location}"
+  resource_group_name       = "${azurerm_resource_group.deployment.name}"
+  network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-ext1"
-    subnet_id                     = azurerm_subnet.external.id
+    name                          = "${module.utils.env_prefix}-ext1"
+    subnet_id                     = "${azurerm_subnet.external.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.5"
     primary                       = true
   }
 
   ip_configuration {
-    name                          = "${random_string.env_prefix.result}-ext2"
-    subnet_id                     = azurerm_subnet.external.id
+    name                          = "${module.utils.env_prefix}-ext2"
+    subnet_id                     = "${azurerm_subnet.external.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.10"
   }
@@ -203,12 +193,12 @@ resource "azurerm_network_interface" "external1" {
 }
 
 resource "azurerm_virtual_machine" "vm0" {
-  name                         = "${random_string.env_prefix.result}-vm0"
-  location                     = azurerm_resource_group.deployment.location
-  resource_group_name          = azurerm_resource_group.deployment.name
-  network_interface_ids        = [azurerm_network_interface.mgmt0.id, azurerm_network_interface.internal0.id, azurerm_network_interface.external0.id]
-  primary_network_interface_id = azurerm_network_interface.mgmt0.id
-  vm_size                      = var.instance_size
+  name                         = "${module.utils.env_prefix}-vm0"
+  location                     = "${azurerm_resource_group.deployment.location}"
+  resource_group_name          = "${azurerm_resource_group.deployment.name}"
+  network_interface_ids        = ["${azurerm_network_interface.mgmt0.id}", "${azurerm_network_interface.internal0.id}", "${azurerm_network_interface.external0.id}"]
+  primary_network_interface_id = "${azurerm_network_interface.mgmt0.id}"
+  vm_size                      = "${var.instance_size}"
 
   # This means the OS Disk will be deleted when Terraform destroys the Virtual Machine
   # NOTE: This may not be optimal in all cases.
@@ -219,16 +209,16 @@ resource "azurerm_virtual_machine" "vm0" {
   delete_data_disks_on_termination = true
 
   storage_image_reference {
-    publisher = var.publisher
-    offer     = var.offer
-    sku       = var.sku
-    version   = var.bigip_version
+    publisher = "${var.publisher}"
+    offer     = "${var.offer}"
+    sku       = "${var.sku}"
+    version   = "${var.bigip_version}"
   }
 
   plan {
-    publisher = var.publisher
-    product   = var.offer
-    name      = var.sku
+    publisher = "${var.publisher}"
+    product   = "${var.offer}"
+    name      = "${var.sku}"
   }
 
   storage_os_disk {
@@ -240,8 +230,8 @@ resource "azurerm_virtual_machine" "vm0" {
 
   os_profile {
     computer_name  = "f5vm0"
-    admin_username = var.admin_username
-    admin_password = "${random_string.admin_password.result}"
+    admin_username = "${var.admin_username}"
+    admin_password = "${module.utils.admin_password}"
   }
 
   os_profile_linux_config {
@@ -254,12 +244,12 @@ resource "azurerm_virtual_machine" "vm0" {
 }
 
 resource "azurerm_virtual_machine" "vm1" {
-  name                         = "${random_string.env_prefix.result}-vm1"
-  location                     = azurerm_resource_group.deployment.location
-  resource_group_name          = azurerm_resource_group.deployment.name
-  network_interface_ids        = [azurerm_network_interface.mgmt1.id, azurerm_network_interface.internal1.id, azurerm_network_interface.external1.id]
-  primary_network_interface_id = azurerm_network_interface.mgmt1.id
-  vm_size                      = var.instance_size
+  name                         = "${module.utils.env_prefix}-vm1"
+  location                     = "${azurerm_resource_group.deployment.location}"
+  resource_group_name          = "${azurerm_resource_group.deployment.name}"
+  network_interface_ids        = ["${azurerm_network_interface.mgmt1.id}", "${azurerm_network_interface.internal1.id}", "${azurerm_network_interface.external1.id}"]
+  primary_network_interface_id = "${azurerm_network_interface.mgmt1.id}"
+  vm_size                      = "${var.instance_size}"
 
   # This means the OS Disk will be deleted when Terraform destroys the Virtual Machine
   # NOTE: This may not be optimal in all cases.
@@ -270,16 +260,16 @@ resource "azurerm_virtual_machine" "vm1" {
   delete_data_disks_on_termination = true
 
   storage_image_reference {
-    publisher = var.publisher
-    offer     = var.offer
-    sku       = var.sku
-    version   = var.bigip_version
+    publisher = "${var.publisher}"
+    offer     = "${var.offer}"
+    sku       = "${var.sku}"
+    version   = "${var.bigip_version}"
   }
 
   plan {
-    publisher = var.publisher
-    product   = var.offer
-    name      = var.sku
+    publisher = "${var.publisher}"
+    product   = "${var.offer}"
+    name      = "${var.sku}"
   }
 
   storage_os_disk {
@@ -291,8 +281,8 @@ resource "azurerm_virtual_machine" "vm1" {
 
   os_profile {
     computer_name  = "f5vm1"
-    admin_username = var.admin_username
-    admin_password = "${random_string.admin_password.result}"
+    admin_username = "${var.admin_username}"
+    admin_password = "${module.utils.admin_password}"
   }
 
   os_profile_linux_config {
@@ -305,21 +295,41 @@ resource "azurerm_virtual_machine" "vm1" {
 }
 
 resource "local_file" "do0" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover0.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.4/24", external_self = "10.0.2.4/24" })
+    content = "${templatefile(
+      "${path.module}/../../declarations/do/azure_do_template.json",
+      {
+        hostname = "failover0.local",
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        internal_self = "10.0.1.4/24",
+        external_self = "10.0.2.4/24",
+        remote_host = "10.0.0.4"
+      }
+    )}"
     filename = "${path.module}/temp_do0.json"
 }
 
 resource "local_file" "do1" {
-    content  = templatefile("${path.module}/../../declarations/do_cluster.json", { hostname = "failover1.local", admin_password = "${random_string.admin_password.result}", internal_self = "10.0.1.5/24", external_self = "10.0.2.5/24" })
+    content = "${templatefile(
+      "${path.module}/../../declarations/do/azure_do_template.json",
+      {
+        hostname = "failover1.local",
+        admin_username = "${var.admin_username}",
+        admin_password = "${module.utils.admin_password}",
+        internal_self = "10.0.1.5/24",
+        external_self = "10.0.2.5/24",
+        remote_host = "10.0.0.4" 
+      }
+    )}"
     filename = "${path.module}/temp_do1.json"
 }
 
 resource "null_resource" "login0" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
   depends_on = [azurerm_virtual_machine.vm0]
 }
@@ -327,20 +337,10 @@ resource "null_resource" "login0" {
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual0" {
   provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
   }
   triggers = {
-    always_run = timestamp()
-  }
-  depends_on = [null_resource.login0]
-}
-
-resource "null_resource" "failover0" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
+    always_run = "${timestamp()}"
   }
   depends_on = [null_resource.login0]
 }
@@ -350,32 +350,19 @@ resource "null_resource" "onboard0" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [local_file.do0, null_resource.failover0]
+  depends_on = [local_file.do0, null_resource.login0]
 }
 
 resource "null_resource" "login1" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [
-    azurerm_virtual_machine.vm1,
-    null_resource.onboard0
-  ]
-}
-
-resource "null_resource" "failover1" {
-  provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component failover --declaration ${path.module}/../../declarations/failover_azure.json"
-  }
-  triggers = {
-    always_run = fileexists("${path.module}/../../declarations/failover_azure.json")
-  }
-  depends_on = [null_resource.login1]
+  depends_on = [azurerm_virtual_machine.vm1, null_resource.onboard0]
 }
 
 resource "null_resource" "onboard1" {
@@ -383,24 +370,27 @@ resource "null_resource" "onboard1" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do1.json"
   }
   triggers = {
-    always_run = fileexists("${path.module}/../../declarations/do_cluster.json")
+    always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [local_file.do1, null_resource.failover1]
+  depends_on = [local_file.do1, null_resource.login1]
 }
 
-output "public_ip_address0" {
-  value = azurerm_public_ip.pip0.ip_address
-}
-
-output "public_ip_address1" {
-  value = azurerm_public_ip.pip1.ip_address
-}
-
-output "resource_group_name" {
-  value = random_string.env_prefix.result
-}
-
-output "admin_password" {
-  value = random_string.admin_password.result
+output "deployment_info" {
+  value = [
+    {
+      admin_username = "${var.admin_username}",
+      admin_password = "${module.utils.admin_password}",
+      mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
+      mgmt_port = 443,
+      primary = true
+    },
+    {
+      admin_username = "${var.admin_username}",
+      admin_password = "${module.utils.admin_password}",
+      mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
+      mgmt_port = 443,
+      primary = false
+    }
+  ]
 }
 

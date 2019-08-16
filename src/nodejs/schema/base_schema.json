@@ -48,13 +48,19 @@
                 }
             ]
         },
-        "managedRoutes": {
-            "title": "Routes",
+        "failoverRoutes": {
+            "title": "Failover Routes",
             "description": "Route(s) this deployment will manage.",
-            "type": "array",
-            "items": {
-                "type": "string",
-                "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
+            "type": "object",
+            "properties": {
+                "scopingTags": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "scopingAddressRanges": {
+                    "type": "array",
+                    "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\/([0-9]|[1-2][0-9]|3[0-2]))?$"
+                }
             }
         },
         "storageResource": {

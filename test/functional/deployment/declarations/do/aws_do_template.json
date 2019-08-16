@@ -23,22 +23,46 @@
             ],
             "timezone": "UTC"
         },
+        "${admin_username}": {
+            "class": "User",
+            "userType": "regular",
+            "password": "${admin_password}",
+            "shell": "bash"
+        },
         "myProvisioning": {
             "class": "Provision",
             "ltm": "nominal"
         },
-        "configsync": {
+        "external": {
+            "class": "VLAN",
+            "tag": 4094,
+            "mtu": 1500,
+            "interfaces": [
+                {
+                    "name": "1.1",
+                    "tagged": false
+                }
+            ]
+        },
+        "externalSelf": {
+            "class": "SelfIp",
+            "address": "${external_self}/24",
+            "vlan": "external",
+            "allowService": "default",
+            "trafficGroup": "traffic-group-local-only"
+        },
+        "configSync": {
             "class": "ConfigSync",
-            "configsyncIp": "${internal_self_ip}"
+            "configsyncIp": "${external_self}"
         },
         "failoverAddress": {
             "class": "FailoverUnicast",
-            "address": "${internal_self_ip}"
+            "address": "${external_self}"
         },
         "failoverGroup": {
             "class": "DeviceGroup",
             "type": "sync-failover",
-            "members": ["${host01}", "${host02}"],
+            "members": ["failover0.local", "failover1.local"],
             "owner": "/Common/failoverGroup/members/0",
             "autoSync": true,
             "saveOnAutoSync": false,
@@ -48,11 +72,16 @@
         },
         "trust": {
             "class": "DeviceTrust",
-            "localUsername": "azureuser",
+            "localUsername": "${admin_username}",
             "localPassword": "${admin_password}",
-            "remoteHost": "${remote_mgmt_private_ip}",
-            "remoteUsername": "azureuser",
+            "remoteHost": "${remote_host}",
+            "remoteUsername": "${admin_username}",
             "remotePassword": "${admin_password}"
+        },
+        "dbVars": {
+        	"class": "DbVariables",
+            "config.allow.rfc3927": "enable",
+            "tm.tcpudptxchecksum": "Software-only"
         }
     }
 }
