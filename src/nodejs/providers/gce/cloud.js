@@ -81,7 +81,6 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-
     /**
      * Update Addresses
      *
@@ -105,6 +104,17 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+
+    /**
+     * Update Routes
+     *
+     * @param {Object} localAddresses    - Local addresses
+     *
+     * @returns {Object}
+     */
+    updateRoutes(localAddresses) {
+        return Promise.resolve(localAddresses);
+    }
 
     /**
      * Send HTTP Request to GCP API (Compute)
