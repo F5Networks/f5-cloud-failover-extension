@@ -25,6 +25,9 @@ User Guide Index
    userguide/prereqs
    userguide/faq
    userguide/quickstart
+   userguide/azure
+   userguide/aws
+   userguide/gcp
    userguide/example-declarations
    userguide/troubleshooting
    revision-history
