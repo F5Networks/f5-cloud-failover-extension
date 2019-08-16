@@ -37,6 +37,7 @@ data "google_compute_image" "f5-bigip-image" {
 resource "google_compute_network" "ext_network" {
   name                    = "ext-net-${random_string.env_prefix.result}"
   auto_create_subnetworks = false
+  description             = "${var.reaper_tag}"
 }
 
 resource "google_compute_subnetwork" "ext_subnetwork" {
@@ -44,11 +45,13 @@ resource "google_compute_subnetwork" "ext_subnetwork" {
   region        = "${var.region}"
   ip_cidr_range = "${var.ext-subnet-cidr-range}"
   network       = "${google_compute_network.ext_network.self_link}"
+  description   = "${var.reaper_tag}"
 }
 
 resource "google_compute_network" "mgmt_network" {
   name                    = "mgmt-net-${random_string.env_prefix.result}"
   auto_create_subnetworks = false
+  description             = "${var.reaper_tag}"
 }
 
 resource "google_compute_subnetwork" "mgmt_subnetwork" {
@@ -56,11 +59,13 @@ resource "google_compute_subnetwork" "mgmt_subnetwork" {
   region        = "${var.region}"
   ip_cidr_range = "${var.mgmt-subnet-cidr-range}"
   network       = "${google_compute_network.mgmt_network.self_link}"
+  description   = "${var.reaper_tag}"
 }
 
 resource "google_compute_network" "int_network" {
   name                    = "int-net-${random_string.env_prefix.result}"
   auto_create_subnetworks = false
+  description             = "${var.reaper_tag}"
 }
 
 resource "google_compute_subnetwork" "int_subnetwork" {
@@ -68,6 +73,7 @@ resource "google_compute_subnetwork" "int_subnetwork" {
   region        = "${var.region}"
   ip_cidr_range = "${var.int-subnet-cidr-range}"
   network       = "${google_compute_network.int_network.self_link}"
+  description   = "${var.reaper_tag}"
 }
 
 resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
@@ -75,23 +81,27 @@ resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
   ip_protocol = "TCP"
   load_balancing_scheme = "EXTERNAL"
   target = "${google_compute_target_instance.vm01.self_link}"
+  description = "${var.reaper_tag}"
 }
 
 resource "google_compute_target_instance" "vm01" {
   name        = "tf-func-test-target-vm01-${random_string.env_prefix.result}"
   nat_policy  = "NO_NAT"
   instance    = "${google_compute_instance.vm01.self_link}"
+  description = "${var.reaper_tag}"
 }
 
 resource "google_compute_target_instance" "vm02" {
   name        = "tf-func-test-target-vm02-${random_string.env_prefix.result}"
   nat_policy  = "NO_NAT"
   instance    = "${google_compute_instance.vm02.self_link}"
+  description = "${var.reaper_tag}"
 }
 
 resource "google_compute_firewall" "internal" {
   name    = "tf-func-test-bigip-traffic-internal-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.int_network.name}"
+  description = "${var.reaper_tag}"
 
   allow {
     protocol = "icmp"
@@ -112,6 +122,7 @@ resource "google_compute_firewall" "internal" {
 resource "google_compute_firewall" "mgmt" {
   name    = "tf-func-test-bigip-traffic-mgmt-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.mgmt_network.name}"
+  description = "${var.reaper_tag}"
 
   allow {
     protocol = "icmp"
@@ -132,6 +143,7 @@ resource "google_compute_firewall" "mgmt" {
 resource "google_compute_firewall" "ext" {
   name    = "tf-func-test-bigip-traffic-ext-firewall-${random_string.env_prefix.result}"
   network = "${google_compute_network.ext_network.name}"
+  description = "${var.reaper_tag}"
 
   allow {
     protocol = "tcp"
@@ -189,6 +201,7 @@ resource "google_compute_instance" "vm01" {
   machine_type = "n1-standard-4"
   zone         = "${var.zone}"
   can_ip_forward = true
+  description = "${var.reaper_tag}"
 
   labels = {
     f5_cloud_failover_label = "mydeployment"
@@ -249,6 +262,7 @@ resource "google_compute_instance" "vm02" {
   machine_type = "n1-standard-4"
   zone         = "${var.zone}"
   can_ip_forward = true
+  description = "${var.reaper_tag}"
 
   labels = {
     f5_cloud_failover_label = "mydeployment"
