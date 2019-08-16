@@ -37,7 +37,7 @@ up and running with Cloud Failover.
 #. Paste the declaration into your API client, and modify names and IP addresses
    as applicable.
 
-#. POST to the URI ``https://<BIG-IP>/mgmt/shared/telemetry/declare``
+#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
 
 Quick Start Example
 -------------------
@@ -45,6 +45,13 @@ Quick Start Example
 .. literalinclude:: ../examples/declarations/basic.json
     :language: json
     :linenos:
+
+
+
+ 
+.. |github| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-cloud-failover" target="_blank">F5 Cloud Failover site on GitHub</a>
 
     
 
