@@ -31,7 +31,7 @@ Example Declaration
 
     {
         "class": "Cloud_Failover",
-        "environment": "gcp",
+        "environment": "azure",
           "externalStorage": {
             "scopingTags": {
               "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
