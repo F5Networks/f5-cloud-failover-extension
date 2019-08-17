@@ -25,6 +25,33 @@ Prerequisites
 Example Declaration
 -------------------
 
+.. code-block:: json
+
+
+    {
+        "class": "Cloud_Failover",
+        "environment": "aws",
+          "externalStorage": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+          "failoverAddresses": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+        "failoverRoutes": {
+          "scopingTags": {
+            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+          },
+          "scopingAddressRanges": [
+            "192.168.1.0/24"
+          ]
+        }
+    }
+
+
 
 .. |github| raw:: html
 
