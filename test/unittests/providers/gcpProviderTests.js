@@ -13,12 +13,40 @@
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
-const GoogleCloudProvider = require('../../../src/nodejs/providers/gce/cloud.js').Cloud;
+const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
 
-const cloud = 'gce';
+const cloud = 'gcp';
 let provider;
 
-describe('Provider - GCE', () => {
+const testPayload = {
+    tags: {
+        key01: 'value01'
+    }
+};
+const mockVms = [
+    {
+        name: 'testInstanceName',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: []
+            }
+        ]
+    },
+    {
+        name: 'testInstanceName02',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: [
+                    '10.0.2.1/24'
+                ]
+            }
+        ]
+    }
+];
+
+describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
     const mockMetadata = {
@@ -60,26 +88,14 @@ describe('Provider - GCE', () => {
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTag', sinon.fake.resolves('vmsTagResponse'));
 
-        const testPayload = {
-            tags: [
-                {
-                    key: 'key01',
-                    value: 'value01'
-                }
-            ]
-        };
-
         return provider.init(testPayload)
             .then(() => {
                 assert.strictEqual(provider.fwdRules, 'fwrResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
-
 
     it('validate promise rejection for init method', () => {
         assert.strictEqual(typeof provider.init, 'function');
@@ -89,15 +105,6 @@ describe('Provider - GCE', () => {
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTag', sinon.fake.rejects('test-error'));
-
-        const testPayload = {
-            tags: [
-                {
-                    key: 'key01',
-                    value: 'value01'
-                }
-            ]
-        };
 
         return provider.init(testPayload)
             .then(() => {
@@ -118,22 +125,23 @@ describe('Provider - GCE', () => {
             return Promise.resolve();
         });
 
-        sinon.replace(provider, '_updateNic', sinon.fake.resolves());
+        const updateNicSpy = sinon.stub().resolves();
+        sinon.replace(provider, '_updateNic', updateNicSpy);
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1'];
-        provider.vms = [{ name: 'testInstanceName', networkInterfaces: [{ name: 'testNic' }] }, { name: 'testInstanceName02', networkInterfaces: [{ name: 'testNic', aliasIpRanges: ['10.0.2.1/24'] }] }];
+        provider.vms = mockVms;
         provider.instanceName = 'testInstanceName';
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
 
-
         return provider.updateAddresses(localAddresses, failoverAddresses)
             .then(() => {
-                assert.ok(true);
+                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
+                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
+                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
+                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for updateAddresses method', () => {
@@ -148,11 +156,10 @@ describe('Provider - GCE', () => {
         sinon.replace(provider, '_updateNic', sinon.fake.resolves());
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1'];
-        provider.vms = [{ name: 'testInstanceName', networkInterfaces: [{ name: 'testNic' }] }, { name: 'testInstanceName02', networkInterfaces: [{ name: 'testNic', aliasIpRanges: ['10.0.2.1/24'] }] }];
+        provider.vms = mockVms;
         provider.instanceName = 'testInstanceName';
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
-
 
         return provider.updateAddresses(localAddresses, failoverAddresses)
             .then(() => {
@@ -172,9 +179,7 @@ describe('Provider - GCE', () => {
                 assert.ok(true);
                 assert.strictEqual(data, 'test-data');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for _getLocalMetadata', () => {
@@ -211,9 +216,7 @@ describe('Provider - GCE', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _getVmInfo', () => {
@@ -227,9 +230,7 @@ describe('Provider - GCE', () => {
                 assert.ok(true);
                 assert.strictEqual(data.status, '200');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for _getVmInfo due to failOnStatusCodes', () => {
@@ -257,9 +258,7 @@ describe('Provider - GCE', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for_updateNics due to missing failover ip', () => {
@@ -319,9 +318,7 @@ describe('Provider - GCE', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for _updateFwdRules due to missing failover ip', () => {
@@ -372,9 +369,7 @@ describe('Provider - GCE', () => {
             .then((data) => {
                 assert.strictEqual(data, 'test_data');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for _getTargetInstances', () => {
@@ -410,9 +405,7 @@ describe('Provider - GCE', () => {
             .then((data) => {
                 assert.strictEqual(data, 'test_data');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate promise rejection for _getVmsByTag due to missing tags', () => {
@@ -449,8 +442,6 @@ describe('Provider - GCE', () => {
             .then((data) => {
                 assert.strictEqual(data[0], 'test_data');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 });

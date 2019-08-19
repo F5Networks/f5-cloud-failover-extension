@@ -21,16 +21,10 @@ describe('Provider - AWS', () => {
     let metadataPathRequest;
 
     const mockInitData = {
-        tags: [
-            {
-                key: 'key1',
-                value: 'value1'
-            },
-            {
-                key: 'key2',
-                value: 'value2'
-            }
-        ]
+        tags: {
+            key1: 'value1',
+            key2: 'value2'
+        }
     };
 
     const mockMetadata = { region: 'us-west', instanceId: 'i-123' };

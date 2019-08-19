@@ -31,8 +31,8 @@ class Cloud extends AbstractCloud {
     /**
     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
     *
-    * @param {Object} options       - function options
-    * @param {Array} [options.tags] - array containing tags to filter on [{'key': 'myKey', 'value': 'myValue' }]
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
     */
     init(options) {
         options = options || {};
@@ -262,7 +262,7 @@ class Cloud extends AbstractCloud {
     /**
      * Returns the Elastic IP address(es) associated with this BIG-IP cluster
      *
-     * @param   {Object}    tags    - Array containing tags to filter on [{'key': 'myKey', 'value': 'myValue' }]
+     * @param   {Object}    tags - object containing tags to filter on { 'key': 'value' }
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of Elastic IP(s), or
      *                          rejected if an error occurs
@@ -271,12 +271,14 @@ class Cloud extends AbstractCloud {
         const params = {
             Filters: []
         };
-        tags.forEach((tag) => {
+
+        const tagKeys = Object.keys(tags);
+        tagKeys.forEach((tagKey) => {
             params.Filters.push(
                 {
-                    Name: `tag:${tag.key}`,
+                    Name: `tag:${tagKey}`,
                     Values: [
-                        tag.value
+                        tags[tagKey]
                     ]
                 }
             );

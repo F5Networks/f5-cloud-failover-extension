@@ -45,7 +45,7 @@ function execute() {
 
             cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
             return cloudProvider.init({
-                tags: config.addressTags,
+                tags: util.getDataByKey(config, 'failoverAddresses.scopingTags'),
                 routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
                 routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges')
             });

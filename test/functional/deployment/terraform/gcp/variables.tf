@@ -103,3 +103,9 @@ variable "admin_username" {
   description = "The admin username for the virtual machine"
   default     = "gcpuser"
 }
+
+
+variable "reaper_tag" {
+  description = "this value is used by resource reaper to locate resource which needs to be deleted"
+  default = "delete=true"
+}
