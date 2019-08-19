@@ -1,13 +1,16 @@
 {
     "class": "Cloud_Failover",
     "environment": "{{environment}}",
-    "storageResource": "mystorageaccount",
-    "storageTags": [
-      {
-        "key": "F5_CLOUD_FAILOVER_STORAGE_LABEL",
-        "value": "{{deploymentId}}"
+    "externalStorage": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
       }
-    ],
+    },
+    "failoverAddresses": {
+      "scopingTags": {
+        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+      }
+    },
     "failoverRoutes": {
       "scopingTags": {
         "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
@@ -15,11 +18,5 @@
       "scopingAddressRanges": [
         "192.0.2.0/24"
       ]
-    },
-    "addressTags": [
-      {
-        "key": "F5_CLOUD_FAILOVER_LABEL",
-        "value": "{{deploymentId}}"
-      }
-    ]
+    }
 }

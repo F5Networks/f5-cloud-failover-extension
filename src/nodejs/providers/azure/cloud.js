@@ -41,7 +41,7 @@ class Cloud extends AbstractCloud {
     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
     *
     * @param {Object} options                   - function options
-    * @param {Array} [options.tags]             - array containing tags to filter on [{ 'key': 'value' }]
+    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
     * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
     * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
     * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
@@ -267,8 +267,8 @@ class Cloud extends AbstractCloud {
     /**
     * Lists all network interface configurations in this resource group
     *
-    * @param {Object} options       - function options
-    * @param {Array} [options.tags] - array containing tags to filter on [ { 'key': 'value' }]
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
     *
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
@@ -290,14 +290,15 @@ class Cloud extends AbstractCloud {
             .then((nics) => {
                 // if true, filter nics based on an array of tags
                 if (tags) {
+                    const tagKeys = Object.keys(tags);
                     const filteredNics = nics.filter((nic) => {
                         let matchedTags = 0;
-                        tags.forEach((tag) => {
-                            if (Object.keys(nic.tags).indexOf(tag.key) !== -1 && nic.tags[tag.key] === tag.value) {
+                        tagKeys.forEach((tagKey) => {
+                            if (Object.keys(nic.tags).indexOf(tagKey) !== -1 && nic.tags[tagKey] === tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
-                        return tags.length === matchedTags;
+                        return tagKeys.length === matchedTags;
                     });
                     return Promise.resolve(filteredNics);
                 }

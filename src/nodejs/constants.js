@@ -30,7 +30,7 @@ module.exports = {
     CLOUD_PROVIDERS: {
         AWS: 'aws',
         AZURE: 'azure',
-        GCE: 'gce'
+        GCP: 'gcp'
     },
     CONTROLS_PROPERTY_NAME: 'controls',
     ENDPOINTS: {

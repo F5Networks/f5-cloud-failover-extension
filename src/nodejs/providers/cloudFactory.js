@@ -34,8 +34,8 @@ function getCloudProvider(providerName, options) {
     case CLOUD_PROVIDERS.AZURE:
         AzureCloud = require('./azure/cloud.js').Cloud;
         return new AzureCloud(options);
-    case CLOUD_PROVIDERS.GCE:
-        GoogleCloud = require('./gce/cloud.js').Cloud;
+    case CLOUD_PROVIDERS.GCP:
+        GoogleCloud = require('./gcp/cloud.js').Cloud;
         return new GoogleCloud(options);
     case CLOUD_PROVIDERS.AWS:
         AWSCloud = require('./aws/cloud.js').Cloud;

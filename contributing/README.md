@@ -61,13 +61,16 @@ How does the project handle a `POST` request to the configuration endpoint?
 {
     "class": "Cloud_Failover",
     "environment": "azure",
-    "storageResource": "mystorageaccount",
-    "storageTags": [
-		{
-			"key": "F5_CLOUD_FAILOVER_LABEL",
-			"value": "mydeployment"
+	"externalStorage": {
+		"scopingTags": {
+			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
 		}
-    ],
+    },
+	"failoverAddresses": {
+		"scopingTags": {
+			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+		}
+    },
     "failoverRoutes": {
 		"scopingTags": {
 			"F5_CLOUD_FAILOVER_LABEL": "mydeployment"
@@ -75,13 +78,7 @@ How does the project handle a `POST` request to the configuration endpoint?
 		"scopingAddressRanges": [
 			"192.168.1.0/24"
 		]
-    },
-    "addressTags": [
-		{
-			"key": "F5_CLOUD_FAILOVER_LABEL",
-			"value": "mydeployment"
-		}
-    ]
+    }
 }
 ```
 
@@ -93,13 +90,16 @@ How does the project handle a `POST` request to the configuration endpoint?
     "declaration": {
         "class": "Cloud_Failover",
         "environment": "azure",
-        "storageResource": "mystorageaccount",
-        "storageTags": [
-            {
-                "key": "F5_CLOUD_FAILOVER_LABEL",
-                "value": "mydeployment"
+        "externalStorage": {
+            "scopingTags": {
+                "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
             }
-        ],
+        },
+        "failoverAddresses": {
+            "scopingTags": {
+                "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
         "failoverRoutes": {
             "scopingTags": {
                 "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
@@ -107,13 +107,7 @@ How does the project handle a `POST` request to the configuration endpoint?
             "scopingAddressRanges": [
                 "192.168.1.0/24"
             ]
-        },
-        "addressTags": [
-            {
-                "key": "F5_CLOUD_FAILOVER_LABEL",
-                "value": "mydeployment"
-            }
-        ]
+        }
     }
 }
 ```
