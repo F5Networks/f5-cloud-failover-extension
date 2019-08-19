@@ -22,14 +22,51 @@ const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
-const declaration = funcUtils.getDeploymentDeclaration();
+const deploymentInfo = funcUtils.getEnvironmentInfo();
+const rgName = deploymentInfo.deploymentId;
 
+const declaration = funcUtils.getDeploymentDeclaration();
+const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
+const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
 const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
+
 // helper functions
+const networkInterfaceFilter = i => i.tags
+    && Object.keys(i.tags).indexOf(networkInterfaceTagKey) !== -1
+    && i.tags[networkInterfaceTagKey] === networkInterfaceTagValue;
 const routeTableFilter = i => i.tags
     && Object.keys(i.tags).indexOf(routeTagKey) !== -1
     && i.tags[routeTagKey] === routeTagValue;
+const networkInterfaceMatch = (networkInterfaces, selfIps, virtualAddresses) => {
+    let match = false;
+    const myNics = [];
+    // filter
+    networkInterfaces = networkInterfaces.filter(networkInterfaceFilter);
+    networkInterfaces.forEach((nic) => {
+        nic.ipConfigurations.forEach((ipConfiguration) => {
+            selfIps.forEach((address) => {
+                if (ipConfiguration.privateIPAddress === address) {
+                    myNics.push(nic);
+                }
+            });
+        });
+    });
+    // check
+    myNics.forEach((nic) => {
+        nic.ipConfigurations.forEach((ipConfiguration) => {
+            virtualAddresses.forEach((address) => {
+                if (ipConfiguration.privateIPAddress === address) {
+                    match = true;
+                }
+            });
+        });
+    });
+    // assert
+    if (!match) {
+        assert.fail('Matching ipconfig not found');
+    }
+};
 const routeMatch = (routeTables, selfIps) => {
     let match = false;
     // filter
@@ -47,10 +84,13 @@ const routeMatch = (routeTables, selfIps) => {
         assert.fail('Matching next hop not found');
     }
 };
+// end helper functions
 
 describe('Provider: Azure', () => {
     let primarySelfIps = [];
     let secondarySelfIps = [];
+    let primaryVirtualAddresses = [];
+    let secondaryVirtualAddresses = [];
 
     let networkClient;
 
@@ -104,8 +144,32 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should get BIG-IP (primary) virtual address(es)', () => {
+        const uri = '/mgmt/tm/ltm/virtual-address';
+
+        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutPrimary.ip, uri, options);
+            })
+            .then((data) => {
+                primaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should check Azure network interfaces ipconfig matches virtual address (primary)', function () {
+        this.retries(500);
+
+        return networkClient.networkInterfaces.list(rgName)
+            .then((networkInterfaces) => {
+                networkInterfaceMatch(networkInterfaces, primarySelfIps, primaryVirtualAddresses);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
-        this.retries(25);
+        this.retries(100);
 
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
@@ -144,8 +208,32 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should get BIG-IP (secondary) virtual address(es)', () => {
+        const uri = '/mgmt/tm/ltm/virtual-address';
+
+        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutSecondary.ip, uri, options);
+            })
+            .then((data) => {
+                secondaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should check Azure network interfaces ipconfig matches virtual address (secondary)', function () {
+        this.retries(500);
+
+        return networkClient.networkInterfaces.list(rgName)
+            .then((networkInterfaces) => {
+                networkInterfaceMatch(networkInterfaces, secondarySelfIps, secondaryVirtualAddresses);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should check Azure route table route(s) next hop matches self IP (secondary)', function () {
-        this.retries(25);
+        this.retries(100);
 
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
@@ -166,6 +254,26 @@ describe('Provider: Azure', () => {
                     standby: true
                 };
                 return utils.makeRequest(dutSecondary.ip, uri, options);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should check Azure network interfaces ipconfig matches virtual address (primary)', function () {
+        this.retries(500);
+
+        return networkClient.networkInterfaces.list(rgName)
+            .then((networkInterfaces) => {
+                networkInterfaceMatch(networkInterfaces, primarySelfIps, primaryVirtualAddresses);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
+        this.retries(100);
+
+        return networkClient.routeTables.listAll()
+            .then((routeTables) => {
+                routeMatch(routeTables, primarySelfIps);
             })
             .catch(err => Promise.reject(err));
     });
