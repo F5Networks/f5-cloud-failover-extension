@@ -70,6 +70,10 @@ describe('Provider - GCP', () => {
         provider.logger.error = sinon.stub();
         provider.logger.info = sinon.stub();
         provider.logger.silly = sinon.stub();
+
+        provider.tags = {
+            'test-tag-key': 'test-tag-value'
+        };
     });
     afterEach(() => {
         sinon.restore();
@@ -118,6 +122,59 @@ describe('Provider - GCP', () => {
 
     it('validate updateRoute method', () => {
         assert.strictEqual(typeof provider.updateRoutes, 'function');
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+            return Promise.resolve({
+                items: [{
+                    kind: 'test-route',
+                    description: 'labels=test-tag-key,test-tag-value|ip_addresses=1.1.1.1,1.1.1.2',
+                    id: 'some-test-id',
+                    creationTimestamp: '101010101010',
+                    selfLink: 'https://test-self-link',
+                    nextHopIp: '1.1.1.2'
+                }]
+            });
+        });
+        providerSendRequestMock.onCall(1).callsFake((method, path) => {
+            assert.strictEqual(method, 'DELETE');
+            assert.strictEqual(path, 'global/routes/some-test-id');
+
+            return Promise.resolve({
+                name: 'test-name'
+            });
+        });
+        providerSendRequestMock.onCall(2).callsFake((method, path, payload) => {
+            assert.strictEqual(method, 'POST');
+            assert.strictEqual(path, 'global/routes/');
+            assert.strictEqual(payload.nextHopIp, '1.1.1.1');
+            assert.strictEqual(payload.description, 'labels=test-tag-key,test-tag-value|ip_addresses=1.1.1.1,1.1.1.2');
+            return Promise.resolve();
+        });
+        sinon.stub(provider.compute, 'operation').callsFake((name) => {
+            assert.strictEqual(name, 'test-name');
+            return {
+                promise: () => {
+                    assert.ok(true);
+                    return Promise.resolve();
+                }
+            };
+        });
+        return provider.updateRoutes(localAddresses)
+            .then(() => {
+                assert.strictEqual(provider.tags['test-tag-key'], 'test-tag-value');
+                assert.ok(true);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+
+    it('validate _getRoutes method', () => {
+        assert.strictEqual(typeof provider._getRoutes, 'function');
     });
 
     it('validate updateAddresses method', () => {
