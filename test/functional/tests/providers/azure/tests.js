@@ -189,7 +189,7 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     }
 
-    it('should check Azure network interfaces ipconfig matches virtual address (primary)', function () {
+    it('should check network interfaces contains virtual address (primary)', function () {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
@@ -207,7 +207,7 @@ describe('Provider: Azure', () => {
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('should check Azure network interfaces ipconfig matches virtual address (secondary)', function () {
+    it('should check network interfaces contains virtual address (secondary)', function () {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(secondarySelfIps, virtualAddresses)
@@ -225,7 +225,7 @@ describe('Provider: Azure', () => {
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
 
-    it('should check Azure network interfaces ipconfig matches virtual address (primary) ', function () {
+    it('should check network interfaces contains virtual address (primary) ', function () {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
@@ -239,20 +239,30 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
-    xit('should check if the addresses will get assign back to BIG-IP (primary) in a flapping scenario', () => {
-        // check if the network interfaces matches with the virtual address of the BIG-IP (primary).
-        // The secondary external IP should have swap from the primary to secondary BIG-IP.
-        // TODO: need to execute them in a loop and make sure that secondary BIG-IP has the addresses swap from primary
-        // TODO: consider using chai library to catch expect exception from primary 'Matching ipconfig not found'
-        checkNetworkInterfaces(primarySelfIps, virtualAddresses);
-        checkNetworkInterfaces(secondarySelfIps, virtualAddresses);
+    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+    it('Flapping scenario: should force BIG-IP (primary) to standby', () => forceStandby(
+        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+    ));
 
-        // set BIG-IP (secondary) to standby and make BIG-IP (primary) active
+    it('Flapping scenario: should wait three seconds', () => new Promise(
+        resolve => setTimeout(resolve, 3000)
+    ));
 
-        // Check the network interfaces and ensure that matches with the virtual address of the BIG-IP.
-        // The secondary external IP should have swap from the secondary to primary BIG-IP.
-        // TODO: need to execute them in a loop and make sure that primary BIG-IP has the addresses swap from secondary.
-        checkNetworkInterfaces(primarySelfIps, virtualAddresses);
-        checkNetworkInterfaces(secondarySelfIps, virtualAddresses);
+    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
+    it('Flapping scenario: should check network interfaces contains virtual address (primary) ', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Flapping scenario: should check route table route(s) next hop matches self IP (primary) ', function () {
+        this.retries(RETRIES.MEDIUM);
+
+        return checkRouteTables(primarySelfIps)
+            .catch(err => Promise.reject(err));
     });
 });
