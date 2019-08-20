@@ -85,8 +85,8 @@ function execute() {
                 cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
             ];
             // updating routes is conditional - TODO: rethink this...
-            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE, constants.CLOUD_PROVIDERS.GCE];
-            if (config.environment.indexOf(routeFeatureEnvironments) !== -1) {
+            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE, constants.CLOUD_PROVIDERS.GCP];
+            if (routeFeatureEnvironments.indexOf(config.environment) !== -1) {
                 actions.push(cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
             }
             return Promise.all(actions);
