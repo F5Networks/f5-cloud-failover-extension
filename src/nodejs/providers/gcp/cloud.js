@@ -111,50 +111,51 @@ class Cloud extends AbstractCloud {
      *
      * @param {Object} localAddresses    - Local addresses
      *
-     * @returns {Object}
+     * @returns {Object} promise
      */
     updateRoutes(ipAddresses) {
         this.logger.info('updateRoutes - Local addresses', ipAddresses);
-        let localAddresses = ipAddresses.localAddresses;
-        this.logger.info('DEBUG: local addresse: ' + JSON.stringify(localAddresses));
-
+        const localAddresses = ipAddresses.localAddresses;
         return this._getRoutes()
             .then((routesToUpdate) => {
-                const result=[];
-                this.logger.info('DEBUG locat addresses: ' + JSON.stringify(localAddresses));
+                const result = [];
                 routesToUpdate.forEach((route) => {
-                    if(route.description.indexOf('ip_addresses') !== -1){
-                        let firstRouteIp=route.description.match(/ip_addresses=.*/g)[0].split("=")[1].split(",")[0];
-                        let secondRouteIp=route.description.match(/ip_addresses=.*/g)[0].split("=")[1].split(",")[1];
-                        this.logger.info('First IP: ' + firstRouteIp);
-                        this.logger.info('Second IP: ' + secondRouteIp);
-                        this.logger.info('DEBUG: ' + localAddresses);
+                    if (route.description.indexOf('ip_addresses') !== -1) {
+                        const firstRouteIp = route.description.match(/ip_addresses=.*/g)[0].split('=')[1].split(',')[0];
+                        const secondRouteIp = route.description.match(/ip_addresses=.*/g)[0].split('=')[1].split(',')[1];
                         route.nextHopIp = '';
                         localAddresses.forEach((ipAddr) => {
-                            if (firstRouteIp == ipAddr){
-                                route.nextHopIp=firstRouteIp
-                            }else if(secondRouteIp == ipAddr){
-                                route.nextHopIp=secondRouteIp;
+                            if (firstRouteIp === ipAddr) {
+                                route.nextHopIp = firstRouteIp;
+                            } else if (secondRouteIp === ipAddr) {
+                                route.nextHopIp = secondRouteIp;
                             }
                         });
-                        if(route.nextHopIp == ''){
+                        if (route.nextHopIp === '') {
                             this.logger.info('NextHopIp was not set; provided ipAddresses are not matching localAddresses');
-                            return Promise.reject('NextHopIp was not set; provided ipAddresses are not matching localAddresses');
+                            return Promise.reject(new Error('NextHopIp was not set; provided ipAddresses are not matching localAddresses'));
                         }
                         result.push(route);
-                    }else{
-                        this.logger.info('Route object does not include ipAddresses, within description; however, the ipAddeses are required for failover');
-                        this.logger.info(JSON.stringify(route))
+                        return route;
                     }
+
+                    this.logger.info('Route object does not include ipAddresses, within description; however, the ipAddeses are required for failover');
+                    this.logger.info(JSON.stringify(route));
+                    return route;
                 });
 
-                this.logger.info('DEBUG: Routes with updated nextHopIp');
+                this.logger.info('Routes with updated nextHopIp');
                 this.logger.info(result);
 
+                if (result.length === 0) {
+                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+                }
+
                 // Deleting routes
-                const deletePromises =[];
+                const deletePromises = [];
                 result.forEach((item) => {
-                    deletePromises.push(this._sendRequest('DELETE', 'global/routes/' + item.id));
+                    deletePromises.push(this._sendRequest('DELETE', `global/routes/${item.id}`));
                     // Striping out unique fields in order to be able to re-use payload
                     delete item.id;
                     delete item.creationTimestamp;
@@ -164,23 +165,22 @@ class Cloud extends AbstractCloud {
 
                 return Promise.all(deletePromises)
                     .then((response) => {
-                        const operationPromises =[];
-                        if(response){
+                        const operationPromises = [];
+                        if (response) {
                             response.forEach((item) => {
-                                const operation = this.computeZone.operation(item.name);
+                                const operation = this.compute.operation(item.name);
                                 operationPromises.push(operation.promise());
-                            })
+                            });
                         }
                         return Promise.all(operationPromises);
                     })
                     .then((response) => {
                         this.logger.info('Routes have been successfully deleted. Re-creating routes with new nextHopIp');
-                        this.logger.info('Response: ' + JSON.stringify(response));
+                        this.logger.info(`Response: ${JSON.stringify(response)}`);
                         // Reacreating routes
-                        this.logger.info('Available Routes: ' + JSON.stringify(result));
-                        const createPromises=[];
-                        result.forEach((item)=> {
-                            this.logger.info('DEBUG: route payload: ' + JSON.stringify(item));
+                        this.logger.info(`Available Routes: ${JSON.stringify(result)}`);
+                        const createPromises = [];
+                        result.forEach((item) => {
                             createPromises.push(this._sendRequest('POST', 'global/routes/', item));
                         });
                         return Promise.all(createPromises);
@@ -189,46 +189,50 @@ class Cloud extends AbstractCloud {
                         this.logger.info('Routes have been successfully re-created. Route failover is completed now.');
                         this.logger.info(JSON.stringify(response));
                         return Promise.resolve();
-                    })
+                    });
             })
             .catch(err => Promise.reject(err));
     }
 
 
     /**
-     * Returns routes objects used for failover; method description values to identify route objects
+     * Returns routes objects used for failover; method uses routes' description values to identify route objects to work with
      *
      * @returns {Promise} A promise which will provide list of routes which need to be updated
      *
      */
     _getRoutes() {
-        this.logger.info("_getRoutes - tags:" + JSON.stringify(this.tags));
+        this.logger.info(`_getRoutes with tags: ${JSON.stringify(this.tags)}`);
 
         return this._sendRequest(
             'GET',
-            'global/routes')
+            'global/routes'
+        )
             .then((routesList) => {
                 const routesToUpdate = [];
-                if (routesList.items.length > 0){
-                    for (let index in routesList.items){
-                        if (routesList.items[index].description.indexOf('labels=') !== -1  && routesList.items[index].description.indexOf('ip_addresses=') !== -1) {
+                const that = this;
+                if (routesList.items.length > 0) {
+                    routesList.items.forEach((tag) => {
+                        if (tag.description.indexOf('labels=') !== -1
+                            && tag.description.indexOf('ip_addresses=') !== -1) {
                             let flag = true;
-                            for(let tagIndex in this.tags){
-                                if (routesList.items[index].description.indexOf(tagIndex) == -1 &&  routesList.items[index].description.indexOf(this.tags[tagIndex]) == -1){
-                                    flag=false;
+                            for (let i = 0; i < Object.values(that.tags).length; i += 1) {
+                                if (tag.description.indexOf(Object.keys(that.tags)[i]) === -1
+                                    && tag.description.indexOf(Object.values(that.tags)[i]) === -1) {
+                                    flag = false;
                                 }
                             }
-                            if(flag){
-                                this.logger.info(routesList.items[index]);
-                                routesToUpdate.push(routesList.items[index]);
+                            if (flag) {
+                                that.logger.info(tag);
+                                routesToUpdate.push(tag);
                             }
                         }
-                    }
-                }else{
+                    });
+                } else {
                     this.logger.info('WARNING: No available routes found.');
                 }
-                this.logger.info('Routes for update: ' + JSON.stringify(routesToUpdate));
-                return Promise.resolve(routesToUpdate)
+                this.logger.info(`Routes for update: ${JSON.stringify(routesToUpdate)}`);
+                return Promise.resolve(routesToUpdate);
             })
             .catch(err => Promise.reject(err));
     }
