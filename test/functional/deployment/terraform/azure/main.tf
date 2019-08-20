@@ -344,7 +344,7 @@ resource "local_file" "do1" {
 
 resource "null_resource" "login0" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
@@ -375,7 +375,7 @@ resource "null_resource" "onboard0" {
 
 resource "null_resource" "login1" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${azurerm_public_ip.pip1.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"

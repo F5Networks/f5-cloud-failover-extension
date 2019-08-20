@@ -18,6 +18,12 @@ const NetworkManagementClient = require('@azure/arm-network').NetworkManagementC
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
 
+const RETRIES = {
+    LONG: 500,
+    MEDIUM: 100,
+    SHORT: 10
+};
+
 const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
@@ -32,18 +38,13 @@ const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
 const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
 
 // helper functions
-const networkInterfaceFilter = i => i.tags
-    && Object.keys(i.tags).indexOf(networkInterfaceTagKey) !== -1
-    && i.tags[networkInterfaceTagKey] === networkInterfaceTagValue;
-const routeTableFilter = i => i.tags
-    && Object.keys(i.tags).indexOf(routeTagKey) !== -1
-    && i.tags[routeTagKey] === routeTagValue;
-const networkInterfaceMatch = (networkInterfaces, selfIps, virtualAddresses) => {
-    console.log(selfIps, virtualAddresses)
+function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
     let match = false;
     const myNics = [];
     // filter
-    networkInterfaces = networkInterfaces.filter(networkInterfaceFilter);
+    networkInterfaces = networkInterfaces.filter(i => i.tags
+        && Object.keys(i.tags).indexOf(networkInterfaceTagKey) !== -1
+        && i.tags[networkInterfaceTagKey] === networkInterfaceTagValue);
     networkInterfaces.forEach((nic) => {
         nic.ipConfigurations.forEach((ipConfiguration) => {
             selfIps.forEach((address) => {
@@ -67,11 +68,13 @@ const networkInterfaceMatch = (networkInterfaces, selfIps, virtualAddresses) => 
     if (!match) {
         assert.fail('Matching ipconfig not found');
     }
-};
-const routeMatch = (routeTables, selfIps) => {
+}
+function routeMatch(routeTables, selfIps) {
     let match = false;
     // filter
-    routeTables = routeTables.filter(routeTableFilter);
+    routeTables = routeTables.filter(i => i.tags
+        && Object.keys(i.tags).indexOf(routeTagKey) !== -1
+        && i.tags[routeTagKey] === routeTagValue);
     // check
     routeTables.forEach((routeTable) => {
         routeTable.routes.forEach((route) => {
@@ -84,19 +87,34 @@ const routeMatch = (routeTables, selfIps) => {
     if (!match) {
         assert.fail('Matching next hop not found');
     }
-};
+}
+function forceStandby(ip, username, password) {
+    const uri = '/mgmt/tm/sys/failover';
+
+    return utils.getAuthToken(ip, username, password)
+        .then((data) => {
+            const options = funcUtils.makeOptions({ authToken: data.token });
+            options.method = 'POST';
+            options.body = {
+                command: 'run',
+                standby: true
+            };
+            return utils.makeRequest(ip, uri, options);
+        })
+        .catch(err => Promise.reject(err));
+}
 // end helper functions
 
 describe('Provider: Azure', () => {
     let primarySelfIps = [];
     let secondarySelfIps = [];
-    let primaryVirtualAddresses = [];
-    let secondaryVirtualAddresses = [];
+    let virtualAddresses = [];
 
     let networkClient;
 
     before(function () {
-        this.timeout(10000)
+        this.timeout(10000);
+
         // support both Azure CLI and Service Principal Authentication schemes
         let promise;
         const clientId = process.env.ARM_CLIENT_ID;
@@ -126,36 +144,24 @@ describe('Provider: Azure', () => {
                 return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
             })
             .then((data) => {
-                const uri = '/mgmt/tm/ltm/virtual-address';
                 const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutPrimary.ip, uri, options);
+                return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((data) => {
-                primaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
+                virtualAddresses = data.items.map(i => i.address.split('/')[0]);
                 return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
             })
             .then((data) => {
-                const uri = '/mgmt/tm/net/self';
                 const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutPrimary.ip, uri, options);
+                return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
                 primarySelfIps = data.items.map(i => i.address.split('/')[0]);
                 return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password);
             })
             .then((data) => {
-                const uri = '/mgmt/tm/ltm/virtual-address';
                 const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutSecondary.ip, uri, options);
-            })
-            .then((data) => {
-                secondaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
-                return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password);
-            })
-            .then((data) => {
-                const uri = '/mgmt/tm/net/self';
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutSecondary.ip, uri, options);
+                return utils.makeRequest(dutSecondary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
                 secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
@@ -167,183 +173,86 @@ describe('Provider: Azure', () => {
             delete require.cache[key];
         });
     });
-    function checkPrimaryNetworkInterface() {
+    // local functions
+    function checkNetworkInterfaces(selfIps, virtualAddressesArg) {
         return networkClient.networkInterfaces.list(rgName)
             .then((networkInterfaces) => {
-                networkInterfaceMatch(networkInterfaces, primarySelfIps, primaryVirtualAddresses);
+                networkInterfaceMatch(networkInterfaces, selfIps, virtualAddressesArg);
             })
             .catch(err => Promise.reject(err));
     }
-    function checkSecondaryNetworkInterface() {
+    function checkRouteTables(selfIps) {
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
-                routeMatch(routeTables, secondarySelfIps);
+                routeMatch(routeTables, selfIps);
             })
             .catch(err => Promise.reject(err));
     }
-    function forcePrimaryBigIPStandby() {
-        const uri = '/mgmt/tm/sys/failover';
-
-        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                options.method = 'POST';
-                options.body = {
-                    command: 'run',
-                    standby: true
-                };
-                return utils.makeRequest(dutPrimary.ip, uri, options);
-            })
-            .catch(err => Promise.reject(err));
-    }
-    function forceSecondaryBigIPStandby() {
-        const uri = '/mgmt/tm/sys/failover';
-
-        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                options.method = 'POST';
-                options.body = {
-                    command: 'run',
-                    standby: true
-                };
-                return utils.makeRequest(dutSecondary.ip, uri, options);
-            })
-            .catch(err => Promise.reject(err));
-    }
-
-    // it('should get BIG-IP (primary) self IP(s)', () => {
-    //     const uri = '/mgmt/tm/net/self';
-    //
-    //     return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-    //         .then((data) => {
-    //             const options = funcUtils.makeOptions({ authToken: data.token });
-    //             return utils.makeRequest(dutPrimary.ip, uri, options);
-    //         })
-    //         .then((data) => {
-    //             primarySelfIps = data.items.map(i => i.address.split('/')[0]);
-    //         })
-    //         .catch(err => Promise.reject(err));
-    // });
-
-    // it('should get BIG-IP (primary) virtual address(es)', () => {
-    //     const uri = '/mgmt/tm/ltm/virtual-address';
-    //
-    //     return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-    //         .then((data) => {
-    //             const options = funcUtils.makeOptions({ authToken: data.token });
-    //             return utils.makeRequest(dutPrimary.ip, uri, options);
-    //         })
-    //         .then((data) => {
-    //             primaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
-    //         })
-    //         .catch(err => Promise.reject(err));
-    // });
 
     it('should check Azure network interfaces ipconfig matches virtual address (primary)', function () {
-        this.retries(500);
+        this.retries(RETRIES.LONG);
 
-        return networkClient.networkInterfaces.list(rgName)
-            .then((networkInterfaces) => {
-                networkInterfaceMatch(networkInterfaces, primarySelfIps, primaryVirtualAddresses);
-            })
+        return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
             .catch(err => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
-        this.retries(100);
+        this.retries(RETRIES.MEDIUM);
 
-        return networkClient.routeTables.listAll()
-            .then((routeTables) => {
-                routeMatch(routeTables, primarySelfIps);
-            })
+        return checkRouteTables(primarySelfIps)
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (primary) to standby', () => {
-        return forcePrimaryBigIPStandby();
-    });
-
-    // it('should get BIG-IP (secondary) self IP(s)', () => {
-    //     const uri = '/mgmt/tm/net/self';
-    //
-    //     return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-    //         .then((data) => {
-    //             const options = funcUtils.makeOptions({ authToken: data.token });
-    //             return utils.makeRequest(dutSecondary.ip, uri, options);
-    //         })
-    //         .then((data) => {
-    //             secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
-    //         })
-    //         .catch(err => Promise.reject(err));
-    // });
-    //
-    // it('should get BIG-IP (secondary) virtual address(es)', () => {
-    //     const uri = '/mgmt/tm/ltm/virtual-address';
-    //
-    //     return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-    //         .then((data) => {
-    //             const options = funcUtils.makeOptions({ authToken: data.token });
-    //             return utils.makeRequest(dutSecondary.ip, uri, options);
-    //         })
-    //         .then((data) => {
-    //             secondaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
-    //         })
-    //         .catch(err => Promise.reject(err));
-    // });
+    it('should force BIG-IP (primary) to standby', () => forceStandby(
+        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+    ));
 
     it('should check Azure network interfaces ipconfig matches virtual address (secondary)', function () {
-        this.retries(500);
-        return checkSecondaryNetworkInterface();
+        this.retries(RETRIES.LONG);
+
+        return checkNetworkInterfaces(secondarySelfIps, virtualAddresses)
+            .catch(err => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (secondary)', function () {
-        this.retries(100);
+        this.retries(RETRIES.MEDIUM);
 
-        return networkClient.routeTables.listAll()
-            .then((routeTables) => {
-                routeMatch(routeTables, secondarySelfIps);
-            })
+        return checkRouteTables(secondarySelfIps)
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (secondary) to standby', () => {
-        forceSecondaryBigIPStandby();
-    });
+    it('should force BIG-IP (secondary) to standby', () => forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
 
     it('should check Azure network interfaces ipconfig matches virtual address (primary) ', function () {
-        this.retries(500);
-        checkPrimaryNetworkInterface();
+        this.retries(RETRIES.LONG);
+
+        return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
+            .catch(err => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (primary) ', function () {
-        this.retries(100);
+        this.retries(RETRIES.MEDIUM);
 
-        return networkClient.routeTables.listAll()
-            .then((routeTables) => {
-                routeMatch(routeTables, primarySelfIps);
-            })
+        return checkRouteTables(primarySelfIps)
             .catch(err => Promise.reject(err));
     });
 
-    it('should check if the addresses will get assign back to BIG-IP (primary) in a flapping scenario', () => {
-        // set BIG-IP (primary) to standby and make BIG-IP (secondary) to active
-        forcePrimaryBigIPStandby();
-
+    xit('should check if the addresses will get assign back to BIG-IP (primary) in a flapping scenario', () => {
         // check if the network interfaces matches with the virtual address of the BIG-IP (primary).
         // The secondary external IP should have swap from the primary to secondary BIG-IP.
         // TODO: need to execute them in a loop and make sure that secondary BIG-IP has the addresses swap from primary
         // TODO: consider using chai library to catch expect exception from primary 'Matching ipconfig not found'
-        checkPrimaryNetworkInterface();
-        checkSecondaryNetworkInterface();
+        checkNetworkInterfaces(primarySelfIps, virtualAddresses);
+        checkNetworkInterfaces(secondarySelfIps, virtualAddresses);
 
         // set BIG-IP (secondary) to standby and make BIG-IP (primary) active
-        forceSecondaryBigIPStandby();
 
         // Check the network interfaces and ensure that matches with the virtual address of the BIG-IP.
         // The secondary external IP should have swap from the secondary to primary BIG-IP.
         // TODO: need to execute them in a loop and make sure that primary BIG-IP has the addresses swap from secondary.
-        checkPrimaryNetworkInterface();
-        checkSecondaryNetworkInterface();
+        checkNetworkInterfaces(primarySelfIps, virtualAddresses);
+        checkNetworkInterfaces(secondarySelfIps, virtualAddresses);
     });
 });
