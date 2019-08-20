@@ -196,7 +196,8 @@ class Cloud extends AbstractCloud {
 
 
     /**
-     * Returns routes objects used for failover; method uses routes' description values to identify route objects to work with
+     * Returns routes objects used for failover; method uses routes' description values
+     * to identify route objects to work with
      *
      * @returns {Promise} A promise which will provide list of routes which need to be updated
      *
