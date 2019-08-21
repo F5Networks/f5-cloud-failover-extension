@@ -47,7 +47,8 @@ function execute() {
             return cloudProvider.init({
                 tags: util.getDataByKey(config, 'failoverAddresses.scopingTags'),
                 routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
-                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges')
+                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges'),
+                routeSelfIpsTag: 'F5_SELF_IPS'
             });
         })
         .then(() => {
@@ -85,7 +86,7 @@ function execute() {
                 cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
             ];
             // updating routes is conditional - TODO: rethink this...
-            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
+            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AWS];
             if (config.environment.indexOf(routeFeatureEnvironments) !== -1) {
                 actions.push(cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
             }

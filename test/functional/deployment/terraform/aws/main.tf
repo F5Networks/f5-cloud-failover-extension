@@ -10,7 +10,7 @@ variable "global_tags" {
   type = "map"
   default = {
     creator = "Terraform - Failover Extension"
-    delete = "True"
+    delete = "False"
   }
 }
 
@@ -29,7 +29,7 @@ resource "aws_vpc" "main" {
 
 resource "aws_internet_gateway" "gateway" {
   vpc_id = "${aws_vpc.main.id}"
-  
+
   tags = "${merge(
     var.global_tags,
     {
@@ -61,11 +61,17 @@ resource "aws_route_table" "external" {
     cidr_block = "0.0.0.0/0"
     gateway_id = "${aws_internet_gateway.gateway.id}"
   }
+  route {
+    cidr_block = "192.0.2.0/24"
+    network_interface_id = "${aws_network_interface.external1.id}"
+  }
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
+      F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+      F5_SELF_IPS = "${tolist(aws_network_interface.external1.private_ips)[0]}, ${tolist(aws_network_interface.external2.private_ips)[0]}"
     }
   )}"
 }
@@ -494,7 +500,7 @@ resource "aws_instance" "vm0" {
   # Wait until the instance is in a running state
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm0.id} --region ${var.aws_region}"
-  } 
+  }
 }
 
 resource "aws_instance" "vm1" {
@@ -527,7 +533,7 @@ resource "aws_instance" "vm1" {
   # Wait until the instance is in a running state
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm1.id} --region ${var.aws_region}"
-  } 
+  }
 }
 
 resource "local_file" "do0" {
@@ -560,7 +566,7 @@ resource "local_file" "do1" {
 
 resource "null_resource" "login0" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/aws_do_template.json")
@@ -580,7 +586,7 @@ resource "null_resource" "onboard0" {
 
 resource "null_resource" "login1" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/aws_do_template.json")

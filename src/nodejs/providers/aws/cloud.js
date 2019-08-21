@@ -37,6 +37,10 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.routeTags = options.routeTags || {};
+        this.routeAddresses = options.routeAddresses || [];
+        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
+
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -70,8 +74,36 @@ class Cloud extends AbstractCloud {
     }
 
     updateRoutes() {
-        this.logger.info('YoHo');
-        return this.logger.info(this.ec2.describeRouteTables(this.tags));
+        this._getRouteTables(this.routeTags)
+            .then((RouteTableListResult) => {
+                this.logger.info(RouteTableListResult);
+            });
+    }
+
+    _getRouteTables(tags) {
+        const params = {
+            Filters: []
+        };
+
+        const tagKeys = Object.keys(tags);
+        tagKeys.forEach((tagKey) => {
+            params.Filters.push(
+                {
+                    Name: `tag:${tagKey}`,
+                    Values: [
+                        tags[tagKey]
+                    ]
+                }
+            );
+        });
+        return new Promise((resolve, reject) => {
+            this.ec2.describeRouteTables(params)
+                .promise()
+                .then((routeTables) => {
+                    resolve(routeTables);
+                })
+                .catch(err => reject(err));
+        });
     }
 
     /**
@@ -245,6 +277,7 @@ class Cloud extends AbstractCloud {
                 .then((data) => {
                     const privateIps = {};
                     data.NetworkInterfaces.forEach((nic) => {
+                        this.logger.info('Nic ', nic);
                         nic.PrivateIpAddresses.forEach((privateIp) => {
                             if (privateIp.Primary === false) {
                                 privateIps[privateIp.PrivateIpAddress] = {
