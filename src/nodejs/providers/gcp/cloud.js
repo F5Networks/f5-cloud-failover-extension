@@ -133,7 +133,6 @@ class Cloud extends AbstractCloud {
                         });
                         if (route.nextHopIp === '') {
                             this.logger.info('NextHopIp was not set; provided ipAddresses are not matching localAddresses');
-                            return Promise.reject(new Error('NextHopIp was not set; provided ipAddresses are not matching localAddresses'));
                         }
                         result.push(route);
                         return route;
@@ -147,11 +146,6 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Routes with updated nextHopIp');
                 this.logger.info(result);
 
-                if (result.length === 0) {
-                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
-                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
-                }
-
                 // Deleting routes
                 const deletePromises = [];
                 result.forEach((item) => {
@@ -162,6 +156,12 @@ class Cloud extends AbstractCloud {
                     delete item.kind;
                     delete item.selfLink;
                 });
+
+
+                if (result.length === 0) {
+                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+                }
 
                 return Promise.all(deletePromises)
                     .then((response) => {

@@ -108,21 +108,20 @@ test_package:
     only:
         variables:
             - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_REF_NAME == "ESECLDTPLT-1487"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: azure
-test_functional_azure:
-    <<: *test_functional_generic
-    variables:
-        CF_ENV_CLOUD: "azure"
+#test_functional_azure:
+#    <<: *test_functional_generic
+#    variables:
+#        CF_ENV_CLOUD: "azure"
 
 # run functional tests: aws
-test_functional_aws:
-    <<: *test_functional_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
+#test_functional_aws:
+#    <<: *test_functional_generic
+#    variables:
+#        CF_ENV_CLOUD: "aws"
 
 # run functional tests: gcp
 # note: disabled until quota for compute network and subnetwork limit is increased
