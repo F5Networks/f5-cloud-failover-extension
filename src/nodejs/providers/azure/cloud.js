@@ -23,12 +23,13 @@ const StorageManagementClient = require('azure-arm-storage');
 const Storage = require('azure-storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
-const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const constants = require('../../constants');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
+const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
-const containerName = 'f5cloudfailoverstate';
+const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -98,7 +99,7 @@ class Cloud extends AbstractCloud {
                     storageAccountInfo.key,
                     `${storageAccountInfo.name}.blob${environment.storageEndpointSuffix}`
                 );
-                return this._initStorageAccountContainer(containerName);
+                return this._initStorageAccountContainer(storageContainerName);
             })
             .catch(err => Promise.reject(err));
     }
@@ -256,28 +257,48 @@ class Cloud extends AbstractCloud {
     /**
     * Upload data to storage (cloud)
     *
-    * @param {Object} data - data to upload
+    * @param {Object} fileName - file name where data should be uploaded
+    * @param {Object} data     - data to upload
     *
     * @returns {Promise}
     */
-    uploadDataToStorage(data) {
-        this.logger.silly('Data to upload: ', data);
+    uploadDataToStorage(fileName, data) {
+        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
 
-        return Promise.resolve()
-            .then(() => {
-                // TODO: implement actual upload
-                return Promise.resolve();
-            })
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.createBlockBlobFromText(
+                storageContainerName, fileName, JSON.stringify(data), (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                }
+            );
+        }))
             .catch(err => Promise.reject(err));
     }
 
     /**
-    * Download data to storage (cloud)
+    * Download data from storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be downloaded
     *
     * @returns {Promise}
     */
-    downloadDataFromStorage() {
-        return Promise.resolve({});
+    downloadDataFromStorage(fileName) {
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.getBlobToText(
+                storageContainerName, fileName, (err, data) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(JSON.parse(data));
+                    }
+                }
+            );
+        }))
+            .catch(err => Promise.reject(err));
     }
 
     /**

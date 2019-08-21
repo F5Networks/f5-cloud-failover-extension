@@ -53,5 +53,6 @@ module.exports = {
         STATUS_RUNNING: 'RUNNING'
     },
     NAMELESS_CLASSES: [
-    ]
+    ],
+    STORAGE_FOLDER_NAME: 'f5cloudfailover'
 };

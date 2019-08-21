@@ -25,6 +25,36 @@ const constants = require('./constants.js');
 
 const logger = new Logger(module);
 
+const stateFileName = 'f5cloudfailoverstate.json';
+const stateFileContents = {
+    status: 'NO_OP',
+    timestamp: new Date().toJSON(),
+    configuration: {}
+};
+const FAILOVER_STATES = {
+    PASS: 'SUCCEEDED',
+    FAIL: 'FAILED',
+    RUNNING: 'RUNNING'
+};
+
+/**
+ * Create state object
+ *
+ * @param {Object} [options]           - function options
+ * @param {String} [options.status]    - status: 'RUNNING', 'FAILED', etc.
+ * @param {String} [options.timestamp] - JSON timestampe
+ *
+ * @returns {Object}
+ */
+function createStateObject(options) {
+    const status = options.status;
+
+    const thisState = util.deepCopy(stateFileContents);
+    thisState.status = status;
+    thisState.timestamp = new Date().toJSON();
+    return thisState;
+}
+
 /**
  * Execute (primary function)
  */
@@ -54,23 +84,20 @@ function execute() {
         .then(() => {
             logger.debug('Cloud provider has been initialized');
 
-            return cloudProvider.downloadDataFromStorage();
+            return cloudProvider.downloadDataFromStorage(stateFileName);
         })
         .then((data) => {
-            logger.debug('State file contents: ', data);
+            logger.debug('State file data: ', data);
 
-            if (data.status === 'RUNNING') {
+            if (data.status !== FAILOVER_STATES.PASS) {
                 // TODO: implement waitForTask():
+                // account for RUNNING and FAILED
             }
             return Promise.resolve();
         })
         .then(() => {
-            const stateFileContents = {
-                status: 'RUNNING',
-                timestamp: new Date().toJSON(),
-                configuration: {}
-            };
-            return cloudProvider.uploadDataToStorage(stateFileContents);
+            const stateFile = createStateObject({ status: 'RUNNING' });
+            return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
         })
         .then(() => {
             device = new Device({
@@ -111,11 +138,19 @@ function execute() {
             return Promise.all(actions);
         })
         .then(() => {
+            const stateFile = createStateObject({ status: FAILOVER_STATES.PASS });
+            return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
+        })
+        .then(() => {
             logger.info('Failover complete');
         })
         .catch((err) => {
             logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
-            return Promise.reject(err);
+
+            const stateFile = createStateObject({ status: FAILOVER_STATES.FAIL });
+            return cloudProvider.uploadDataToStorage(stateFileName, stateFile)
+                .then(() => Promise.reject(err))
+                .catch(() => Promise.reject(err));
         });
 }
 
