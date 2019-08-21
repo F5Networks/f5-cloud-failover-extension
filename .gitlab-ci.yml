@@ -107,7 +107,6 @@ test_package:
         - cm-official-docker-executor
     only:
         variables:
-            - $CI_COMMIT_REF_NAME == "master"
             - $CI_COMMIT_REF_NAME == "ESECLDTPLT-1487"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
