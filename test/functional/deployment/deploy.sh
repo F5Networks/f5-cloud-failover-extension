@@ -13,7 +13,7 @@ if [[ -z "$environment" ]]; then
 fi
 
 # install python dependencies
-#python3 -m venv venv && source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r ${script_location}/requirements.txt
 
 # support create|delete|show
@@ -33,4 +33,4 @@ else
 fi
 
 # perform any cleanup necessary
-#deactivate && rm -rf venv
+deactivate && rm -rf venv
