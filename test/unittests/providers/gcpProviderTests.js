@@ -173,6 +173,27 @@ describe('Provider - GCP', () => {
     });
 
 
+    it('validate updateRoute method response when no failover routes provided ', () => {
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+            return Promise.resolve({
+                items: []
+            });
+        });
+
+        return provider.updateRoutes(localAddresses)
+            .then((response) => {
+                assert.strictEqual(response, 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+
     it('validate _getRoutes method', () => {
         assert.strictEqual(typeof provider._getRoutes, 'function');
     });
