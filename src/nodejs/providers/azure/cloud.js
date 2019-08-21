@@ -20,6 +20,7 @@ const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
 const StorageManagementClient = require('azure-arm-storage');
+const Storage = require('azure-storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
@@ -27,6 +28,7 @@ const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
 const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+const containerName = 'f5cloudfailoverstate';
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -36,6 +38,8 @@ class Cloud extends AbstractCloud {
         this.subscriptionId = null;
 
         this.networkClient = null;
+        this.storageClient = null;
+        this.storageOperationsClient = null;
     }
 
     /**
@@ -55,12 +59,14 @@ class Cloud extends AbstractCloud {
         this.routeSelfIpsTag = options.routeSelfIpsTag || '';
         this.storageTags = options.storageTags || {};
 
+        let environment;
+
         return this._getInstanceMetadata()
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.subscriptionId = metadata.compute.subscriptionId;
 
-                const environment = this._getAzureEnvironment(metadata);
+                environment = this._getAzureEnvironment(metadata);
                 const msiOptions = {
                     resource: environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
@@ -77,7 +83,22 @@ class Cloud extends AbstractCloud {
                     this.subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
-                return Promise.resolve();
+                return this._listStorageAccounts({ tags: this.storageTags });
+            })
+            .then((storageAccounts) => {
+                if (!storageAccounts.length) {
+                    return Promise.reject(new Error('No storage account found!'));
+                }
+                const storageAccount = storageAccounts[0]; // only need one
+                return this._getStorageAccountKey(storageAccount.name);
+            })
+            .then((storageAccountInfo) => {
+                this.storageOperationsClient = Storage.createBlobService(
+                    storageAccountInfo.name,
+                    storageAccountInfo.key,
+                    `${storageAccountInfo.name}.blob${environment.storageEndpointSuffix}`
+                );
+                return this._initStorageAccountContainer(containerName);
             })
             .catch(err => Promise.reject(err));
     }
@@ -242,19 +263,8 @@ class Cloud extends AbstractCloud {
     uploadDataToStorage(data) {
         this.logger.silly('Data to upload: ', data);
 
-        return this._listStorageAccounts({ tags: this.storageTags })
-            .then((storageAccounts) => {
-                this.logger.silly('Storage Accounts: ', storageAccounts);
-
-                if (!storageAccounts.length) {
-                    return Promise.reject(new Error('No storage account found!'));
-                }
-                const storageAccount = storageAccounts[0]; // only need one
-                return this._getStorageAccountKey(storageAccount.name);
-            })
-            .then((key) => {
-                this.logger.silly('Key: ', key);
-
+        return Promise.resolve()
+            .then(() => {
                 // TODO: implement actual upload
                 return Promise.resolve();
             })
@@ -353,8 +363,28 @@ class Cloud extends AbstractCloud {
             .then((data) => {
                 // simply grab the first key, for now
                 const key = data.keys[0].value;
-                return Promise.resolve(key);
+                return Promise.resolve({ name, key });
             })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Initialize (create if it does not exist) storage account container
+    *
+    * @param {String} name - storage account container name
+    *
+    * @returns {Promise}
+    */
+    _initStorageAccountContainer(name) {
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.createContainerIfNotExists(name, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        }))
             .catch(err => Promise.reject(err));
     }
 
