@@ -27,7 +27,6 @@ const logger = new Logger(module);
 
 /**
  * Execute (primary function)
- *
  */
 function execute() {
     let cloudProvider;
@@ -47,11 +46,31 @@ function execute() {
             return cloudProvider.init({
                 tags: util.getDataByKey(config, 'failoverAddresses.scopingTags'),
                 routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
-                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges')
+                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges'),
+                routeSelfIpsTag: 'F5_SELF_IPS',
+                storageTags: util.getDataByKey(config, 'externalStorage.scopingTags')
             });
         })
         .then(() => {
-            logger.info('Cloud provider has been initialized');
+            logger.debug('Cloud provider has been initialized');
+
+            return cloudProvider.downloadDataFromStorage();
+        })
+        .then((data) => {
+            logger.debug('State file contents: ', data);
+
+            if (data.status === 'RUNNING') {
+                // TODO: implement waitForTask():
+            }
+            return Promise.resolve();
+        })
+        .then(() => {
+            const stateFileContents = {
+                status: 'RUNNING',
+                timestamp: new Date().toJSON(),
+                configuration: {}
+            };
+            return cloudProvider.uploadDataToStorage(stateFileContents);
         })
         .then(() => {
             device = new Device({
@@ -63,7 +82,7 @@ function execute() {
             return device.initialize();
         })
         .then(() => {
-            logger.info('BIG-IP has been initialized');
+            logger.debug('BIG-IP has been initialized');
         })
         .then(() => device.getConfig([
             '/tm/sys/global-settings',

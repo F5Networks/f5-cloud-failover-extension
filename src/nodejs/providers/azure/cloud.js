@@ -19,6 +19,7 @@
 const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
+const StorageManagementClient = require('azure-arm-storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
@@ -48,10 +49,11 @@ class Cloud extends AbstractCloud {
     */
     init(options) {
         options = options || {};
-        this.tags = options.tags || null;
-        this.routeTags = options.routeTags || null;
-        this.routeAddresses = options.routeAddresses || null;
-        this.routeSelfIpsTag = options.routeSelfIpsTag || 'F5_SELF_IPS';
+        this.tags = options.tags || {};
+        this.routeTags = options.routeTags || {};
+        this.routeAddresses = options.routeAddresses || [];
+        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
+        this.storageTags = options.storageTags || {};
 
         return this._getInstanceMetadata()
             .then((metadata) => {
@@ -66,6 +68,11 @@ class Cloud extends AbstractCloud {
                 const credentials = new msRestAzure.MSIVmTokenCredentials(msiOptions);
 
                 this.networkClient = new NetworkManagementClient(
+                    credentials,
+                    this.subscriptionId,
+                    environment.resourceManagerEndpointUrl
+                );
+                this.storageClient = new StorageManagementClient(
                     credentials,
                     this.subscriptionId,
                     environment.resourceManagerEndpointUrl
@@ -226,6 +233,44 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Upload data to storage (cloud)
+    *
+    * @param {Object} data - data to upload
+    *
+    * @returns {Promise}
+    */
+    uploadDataToStorage(data) {
+        this.logger.silly('Data to upload: ', data);
+
+        return this._listStorageAccounts({ tags: this.storageTags })
+            .then((storageAccounts) => {
+                this.logger.silly('Storage Accounts: ', storageAccounts);
+
+                if (!storageAccounts.length) {
+                    return Promise.reject(new Error('No storage account found!'));
+                }
+                const storageAccount = storageAccounts[0]; // only need one
+                return this._getStorageAccountKey(storageAccount.name);
+            })
+            .then((key) => {
+                this.logger.silly('Key: ', key);
+
+                // TODO: implement actual upload
+                return Promise.resolve();
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Download data to storage (cloud)
+    *
+    * @returns {Promise}
+    */
+    downloadDataFromStorage() {
+        return Promise.resolve({});
+    }
+
+    /**
     * Get Azure environment
     *
     * @returns {String}
@@ -262,6 +307,55 @@ class Cloud extends AbstractCloud {
                     reject(err);
                 });
         });
+    }
+
+    /**
+    * Lists all storage accounts
+    *
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
+    *
+    * @returns {Promise}
+    */
+    _listStorageAccounts(options) {
+        const tags = options.tags || {};
+
+        return this.storageClient.storageAccounts.list()
+            .then((storageAccounts) => {
+                // if true, filter storage accounts based on 1+ tags
+                if (tags) {
+                    const tagKeys = Object.keys(tags);
+                    const filteredStorageAccounts = storageAccounts.filter((sa) => {
+                        let matchedTags = 0;
+                        tagKeys.forEach((tagKey) => {
+                            if (Object.keys(sa.tags).indexOf(tagKey) !== -1 && sa.tags[tagKey] === tags[tagKey]) {
+                                matchedTags += 1;
+                            }
+                        });
+                        return tagKeys.length === matchedTags;
+                    });
+                    return Promise.resolve(filteredStorageAccounts);
+                }
+                return Promise.resolve(storageAccounts);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get key for a specified storage accounts
+    *
+    * @param {String} name - storage account name
+    *
+    * @returns {Promise}
+    */
+    _getStorageAccountKey(name) {
+        return this.storageClient.storageAccounts.listKeys(this.resourceGroup, name)
+            .then((data) => {
+                // simply grab the first key, for now
+                const key = data.keys[0].value;
+                return Promise.resolve(key);
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**

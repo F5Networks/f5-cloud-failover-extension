@@ -5,9 +5,21 @@ module "utils" {
 resource "azurerm_resource_group" "deployment" {
   name      = "${module.utils.env_prefix}"
   location  = "${var.location}"
-  tags  = {
+  tags = {
     creator = "Terraform"
     delete  = "True"
+  }
+}
+
+resource "azurerm_storage_account" "storage_account" {
+  name                     = "${lower(module.utils.env_prefix)}sa"
+  resource_group_name      = "${azurerm_resource_group.deployment.name}"
+  location                 = "${azurerm_resource_group.deployment.location}"
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  tags = {
+    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
   }
 }
 
@@ -205,7 +217,7 @@ resource "azurerm_route_table" "route_table" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}",
     F5_SELF_IPS = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
 }
