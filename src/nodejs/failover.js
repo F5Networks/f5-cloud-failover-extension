@@ -25,33 +25,38 @@ const constants = require('./constants.js');
 
 const logger = new Logger(module);
 
-const stateFileName = 'f5cloudfailoverstate.json';
-const stateFileContents = {
-    status: 'NO_OP',
-    timestamp: new Date().toJSON(),
-    configuration: {}
-};
 const FAILOVER_STATES = {
     PASS: 'SUCCEEDED',
     FAIL: 'FAILED',
     RUNNING: 'RUNNING'
 };
+const stateFileName = 'f5cloudfailoverstate.json';
+const stateFileContents = {
+    instance: '',
+    configuration: {},
+    taskState: FAILOVER_STATES.PASS,
+    timestamp: new Date().toJSON()
+};
+const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
+const TASK_RETRY_MS = 5 * 1000; // 5 seconds
 
 /**
  * Create state object
  *
  * @param {Object} [options]           - function options
- * @param {String} [options.status]    - status: 'RUNNING', 'FAILED', etc.
- * @param {String} [options.timestamp] - JSON timestampe
+ * @param {String} [options.taskState] - task state
+ * @param {String} [options.instance]  - instance name
  *
  * @returns {Object}
  */
 function createStateObject(options) {
-    const status = options.status;
+    const taskState = options.taskState;
+    const instance = options.instance;
 
     const thisState = util.deepCopy(stateFileContents);
-    thisState.status = status;
+    thisState.taskState = taskState;
     thisState.timestamp = new Date().toJSON();
+    thisState.instance = instance;
     return thisState;
 }
 
@@ -63,6 +68,43 @@ function execute() {
     let hostname;
     let device;
     let config;
+
+    /**
+     * Wait for state task to complete (or fail/timeout)
+     *
+     * @returns {Promise}
+     */
+    function waitForTask() {
+        return new Promise((resolve, reject) => {
+            const interval = setInterval(() => {
+                cloudProvider.downloadDataFromStorage(stateFileName)
+                    .then((data) => {
+                        logger.silly(`Task state: ${data.taskState}`);
+                        if (data.taskState === FAILOVER_STATES.PASS) {
+                            clearInterval(interval);
+                            resolve({ recoverPreviousTask: false });
+                        }
+                        if (data.taskState === FAILOVER_STATES.RUNNING) {
+                            // continue
+                        }
+                        if (data.taskState === FAILOVER_STATES.FAIL) {
+                            // continue
+                        }
+
+                        // enforce maximum time allotment
+                        const timeDrift = new Date() - Date.parse(data.timeStamp);
+                        if (timeDrift > RUNNING_TASK_MAX_MS) {
+                            clearInterval(interval);
+                            reject(new Error(`Time drift exceeded maximum limit: ${timeDrift}`));
+                        }
+                    })
+                    .catch((err) => {
+                        clearInterval(interval);
+                        reject(err);
+                    });
+            }, TASK_RETRY_MS);
+        });
+    }
 
     return configWorker.getConfig()
         .then((data) => {
@@ -89,14 +131,19 @@ function execute() {
         .then((data) => {
             logger.debug('State file data: ', data);
 
-            if (data.status !== FAILOVER_STATES.PASS) {
-                // TODO: implement waitForTask():
-                // account for RUNNING and FAILED
+            // initial case - simply create state object in next step
+            if (!data || !data.taskState) {
+                return Promise.resolve();
             }
-            return Promise.resolve();
+            // success - no need to wait for task
+            if (data.taskState === FAILOVER_STATES.PASS) {
+                return Promise.resolve();
+            }
+            // wait for task to finish (or fail/timeout)
+            return waitForTask();
         })
         .then(() => {
-            const stateFile = createStateObject({ status: 'RUNNING' });
+            const stateFile = createStateObject({ taskState: 'RUNNING', instance: hostname });
             return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
         })
         .then(() => {
@@ -138,7 +185,7 @@ function execute() {
             return Promise.all(actions);
         })
         .then(() => {
-            const stateFile = createStateObject({ status: FAILOVER_STATES.PASS });
+            const stateFile = createStateObject({ taskState: FAILOVER_STATES.PASS, instance: hostname });
             return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
         })
         .then(() => {
@@ -147,7 +194,7 @@ function execute() {
         .catch((err) => {
             logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
 
-            const stateFile = createStateObject({ status: FAILOVER_STATES.FAIL });
+            const stateFile = createStateObject({ taskState: FAILOVER_STATES.FAIL, instance: hostname });
             return cloudProvider.uploadDataToStorage(stateFileName, stateFile)
                 .then(() => Promise.reject(err))
                 .catch(() => Promise.reject(err));

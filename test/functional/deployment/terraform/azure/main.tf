@@ -364,17 +364,6 @@ resource "null_resource" "login0" {
   depends_on = [azurerm_virtual_machine.vm0]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-resource "null_resource" "create_virtual0" {
-  provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip0.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
-  depends_on = [null_resource.login0]
-}
-
 resource "null_resource" "onboard0" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do0.json"
@@ -403,6 +392,17 @@ resource "null_resource" "onboard1" {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
   depends_on = [local_file.do1, null_resource.login1]
+}
+
+# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
+resource "null_resource" "create_virtual" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = [null_resource.onboard1]
 }
 
 output "deployment_info" {

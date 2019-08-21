@@ -288,16 +288,32 @@ class Cloud extends AbstractCloud {
     */
     downloadDataFromStorage(fileName) {
         return new Promise(((resolve, reject) => {
-            this.storageOperationsClient.getBlobToText(
+            this.storageOperationsClient.doesBlobExist(
                 storageContainerName, fileName, (err, data) => {
                     if (err) {
                         reject(err);
                     } else {
-                        resolve(JSON.parse(data));
+                        resolve(data.exists);
                     }
                 }
             );
         }))
+            .then((exists) => {
+                if (exists === false) {
+                    return Promise.resolve({});
+                }
+                return new Promise(((resolve, reject) => {
+                    this.storageOperationsClient.getBlobToText(
+                        storageContainerName, fileName, (err, data) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(JSON.parse(data));
+                            }
+                        }
+                    );
+                }));
+            })
             .catch(err => Promise.reject(err));
     }
 
