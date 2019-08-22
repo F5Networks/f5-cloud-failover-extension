@@ -8,8 +8,57 @@
 
 'use strict';
 
+const assert = require('assert');
+const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
+
+/* eslint-disable import/no-extraneous-dependencies */
+const {google} = require('googleapis');
+const compute = google.compute('v1');
+/*
+const utils = require('../../../../shared/util.js');
+const funcUtils = require('../../shared/util.js');
+
+const duts = funcUtils.getHostInfo();
+const dutPrimary = duts.filter(dut => dut.primary)[0];
+const dutSecondary = duts.filter(dut => !dut.primary)[0];
+
+const deploymentInfo = funcUtils.getEnvironmentInfo();
+const rgName = deploymentInfo.deploymentId;
+
+const declaration = funcUtils.getDeploymentDeclaration();
+const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
+const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
+const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
+const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
+*/
+
+// Helper functions
+
+const configureAuth = () => {
+    if(process.env.GOOGLE_CREDENTIALS){
+        return google.auth.getClient({
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+    }
+    else {
+        throw(new Error('gcloud creds are not provided via env variable titled as GOOGLE_CREDENTIALS'));
+    }
+};
+
+let request = {};
+
 describe('Provider: GCP', () => {
     before(() => {
+        return configureAuth()
+            .then((authClient) => {
+                 request = {
+                    project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
+                    auth: authClient,
+                    zone: 'us-west1-a'
+                };
+            }).catch(err => {
+                console.error('authentication failed: ', err);
+            });
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -18,5 +67,10 @@ describe('Provider: GCP', () => {
     });
 
     it('init test', () => {
+
+        compute.instances.list(request, (err, vmData) => {
+            console.log(vmData)
+        });
+
     });
 });

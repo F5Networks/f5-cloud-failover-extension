@@ -356,7 +356,7 @@ resource "null_resource" "login01" {
 
 resource "null_resource" "delay_one_minute01" {
   provisioner "local-exec" {
-    command = "sleep 60"
+    command = "sleep 280"
   }
   depends_on = [null_resource.login01]
 }
