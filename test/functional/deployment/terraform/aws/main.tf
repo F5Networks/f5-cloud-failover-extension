@@ -233,6 +233,8 @@ resource "aws_security_group" "mgmt" {
 resource "aws_s3_bucket" "configdb" {
   bucket = "failoverextension-${module.utils.env_prefix}-s3bucket"
 
+  force_destroy = true
+
   tags = "${merge(
     var.global_tags,
     {
