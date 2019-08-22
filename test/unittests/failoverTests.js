@@ -32,6 +32,14 @@ describe('Failover', () => {
     let deviceGetSelfAddressesMock;
     let deviceGetVirtualAddressesMock;
 
+    const mockCloudProvider = {
+        init: () => {},
+        updateAddresses: () => {},
+        updateRoutes: () => {},
+        downloadDataFromStorage: () => {},
+        uploadDataToStorage: () => {}
+    };
+
     before(() => {
         config = require('../../src/nodejs/config.js');
         device = require('../../src/nodejs/device.js');
@@ -57,12 +65,6 @@ describe('Failover', () => {
     });
 
     it('validate that it performs failover', () => {
-        const mockCloudProvider = {
-            init: () => {},
-            updateAddresses: () => {},
-            updateRoutes: () => {}
-        };
-
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
         const spyOnUpdateAddresses = sinon.spy(mockCloudProvider, 'updateAddresses');
         deviceGlobalSettingsMock.onCall(0).returns({ hostname: 'some_hostname' });

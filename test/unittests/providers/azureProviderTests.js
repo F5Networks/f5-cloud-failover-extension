@@ -19,7 +19,6 @@ const cloud = 'azure';
 describe('Provider - Azure', () => {
     let AzureCloudProvider;
     let f5CloudLibs;
-    let cloudLibsUtil;
     let util;
     let provider;
 
@@ -37,7 +36,6 @@ describe('Provider - Azure', () => {
         AzureCloudProvider = require('../../../src/nodejs/providers/azure/cloud.js').Cloud;
         util = require('../../../src/nodejs/util.js');
         f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
-        cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
     beforeEach(() => {
         provider = new AzureCloudProvider(mockMetadata);
@@ -61,20 +59,33 @@ describe('Provider - Azure', () => {
         assert.strictEqual(provider.environment, cloud);
     });
 
-
     it('should initialize azure provider', () => {
         sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+
+        const storageAccounts = [
+            {
+                name: 'foo',
+                tags: {
+                    foo: 'bar'
+                }
+            }
+        ];
+        provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
+        provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init()
             .then(() => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.subscriptionId, mockSubscriptionId);
+
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _getInstanceMetadata with promise rejection', () => {
-        cloudLibsUtil.getDataFromUrl = sinon.stub().rejects();
+    it('should _getInstanceMetadata with promise rejection', () => {
+        f5CloudLibs.util.getDataFromUrl = sinon.stub().rejects();
 
         return provider._getInstanceMetadata()
             .then(() => {
@@ -370,7 +381,7 @@ describe('Provider - Azure', () => {
     });
 
     it('validate reject _retrier', () => {
-        sinon.stub(cloudLibsUtil, 'tryUntil').rejects(new Error('reject _retrier'));
+        sinon.stub(f5CloudLibs.util, 'tryUntil').rejects(new Error('reject _retrier'));
         const fakeFunc = () => Promise.reject();
         return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
             .then(() => {
@@ -383,8 +394,6 @@ describe('Provider - Azure', () => {
     });
 
     it('validate updateRoutes with resolved promise', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
-
         const routeTable01 = {
             id: '/foo/foo/foo/rg01/id_rt01',
             name: 'rt01',
@@ -420,6 +429,33 @@ describe('Provider - Azure', () => {
         return provider.updateRoutes({ localAddresses })
             .then(() => {
                 assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should execute downloadDataFromStorage', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const doesBlobExistSpy = sinon.stub().yields(null, { exists: true });
+        provider.storageOperationsClient.doesBlobExist = doesBlobExistSpy;
+        const getBlobToTextSpy = sinon.stub().yields(null, JSON.stringify({ foo: 'bar' }));
+        provider.storageOperationsClient.getBlobToText = getBlobToTextSpy;
+
+        return provider.downloadDataFromStorage('myfile')
+            .then((data) => {
+                assert.strictEqual(data.foo, 'bar');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should execute uploadDataToStorage', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
+        provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
+
+        return provider.uploadDataToStorage('myfile', {})
+            .then(() => {
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
             })
             .catch(err => Promise.reject(err));
     });

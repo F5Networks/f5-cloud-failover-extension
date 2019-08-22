@@ -365,6 +365,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _listStorageAccounts(options) {
+        options = options || {};
         const tags = options.tags || {};
 
         return this.storageClient.storageAccounts.list()
