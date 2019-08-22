@@ -9,11 +9,12 @@
 'use strict';
 
 const assert = require('assert');
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 
 /* eslint-disable import/no-extraneous-dependencies */
-const {google} = require('googleapis');
+const { google } = require('googleapis');
+
 const compute = google.compute('v1');
+
 /*
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
@@ -35,31 +36,25 @@ const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
 // Helper functions
 
 const configureAuth = () => {
-    if(process.env.GOOGLE_CREDENTIALS){
+    if (process.env.GOOGLE_CREDENTIALS) {
         return google.auth.getClient({
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         });
     }
-    else {
-        throw(new Error('gcloud creds are not provided via env variable titled as GOOGLE_CREDENTIALS'));
-    }
+    return Promise.reject(new Error('gcloud creds are not provided via env variable titled as GOOGLE_CREDENTIALS'));
 };
 
 let request = {};
 
 describe('Provider: GCP', () => {
-    before(() => {
-        return configureAuth()
-            .then((authClient) => {
-                 request = {
-                    project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
-                    auth: authClient,
-                    zone: 'us-west1-a'
-                };
-            }).catch(err => {
-                console.error('authentication failed: ', err);
-            });
-    });
+    before(() => configureAuth()
+        .then((authClient) => {
+            request = {
+                project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
+                auth: authClient,
+                zone: 'us-west1-a'
+            };
+        }).catch(err => Promise.reject(err)));
     after(() => {
         Object.keys(require.cache).forEach((key) => {
             delete require.cache[key];
@@ -67,10 +62,8 @@ describe('Provider: GCP', () => {
     });
 
     it('init test', () => {
-
         compute.instances.list(request, (err, vmData) => {
-            console.log(vmData)
+            assert.strictEqual(vmData, err);
         });
-
     });
 });
