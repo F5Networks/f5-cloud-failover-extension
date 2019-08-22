@@ -26,14 +26,14 @@ describe('Config Worker', () => {
     before(() => {
         config = require('../../src/nodejs/config.js');
     });
+    beforeEach(() => {
+        sinon.stub(Device.prototype, 'init').resolves();
+        mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves();
+    });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
             delete require.cache[key];
         });
-    });
-    beforeEach(() => {
-        sinon.stub(Device.prototype, 'initialize').resolves();
-        mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves();
     });
     afterEach(() => {
         sinon.restore();
