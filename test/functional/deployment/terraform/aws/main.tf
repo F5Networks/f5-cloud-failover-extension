@@ -560,7 +560,7 @@ resource "local_file" "do1" {
 
 resource "null_resource" "login0" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${aws_eip.mgmt1.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/aws_do_template.json")
@@ -580,7 +580,7 @@ resource "null_resource" "onboard0" {
 
 resource "null_resource" "login1" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
+    command = "f5 bigip configure-auth --host ${aws_eip.mgmt2.public_ip} --user ${var.admin_username} --password ${module.utils.admin_password}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/aws_do_template.json")

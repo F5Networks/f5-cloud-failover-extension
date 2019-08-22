@@ -335,7 +335,7 @@ resource "local_file" "do02" {
 
 resource "null_resource" "login01" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip configure-auth --host ${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
@@ -383,7 +383,7 @@ resource "null_resource" "create_virtual02" {
 
 resource "null_resource" "login02" {
   provisioner "local-exec" {
-    command = "f5 bigip login --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
+    command = "f5 bigip configure-auth --host ${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip} --user ${var.admin_username} --password ${random_string.admin_password.result}"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")

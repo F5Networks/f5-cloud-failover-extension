@@ -106,6 +106,16 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    // stub
+    uploadDataToStorage() {
+        return Promise.resolve();
+    }
+
+    // stub
+    downloadDataFromStorage() {
+        return Promise.resolve({});
+    }
+
 
     /**
      * Send HTTP Request to GCP API (Compute)

@@ -3,7 +3,6 @@
 PATH_TO_DEPLOYMENT_INFO=${1:-deployment_info.json}
 INSTANCES=$(cat $PATH_TO_DEPLOYMENT_INFO | jq .instances -r)
 
-
 FIRST_IP=$(echo $INSTANCES | jq '.[] | select(.primary == true) | .mgmt_address' -r)
 SECOND_IP=$(echo $INSTANCES | jq '.[] | select(.primary == false) | .mgmt_address' -r)
 USERNAME=$(echo $INSTANCES | jq '.[] | select(.primary == true) | .admin_username' -r)
