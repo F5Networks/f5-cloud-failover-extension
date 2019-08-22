@@ -139,7 +139,7 @@ function execute() {
             return waitForTask();
         })
         .then(() => {
-            const stateFile = createStateObject({ taskState: 'RUNNING', instance: hostname });
+            const stateFile = createStateObject({ taskState: failoverStates.RUNNING, instance: hostname });
             return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
         })
         .then(() => {

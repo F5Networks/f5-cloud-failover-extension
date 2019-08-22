@@ -271,8 +271,6 @@ Due to unpredictability of the cloud environment where BIG-IP clusters are runni
 
 The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
 
-The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.
-
 Scenario:
 
 - BIG-IP B (standby) loses connectivity to BIG-IP A (active)
