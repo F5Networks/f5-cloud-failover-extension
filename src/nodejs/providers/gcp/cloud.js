@@ -18,9 +18,11 @@
 
 const ipaddr = require('ipaddr.js');
 const Compute = require('@google-cloud/compute');
+const Storage = require('@google-cloud/storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
@@ -31,6 +33,8 @@ class Cloud extends AbstractCloud {
         super(CLOUD_PROVIDERS.GCP, options);
         this.BASE_URL = 'https://www.googleapis.com/compute/v1';
         this.compute = new Compute();
+        this.storage = new Storage();
+        this.bucket = null;
     }
 
 
@@ -61,6 +65,9 @@ class Cloud extends AbstractCloud {
                 this.computeZone = this.compute.zone(this.zone);
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
+                // create bucket
+                this.storage.createBucket(storageContainerName);
+                this.bucket = this.storage.bucket(storageContainerName);
 
                 this.logger.info('Getting GCP resources');
                 const firstKey = Object.keys(this.tags)[0]; // should support multiple
@@ -106,14 +113,42 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-    // stub
-    uploadDataToStorage() {
-        return Promise.resolve();
+    /**
+     * Upload data to storage (cloud)
+     *
+     * @param {Object} fileName - file name where data should be uploaded
+     * @param {Object} data     - data to upload
+     *
+     * @returns {Promise}
+     */
+    uploadDataToStorage(fileName, data) {
+        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
+        return this.bucket.file(fileName).save(JSON.stringify(data), (err) => {
+            if (err) {
+                Promise.reject(err);
+            } else {
+                Promise.resolve();
+            }
+        })
+            .catch(err => Promise.reject(err));
     }
 
-    // stub
-    downloadDataFromStorage() {
-        return Promise.resolve({});
+    /**
+     * Download data from storage (cloud)
+     *
+     * @param {Object} fileName - file name where data should be downloaded
+     *
+     * @returns {Promise}
+     */
+    downloadDataFromStorage(fileName) {
+        return this.bucket.file(fileName).download()
+            .then((data) => {
+                return Promise.resolve(data[0]);
+            })
+            .catch((err) => {
+                const message = `Error downloading storage file ${err.message}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
 
