@@ -15,7 +15,7 @@ const { google } = require('googleapis');
 
 const compute = google.compute('v1');
 
-/*
+
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
 
@@ -23,15 +23,13 @@ const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
-const deploymentInfo = funcUtils.getEnvironmentInfo();
-const rgName = deploymentInfo.deploymentId;
+// const deploymentInfo = funcUtils.getEnvironmentInfo();
+// const rgName = deploymentInfo.deploymentId;
 
 const declaration = funcUtils.getDeploymentDeclaration();
-const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
-const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
-const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
-const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
-*/
+// const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
+// const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
+// const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
 
 // Helper functions
 
@@ -47,6 +45,12 @@ const configureAuth = () => {
 let request = {};
 
 describe('Provider: GCP', () => {
+    let primarySelfIps = [];
+    let secondarySelfIps = [];
+    let primaryVirtualAddresses = [];
+    let secondaryVirtualAddresses = [];
+    let gcloudVms = [];
+
     before(() => configureAuth()
         .then((authClient) => {
             request = {
@@ -61,9 +65,120 @@ describe('Provider: GCP', () => {
         });
     });
 
-    it('init test', () => {
-        compute.instances.list(request, (err, vmData) => {
-            assert.strictEqual(vmData, err);
+    it('should get BIG-IP (primary) self IP(s)', () => {
+        const uri = '/mgmt/tm/net/self';
+        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutPrimary.ip, uri, options);
+            })
+            .then((data) => {
+                primarySelfIps = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should get BIG-IP (primary) virtual address(es)', () => {
+        const uri = '/mgmt/tm/ltm/virtual-address';
+
+        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutPrimary.ip, uri, options);
+            })
+            .then((data) => {
+                primaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should force BIG-IP (primary) to standby', () => {
+        const uri = '/mgmt/tm/sys/failover';
+
+        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                options.method = 'POST';
+                options.body = {
+                    command: 'run',
+                    standby: true
+                };
+                return utils.makeRequest(dutPrimary.ip, uri, options);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate Google Primary VM IP Addresess', () => {
+        compute.instances.list(request,(err, response) => {
+            if(response.data.items){
+                response.data.items.forEach((vm) => {
+                    if (vm.labels){
+                        if (Object.values(vm.labels).indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                        && Object.keys(vm.labels).indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1){
+                            gcloudVms.push(vm)
+                        }
+                    }
+                });
+            }
+            const network_ip = [];
+            gcloudVms.forEach((vm) => {
+                vm.networkInterfaces.forEach((nic) => {
+                    network_ip.push(nic.networkIP);
+                });
+            });
+            primarySelfIps.forEach((ip_address) => {
+                if(network_ip.indexOf(ip_address) !== -1){
+                    assert.ok(true);
+                }
+                else {
+                    assert.ok(false);
+                }
+            });
+
         });
+    });
+
+    it('should get BIG-IP (secondary) self IP(s)', () => {
+        const uri = '/mgmt/tm/net/self';
+
+        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutSecondary.ip, uri, options);
+            })
+            .then((data) => {
+                secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should get BIG-IP (secondary) virtual address(es)', () => {
+        const uri = '/mgmt/tm/ltm/virtual-address';
+
+        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                return utils.makeRequest(dutSecondary.ip, uri, options);
+            })
+            .then((data) => {
+                secondaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should force BIG-IP (primary) to standby', () => {
+        const uri = '/mgmt/tm/sys/failover';
+
+        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                options.method = 'POST';
+                options.body = {
+                    command: 'run',
+                    standby: true
+                };
+                return utils.makeRequest(dutPrimary.ip, uri, options);
+            })
+            .catch(err => Promise.reject(err));
     });
 });

@@ -21,6 +21,9 @@ let provider;
 const testPayload = {
     tags: {
         key01: 'value01'
+    },
+    routeTags: {
+        key01: 'value01'
     }
 };
 const mockVms = [
@@ -72,6 +75,9 @@ describe('Provider - GCP', () => {
         provider.logger.silly = sinon.stub();
 
         provider.tags = {
+            'test-tag-key': 'test-tag-value'
+        };
+        provider.routeTags = {
             'test-tag-key': 'test-tag-value'
         };
     });

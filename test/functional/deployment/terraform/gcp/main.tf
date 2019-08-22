@@ -204,7 +204,7 @@ resource "google_compute_instance" "vm01" {
   description = "${var.reaper_tag}"
 
   labels = {
-    f5_cloud_failover_label = "mydeployment"
+    f5_cloud_failover_label = "${random_string.env_prefix.result}"
   }
 
   boot_disk {
@@ -265,7 +265,7 @@ resource "google_compute_instance" "vm02" {
   description = "${var.reaper_tag}"
 
   labels = {
-    f5_cloud_failover_label = "mydeployment"
+    f5_cloud_failover_label = "${random_string.env_prefix.result}"
   }
 
   boot_disk {
@@ -319,7 +319,7 @@ resource "google_compute_instance" "vm02" {
 
 resource "google_compute_route" "ext-route" {
   name        = "network-route-${random_string.env_prefix.result}"
-  description = "${var.reaper_tag} labels=f5_cloud_failover_label,mydeployment|ip_addresses=${google_compute_instance.vm01.network_interface.2.network_ip},${google_compute_instance.vm02.network_interface.2.network_ip}"
+  description = "${var.reaper_tag} labels=f5_cloud_failover_label,${random_string.env_prefix.result}|ip_addresses=${google_compute_instance.vm01.network_interface.2.network_ip},${google_compute_instance.vm02.network_interface.2.network_ip}"
   dest_range  = "15.0.0.0/24"
   network     = "${google_compute_network.int_network.name}"
   next_hop_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}"

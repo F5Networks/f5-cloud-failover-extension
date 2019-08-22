@@ -43,6 +43,8 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.routeTags = options.routeTags || null;
+        this.routeAddresses = options.routeAddresses || null;
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -203,7 +205,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _getRoutes() {
-        this.logger.info(`_getRoutes with tags: ${JSON.stringify(this.tags)}`);
+        this.logger.info(`_getRoutes with tags: ${JSON.stringify(this.routeTags)}`);
 
         return this._sendRequest(
             'GET',
@@ -217,9 +219,9 @@ class Cloud extends AbstractCloud {
                         if (tag.description.indexOf('labels=') !== -1
                             && tag.description.indexOf('ip_addresses=') !== -1) {
                             let flag = true;
-                            for (let i = 0; i < Object.values(that.tags).length; i += 1) {
-                                if (tag.description.indexOf(Object.keys(that.tags)[i]) === -1
-                                    && tag.description.indexOf(Object.values(that.tags)[i]) === -1) {
+                            for (let i = 0; i < Object.values(that.routeTags).length; i += 1) {
+                                if (tag.description.indexOf(Object.keys(that.routeTags)[i]) === -1
+                                    && tag.description.indexOf(Object.values(that.routeTags)[i]) === -1) {
                                     flag = false;
                                 }
                             }
