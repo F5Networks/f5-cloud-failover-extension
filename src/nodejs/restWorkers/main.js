@@ -18,7 +18,9 @@
 const util = require('../util.js');
 const Logger = require('../logger.js');
 const configWorker = require('../config.js');
-const failover = require('../failover.js');
+const FailoverClient = require('../failover.js').FailoverClient;
+
+const failover = new FailoverClient();
 
 const logger = new Logger(module);
 

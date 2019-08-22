@@ -36,9 +36,11 @@ describe('Failover', () => {
     beforeEach(() => {
         config = require('../../src/nodejs/config.js');
         device = require('../../src/nodejs/device.js');
-        failover = require('../../src/nodejs/failover.js');
         CloudFactory = require('../../src/nodejs/providers/cloudFactory.js');
         f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+
+        const FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
+        failover = new FailoverClient();
 
         deviceGlobalSettingsMock = sinon.stub(device.prototype, 'getGlobalSettings');
         deviceGetTrafficGroupsMock = sinon.stub(device.prototype, 'getTrafficGroupsStats');
