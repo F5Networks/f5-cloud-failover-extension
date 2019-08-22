@@ -67,6 +67,10 @@ describe('Failover', () => {
     it('validate that it performs failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(mockCloudProvider);
         const spyOnUpdateAddresses = sinon.spy(mockCloudProvider, 'updateAddresses');
+        const downloadDataFromStorageMock = sinon.stub(mockCloudProvider, 'downloadDataFromStorage');
+        downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUNNING });
+        downloadDataFromStorageMock.onCall(1).resolves({ taskState: constants.FAILOVER_STATES.PASS });
+
         deviceGlobalSettingsMock.onCall(0).returns({ hostname: 'some_hostname' });
         const globalSettingsValuesMock = {
             entries: {

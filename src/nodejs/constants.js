@@ -54,5 +54,11 @@ module.exports = {
     },
     NAMELESS_CLASSES: [
     ],
-    STORAGE_FOLDER_NAME: 'f5cloudfailover'
+    STORAGE_FOLDER_NAME: 'f5cloudfailover',
+    STATE_FILE_NAME: 'f5cloudfailoverstate.json',
+    FAILOVER_STATES: {
+        PASS: 'SUCCEEDED',
+        FAIL: 'FAILED',
+        RUNNING: 'RUNNING'
+    }
 };
