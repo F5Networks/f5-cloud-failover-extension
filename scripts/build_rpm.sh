@@ -2,10 +2,10 @@
 
 set -e
 
-#path to the project root directory
+# path to the project root directory
 MAINDIR=$(git rev-parse --show-toplevel)
 
-#clean up node modules and install a npm build
+# clean up node modules and install a npm build
 rm -rf ${MAINDIR}/node_modules
 npm run install-production --prefix ${MAINDIR}
 
@@ -31,3 +31,6 @@ sha256sum "${FN}" > "${FINALBUILDDIR}/${FN}.sha256"
 cd ${MAINDIR}
 rm -rf rpmbuild/
 echo "RPM FILE ${FINALBUILDDIR}/${FN}"
+
+# reinstall all dependencies
+npm install

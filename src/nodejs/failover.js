@@ -34,7 +34,7 @@ const stateFileContents = {
     timestamp: new Date().toJSON()
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
-const TASK_RETRY_MS = 5 * 1000; // 5 seconds
+const TASK_RETRY_MS = 3 * 1000; // 3 seconds
 
 /**
  * Create state object
@@ -75,13 +75,21 @@ function execute() {
             const interval = setInterval(() => {
                 cloudProvider.downloadDataFromStorage(stateFileName)
                     .then((data) => {
-                        logger.silly(`Task state: ${data.taskState}`);
+                        logger.silly('State file data: ', data);
+
+                        // initial case - simply create state object in next step
+                        if (!data || !data.taskState) {
+                            clearInterval(interval);
+                            resolve({ recoverPreviousTask: false });
+                        }
+                        // success - no need to wait for task
                         if (data.taskState === failoverStates.PASS) {
                             clearInterval(interval);
                             resolve({ recoverPreviousTask: false });
                         }
+                        // running - continute to wait
                         if (data.taskState === failoverStates.RUNNING) {
-                            // continue
+                            // waiting...
                         }
                         if (data.taskState === failoverStates.FAIL) {
                             // TODO: recover from failed state here...
@@ -120,29 +128,6 @@ function execute() {
             });
         })
         .then(() => {
-            logger.debug('Cloud provider has been initialized');
-
-            return cloudProvider.downloadDataFromStorage(stateFileName);
-        })
-        .then((data) => {
-            logger.debug('State file data: ', data);
-
-            // initial case - simply create state object in next step
-            if (!data || !data.taskState) {
-                return Promise.resolve();
-            }
-            // success - no need to wait for task
-            if (data.taskState === failoverStates.PASS) {
-                return Promise.resolve();
-            }
-            // wait for task to finish (or fail/timeout)
-            return waitForTask();
-        })
-        .then(() => {
-            const stateFile = createStateObject({ taskState: failoverStates.RUNNING, instance: hostname });
-            return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
-        })
-        .then(() => {
             device = new Device({
                 hostname: 'localhost',
                 username: 'admin',
@@ -150,9 +135,6 @@ function execute() {
                 port: '443'
             });
             return device.initialize();
-        })
-        .then(() => {
-            logger.debug('BIG-IP has been initialized');
         })
         .then(() => device.getConfig([
             '/tm/sys/global-settings',
@@ -163,6 +145,15 @@ function execute() {
         .then((results) => {
             device.initFailoverConfig(results);
             hostname = device.getGlobalSettings().hostname;
+
+            // wait for task - handles all possible states
+            return waitForTask();
+        })
+        .then(() => {
+            const stateFile = createStateObject({ taskState: failoverStates.RUNNING, instance: hostname });
+            return cloudProvider.uploadDataToStorage(stateFileName, stateFile);
+        })
+        .then(() => {
             const trafficGroups = getTrafficGroups(device.getTrafficGroupsStats(), hostname);
             const selfAddresses = getSelfAddresses(device.getSelfAddresses(), trafficGroups);
             const virtualAddresses = getVirtualAddresses(device.getVirtualAddresses(), trafficGroups);
@@ -193,7 +184,10 @@ function execute() {
             const stateFile = createStateObject({ taskState: failoverStates.FAIL, instance: hostname });
             return cloudProvider.uploadDataToStorage(stateFileName, stateFile)
                 .then(() => Promise.reject(err))
-                .catch(() => Promise.reject(err));
+                .catch((innerErr) => {
+                    logger.error(`failover.execute() uploadDataToStorage error: ${util.stringify(innerErr.message)}`);
+                    return Promise.reject(err);
+                });
         });
 }
 
