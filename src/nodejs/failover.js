@@ -70,7 +70,7 @@ function execute() {
     let config;
 
     /**
-     * Wait for state task to complete (or fail/timeout)
+     * Wait for task to complete (or fail/timeout)
      *
      * @returns {Promise}
      */
@@ -88,7 +88,7 @@ function execute() {
                             // continue
                         }
                         if (data.taskState === FAILOVER_STATES.FAIL) {
-                            // continue
+                            // TODO: recover from failed state here...
                         }
 
                         // enforce maximum time allotment
