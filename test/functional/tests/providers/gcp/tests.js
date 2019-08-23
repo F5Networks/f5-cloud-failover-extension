@@ -12,6 +12,7 @@ const assert = require('assert');
 
 /* eslint-disable import/no-extraneous-dependencies */
 const { google } = require('googleapis');
+const fs = require('fs');
 
 const compute = google.compute('v1');
 
@@ -26,7 +27,6 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 // const deploymentInfo = funcUtils.getEnvironmentInfo();
 
 const declaration = funcUtils.getDeploymentDeclaration();
-// const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 // const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
 // const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
 
@@ -34,6 +34,8 @@ const declaration = funcUtils.getDeploymentDeclaration();
 
 const configureAuth = () => {
     if (process.env.GOOGLE_CREDENTIALS) {
+        fs.writeFileSync(`${process.env.CI_PROJECT_DIR}/gcloud_creds.json`, process.env.GOOGLE_CREDENTIALS);
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = `${process.env.CI_PROJECT_DIR}/gcloud_creds.json`;
         return google.auth.getClient({
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         });
@@ -214,7 +216,7 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate failover event - secondary should be active now', () => {
+    it('validate failover event - primary should be active now', () => {
         gcloudVms = [];
         compute.instances.list(request, (err, response) => {
             if (response.data.items) {
