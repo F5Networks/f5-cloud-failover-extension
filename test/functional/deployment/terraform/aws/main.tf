@@ -288,7 +288,8 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "ec2:DescribeRouteTables",
             "ec2:ReplaceRoute",
             "ec2:assignprivateipaddresses",
-            "sts:AssumeRole"
+            "sts:AssumeRole",
+            "s3:ListAllMyBuckets"
         ],
         "Resource": [
             "*"
@@ -297,7 +298,8 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
     },
     {
         "Action": [
-            "s3:ListBucket"
+            "s3:ListBucket",
+            "s3:GetBucketTagging"
         ],
         "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}",
         "Effect": "Allow"
