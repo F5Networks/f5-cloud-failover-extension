@@ -34,7 +34,6 @@ const stateFileContents = {
     operations: {}
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
-const TASK_RETRY_MS = 3 * 1000; // 3 seconds
 
 // updating routes is conditional, for now
 const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
@@ -202,53 +201,49 @@ class FailoverClient {
     }
 
     /**
+     * Check task state
+     *
+     * @returns {Promise}
+     */
+    _checkTaskState() {
+        return this.cloudProvider.downloadDataFromStorage(stateFileName)
+            .then((data) => {
+                logger.silly('State file data: ', data);
+
+                // initial case - simply create state object in next step
+                if (!data || !data.taskState) {
+                    return Promise.resolve({ recoverPreviousTask: false, state: data });
+                }
+                // success - no need to wait for task
+                if (data.taskState === failoverStates.PASS) {
+                    return Promise.resolve({ recoverPreviousTask: false, state: data });
+                }
+                // failed - recover previous task
+                if (data.taskState === failoverStates.FAIL) {
+                    return Promise.resolve({ recoverPreviousTask: true, state: data });
+                }
+                // enforce maximum time allotment
+                const timeDrift = new Date() - Date.parse(data.timeStamp);
+                if (timeDrift > RUNNING_TASK_MAX_MS) {
+                    logger.error(`Time drift exceeded maximum limit: ${timeDrift}`);
+                    return Promise.resolve({ recoverPreviousTask: true, state: data });
+                }
+                // default reponse - reject and retry
+                return Promise.reject(new Error('retry'));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
      * Wait for task to complete (or fail/timeout)
      *
      * @returns {Promise} { recoverPreviousTask: false, state: {} }
      */
     _waitForTask() {
-        // TODO: use retrier instead of setInterval - too hard to mock
-        // util.retrier.call(this, this._updateNics, item, shortRetry)
-        return new Promise((resolve, reject) => {
-            const interval = setInterval(() => {
-                this.cloudProvider.downloadDataFromStorage(stateFileName)
-                    .then((data) => {
-                        logger.silly('State file data: ', data);
-
-                        // initial case - simply create state object in next step
-                        if (!data || !data.taskState) {
-                            clearInterval(interval);
-                            resolve({ recoverPreviousTask: false, state: data });
-                        }
-                        // success - no need to wait for task
-                        if (data.taskState === failoverStates.PASS) {
-                            clearInterval(interval);
-                            resolve({ recoverPreviousTask: false, state: data });
-                        }
-                        // running - continute to wait
-                        if (data.taskState === failoverStates.RUN) {
-                            // waiting...
-                        }
-                        // failed - recover previous task
-                        if (data.taskState === failoverStates.FAIL) {
-                            clearInterval(interval);
-                            resolve({ recoverPreviousTask: true, state: data });
-                        }
-
-                        // enforce maximum time allotment
-                        const timeDrift = new Date() - Date.parse(data.timeStamp);
-                        if (timeDrift > RUNNING_TASK_MAX_MS) {
-                            logger.error(`Time drift exceeded maximum limit: ${timeDrift}`);
-                            clearInterval(interval);
-                            resolve({ recoverPreviousTask: true, state: data });
-                        }
-                    })
-                    .catch((err) => {
-                        clearInterval(interval);
-                        reject(err);
-                    });
-            }, TASK_RETRY_MS);
-        });
+        // retry every 5 seconds, 10 minutes max (roughly)
+        const retryOptions = { maxRetries: 120, retryIntervalMs: 5 * 1000 };
+        return util.retrier.call(this, this._checkTaskState, [], retryOptions)
+            .catch(err => Promise.reject(err));
     }
 
     /**
