@@ -19,13 +19,17 @@
 const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
+const StorageManagementClient = require('azure-arm-storage');
+const Storage = require('azure-storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
-const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const constants = require('../../constants');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
+const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -35,6 +39,8 @@ class Cloud extends AbstractCloud {
         this.subscriptionId = null;
 
         this.networkClient = null;
+        this.storageClient = null;
+        this.storageOperationsClient = null;
     }
 
     /**
@@ -48,17 +54,20 @@ class Cloud extends AbstractCloud {
     */
     init(options) {
         options = options || {};
-        this.tags = options.tags || null;
-        this.routeTags = options.routeTags || null;
-        this.routeAddresses = options.routeAddresses || null;
-        this.routeSelfIpsTag = options.routeSelfIpsTag || 'F5_SELF_IPS';
+        this.tags = options.tags || {};
+        this.routeTags = options.routeTags || {};
+        this.routeAddresses = options.routeAddresses || [];
+        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
+        this.storageTags = options.storageTags || {};
+
+        let environment;
 
         return this._getInstanceMetadata()
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.subscriptionId = metadata.compute.subscriptionId;
 
-                const environment = this._getAzureEnvironment(metadata);
+                environment = this._getAzureEnvironment(metadata);
                 const msiOptions = {
                     resource: environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
@@ -70,7 +79,27 @@ class Cloud extends AbstractCloud {
                     this.subscriptionId,
                     environment.resourceManagerEndpointUrl
                 );
-                return Promise.resolve();
+                this.storageClient = new StorageManagementClient(
+                    credentials,
+                    this.subscriptionId,
+                    environment.resourceManagerEndpointUrl
+                );
+                return this._listStorageAccounts({ tags: this.storageTags });
+            })
+            .then((storageAccounts) => {
+                if (!storageAccounts.length) {
+                    return Promise.reject(new Error('No storage account found!'));
+                }
+                const storageAccount = storageAccounts[0]; // only need one
+                return this._getStorageAccountKey(storageAccount.name);
+            })
+            .then((storageAccountInfo) => {
+                this.storageOperationsClient = Storage.createBlobService(
+                    storageAccountInfo.name,
+                    storageAccountInfo.key,
+                    `${storageAccountInfo.name}.blob${environment.storageEndpointSuffix}`
+                );
+                return this._initStorageAccountContainer(storageContainerName);
             })
             .catch(err => Promise.reject(err));
     }
@@ -226,6 +255,69 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Upload data to storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be uploaded
+    * @param {Object} data     - data to upload
+    *
+    * @returns {Promise}
+    */
+    uploadDataToStorage(fileName, data) {
+        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
+
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.createBlockBlobFromText(
+                storageContainerName, fileName, JSON.stringify(data), (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                }
+            );
+        }))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Download data from storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be downloaded
+    *
+    * @returns {Promise}
+    */
+    downloadDataFromStorage(fileName) {
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.doesBlobExist(
+                storageContainerName, fileName, (err, data) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(data.exists);
+                    }
+                }
+            );
+        }))
+            .then((exists) => {
+                if (exists === false) {
+                    return Promise.resolve({});
+                }
+                return new Promise(((resolve, reject) => {
+                    this.storageOperationsClient.getBlobToText(
+                        storageContainerName, fileName, (err, data) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(JSON.parse(data));
+                            }
+                        }
+                    );
+                }));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
     * Get Azure environment
     *
     * @returns {String}
@@ -262,6 +354,76 @@ class Cloud extends AbstractCloud {
                     reject(err);
                 });
         });
+    }
+
+    /**
+    * Lists all storage accounts
+    *
+    * @param {Object} options        - function options
+    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
+    *
+    * @returns {Promise}
+    */
+    _listStorageAccounts(options) {
+        options = options || {};
+        const tags = options.tags || null;
+
+        return this.storageClient.storageAccounts.list()
+            .then((storageAccounts) => {
+                // if true, filter storage accounts based on 1+ tags
+                if (tags) {
+                    const tagKeys = Object.keys(tags);
+                    const filteredStorageAccounts = storageAccounts.filter((sa) => {
+                        let matchedTags = 0;
+                        tagKeys.forEach((tagKey) => {
+                            if (Object.keys(sa.tags).indexOf(tagKey) !== -1 && sa.tags[tagKey] === tags[tagKey]) {
+                                matchedTags += 1;
+                            }
+                        });
+                        return tagKeys.length === matchedTags;
+                    });
+                    return Promise.resolve(filteredStorageAccounts);
+                }
+                return Promise.resolve(storageAccounts);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get key for a specified storage accounts
+    *
+    * @param {String} name - storage account name
+    *
+    * @returns {Promise}
+    */
+    _getStorageAccountKey(name) {
+        return this.storageClient.storageAccounts.listKeys(this.resourceGroup, name)
+            .then((data) => {
+                // simply grab the first key, for now
+                const key = data.keys[0].value;
+                return Promise.resolve({ name, key });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Initialize (create if it does not exist) storage account container
+    *
+    * @param {String} name - storage account container name
+    *
+    * @returns {Promise}
+    */
+    _initStorageAccountContainer(name) {
+        return new Promise(((resolve, reject) => {
+            this.storageOperationsClient.createContainerIfNotExists(name, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        }))
+            .catch(err => Promise.reject(err));
     }
 
     /**
