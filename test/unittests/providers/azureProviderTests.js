@@ -214,89 +214,56 @@ describe('Provider - Azure', () => {
             });
     });
 
-    it('validate updateAddresses with resolved promise', () => {
-        const _getNicConfigSpy = sinon.spy(provider, '_getNicConfig');
-        const localAddresses = ['1.1.1.1', '4.4.4.4', '5.5.5.5'];
-        const failoverAddresses = ['2.2.2.2', '3.3.3.3', '5.5.5.5'];
-        const nic01 = {
-            id: 'id_nic01',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '1.1.1.1'
-                }
-            ],
-            name: 'nic01',
-            location: 'location01',
-            enableIPForwarding: false,
-            networkSecurityGroup: 'nsgNic01',
-            tags: 'tagsNic01'
-        };
-        const nic02 = {
-            id: 'id_nic02',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '2.2.2.2'
-                }
-            ],
-            name: 'nic02',
-            location: 'location02',
-            enableIPForwarding: false,
-            networkSecurityGroup: 'nsgNic02',
-            tags: 'tagsNic02'
-        };
-        const nic03 = {
-            id: 'id_nic03',
-            provisioningState: 'NotSucceeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '3.3.3.3'
-                }
-            ],
-            name: 'nic03',
-            location: 'location03',
-            enableIPForwarding: true,
-            networkSecurityGroup: 'nsgNic03',
-            tags: 'tagsNic03'
-        };
+    it('should validate updateAddresses performs discovery', () => {
+        const localAddresses = ['2.2.2.2'];
+        const failoverAddresses = ['10.10.10.10'];
+        const listNicsResponse = [
+            {
+                id: 'id_nic01',
+                provisioningState: 'Succeeded',
+                ipConfigurations: [
+                    {
+                        privateIPAddress: '1.1.1.1'
+                    },
+                    {
+                        privateIPAddress: '10.10.10.10'
+                    }
+                ],
+                name: 'nic01',
+                location: 'location01',
+                enableIPForwarding: false,
+                networkSecurityGroup: 'nsgNic01',
+                tags: 'tagsNic01'
+            },
+            {
+                id: 'id_nic02',
+                provisioningState: 'Succeeded',
+                ipConfigurations: [
+                    {
+                        privateIPAddress: '2.2.2.2'
+                    }
+                ],
+                name: 'nic02',
+                location: 'location02',
+                enableIPForwarding: false,
+                networkSecurityGroup: 'nsgNic02',
+                tags: 'tagsNic02'
+            }
+        ];
+        sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
+        const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
-
-        const nic04 = {
-            id: 'id_nic04',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '4.4.4.4'
-                }
-            ],
-            name: 'nic04',
-            location: 'location04',
-            enableIPForwarding: true,
-            networkSecurityGroup: 'nsgNic04',
-            tags: 'tagsNic04'
-        };
-
-        sinon.replace(provider, '_listNics', sinon.fake.resolves([nic01, nic02, nic03, nic04]));
-        sinon.stub(provider, '_updateAssociations').callsFake((disassociate, associate) => {
-            assert.strictEqual(associate[0][1], 'nic04');
-            assert.strictEqual(associate[0][2].enableIPForwarding, true);
-            assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '4.4.4.4');
-            assert.strictEqual(associate[0][2].networkSecurityGroup, 'nsgNic04');
-            assert.strictEqual(associate[0][2].tags, 'tagsNic04');
-
-            assert.strictEqual(disassociate[0][1], 'nic03');
-            assert.strictEqual(disassociate[0][2].enableIPForwarding, true);
-            assert.strictEqual(disassociate[0][2].location, 'location04');
-            assert.strictEqual(disassociate[0][2].networkSecurityGroup, 'nsgNic03');
-            assert.strictEqual(disassociate[0][2].tags, 'tagsNic03');
-        });
-
-        return provider.updateAddresses(localAddresses, failoverAddresses)
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discover: true })
+            .then(operations => provider.updateAddresses({ update: operations }))
             .then(() => {
-                assert.strictEqual(_getNicConfigSpy.args[0].pop().privateIPAddress, '4.4.4.4');
-                assert.strictEqual(_getNicConfigSpy.args[1].pop().privateIPAddress, '3.3.3.3');
-                assert.strictEqual(_getNicConfigSpy.args[2].pop().privateIPAddress, '3.3.3.3');
+                const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
+                assert.strictEqual(disassociateArgs[1], 'nic01');
+                assert.deepStrictEqual(disassociateArgs[2].ipConfigurations[0].privateIPAddress, '1.1.1.1');
+
+                const associateArgs = updateAddressesSpy.getCall(0).args[1][0];
+                assert.strictEqual(associateArgs[1], 'nic02');
+                assert.deepStrictEqual(associateArgs[2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
+                assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
             })
             .catch(err => Promise.reject(err));
     });
@@ -355,18 +322,18 @@ describe('Provider - Azure', () => {
             });
     });
 
-    it('validate _updateAssociations method with empty parameters', () => {
+    it('validate _updateAddresses method with empty parameters', () => {
         const firstValue = false;
         const secondValue = false;
 
-        return provider._updateAssociations(firstValue, secondValue)
+        return provider._updateAddresses(firstValue, secondValue)
             .then(() => {
                 assert.ok(true);
             })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _updateAssociations method with valid parameters', () => {
+    it('validate _updateAddresses method with valid parameters', () => {
         const disassociate = [['resourceGroup01', 'nic01',
             {
                 enableIPForwarding: true,
@@ -395,7 +362,7 @@ describe('Provider - Azure', () => {
         ];
         sinon.stub(provider, '_updateNics').resolves();
 
-        return provider._updateAssociations(disassociate, associate)
+        return provider._updateAddresses(disassociate, associate)
             .then(() => {
                 // suceeds when promise gets resolved
                 assert.ok(true);
@@ -542,7 +509,8 @@ describe('Provider - Azure', () => {
         provider.routeAddresses = ['192.0.0.0/24'];
         provider.routeSelfIpsTag = 'F5_SELF_IPS';
 
-        return provider.updateRoutes({ localAddresses })
+        return provider.updateRoutes({ localAddresses, discover: true })
+            .then(operations => provider.updateRoutes({ update: operations }))
             .then(() => {
                 assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
             })

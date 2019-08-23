@@ -28,20 +28,28 @@ const logger = new Logger(module);
 const failoverStates = constants.FAILOVER_STATES;
 const stateFileName = constants.STATE_FILE_NAME;
 const stateFileContents = {
-    instance: '',
-    configuration: {},
     taskState: failoverStates.PASS,
-    timestamp: new Date().toJSON()
+    timestamp: new Date().toJSON(),
+    instance: '',
+    operations: {}
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
 const TASK_RETRY_MS = 3 * 1000; // 3 seconds
 
+// updating routes is conditional, for now
+const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
+
 class FailoverClient {
     constructor() {
+        this.device = new Device();
         this.cloudProvider = null;
-        this.device = null;
         this.hostname = null;
         this.config = null;
+
+        this.addressDiscovery = null;
+        this.routeDiscovery = null;
+        this.recoverPreviousTask = false;
+        this.recoveryOperations = null;
     }
 
     /**
@@ -52,8 +60,7 @@ class FailoverClient {
             .then((data) => {
                 this.config = data;
                 if (!this.config.environment) {
-                    const err = new Error('Environment not provided');
-                    return Promise.reject(err);
+                    return Promise.reject(new Error('Environment not provided'));
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
@@ -65,42 +72,83 @@ class FailoverClient {
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
-            .then(() => {
-                this.device = new Device();
-                return this.device.init();
-            })
+            .then(() => this.device.init())
             .then(() => {
                 this.hostname = this.device.getGlobalSettings().hostname;
 
                 // wait for task - handles all possible states
                 return this._waitForTask();
             })
-            .then(() => {
-                const stateFile = this._createStateObject(
-                    { taskState: failoverStates.RUNNING, instance: this.hostname }
+            .then((taskResponse) => {
+                // check if we are recovering from a previous task
+                if (taskResponse.recoverPreviousTask === true) {
+                    this.recoverPreviousTask = true;
+                    this.recoveryOperations = taskResponse.state.operations;
+                }
+                return this.cloudProvider.uploadDataToStorage(
+                    stateFileName,
+                    this._createStateObject({ taskState: failoverStates.RUN })
                 );
-                return this.cloudProvider.uploadDataToStorage(stateFileName, stateFile);
             })
             .then(() => {
+                logger.info('Performing Failover - discovery');
+
+                // recovering previous task - skip discovery
+                if (this.recoverPreviousTask === true) {
+                    logger.info('Recovering previous task: ', this.recoveryOperations);
+                    return Promise.resolve([
+                        this.recoveryOperations.addresses,
+                        this.recoveryOperations.routes
+                    ]);
+                }
+
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
                 const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
                 const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
-                return this._getFailoverAddresses(selfAddresses, virtualAddresses);
-            })
-            .then((addresses) => {
-                logger.info('Performing Failover');
-                const actions = [
-                    this.cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
+                const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+
+                this.localAddresses = addresses.localAddresses;
+                this.failoverAddresses = addresses.failoverAddresses;
+
+                const discoverActions = [
+                    this.cloudProvider.updateAddresses({
+                        localAddresses: this.localAddresses,
+                        failoverAddresses: this.failoverAddresses,
+                        discover: true
+                    })
                 ];
-                // updating routes is conditional - TODO: rethink this...
-                const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
-                if (this.config.environment.indexOf(routeFeatureEnvironments) !== -1) {
-                    actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
+                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
+                    discoverActions.push(this.cloudProvider.updateRoutes({
+                        localAddresses: this.localAddresses,
+                        discover: true
+                    }));
                 }
-                return Promise.all(actions);
+                return Promise.all(discoverActions);
+            })
+            .then((discovery) => {
+                this.addressDiscovery = discovery[0];
+                this.routeDiscovery = discovery[1];
+
+                return this.cloudProvider.uploadDataToStorage(
+                    stateFileName,
+                    this._createStateObject({
+                        taskState: failoverStates.RUN,
+                        operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                    })
+                );
             })
             .then(() => {
-                const stateFile = this._createStateObject({ taskState: failoverStates.PASS, instance: this.hostname });
+                logger.info('Performing Failover - update');
+                const updateActions = [
+                    this.cloudProvider.updateAddresses({ update: this.addressDiscovery })
+                ];
+                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
+                    updateActions.push(this.cloudProvider.updateRoutes({ update: this.routeDiscovery }));
+                }
+                return Promise.all(updateActions);
+            })
+            .then(() => {
+                const stateFile = this._createStateObject({ taskState: failoverStates.PASS });
                 return this.cloudProvider.uploadDataToStorage(stateFileName, stateFile);
             })
             .then(() => {
@@ -109,7 +157,10 @@ class FailoverClient {
             .catch((err) => {
                 logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
 
-                const stateFile = this._createStateObject({ taskState: failoverStates.FAIL, instance: this.hostname });
+                const stateFile = this._createStateObject({
+                    taskState: failoverStates.FAIL,
+                    operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                });
                 return this.cloudProvider.uploadDataToStorage(stateFileName, stateFile)
                     .then(() => Promise.reject(err))
                     .catch((innerErr) => {
@@ -122,29 +173,32 @@ class FailoverClient {
     /**
      * Create state object
      *
-     * @param {Object} [options]           - function options
-     * @param {String} [options.taskState] - task state
-     * @param {String} [options.instance]  - instance name
+     * @param {Object} [options]            - function options
+     * @param {String} [options.taskState]  - task state
+     * @param {String} [options.operations] - operations
      *
      * @returns {Object}
      */
     _createStateObject(options) {
-        const taskState = options.taskState;
-        const instance = options.instance;
+        const taskState = options.taskState || failoverStates.PASS;
+        const operations = options.operations || {};
 
         const thisState = util.deepCopy(stateFileContents);
         thisState.taskState = taskState;
         thisState.timestamp = new Date().toJSON();
-        thisState.instance = instance;
+        thisState.instance = this.hostname || 'none';
+        thisState.operations = operations;
         return thisState;
     }
 
     /**
      * Wait for task to complete (or fail/timeout)
      *
-     * @returns {Promise}
+     * @returns {Promise} { recoverPreviousTask: false, state: {} }
      */
     _waitForTask() {
+        // TODO: use retrier instead of setInterval - too hard to mock
+        // util.retrier.call(this, this._updateNics, item, shortRetry)
         return new Promise((resolve, reject) => {
             const interval = setInterval(() => {
                 this.cloudProvider.downloadDataFromStorage(stateFileName)
@@ -154,26 +208,29 @@ class FailoverClient {
                         // initial case - simply create state object in next step
                         if (!data || !data.taskState) {
                             clearInterval(interval);
-                            resolve({ recoverPreviousTask: false });
+                            resolve({ recoverPreviousTask: false, state: data });
                         }
                         // success - no need to wait for task
                         if (data.taskState === failoverStates.PASS) {
                             clearInterval(interval);
-                            resolve({ recoverPreviousTask: false });
+                            resolve({ recoverPreviousTask: false, state: data });
                         }
                         // running - continute to wait
-                        if (data.taskState === failoverStates.RUNNING) {
+                        if (data.taskState === failoverStates.RUN) {
                             // waiting...
                         }
+                        // failed - recover previous task
                         if (data.taskState === failoverStates.FAIL) {
-                            // TODO: recover from failed state here...
+                            clearInterval(interval);
+                            resolve({ recoverPreviousTask: true, state: data });
                         }
 
                         // enforce maximum time allotment
                         const timeDrift = new Date() - Date.parse(data.timeStamp);
                         if (timeDrift > RUNNING_TASK_MAX_MS) {
+                            logger.error(`Time drift exceeded maximum limit: ${timeDrift}`);
                             clearInterval(interval);
-                            reject(new Error(`Time drift exceeded maximum limit: ${timeDrift}`));
+                            resolve({ stateFile: data, recoverPreviousTask: true });
                         }
                     })
                     .catch((err) => {

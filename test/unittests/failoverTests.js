@@ -73,7 +73,7 @@ describe('Failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         const spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
         const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-        downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUNNING });
+        downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUN });
         downloadDataFromStorageMock.onCall(1).resolves({ taskState: constants.FAILOVER_STATES.PASS });
 
         deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
@@ -95,7 +95,7 @@ describe('Failover', () => {
             {
                 name: 'some_trafficGroup',
                 address: '1.1.1.1',
-                trafficGroup: 'some_trafficGroup'
+                trafficGroup: 'local_only'
             }
         ];
         deviceGetSelfAddressesMock.returns(trafficGroupsValuesMock);
@@ -111,12 +111,14 @@ describe('Failover', () => {
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
-                // verify that cloudProvider.updateAddresses method gets called with expected failover ip addresses
-                assert.strictEqual(spyOnUpdateAddresses.args[0][1][0], '1.1.1.1');
-                assert.strictEqual(spyOnUpdateAddresses.args[0][1][1], '2.2.2.2');
-                assert.strictEqual(mockCloudFactory.called, true);
                 assert.strictEqual(mockBigIpInit.called, true);
                 assert.strictEqual(mockBigIpList.called, true);
+
+                // verify that cloudProvider.updateAddresses method gets called with expected failover ip addresses
+                const updateAddressesCall = spyOnUpdateAddresses.getCall(0).args[0];
+                assert.deepStrictEqual(updateAddressesCall.localAddresses, ['1.1.1.1']);
+                assert.deepStrictEqual(updateAddressesCall.failoverAddresses, ['2.2.2.2']);
+                assert.strictEqual(updateAddressesCall.discover, true);
 
                 assert.strictEqual(deviceGlobalSettingsMock.called, true);
                 assert.strictEqual(deviceGetTrafficGroupsMock.called, true);

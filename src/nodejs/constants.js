@@ -59,6 +59,6 @@ module.exports = {
     FAILOVER_STATES: {
         PASS: 'SUCCEEDED',
         FAIL: 'FAILED',
-        RUNNING: 'RUNNING'
+        RUN: 'RUNNING'
     }
 };

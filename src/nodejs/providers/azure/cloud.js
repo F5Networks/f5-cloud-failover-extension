@@ -107,115 +107,28 @@ class Cloud extends AbstractCloud {
     /**
     * Update Addresses
     *
-    * @param {Object} localAddresses    - Local addresses
-    * @param {String} failoverAddresses - Failover addresses
+    * @param {Object} options                     - function options
+    * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+    * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discover]         - perform discovery operation and return
+    * @param {Object} [options.update]            - update operation object
     *
     * @returns {Object}
     */
-    updateAddresses(localAddresses, failoverAddresses) {
-        return this._listNics({ tags: this.tags || null })
-            .then((nics) => {
-                const myNics = [];
-                const theirNics = [];
-                const disassociate = [];
-                const associate = [];
+    updateAddresses(options) {
+        options = options || {};
+        const localAddresses = options.localAddresses;
+        const failoverAddresses = options.failoverAddresses;
+        const discover = options.discover || false;
+        const update = options.update || null;
 
-                // add nics to 'mine' or 'their' array based on address match
-                nics.forEach((nic) => {
-                    if (nic.provisioningState !== 'Succeeded') {
-                        this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
-                    }
-
-                    // identify 'my' and 'their' nics
-                    nic.ipConfigurations.forEach((ipConfiguration) => {
-                        localAddresses.forEach((address) => {
-                            if (ipConfiguration.privateIPAddress === address) {
-                                if (myNics.indexOf(nic) === -1) {
-                                    myNics.push({ nic });
-                                }
-                            }
-                        });
-                        failoverAddresses.forEach((address) => {
-                            if (ipConfiguration.privateIPAddress === address) {
-                                if (theirNics.indexOf(nic) === -1) {
-                                    theirNics.push({ nic });
-                                }
-                            }
-                        });
-                    });
-                });
-
-                // remove any nics from 'their' array if they are also in 'my' array
-                for (let p = myNics.length - 1; p >= 0; p -= 1) {
-                    for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
-                        if (myNics[p].nic.id === theirNics[qp].nic.id) {
-                            theirNics.splice(qp, 1);
-                            break;
-                        }
-                    }
-                }
-
-                if (!myNics || !theirNics) {
-                    this.logger.error('Could not determine network interfaces.');
-                }
-
-                // go through 'their' nics and come up with disassociate/associate actions required
-                // to move ip configurations to 'my' nics, if any are required
-                for (let s = myNics.length - 1; s >= 0; s -= 1) {
-                    for (let h = theirNics.length - 1; h >= 0; h -= 1) {
-                        if (theirNics[h].nic.name !== myNics[s].nic.name
-                            && theirNics[h].nic.name.slice(0, -1) === myNics[s].nic.name.slice(0, -1)) {
-                            let myNic = [];
-                            let theirNic = [];
-                            const ourLocation = myNics[s].nic.location;
-                            const theirNsg = theirNics[h].nic.networkSecurityGroup;
-                            const myNsg = myNics[s].nic.networkSecurityGroup;
-                            const theirIpForwarding = theirNics[h].nic.enableIPForwarding;
-                            const myIpForwarding = myNics[s].nic.enableIPForwarding;
-                            const theirTags = theirNics[h].nic.tags;
-                            const myTags = myNics[s].nic.tags;
-
-                            myNic = this._getIpConfigs(myNics[s].nic.ipConfigurations);
-                            theirNic = this._getIpConfigs(theirNics[h].nic.ipConfigurations);
-
-                            for (let i = theirNic.length - 1; i >= 0; i -= 1) {
-                                for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                                    if (failoverAddresses[t] === theirNic[i].privateIPAddress) {
-                                        this.logger.silly('Match:', theirNic[i].privateIPAddress);
-
-                                        myNic.push(this._getNicConfig(theirNic[i]));
-                                        theirNic.splice(i, 1);
-                                        break;
-                                    }
-                                }
-                            }
-
-                            const theirNicParams = {
-                                location: ourLocation,
-                                ipConfigurations: theirNic,
-                                networkSecurityGroup: theirNsg,
-                                tags: theirTags,
-                                enableIPForwarding: theirIpForwarding
-                            };
-                            const myNicParams = {
-                                location: ourLocation,
-                                ipConfigurations: myNic,
-                                networkSecurityGroup: myNsg,
-                                tags: myTags,
-                                enableIPForwarding: myIpForwarding
-                            };
-
-                            disassociate.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
-                                'Disassociate']);
-                            associate.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
-                                'Associate']);
-                            break;
-                        }
-                    }
-                }
-                return this._updateAssociations(disassociate, associate);
-            })
-            .catch(err => Promise.reject(err));
+        if (discover) {
+            return this._discoverAddressOperations(localAddresses, failoverAddresses);
+        }
+        if (update && update.disassociate && update.associate) {
+            return this._updateAddresses(update.disassociate, update.associate);
+        }
+        return Promise.resolve();
     }
 
     /**
@@ -223,35 +136,24 @@ class Cloud extends AbstractCloud {
     *
     * @param {Object} options                  - function options
     * @param {Object} [options.localAddresses] - object containing 1+ local (self) addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discover]      - perform discovery operation and return
+    * @param {Boolean} [options.update]        - update operation object
     *
     * @returns {Promise}
     */
     updateRoutes(options) {
+        options = options || {};
         const localAddresses = options.localAddresses || [];
-        this.logger.debug('Local addresses', localAddresses);
+        const discover = options.discover || false;
+        const update = options.update || null;
 
-        return this._getRouteTables({ tags: this.routeTags })
-            .then((routeTables) => {
-                this.logger.debug('Route tables', routeTables);
-                const promises = [];
-
-                // for each route table go through routes and update any necessary
-                routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                    routeTable.routes.forEach((route) => {
-                        if (this.routeAddresses.indexOf(route.addressPrefix) !== -1) {
-                            // update route
-                            route.nextHopIpAddress = selfIpToUse;
-                            const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
-                            promises.push(util.retrier.call(this, this._updateRoute, parameters, shortRetry));
-                        }
-                    });
-                });
-                return Promise.all(promises);
-            })
-            .catch(err => Promise.reject(err));
+        if (discover) {
+            return this._discoverRouteOperations(localAddresses);
+        }
+        if (update && update.operations) {
+            return this._updateRoutes(update.operations);
+        }
+        return Promise.resolve();
     }
 
     /**
@@ -479,28 +381,9 @@ class Cloud extends AbstractCloud {
     _getIpConfigs(ipConfigurations) {
         const nicArr = [];
         ipConfigurations.forEach((ipConfiguration) => {
-            nicArr.push(this._getNicConfig(ipConfiguration));
+            nicArr.push(ipConfiguration);
         });
         return nicArr;
-    }
-
-    /**
-    * Returns a network interface IP configuration
-    *
-    * @param {Object} ipConfig - The full Azure IP configuration
-    *
-    * @returns {Array} An array of IP configuration parameters
-    */
-    _getNicConfig(ipConfig) {
-        return {
-            name: ipConfig.name,
-            privateIPAllocationMethod: ipConfig.privateIPAllocationMethod,
-            privateIPAddress: ipConfig.privateIPAddress,
-            primary: ipConfig.primary,
-            publicIPAddress: ipConfig.publicIPAddress,
-            subnet: ipConfig.subnet,
-            loadBalancerBackendAddressPools: ipConfig.loadBalancerBackendAddressPools
-        };
     }
 
     /**
@@ -532,19 +415,133 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update associations
+    * Discover address operations
+    *
+    * @param {Object} localAddresses    - local addresses
+    * @param {Object} failoverAddresses - failover addresses
+    *
+    * @returns {Promise} { associate: {}, disassociate: {} }
+    */
+    _discoverAddressOperations(localAddresses, failoverAddresses) {
+        return this._listNics({ tags: this.tags || null })
+            .then((nics) => {
+                const myNics = [];
+                const theirNics = [];
+                const disassociate = [];
+                const associate = [];
+
+                // add nics to 'mine' or 'their' array based on address match
+                nics.forEach((nic) => {
+                    if (nic.provisioningState !== 'Succeeded') {
+                        this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
+                    }
+
+                    // identify 'my' and 'their' nics
+                    nic.ipConfigurations.forEach((ipConfiguration) => {
+                        localAddresses.forEach((address) => {
+                            if (ipConfiguration.privateIPAddress === address) {
+                                if (myNics.indexOf(nic) === -1) {
+                                    myNics.push({ nic });
+                                }
+                            }
+                        });
+                        failoverAddresses.forEach((address) => {
+                            if (ipConfiguration.privateIPAddress === address) {
+                                if (theirNics.indexOf(nic) === -1) {
+                                    theirNics.push({ nic });
+                                }
+                            }
+                        });
+                    });
+                });
+
+                // remove any nics from 'their' array if they are also in 'my' array
+                for (let p = myNics.length - 1; p >= 0; p -= 1) {
+                    for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
+                        if (myNics[p].nic.id === theirNics[qp].nic.id) {
+                            theirNics.splice(qp, 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (!myNics || !theirNics) {
+                    this.logger.error('Could not determine network interfaces.');
+                }
+
+                // go through 'their' nics and come up with disassociate/associate actions required
+                // to move ip configurations to 'my' nics, if any are required
+                for (let s = myNics.length - 1; s >= 0; s -= 1) {
+                    for (let h = theirNics.length - 1; h >= 0; h -= 1) {
+                        if (theirNics[h].nic.name !== myNics[s].nic.name
+                            && theirNics[h].nic.name.slice(0, -1) === myNics[s].nic.name.slice(0, -1)) {
+                            let myNic = [];
+                            let theirNic = [];
+                            const ourLocation = myNics[s].nic.location;
+                            const theirNsg = theirNics[h].nic.networkSecurityGroup;
+                            const myNsg = myNics[s].nic.networkSecurityGroup;
+                            const theirIpForwarding = theirNics[h].nic.enableIPForwarding;
+                            const myIpForwarding = myNics[s].nic.enableIPForwarding;
+                            const theirTags = theirNics[h].nic.tags;
+                            const myTags = myNics[s].nic.tags;
+
+                            myNic = this._getIpConfigs(myNics[s].nic.ipConfigurations);
+                            theirNic = this._getIpConfigs(theirNics[h].nic.ipConfigurations);
+
+                            for (let i = theirNic.length - 1; i >= 0; i -= 1) {
+                                for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
+                                    if (failoverAddresses[t] === theirNic[i].privateIPAddress) {
+                                        this.logger.silly('Match:', theirNic[i].privateIPAddress);
+
+                                        myNic.push(theirNic[i]);
+                                        theirNic.splice(i, 1);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            const theirNicParams = {
+                                location: ourLocation,
+                                ipConfigurations: theirNic,
+                                networkSecurityGroup: theirNsg,
+                                tags: theirTags,
+                                enableIPForwarding: theirIpForwarding
+                            };
+                            const myNicParams = {
+                                location: ourLocation,
+                                ipConfigurations: myNic,
+                                networkSecurityGroup: myNsg,
+                                tags: myTags,
+                                enableIPForwarding: myIpForwarding
+                            };
+
+                            disassociate.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
+                                'Disassociate']);
+                            associate.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
+                                'Associate']);
+                            break;
+                        }
+                    }
+                }
+                return Promise.resolve({ disassociate, associate });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses (given disassociate/associate operations)
     *
     * @param {Array} disassociate - Disassociate array
     * @param {Array} associate    - Associate array
     *
     * @returns {Promise}
     */
-    _updateAssociations(disassociate, associate) {
-        this.logger.debug('disassociate: ', disassociate);
-        this.logger.debug('associate: ', associate);
+    _updateAddresses(disassociate, associate) {
+        this.logger.debug('updateAddresses disassociate operations: ', disassociate);
+        this.logger.debug('updateAddresses associate operations: ', associate);
 
         if (!disassociate || !associate) {
-            this.logger.debug('No associations to update.');
+            this.logger.info('No associations to update.');
             return Promise.resolve();
         }
         const disassociatePromises = [];
@@ -602,6 +599,64 @@ class Cloud extends AbstractCloud {
                     });
                 }
                 return Promise.resolve(routeTables);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover route operations
+    *
+    * @param {Object} localAddresses - local addresses
+    *
+    * @returns {Promise} [ ['id', 'name', 'routeName', {}] ]
+    */
+    _discoverRouteOperations(localAddresses) {
+        return this._getRouteTables({ tags: this.routeTags })
+            .then((routeTables) => {
+                this.logger.silly('Route tables', routeTables);
+                const operations = [];
+
+                // for each route table go through routes and discover any necessary updates
+                routeTables.forEach((routeTable) => {
+                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+
+                    routeTable.routes.forEach((route) => {
+                        if (this.routeAddresses.indexOf(route.addressPrefix)
+                            !== -1 && route.nextHopIpAddress !== selfIpToUse) {
+                            route.nextHopIpAddress = selfIpToUse;
+                            const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
+                            operations.push(parameters);
+                        }
+                    });
+                });
+                return Promise.resolve({ operations });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses (given disassociate/associate operations)
+    *
+    * @param {Array} operations - operations array
+    *
+    * @returns {Promise}
+    */
+    _updateRoutes(operations) {
+        this.logger.debug('updateRoutes operations: ', operations);
+
+        if (!operations) {
+            this.logger.info('No route operations to run');
+            return Promise.resolve();
+        }
+
+        const operationsPromises = [];
+        operations.forEach((item) => {
+            operationsPromises.push(util.retrier.call(this, this._updateRoute, item, shortRetry));
+        });
+        return Promise.all(operationsPromises)
+            .then(() => {
+                this.logger.info('Update routes successful.');
             })
             .catch(err => Promise.reject(err));
     }
