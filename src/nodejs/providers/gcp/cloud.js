@@ -47,27 +47,27 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.storageTags = options.storageTags || {};
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
             this._getLocalMetadata('instance/service-accounts/default/token'),
             this._getLocalMetadata('instance/name'),
-            this._getLocalMetadata('instance/zone')
+            this._getLocalMetadata('instance/zone'),
+            this._getBucketFromLabel(this.storageTags)
         ])
             .then((data) => {
                 this.projectId = data[0];
                 this.accessToken = data[1].access_token;
                 this.instanceName = data[2];
                 this.instanceZone = data[3];
+                this.bucket = data[4];
                 // zone format: 'projects/734288666861/zones/us-west1-a'
                 const parts = this.instanceZone.split('/');
                 this.zone = parts[parts.length - 1];
                 this.computeZone = this.compute.zone(this.zone);
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
-                // create bucket
-                this.storage.createBucket(storageContainerName);
-                this.bucket = this.storage.bucket(storageContainerName);
 
                 this.logger.info('Getting GCP resources');
                 const firstKey = Object.keys(this.tags)[0]; // should support multiple
@@ -123,14 +123,13 @@ class Cloud extends AbstractCloud {
      */
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-        return this.bucket.file(fileName).save(JSON.stringify(data), (err) => {
-            if (err) {
-                Promise.reject(err);
-            } else {
-                Promise.resolve();
+        return this.bucket.file(storageContainerName + '/' + fileName).save(JSON.stringify(data), (err) => {
+            if (!err) {
+                this.logger.silly(`Data uploaded to ${fileName}: `, data);
+                return Promise.resolve();
             }
-        })
-            .catch(err => Promise.reject(err));
+            return Promise.reject(err);
+        });
     }
 
     /**
@@ -141,14 +140,15 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}
      */
     downloadDataFromStorage(fileName) {
-        return this.bucket.file(fileName).download()
-            .then((data) => {
-                return Promise.resolve(data[0]);
-            })
-            .catch((err) => {
-                const message = `Error downloading storage file ${err.message}`;
-                return Promise.reject(new Error(message));
-            });
+        const stream = this.bucket.file(storageContainerName + '/' + fileName).createReadStream();
+        let buffer = '';
+        stream.on('data', (data) => {
+            buffer += data;
+        }).on('error', (err) => {
+            return Promise.reject(err);
+        }).on('end', () => {
+            return Promise.resolve(JSON.parse(buffer));
+        });
     }
 
 
@@ -200,6 +200,28 @@ class Cloud extends AbstractCloud {
             });
     }
 
+    /**
+     * Get google storage bucket from given label
+     *
+     * @param {String} storageLabel - The label name of a bucket. For example 'f5_cloud_failover_label: x'
+     *
+     * @returns {Promise} A promise which is resolved with the bucket requested
+     *
+     */
+    _getBucketFromLabel(storageLabel) {
+        this.storage.getBuckets((err, buckets) => {
+            if (!err){
+                buckets.forEach((bucket) => {
+                    bucket.getLabels((err, labels) => {
+                        if (JSON.stringify(labels) === JSON.stringify(storageLabel)){
+                            return Promise.resolve(bucket);
+                        }
+                    })
+                })
+            }
+            return Promise.reject(err);
+        })
+    }
 
     /**
      * Get instance metadata from GCP
