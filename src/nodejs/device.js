@@ -41,6 +41,8 @@ class Device {
         this.password = options.password || 'admin';
         this.mgmtPort = options.mgmtPort || '443';
         this.product = options.product || 'BIG-IP';
+
+        this.bigip = new BigIp({ logger });
     }
 
     /**
@@ -49,8 +51,7 @@ class Device {
     *
     * @returns {Promise}
     */
-    initialize() {
-        this.bigip = new BigIp({ logger });
+    init() {
         return this.bigip.init(
             this.hostname,
             this.username,
@@ -59,7 +60,20 @@ class Device {
                 port: this.mgmtPort,
                 product: this.product
             }
-        );
+        )
+            .then(() => this.getConfig([
+                '/tm/sys/global-settings',
+                '/tm/cm/traffic-group/stats',
+                '/tm/net/self',
+                '/tm/ltm/virtual-address'
+            ]))
+            .then((results) => {
+                this.globalSettings = results[0];
+                this.trafficGroups = results[1];
+                this.selfAddresses = results[2];
+                this.virtualAddresses = results[3];
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -75,19 +89,6 @@ class Device {
             promises.push(this.bigip.list(endpoints[i]));
         }
         return Promise.all(promises);
-    }
-
-    /**
-    * Initializes device module configuration
-    *
-    * @param {Array} [results] - list of config objects recieved by quering BIG-IP endpoints in getConfig method
-    *
-    */
-    initFailoverConfig(results) {
-        this.globalSettings = results[0];
-        this.trafficGroups = results[1];
-        this.selfAddresses = results[2];
-        this.virtualAddresses = results[3];
     }
 
     /**

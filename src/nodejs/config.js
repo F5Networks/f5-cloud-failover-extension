@@ -155,7 +155,7 @@ class ConfigWorker {
 
         this.device = new Device();
 
-        return this.device.initialize()
+        return this.device.init()
             .then(() => this.updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))
             .catch((err) => {

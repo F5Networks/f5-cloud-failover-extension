@@ -106,6 +106,16 @@ class Cloud extends AbstractCloud {
         });
     }
 
+    // stub
+    uploadDataToStorage() {
+        return Promise.resolve();
+    }
+
+    // stub
+    downloadDataFromStorage() {
+        return Promise.resolve({});
+    }
+
     /**
      * Re-associates the Elastic IP Addresses. Will first attempt to disassociate and then associate
      * the Elastic IP Address(es) to the newly active BIG-IP

@@ -27,22 +27,16 @@ const mockResults = [
     'virtualAddresses'
 ];
 
-let device;
+describe('Device', () => {
+    let device;
 
-
-describe('device', () => {
     beforeEach(() => {
-        device = new Device({
-            hostname: 'localhost',
-            username: 'admin',
-            password: 'admin',
-            port: '443'
-        });
-        device.initialize = sinon.stub().returns('Initialized');
-        device.getConfig = sinon.stub().returns('ConfigRecieved');
-        device.initFailoverConfig(mockResults);
+        device = new Device();
+        device.bigip.init = sinon.stub().resolves();
     });
-
+    afterEach(() => {
+        sinon.restore();
+    });
 
     it('validate constructor', () => {
         assert.ok(new Device({
@@ -56,24 +50,21 @@ describe('device', () => {
 
 
     it('validate initialize', () => {
-        assert.strictEqual('Initialized', device.initialize());
-    });
-
-    it('validate initFailoverConfig', () => {
-        device.initFailoverConfig(mockResults);
-        assert.strictEqual(device.globalSettings, 'globalSettings');
-        assert.strictEqual(device.trafficGroups, 'trafficGroups');
-        assert.strictEqual(device.selfAddresses, 'selfAddresses');
-        assert.strictEqual(device.virtualAddresses, 'virtualAddresses');
+        device.getConfig = sinon.stub().resolves(mockResults);
+        return device.init()
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate getConfig', () => {
-        assert.strictEqual('ConfigRecieved', device.getConfig([
-            '/tm/sys/global-settings',
-            '/tm/cm/traffic-group/stats',
-            '/tm/net/self',
-            '/tm/ltm/virtual-address'
-        ]));
+        device.bigip.list = sinon.stub().resolves('foo');
+        return device.getConfig(['/foo'])
+            .then((data) => {
+                assert.deepStrictEqual('foo', data[0]);
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate executeBigIpBashCmd', () => {
@@ -92,18 +83,38 @@ describe('device', () => {
 
 
     it('validate getGlobalSettings', () => {
-        assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
+        device.getConfig = sinon.stub().resolves(mockResults);
+        return device.init()
+            .then(() => {
+                assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate getTrafficGroupsStats', () => {
-        assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
+        device.getConfig = sinon.stub().resolves(mockResults);
+        return device.init()
+            .then(() => {
+                assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate getSelfAddresses', () => {
-        assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
+        device.getConfig = sinon.stub().resolves(mockResults);
+        return device.init()
+            .then(() => {
+                assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate getVirtualAddresses', () => {
-        assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
+        device.getConfig = sinon.stub().resolves(mockResults);
+        return device.init()
+            .then(() => {
+                assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
+            })
+            .catch(err => Promise.reject(err));
     });
 });

@@ -18,6 +18,8 @@
 
 const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
 
+const constants = require('../src/nodejs/constants.js');
+
 /**
  * Constants used across two or more files
  *
@@ -48,5 +50,6 @@ module.exports = {
     TRIGGER_ENDPOINT: `${BASE_ENDPOINT}/trigger`,
     PKG_NAME: 'f5-cloud-failover',
     DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
-    DEPLOYMENT_FILE: 'deployment_info.json'
+    DEPLOYMENT_FILE: 'deployment_info.json',
+    FAILOVER_STATES: constants.FAILOVER_STATES
 };
