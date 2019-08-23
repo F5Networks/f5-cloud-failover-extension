@@ -8,6 +8,11 @@ variable "zone" {
   default     = "us-west1-a"
 }
 
+variable "instance-type" {
+  description = "Google Cloud instance type"
+  default = "n1-standard-8"
+}
+
 variable "publisher" {
   default = "f5-networks"
 }
@@ -102,4 +107,10 @@ variable "instance_size" {
 variable "admin_username" {
   description = "The admin username for the virtual machine"
   default     = "gcpuser"
+}
+
+
+variable "reaper_tag" {
+  description = "this value is used by resource reaper to locate resource which needs to be deleted"
+  default = "delete=true"
 }
