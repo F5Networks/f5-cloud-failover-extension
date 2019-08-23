@@ -57,7 +57,8 @@ describe('Provider: GCP', () => {
             request = {
                 project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
                 auth: authClient,
-                zone: 'us-west1-a'
+                zone: 'us-west1-a',
+                region: 'us-west1'
             };
         }).catch(err => Promise.reject(err)));
     after(() => {
@@ -164,6 +165,31 @@ describe('Provider: GCP', () => {
         });
     });
 
+    it('validate initial forwardng rule and route should reference primary', () => {
+        compute.routes.list(request, (err, response) => {
+            let testRouteFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((route) => {
+                    if (route.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                        testRouteFlag = primarySelfIps.indexOf(route.nextHopIp) !== -1;
+                    }
+                });
+                assert.ok(testRouteFlag);
+            }
+        });
+        compute.forwardingRules.list(request, (err, response) => {
+            let testFwdRuleFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((fwdRule) => {
+                    if (fwdRule.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                        testFwdRuleFlag = fwdRule.target.indexOf(`${dutPrimary.hostname.split('-')[3]}-${dutPrimary.hostname.split('-')[4]}`) !== -1;
+                    }
+                });
+                assert.ok(testFwdRuleFlag);
+            }
+        });
+    });
+
     it('should force BIG-IP (primary) to standby', () => {
         const uri = '/mgmt/tm/sys/failover';
         return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
@@ -200,6 +226,31 @@ describe('Provider: GCP', () => {
         });
     });
 
+    it('validate failover event - forwardng rule and route should reference secondary', () => {
+        compute.routes.list(request, (err, response) => {
+            let testRouteFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((route) => {
+                    if (route.name.indexOf(dutSecondary.deploymentId) !== -1) {
+                        testRouteFlag = secondarySelfIps.indexOf(route.nextHopIp) !== -1;
+                    }
+                });
+                assert.ok(testRouteFlag);
+            }
+        });
+        compute.forwardingRules.list(request, (err, response) => {
+            let testFwdRuleFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((fwdRule) => {
+                    if (fwdRule.name.indexOf(dutSecondary.deploymentId) !== -1) {
+                        testFwdRuleFlag = fwdRule.target.indexOf(`${dutSecondary.hostname.split('-')[3]}-${dutSecondary.hostname.split('-')[4]}`) !== -1;
+                    }
+                });
+                assert.ok(testFwdRuleFlag);
+            }
+        });
+    });
+
     it('should force BIG-IP (secondary) to standby', () => {
         const uri = '/mgmt/tm/sys/failover';
         return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
@@ -232,6 +283,32 @@ describe('Provider: GCP', () => {
                         }
                     }
                 });
+            }
+        });
+    });
+
+
+    it('validate failover event - forwardng rule and route should reference primary', () => {
+        compute.routes.list(request, (err, response) => {
+            let testRouteFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((route) => {
+                    if (route.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                        testRouteFlag = primarySelfIps.indexOf(route.nextHopIp) !== -1;
+                    }
+                });
+                assert.ok(testRouteFlag);
+            }
+        });
+        compute.forwardingRules.list(request, (err, response) => {
+            let testFwdRuleFlag = false;
+            if (response.data.items) {
+                response.data.items.forEach((fwdRule) => {
+                    if (fwdRule.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                        testFwdRuleFlag = fwdRule.target.indexOf(`${dutPrimary.hostname.split('-')[3]}-${dutPrimary.hostname.split('-')[4]}`) !== -1;
+                    }
+                });
+                assert.ok(testFwdRuleFlag);
             }
         });
     });

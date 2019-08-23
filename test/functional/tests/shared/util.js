@@ -33,7 +33,9 @@ module.exports = {
                 username: item.admin_username,
                 password: item.admin_password,
                 primary: item.primary,
-                hostname: item.hostname
+                hostname: item.hostname,
+                // eslint-disable-next-line import/no-dynamic-require, global-require
+                deploymentId: require(deploymentFile).deploymentId
             };
             return item;
         });
