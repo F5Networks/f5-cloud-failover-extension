@@ -118,7 +118,7 @@ describe('Failover', () => {
                 const updateAddressesCall = spyOnUpdateAddresses.getCall(0).args[0];
                 assert.deepStrictEqual(updateAddressesCall.localAddresses, ['1.1.1.1']);
                 assert.deepStrictEqual(updateAddressesCall.failoverAddresses, ['2.2.2.2']);
-                assert.strictEqual(updateAddressesCall.discover, true);
+                assert.strictEqual(updateAddressesCall.discoverOnly, true);
 
                 assert.strictEqual(deviceGlobalSettingsMock.called, true);
                 assert.strictEqual(deviceGetTrafficGroupsMock.called, true);

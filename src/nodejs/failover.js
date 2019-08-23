@@ -110,13 +110,13 @@ class FailoverClient {
                     this.cloudProvider.updateAddresses({
                         localAddresses: this.localAddresses,
                         failoverAddresses: this.failoverAddresses,
-                        discover: true
+                        discoverOnly: true
                     })
                 ];
                 if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
                     discoverActions.push(this.cloudProvider.updateRoutes({
                         localAddresses: this.localAddresses,
-                        discover: true
+                        discoverOnly: true
                     }));
                 }
                 return Promise.all(discoverActions);
@@ -133,10 +133,10 @@ class FailoverClient {
             .then(() => {
                 logger.info('Performing Failover - update');
                 const updateActions = [
-                    this.cloudProvider.updateAddresses({ update: this.addressDiscovery })
+                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery })
                 ];
                 if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
-                    updateActions.push(this.cloudProvider.updateRoutes({ update: this.routeDiscovery }));
+                    updateActions.push(this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery }));
                 }
                 return Promise.all(updateActions);
             })

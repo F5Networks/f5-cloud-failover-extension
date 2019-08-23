@@ -110,8 +110,8 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
-    * @param {Boolean} [options.discover]         - perform discovery operation and return
-    * @param {Object} [options.update]            - update operation object
+    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+    * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
     * @returns {Object}
     */
@@ -119,41 +119,47 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses;
         const failoverAddresses = options.failoverAddresses;
-        const discover = options.discover || false;
-        const update = options.update || null;
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations || {};
 
-        if (discover) {
+        if (discoverOnly === true) {
             return this._discoverAddressOperations(localAddresses, failoverAddresses);
         }
-        if (update && update.disassociate && update.associate) {
-            return this._updateAddresses(update.disassociate, update.associate);
+        if (updateOperations && updateOperations.disassociate && updateOperations.associate) {
+            return this._updateAddresses(updateOperations.disassociate, updateOperations.associate);
         }
-        return Promise.resolve();
+        // default - discover and update
+        return this._discoverAddressOperations(localAddresses, failoverAddresses)
+            .then(operations => this._updateAddresses(operations.disassociate, operations.associate))
+            .catch(err => Promise.reject(err));
     }
 
     /**
     * Update routes
     *
-    * @param {Object} options                  - function options
-    * @param {Object} [options.localAddresses] - object containing 1+ local (self) addresses [ '192.0.2.1' ]
-    * @param {Boolean} [options.discover]      - perform discovery operation and return
-    * @param {Boolean} [options.update]        - update operation object
+    * @param {Object} options                     - function options
+    * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+    * @param {Boolean} [options.updateOperations] - skip discovery and perform 'these' update operations
     *
     * @returns {Promise}
     */
     updateRoutes(options) {
         options = options || {};
         const localAddresses = options.localAddresses || [];
-        const discover = options.discover || false;
-        const update = options.update || null;
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations || {};
 
-        if (discover) {
+        if (discoverOnly === true) {
             return this._discoverRouteOperations(localAddresses);
         }
-        if (update && update.operations) {
-            return this._updateRoutes(update.operations);
+        if (updateOperations && updateOperations.operations) {
+            return this._updateRoutes(updateOperations.operations);
         }
-        return Promise.resolve();
+        // default - discover and update
+        return this._discoverRouteOperations(localAddresses)
+            .then(operations => this._updateRoutes(operations.operations))
+            .catch(err => Promise.reject(err));
     }
 
     /**

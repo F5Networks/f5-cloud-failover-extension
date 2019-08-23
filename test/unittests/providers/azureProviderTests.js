@@ -253,8 +253,8 @@ describe('Provider - Azure', () => {
         sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discover: true })
-            .then(operations => provider.updateAddresses({ update: operations }))
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
                 assert.strictEqual(disassociateArgs[1], 'nic01');
@@ -509,8 +509,8 @@ describe('Provider - Azure', () => {
         provider.routeAddresses = ['192.0.0.0/24'];
         provider.routeSelfIpsTag = 'F5_SELF_IPS';
 
-        return provider.updateRoutes({ localAddresses, discover: true })
-            .then(operations => provider.updateRoutes({ update: operations }))
+        return provider.updateRoutes({ localAddresses, discoverOnly: true })
+            .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
             })
