@@ -301,7 +301,7 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "s3:ListBucket",
             "s3:GetBucketTagging"
         ],
-        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
         "Effect": "Allow"
     },
     {
@@ -310,7 +310,7 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "s3:GetObject",
             "s3:DeleteObject"
         ],
-        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}/*",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
         "Effect": "Allow"
     }
   ]

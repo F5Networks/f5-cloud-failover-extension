@@ -335,40 +335,42 @@ class Cloud extends AbstractCloud {
      *                          rejected if an error occurs
      */
     _getS3BucketByTags(tags) {
-        this.logger.info('got tags!');
-        this.logger.info(tags);
         const getBucketTagsPromises = [];
-
-        const getTags = function (p) {
-            return new Promise((resolve) => {
-                this.s3.getBucketTagging(p).promise()
-                    .then((data) => {
-                        resolve({
-                            Bucket: p.Bucket,
-                            TagSet: data.TagSet
-                        });
-                    })
-                    .catch(() => {
-                        this.logger.info(`got an error for bucket: ${p.Bucket}`);
-                        resolve(); // resolving since ignoring permissions errors to extraneous buckets
-                    });
-            });
-        };
 
         return this._getAllS3Buckets()
             .then((data) => {
                 data.forEach((bucket) => {
-                    const params = {
-                        Bucket: bucket
-                    };
-                    getBucketTagsPromises.push(util.retrier.call(this, getTags, [params]));
+                    const getTagsArgs = [bucket, { rejectOnError: false }];
+                    getBucketTagsPromises.push(util.retrier.call(this, this._getTags, getTagsArgs));
                 });
                 return Promise.all(getBucketTagsPromises);
             })
-            .then((data) => {
-                this.logger.info('got some tags!');
-                this.logger.info(data);
-                // TODO: Filter by tags
+            // Filter out any 'undefined' responses
+            .then(data => Promise.resolve(data.filter(i => i)))
+            .then((taggedBuckets) => {
+                const tagKeys = Object.keys(tags);
+                const filteredBuckets = taggedBuckets.filter((taggedBucket) => {
+                    let matchedTags = 0;
+                    const bucketDict = taggedBucket.reduce((acc, cur) => {
+                        acc[cur.Key] = cur.Value;
+                        return acc;
+                    }, {});
+                    tagKeys.forEach((tagKey) => {
+                        if (Object.keys(bucketDict).indexOf(tagKey) !== -1 && bucketDict[tagKey] === tags[tagKey]) {
+                            matchedTags += 1;
+                        }
+                    });
+                    return tagKeys.length === matchedTags;
+                });
+                this.logger.info('Filtered Buckets:');
+                return Promise.resolve(filteredBuckets);
+            })
+            .then((filteredBuckets) => {
+                if (!filteredBuckets.length) {
+                    return Promise.reject(new Error('No valid S3 Buckets found!'));
+                }
+                this.s3BucketName = filteredBuckets[0]; // grab the first bucket for now
+                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
@@ -389,6 +391,38 @@ class Cloud extends AbstractCloud {
                 .catch(err => reject(err));
         });
         return util.retrier.call(this, listAllBuckets);
+    }
+
+    /**
+     * Get the Tags of a given S3 bucket, optionally rejecting or resolving on errors
+     *
+     * @param   {String}    bucket                  - name of the S3 bucket
+     * @param   {Object}    options                 - function options
+     * @param   {Boolean}   [options.rejectOnError] - whether or not to reject on error. Default: reject on error
+     *
+     * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getTags(bucket, options) {
+        const rejectOnError = options.rejectOnError || true;
+        const params = {
+            Bucket: bucket
+        };
+        return new Promise((resolve, reject) => {
+            this.s3.getBucketTagging(params).promise()
+                .then((data) => {
+                    resolve({
+                        Bucket: params.Bucket,
+                        TagSet: data.TagSet
+                    });
+                })
+                .catch((err) => {
+                    if (rejectOnError) {
+                        reject(err);
+                    }
+                    resolve(); // resolving since ignoring permissions errors to extraneous buckets
+                });
+        });
     }
 }
 
