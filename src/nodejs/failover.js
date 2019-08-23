@@ -230,7 +230,7 @@ class FailoverClient {
                         if (timeDrift > RUNNING_TASK_MAX_MS) {
                             logger.error(`Time drift exceeded maximum limit: ${timeDrift}`);
                             clearInterval(interval);
-                            resolve({ stateFile: data, recoverPreviousTask: true });
+                            resolve({ recoverPreviousTask: true, state: data });
                         }
                     })
                     .catch((err) => {
