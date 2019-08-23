@@ -32,11 +32,16 @@ class Cloud extends AbstractCloud {
     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
     *
     * @param {Object} options        - function options
-    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
+    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
+    * @param {Object} [options.storageTags]     - object containing storage tags to filter on { 'key': 'value' }
     */
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.storageTags = options.storageTags || null;
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -45,6 +50,9 @@ class Cloud extends AbstractCloud {
 
                 AWS.config.update({ region: this.region });
                 this.ec2 = new AWS.EC2();
+                this.s3 = new AWS.S3();
+
+                return this._getS3BucketByTags(this.storageTags);
             })
             .catch(err => Promise.reject(err));
     }
@@ -316,6 +324,71 @@ class Cloud extends AbstractCloud {
                 );
             });
         });
+    }
+
+    /**
+     * Gets the S3 bucket to use, from the provided storage tags
+     *
+     * @param   {Object}    tags - object containing tags to filter on { 'key': 'value' }
+     *
+     * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getS3BucketByTags(tags) {
+        this.logger.info('got tags!');
+        this.logger.info(tags);
+        const getBucketTagsPromises = [];
+
+        const getTags = function (p) {
+            return new Promise((resolve) => {
+                this.s3.getBucketTagging(p).promise()
+                    .then((data) => {
+                        resolve({
+                            Bucket: p.Bucket,
+                            TagSet: data.TagSet
+                        });
+                    })
+                    .catch(() => {
+                        this.logger.info(`got an error for bucket: ${p.Bucket}`);
+                        resolve(); // resolving since ignoring permissions errors to extraneous buckets
+                    });
+            });
+        };
+
+        return this._getAllS3Buckets()
+            .then((data) => {
+                data.forEach((bucket) => {
+                    const params = {
+                        Bucket: bucket
+                    };
+                    getBucketTagsPromises.push(util.retrier.call(this, getTags, [params]));
+                });
+                return Promise.all(getBucketTagsPromises);
+            })
+            .then((data) => {
+                this.logger.info('got some tags!');
+                this.logger.info(data);
+                // TODO: Filter by tags
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get all S3 buckets in account, to filter on later
+     *
+     * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getAllS3Buckets() {
+        const listAllBuckets = () => new Promise((resolve, reject) => {
+            this.s3.listBuckets({}).promise()
+                .then((data) => {
+                    const bucketNames = data.Buckets.map(b => b.Name);
+                    resolve(bucketNames);
+                })
+                .catch(err => reject(err));
+        });
+        return util.retrier.call(this, listAllBuckets);
     }
 }
 
