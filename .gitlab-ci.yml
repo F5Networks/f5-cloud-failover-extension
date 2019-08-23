@@ -124,6 +124,7 @@ test_functional_aws:
     variables:
         CF_ENV_CLOUD: "aws"
 
+# run functional tests: gcp
 test_functional_gcp:
     <<: *test_functional_generic
     variables:
