@@ -24,7 +24,6 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 // const deploymentInfo = funcUtils.getEnvironmentInfo();
-// const rgName = deploymentInfo.deploymentId;
 
 const declaration = funcUtils.getDeploymentDeclaration();
 // const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
@@ -92,52 +91,6 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (primary) to standby', () => {
-        const uri = '/mgmt/tm/sys/failover';
-
-        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                options.method = 'POST';
-                options.body = {
-                    command: 'run',
-                    standby: true
-                };
-                return utils.makeRequest(dutPrimary.ip, uri, options);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate Google Primary VM IP Addresess', () => {
-        compute.instances.list(request,(err, response) => {
-            if(response.data.items){
-                response.data.items.forEach((vm) => {
-                    if (vm.labels){
-                        if (Object.values(vm.labels).indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
-                        && Object.keys(vm.labels).indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1){
-                            gcloudVms.push(vm)
-                        }
-                    }
-                });
-            }
-            const network_ip = [];
-            gcloudVms.forEach((vm) => {
-                vm.networkInterfaces.forEach((nic) => {
-                    network_ip.push(nic.networkIP);
-                });
-            });
-            primarySelfIps.forEach((ip_address) => {
-                if(network_ip.indexOf(ip_address) !== -1){
-                    assert.ok(true);
-                }
-                else {
-                    assert.ok(false);
-                }
-            });
-
-        });
-    });
-
     it('should get BIG-IP (secondary) self IP(s)', () => {
         const uri = '/mgmt/tm/net/self';
 
@@ -166,9 +119,51 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate Google Primary VM IP Addresess', () => {
+        compute.instances.list(request, (err, response) => {
+            if (response.data.items) {
+                response.data.items.forEach((vm) => {
+                    if (vm.labels) {
+                        if (Object.values(vm.labels)
+                            .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                        && Object.keys(vm.labels)
+                            .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
+                            gcloudVms.push(vm);
+                        }
+                    }
+                });
+            }
+            const networkIp = [];
+            gcloudVms.forEach((vm) => {
+                vm.networkInterfaces.forEach((nic) => {
+                    networkIp.push(nic.networkIP);
+                });
+            });
+            primarySelfIps.forEach((ipAddress) => {
+                if (networkIp.indexOf(ipAddress) !== -1) {
+                    assert.ok(true);
+                } else {
+                    assert.ok(false);
+                }
+            });
+            secondarySelfIps.forEach((ipAddress) => {
+                if (networkIp.indexOf(ipAddress) !== -1) {
+                    assert.ok(true);
+                } else {
+                    assert.ok(false);
+                }
+            });
+        });
+    });
+
+    it('validate virtualIp synced between BIGIP hosts', () => {
+        primaryVirtualAddresses.forEach((item) => {
+            assert.ok(secondaryVirtualAddresses.indexOf(item) !== -1);
+        });
+    });
+
     it('should force BIG-IP (primary) to standby', () => {
         const uri = '/mgmt/tm/sys/failover';
-
         return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
             .then((data) => {
                 const options = funcUtils.makeOptions({ authToken: data.token });
@@ -177,8 +172,65 @@ describe('Provider: GCP', () => {
                     command: 'run',
                     standby: true
                 };
-                return utils.makeRequest(dutPrimary.ip, uri, options);
+                return utils.makeRequest(dutPrimary.ip, uri, options)
+                    .then(() => new Promise(resolve => setTimeout(resolve, 60000)));
             })
             .catch(err => Promise.reject(err));
+    });
+
+    it('validate failover event - secondary should be active now', () => {
+        gcloudVms = [];
+        compute.instances.list(request, (err, response) => {
+            if (response.data.items) {
+                response.data.items.forEach((vm) => {
+                    if (vm.labels) {
+                        if (Object.values(vm.labels)
+                            .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                            && Object.keys(vm.labels)
+                                .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
+                            if (vm.name.indexOf(dutSecondary.hostname) !== -1) {
+                                assert.ok(primaryVirtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    it('should force BIG-IP (secondary) to standby', () => {
+        const uri = '/mgmt/tm/sys/failover';
+        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            .then((data) => {
+                const options = funcUtils.makeOptions({ authToken: data.token });
+                options.method = 'POST';
+                options.body = {
+                    command: 'run',
+                    standby: true
+                };
+                return utils.makeRequest(dutSecondary.ip, uri, options)
+                    .then(() => new Promise(resolve => setTimeout(resolve, 60000)));
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate failover event - secondary should be active now', () => {
+        gcloudVms = [];
+        compute.instances.list(request, (err, response) => {
+            if (response.data.items) {
+                response.data.items.forEach((vm) => {
+                    if (vm.labels) {
+                        if (Object.values(vm.labels)
+                            .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                            && Object.keys(vm.labels)
+                                .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
+                            if (vm.name.indexOf(dutPrimary.hostname) !== -1) {
+                                assert.ok(primaryVirtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
+                            }
+                        }
+                    }
+                });
+            }
+        });
     });
 });

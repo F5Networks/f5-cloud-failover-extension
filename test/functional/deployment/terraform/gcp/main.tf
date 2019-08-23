@@ -76,11 +76,11 @@ resource "google_compute_subnetwork" "int_subnetwork" {
   description   = "${var.reaper_tag}"
 }
 
-resource "google_compute_forwarding_rule" "vm01-forwarding-rule" {
-  name = "tf-func-test-forwarding-rule-vm01-us-west1-${random_string.env_prefix.result}"
+resource "google_compute_forwarding_rule" "vm02-forwarding-rule" {
+  name = "tf-func-test-forwarding-rule-vm02-us-west1-${random_string.env_prefix.result}"
   ip_protocol = "TCP"
   load_balancing_scheme = "EXTERNAL"
-  target = "${google_compute_target_instance.vm01.self_link}"
+  target = "${google_compute_target_instance.vm02.self_link}"
   description = "${var.reaper_tag}"
 }
 
@@ -198,7 +198,7 @@ data "template_file" "vm02_cloud_init_script" {
 
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${random_string.env_prefix.result}"
-  machine_type = "n1-standard-4"
+  machine_type = "${var.instance-type}"
   zone         = "${var.zone}"
   can_ip_forward = true
   description = "${var.reaper_tag}"
@@ -220,11 +220,6 @@ resource "google_compute_instance" "vm01" {
 
     access_config {
     }
-
-    alias_ip_range {
-      ip_cidr_range = "${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}/32"
-    }
-
   }
 
   network_interface {
@@ -259,7 +254,7 @@ resource "google_compute_instance" "vm01" {
 
 resource "google_compute_instance" "vm02" {
   name         = "tf-func-test-vm02-${random_string.env_prefix.result}"
-  machine_type = "n1-standard-4"
+  machine_type = "${var.instance-type}"
   zone         = "${var.zone}"
   can_ip_forward = true
   description = "${var.reaper_tag}"
@@ -281,12 +276,9 @@ resource "google_compute_instance" "vm02" {
 
     access_config {
     }
-    /*
-    Alias-IP is only on active host; the alias ip will be re-assigned to stand-by host as part of failover
     alias_ip_range {
-      ip_cidr_range = "${join( ".", concat(slice(split(".",data.google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm02.result)))}/32"
+      ip_cidr_range = "${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm02.result)))}/32"
     }
-    */
   }
 
   network_interface {
@@ -322,7 +314,7 @@ resource "google_compute_route" "ext-route" {
   description = "${var.reaper_tag} labels=f5_cloud_failover_label,${random_string.env_prefix.result}|ip_addresses=${google_compute_instance.vm01.network_interface.2.network_ip},${google_compute_instance.vm02.network_interface.2.network_ip}"
   dest_range  = "15.0.0.0/24"
   network     = "${google_compute_network.int_network.name}"
-  next_hop_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}"
+  next_hop_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}"
   priority    = 100
 }
 
@@ -361,17 +353,6 @@ resource "null_resource" "delay_one_minute01" {
   depends_on = [null_resource.login01]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
-resource "null_resource" "create_virtual01" {
-  provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm01.result)))}\",\"trafficGroup\":\"traffic-group-1\"}'"
-  }
-  triggers = {
-    always_run = timestamp()
-  }
-  depends_on = [null_resource.delay_one_minute01]
-}
-
 resource "null_resource" "onboard01" {
   provisioner "local-exec" {
     command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
@@ -379,18 +360,9 @@ resource "null_resource" "onboard01" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [local_file.do01, null_resource.create_virtual01]
+  depends_on = [local_file.do01, null_resource.delay_one_minute01]
 }
 
-resource "null_resource" "create_virtual02" {
-  provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual -d '{\"name\":\"external-pool\",\"destination\":\"${google_compute_forwarding_rule.vm01-forwarding-rule.ip_address}:80\"}'"
-  }
-  triggers = {
-    always_run = timestamp()
-  }
-  depends_on = [null_resource.onboard01]
-}
 
 resource "null_resource" "login02" {
   provisioner "local-exec" {
@@ -399,7 +371,7 @@ resource "null_resource" "login02" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [google_compute_instance.vm02,null_resource.create_virtual02]
+  depends_on = [google_compute_instance.vm02,null_resource.onboard01]
 }
 
 resource "null_resource" "delay_one_minute02" {
@@ -408,6 +380,7 @@ resource "null_resource" "delay_one_minute02" {
   }
   depends_on = [null_resource.login02]
 }
+
 
 resource "null_resource" "onboard02" {
   provisioner "local-exec" {
@@ -419,6 +392,28 @@ resource "null_resource" "onboard02" {
   depends_on = [local_file.do02, null_resource.login02, null_resource.delay_one_minute02]
 }
 
+# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
+resource "null_resource" "create_virtual01" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${join( ".", concat(slice(split(".",google_compute_subnetwork.ext_subnetwork.ip_cidr_range), 0, 3), list(random_integer.ip_alias_4octet_vm02.result)))}\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [null_resource.onboard02]
+}
+
+
+resource "null_resource" "create_virtual02" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${random_string.admin_password.result} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual -d '{\"name\":\"external-pool\",\"destination\":\"${google_compute_forwarding_rule.vm02-forwarding-rule.ip_address}:80\"}'"
+  }
+  triggers = {
+    always_run = timestamp()
+  }
+  depends_on = [null_resource.create_virtual01]
+}
+
 output "deployment_info" {
   value = {
     instances: [
@@ -427,14 +422,16 @@ output "deployment_info" {
         admin_password = random_string.admin_password.result,
         mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        primary = true
+        hostname = google_compute_instance.vm01.name
+        primary = false
       },
       {
         admin_username = var.admin_username,
         admin_password = random_string.admin_password.result,
         mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        primary = false
+        hostname = google_compute_instance.vm02.name
+        primary = true
       }
     ],
     deploymentId: random_string.env_prefix.result,
