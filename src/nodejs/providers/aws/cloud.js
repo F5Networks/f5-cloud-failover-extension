@@ -20,6 +20,7 @@ const AWS = require('aws-sdk');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const constants = require('../../constants');
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -42,6 +43,8 @@ class Cloud extends AbstractCloud {
         options = options || {};
         this.tags = options.tags || null;
         this.storageTags = options.storageTags || null;
+
+        this.failoverStorageKey = `${constants.STORAGE_FOLDER_NAME}/${constants.STATE_FILE_NAME}`;
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -77,12 +80,42 @@ class Cloud extends AbstractCloud {
         }).catch(err => Promise.reject(err));
     }
 
-    // stub
-    uploadDataToStorage() {
-        return Promise.resolve();
+    /**
+    * Download data from storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be downloaded
+    *
+    * @returns {Promise}
+    */
+    uploadDataToStorage(fileName, data) {
+        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
+        // storageFolderName
+        const uploadObject = () => new Promise((resolve, reject) => {
+            const params = {
+                Body: util.stringify(data),
+                Bucket: this.s3BucketName,
+                Key: this.failoverStorageKey
+            };
+            this.s3.putObject(params).promise()
+                .then((response) => {
+                    this.logger.info('uploaded file:');
+                    this.logger.info(response);
+                    resolve();
+                })
+                .catch(err => reject(err));
+        });
+
+        return util.retrier.call(this, uploadObject);
     }
 
-    // stub
+    /**
+    * Upload data to storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be uploaded
+    * @param {Object} data     - data to upload
+    *
+    * @returns {Promise}
+    */
     downloadDataFromStorage() {
         return Promise.resolve({});
     }
@@ -351,7 +384,7 @@ class Cloud extends AbstractCloud {
                 const tagKeys = Object.keys(tags);
                 const filteredBuckets = taggedBuckets.filter((taggedBucket) => {
                     let matchedTags = 0;
-                    const bucketDict = taggedBucket.reduce((acc, cur) => {
+                    const bucketDict = taggedBucket.TagSet.reduce((acc, cur) => {
                         acc[cur.Key] = cur.Value;
                         return acc;
                     }, {});
@@ -369,7 +402,7 @@ class Cloud extends AbstractCloud {
                 if (!filteredBuckets.length) {
                     return Promise.reject(new Error('No valid S3 Buckets found!'));
                 }
-                this.s3BucketName = filteredBuckets[0]; // grab the first bucket for now
+                this.s3BucketName = filteredBuckets[0].Bucket; // grab the first bucket for now
                 return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
@@ -398,13 +431,13 @@ class Cloud extends AbstractCloud {
      *
      * @param   {String}    bucket                  - name of the S3 bucket
      * @param   {Object}    options                 - function options
-     * @param   {Boolean}   [options.rejectOnError] - whether or not to reject on error. Default: reject on error
+     * @param   {Boolean}   [options.continueOnError] - whether or not to reject on error. Default: reject on error
      *
      * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
      *                          rejected if an error occurs
      */
     _getTags(bucket, options) {
-        const rejectOnError = options.rejectOnError || true;
+        const continueOnError = options.continueOnError || false;
         const params = {
             Bucket: bucket
         };
@@ -417,7 +450,7 @@ class Cloud extends AbstractCloud {
                     });
                 })
                 .catch((err) => {
-                    if (rejectOnError) {
+                    if (!continueOnError) {
                         reject(err);
                     }
                     resolve(); // resolving since ignoring permissions errors to extraneous buckets
