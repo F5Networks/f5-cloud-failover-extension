@@ -19,7 +19,7 @@ resource "azurerm_storage_account" "storage_account" {
   account_replication_type = "LRS"
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}"
   }
 }
 
@@ -138,7 +138,7 @@ resource "azurerm_network_interface" "internal0" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}"
   }
 }
 
@@ -156,7 +156,7 @@ resource "azurerm_network_interface" "internal1" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}"
   }
 }
 
@@ -174,7 +174,7 @@ resource "azurerm_network_interface" "external0" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}"
   }
 }
 
@@ -200,7 +200,7 @@ resource "azurerm_network_interface" "external1" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}"
   }
 }
 
@@ -217,7 +217,7 @@ resource "azurerm_route_table" "route_table" {
   }
 
   tags = {
-    F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}",
+    f5_cloud_failover_label = "${module.utils.env_prefix}",
     F5_SELF_IPS = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
 }
