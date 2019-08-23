@@ -53,11 +53,11 @@ describe('Failover', () => {
         sinon.stub(Object.getPrototypeOf(config), 'updateTriggerScripts').resolves();
 
         cloudProviderMock = {
-            init: () => {},
-            updateAddresses: () => {},
-            updateRoutes: () => {},
-            downloadDataFromStorage: () => {},
-            uploadDataToStorage: () => {}
+            init: () => Promise.resolve({}),
+            updateAddresses: () => Promise.resolve({}),
+            updateRoutes: () => Promise.resolve({}),
+            downloadDataFromStorage: () => Promise.resolve({}),
+            uploadDataToStorage: () => Promise.resolve({})
         };
     });
     afterEach(() => {

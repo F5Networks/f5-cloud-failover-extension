@@ -85,10 +85,7 @@ class FailoverClient {
                     this.recoverPreviousTask = true;
                     this.recoveryOperations = taskResponse.state.operations;
                 }
-                return this.cloudProvider.uploadDataToStorage(
-                    stateFileName,
-                    this._createStateObject({ taskState: failoverStates.RUN })
-                );
+                return this._createAndUpdateStateObject({ taskState: failoverStates.RUN });
             })
             .then(() => {
                 logger.info('Performing Failover - discovery');
@@ -129,13 +126,10 @@ class FailoverClient {
                 this.addressDiscovery = discovery[0];
                 this.routeDiscovery = discovery[1];
 
-                return this.cloudProvider.uploadDataToStorage(
-                    stateFileName,
-                    this._createStateObject({
-                        taskState: failoverStates.RUN,
-                        operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
-                    })
-                );
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.RUN,
+                    operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                });
             })
             .then(() => {
                 logger.info('Performing Failover - update');
@@ -147,26 +141,19 @@ class FailoverClient {
                 }
                 return Promise.all(updateActions);
             })
-            .then(() => {
-                const stateFile = this._createStateObject({ taskState: failoverStates.PASS });
-                return this.cloudProvider.uploadDataToStorage(stateFileName, stateFile);
-            })
+            .then(() => this._createAndUpdateStateObject({ taskState: failoverStates.PASS }))
             .then(() => {
                 logger.info('Failover complete');
             })
             .catch((err) => {
                 logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
 
-                const stateFile = this._createStateObject({
+                return this._createAndUpdateStateObject({
                     taskState: failoverStates.FAIL,
                     operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
-                });
-                return this.cloudProvider.uploadDataToStorage(stateFileName, stateFile)
+                })
                     .then(() => Promise.reject(err))
-                    .catch((innerErr) => {
-                        logger.error(`failover.execute() uploadDataToStorage error: ${util.stringify(innerErr.message)}`);
-                        return Promise.reject(err);
-                    });
+                    .catch(() => Promise.reject(err));
             });
     }
 
@@ -180,15 +167,38 @@ class FailoverClient {
      * @returns {Object}
      */
     _createStateObject(options) {
+        const thisState = util.deepCopy(stateFileContents);
+        thisState.taskState = options.taskState || failoverStates.PASS;
+        thisState.timestamp = new Date().toJSON();
+        thisState.instance = this.hostname || 'none';
+        thisState.operations = options.operations;
+        return thisState;
+    }
+
+    /**
+     * Create and update state object
+     *
+     * @param {Object} [options]            - function options
+     * @param {String} [options.taskState]  - task state
+     * @param {String} [options.operations] - operations
+     *
+     * @returns {Promise}
+     */
+    _createAndUpdateStateObject(options) {
         const taskState = options.taskState || failoverStates.PASS;
         const operations = options.operations || {};
 
-        const thisState = util.deepCopy(stateFileContents);
-        thisState.taskState = taskState;
-        thisState.timestamp = new Date().toJSON();
-        thisState.instance = this.hostname || 'none';
-        thisState.operations = operations;
-        return thisState;
+        return this.cloudProvider.uploadDataToStorage(
+            stateFileName,
+            this._createStateObject({
+                taskState,
+                operations
+            })
+        )
+            .catch((err) => {
+                logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 
     /**
