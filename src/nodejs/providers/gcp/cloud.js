@@ -107,6 +107,16 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    // stub
+    uploadDataToStorage() {
+        return Promise.resolve();
+    }
+
+    // stub
+    downloadDataFromStorage() {
+        return Promise.resolve({});
+    }
+
 
     /**
      * Update Routes

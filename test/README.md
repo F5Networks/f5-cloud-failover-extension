@@ -11,7 +11,7 @@ Triggered: Every commit pushed to central repository.
 Best practices:
 
 - Create a separate ```*Test.js``` for each source file being tested.
-- Keep mocking simple:  Simply overwrite the dependent module's function(s) after a require where possible, which is most of the time. Note: Mocha consolidates requires between test files, place require inside the ```before``` function (or similar) to avoid this behavior.
+- Use a standard mocker:  Prefer [sinon](https://sinonjs.org). 
 - Keep the folder structure flat, this project is not that large or complex.
 - Monitor and enforce coverage, but avoid writing tests simply to increase coverage when there is no other perceived value.
 - With that being said, **enforce coverage** in automated test.

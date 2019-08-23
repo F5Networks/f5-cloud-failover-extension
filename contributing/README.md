@@ -268,22 +268,36 @@ What happens in the system internals between request and response?
 Due to unpredictability of the cloud environment where BIG-IP clusters are running, the Cloud Failover extension must be able to recover gracefully from these failure scenarios:
 
 #### Flapping
+
 The failover process is triggered multiple times within the period that it would normally take the initial process to fully complete (30 seconds for AWS or 3 minutes for Azure, for example). This condition is seen during scheduled maintenance or a network outage where both devices are in an active state.
 
-The failover trigger must run when /config/tgrefresh is triggered by the sod daemon on BIG-IP, reconciling the cloud configuration to the currently active device.  
+Scenario:
+
+- BIG-IP B (standby) loses connectivity to BIG-IP A (active)
+- BIG-IP B (active) becomes active, triggers failover via `/config/failover/tgactive`
+- BIG-IP A (active) reestablishes connection to BIG-IP B (active) and reconciles active/active using preferred device order on the traffic group
+- BIG-IP A (active) wins reconciliation and triggers failover via `/config/failover/tgrefresh`
+- BIG-IP B (standby) is still executing failover resulting in BIG-IP A (active) exiting without neccessary failover objects
+- BIG-IP B (standby) owns failover objects, incorrectly
+
+Diagram:
+
 ![diagram](images/Reconciliation.gif)
 
 ---
 
 #### Loss of configuration 
-The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.  
+
+The failover process is interrupted, which is possible in environments where multiple synchronous calls to cloud APIs are required (Azure and Google). Rebooting both devices in a HA pair in quick succession will result in this condition.
 
 The solution must create an external source of truth from which to recover the last known good configuration state in the case of interruption.
 
 ##### Normal operation:
+
 ![diagram](images/RecoveryNormal.gif)
 
 ##### Recovering from lost configuration:
+
 ![diagram](images/RecoveryFail.gif)
 
 ---
