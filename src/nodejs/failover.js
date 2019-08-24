@@ -208,7 +208,7 @@ class FailoverClient {
     _checkTaskState() {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
-                logger.silly('State file data: ', data);
+                logger.debug('State file data: ', data);
 
                 // initial case - simply create state object in next step
                 if (!data || !data.taskState) {
@@ -240,8 +240,8 @@ class FailoverClient {
      * @returns {Promise} { recoverPreviousTask: false, state: {} }
      */
     _waitForTask() {
-        // retry every 5 seconds, 10 minutes max (roughly)
-        const retryOptions = { maxRetries: 120, retryIntervalMs: 5 * 1000 };
+        // retry every 3 seconds, up to 20 minutes (_checkTaskState has it's own timer)
+        const retryOptions = { maxRetries: 400, retryIntervalMs: 3 * 1000 };
         return util.retrier.call(this, this._checkTaskState, [], retryOptions)
             .catch(err => Promise.reject(err));
     }

@@ -421,6 +421,53 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Parse Nics - figure out which nics are 'mine' vs. 'theirs'
+    *
+    * @param {Object} nics              - nics
+    * @param {Object} localAddresses    - local addresses
+    * @param {Object} failoverAddresses - failover addresses
+    *
+    * @returns {Promise}
+    */
+    _parseNics(nics, localAddresses, failoverAddresses) {
+        const myNics = [];
+        const theirNics = [];
+        // add nics to 'mine' or 'their' array based on address match
+        nics.forEach((nic) => {
+            if (nic.provisioningState !== 'Succeeded') {
+                this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
+            }
+            // identify 'my' and 'their' nics
+            nic.ipConfigurations.forEach((ipConfiguration) => {
+                localAddresses.forEach((address) => {
+                    if (ipConfiguration.privateIPAddress === address) {
+                        if (myNics.indexOf(nic) === -1) {
+                            myNics.push({ nic });
+                        }
+                    }
+                });
+                failoverAddresses.forEach((address) => {
+                    if (ipConfiguration.privateIPAddress === address) {
+                        if (theirNics.indexOf(nic) === -1) {
+                            theirNics.push({ nic });
+                        }
+                    }
+                });
+            });
+        });
+        // remove any nics from 'their' array if they are also in 'my' array
+        for (let p = myNics.length - 1; p >= 0; p -= 1) {
+            for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
+                if (myNics[p].nic.id === theirNics[qp].nic.id) {
+                    theirNics.splice(qp, 1);
+                    break;
+                }
+            }
+        }
+        return { myNics, theirNics };
+    }
+
+    /**
     * Discover address operations
     *
     * @param {Object} localAddresses    - local addresses
@@ -431,45 +478,12 @@ class Cloud extends AbstractCloud {
     _discoverAddressOperations(localAddresses, failoverAddresses) {
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
-                const myNics = [];
-                const theirNics = [];
                 const disassociate = [];
                 const associate = [];
 
-                // add nics to 'mine' or 'their' array based on address match
-                nics.forEach((nic) => {
-                    if (nic.provisioningState !== 'Succeeded') {
-                        this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
-                    }
-
-                    // identify 'my' and 'their' nics
-                    nic.ipConfigurations.forEach((ipConfiguration) => {
-                        localAddresses.forEach((address) => {
-                            if (ipConfiguration.privateIPAddress === address) {
-                                if (myNics.indexOf(nic) === -1) {
-                                    myNics.push({ nic });
-                                }
-                            }
-                        });
-                        failoverAddresses.forEach((address) => {
-                            if (ipConfiguration.privateIPAddress === address) {
-                                if (theirNics.indexOf(nic) === -1) {
-                                    theirNics.push({ nic });
-                                }
-                            }
-                        });
-                    });
-                });
-
-                // remove any nics from 'their' array if they are also in 'my' array
-                for (let p = myNics.length - 1; p >= 0; p -= 1) {
-                    for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
-                        if (myNics[p].nic.id === theirNics[qp].nic.id) {
-                            theirNics.splice(qp, 1);
-                            break;
-                        }
-                    }
-                }
+                const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+                const myNics = parsedNics.myNics;
+                const theirNics = parsedNics.theirNics;
 
                 if (!myNics || !theirNics) {
                     this.logger.error('Could not determine network interfaces.');
