@@ -44,7 +44,7 @@ class Cloud extends AbstractCloud {
         this.tags = options.tags || null;
         this.storageTags = options.storageTags || null;
 
-        this.failoverStorageKey = `${constants.STORAGE_FOLDER_NAME}/${constants.STATE_FILE_NAME}`;
+        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -81,34 +81,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Download data from storage (cloud)
-    *
-    * @param {Object} fileName - file name where data should be downloaded
-    *
-    * @returns {Promise}
-    */
-    uploadDataToStorage(fileName, data) {
-        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-        // storageFolderName
-        const uploadObject = () => new Promise((resolve, reject) => {
-            const params = {
-                Body: util.stringify(data),
-                Bucket: this.s3BucketName,
-                Key: this.failoverStorageKey
-            };
-            this.s3.putObject(params).promise()
-                .then((response) => {
-                    this.logger.info('uploaded file:');
-                    this.logger.info(response);
-                    resolve();
-                })
-                .catch(err => reject(err));
-        });
-
-        return util.retrier.call(this, uploadObject);
-    }
-
-    /**
     * Upload data to storage (cloud)
     *
     * @param {Object} fileName - file name where data should be uploaded
@@ -116,8 +88,50 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    downloadDataFromStorage() {
-        return Promise.resolve({});
+    uploadDataToStorage(fileName, data) {
+        const s3Key = `${this.s3FilePrefix}/${fileName}`;
+        this.logger.silly(`Data will be uploaded to ${s3Key}: `, data);
+
+        const uploadObject = () => new Promise((resolve, reject) => {
+            const params = {
+                Body: util.stringify(data),
+                Bucket: this.s3BucketName,
+                Key: s3Key
+            };
+            this.s3.putObject(params).promise()
+                .then(() => resolve())
+                .catch(err => reject(err));
+        });
+
+        return util.retrier.call(this, uploadObject);
+    }
+
+    /**
+    * Download data from storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be downloaded
+    *
+    * @returns {Promise}
+    */
+    downloadDataFromStorage(fileName) {
+        const s3Key = `${this.s3FilePrefix}/${fileName}`;
+        this.logger.silly(`Data will be downloaded from: ${s3Key}`);
+
+        const downloadObject = () => new Promise((resolve, reject) => {
+            const params = {
+                Bucket: this.s3BucketName,
+                Key: s3Key
+            };
+            this.s3.getObject(params).promise()
+                .then((response) => {
+                    this.logger.info('downloaded file:');
+                    this.logger.info(response);
+                    resolve();
+                })
+                .catch(err => reject(err));
+        });
+
+        return util.retrier.call(this, downloadObject);
     }
 
     /**
