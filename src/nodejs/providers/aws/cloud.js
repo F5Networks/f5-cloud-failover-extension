@@ -27,6 +27,7 @@ class Cloud extends AbstractCloud {
         super(CLOUD_PROVIDERS.AWS, options);
 
         this.metadata = new AWS.MetadataService();
+        this.s3 = {};
     }
 
     /**

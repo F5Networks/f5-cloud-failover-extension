@@ -94,6 +94,7 @@ describe('Provider - AWS', () => {
             metadataPathRequest = path;
             callback(null, JSON.stringify(mockMetadata));
         });
+        provider._getS3BucketByTags = sinon.stub().resolves();
     });
     afterEach(() => {
         sinon.restore();
@@ -562,6 +563,12 @@ describe('Provider - AWS', () => {
                 .catch((err) => {
                     assert.strictEqual(err.message, expectedError);
                 });
+        });
+    });
+
+    describe('function uploadDataToStorage', () => {
+        it('should upload data to correct path', () => {
+
         });
     });
 });
