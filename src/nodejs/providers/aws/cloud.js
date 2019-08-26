@@ -90,7 +90,7 @@ class Cloud extends AbstractCloud {
     */
     uploadDataToStorage(fileName, data) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Data will be uploaded to ${s3Key}: `, data);
+        this.logger.silly(`Uploading data to: ${s3Key}`);
 
         const uploadObject = () => new Promise((resolve, reject) => {
             const params = {
@@ -115,7 +115,7 @@ class Cloud extends AbstractCloud {
     */
     downloadDataFromStorage(fileName) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Data will be downloaded from: ${s3Key}`);
+        this.logger.silly(`Downloading data from: ${s3Key}`);
 
         const downloadObject = () => new Promise((resolve, reject) => {
             const params = {
