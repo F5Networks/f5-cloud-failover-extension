@@ -123,11 +123,7 @@ class Cloud extends AbstractCloud {
                 Key: s3Key
             };
             this.s3.getObject(params).promise()
-                .then((response) => {
-                    this.logger.info('downloaded file:');
-                    this.logger.info(response);
-                    resolve();
-                })
+                .then(response => resolve(response.Body.toString()))
                 .catch(err => reject(err));
         });
 
