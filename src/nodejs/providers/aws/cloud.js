@@ -373,7 +373,7 @@ class Cloud extends AbstractCloud {
         return this._getAllS3Buckets()
             .then((data) => {
                 data.forEach((bucket) => {
-                    const getTagsArgs = [bucket, { rejectOnError: false }];
+                    const getTagsArgs = [bucket, { continueOnError: true }];
                     getBucketTagsPromises.push(util.retrier.call(this, this._getTags, getTagsArgs));
                 });
                 return Promise.all(getBucketTagsPromises);
