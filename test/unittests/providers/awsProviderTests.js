@@ -201,11 +201,25 @@ describe('Provider - AWS', () => {
         });
         */
         describe('_getTags', () => {
-            /*
-            it('resolve on error if continueOnError is provided', () => {
+            it('resolve on error if continueOnError is provided', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject();
+                            }
+                        };
+                    });
+                    return provider._getTags(targetBucket, { continueOnError: true });
+                })
+                .then(() => {
+                    assert.ok(true);
+                })
+                .catch(() => {
+                    assert.ok(false, 'Should have not rejected');
+                }));
 
-            });
-            */
             it('should pass correct parameters to getBucketTagging()', () => {
                 let passedParams;
                 return provider.init(mockInitData)
