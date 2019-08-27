@@ -61,7 +61,7 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: 'F5_SELF_IPS',
+                    routeSelfIpsTag: 'f5_self_ips',
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
@@ -93,8 +93,8 @@ class FailoverClient {
                     this.cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
                 ];
                 // updating routes is conditional - TODO: rethink this...
-                const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
-                if (this.config.environment.indexOf(routeFeatureEnvironments) !== -1) {
+                const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE, constants.CLOUD_PROVIDERS.GCP];
+                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
                     actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
                 }
                 return Promise.all(actions);

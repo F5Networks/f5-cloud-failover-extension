@@ -24,11 +24,8 @@ const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
-// const deploymentInfo = funcUtils.getEnvironmentInfo();
-
+const deploymentInfo = funcUtils.getEnvironmentInfo();
 const declaration = funcUtils.getDeploymentDeclaration();
-// const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
-// const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
 
 // Helper functions
 
@@ -48,8 +45,7 @@ let request = {};
 describe('Provider: GCP', () => {
     let primarySelfIps = [];
     let secondarySelfIps = [];
-    let primaryVirtualAddresses = [];
-    let secondaryVirtualAddresses = [];
+    let virtualAddresses = [];
     let gcloudVms = [];
 
     before(() => configureAuth()
@@ -60,66 +56,42 @@ describe('Provider: GCP', () => {
                 zone: 'us-west1-a',
                 region: 'us-west1'
             };
-        }).catch(err => Promise.reject(err)));
+            return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+        })
+        .then((data) => {
+            const uri = '/mgmt/tm/net/self';
+            dutPrimary.authData = data;
+            const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
+            return utils.makeRequest(dutPrimary.ip, uri, options);
+        })
+        .then((data) => {
+            primarySelfIps = data.items.map(i => i.address.split('/')[0]);
+            return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+        })
+        .then(() => {
+            const uri = '/mgmt/tm/ltm/virtual-address';
+            const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
+            return utils.makeRequest(dutPrimary.ip, uri, options);
+        })
+        .then((data) => {
+            virtualAddresses = data.items.map(i => i.address.split('/')[0]);
+        })
+        .then(() => utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password))
+        .then((data) => {
+            dutSecondary.authData = data;
+            const uri = '/mgmt/tm/net/self';
+            const options = funcUtils.makeOptions({ authToken: dutSecondary.authData.token });
+            return utils.makeRequest(dutSecondary.ip, uri, options);
+        })
+        .then((data) => {
+            secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
+        })
+        .catch(err => Promise.reject(err)));
+
     after(() => {
         Object.keys(require.cache).forEach((key) => {
             delete require.cache[key];
         });
-    });
-
-    it('should get BIG-IP (primary) self IP(s)', () => {
-        const uri = '/mgmt/tm/net/self';
-        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutPrimary.ip, uri, options);
-            })
-            .then((data) => {
-                primarySelfIps = data.items.map(i => i.address.split('/')[0]);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('should get BIG-IP (primary) virtual address(es)', () => {
-        const uri = '/mgmt/tm/ltm/virtual-address';
-
-        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutPrimary.ip, uri, options);
-            })
-            .then((data) => {
-                primaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('should get BIG-IP (secondary) self IP(s)', () => {
-        const uri = '/mgmt/tm/net/self';
-
-        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutSecondary.ip, uri, options);
-            })
-            .then((data) => {
-                secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('should get BIG-IP (secondary) virtual address(es)', () => {
-        const uri = '/mgmt/tm/ltm/virtual-address';
-
-        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-            .then((data) => {
-                const options = funcUtils.makeOptions({ authToken: data.token });
-                return utils.makeRequest(dutSecondary.ip, uri, options);
-            })
-            .then((data) => {
-                secondaryVirtualAddresses = data.items.map(i => i.address.split('/')[0]);
-            })
-            .catch(err => Promise.reject(err));
     });
 
     it('validate Google Primary VM IP Addresess', () => {
@@ -159,18 +131,12 @@ describe('Provider: GCP', () => {
         });
     });
 
-    it('validate virtualIp synced between BIGIP hosts', () => {
-        primaryVirtualAddresses.forEach((item) => {
-            assert.ok(secondaryVirtualAddresses.indexOf(item) !== -1);
-        });
-    });
-
     it('validate initial forwardng rule and route should reference primary', () => {
         compute.routes.list(request, (err, response) => {
             let testRouteFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((route) => {
-                    if (route.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testRouteFlag = primarySelfIps.indexOf(route.nextHopIp) !== -1;
                     }
                 });
@@ -181,7 +147,7 @@ describe('Provider: GCP', () => {
             let testFwdRuleFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((fwdRule) => {
-                    if (fwdRule.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                    if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testFwdRuleFlag = fwdRule.target.indexOf(`${dutPrimary.hostname.split('-')[3]}-${dutPrimary.hostname.split('-')[4]}`) !== -1;
                     }
                 });
@@ -217,7 +183,7 @@ describe('Provider: GCP', () => {
                             && Object.keys(vm.labels)
                                 .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
                             if (vm.name.indexOf(dutSecondary.hostname) !== -1) {
-                                assert.ok(primaryVirtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
+                                assert.ok(virtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
                             }
                         }
                     }
@@ -231,7 +197,7 @@ describe('Provider: GCP', () => {
             let testRouteFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((route) => {
-                    if (route.name.indexOf(dutSecondary.deploymentId) !== -1) {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testRouteFlag = secondarySelfIps.indexOf(route.nextHopIp) !== -1;
                     }
                 });
@@ -242,7 +208,7 @@ describe('Provider: GCP', () => {
             let testFwdRuleFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((fwdRule) => {
-                    if (fwdRule.name.indexOf(dutSecondary.deploymentId) !== -1) {
+                    if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testFwdRuleFlag = fwdRule.target.indexOf(`${dutSecondary.hostname.split('-')[3]}-${dutSecondary.hostname.split('-')[4]}`) !== -1;
                     }
                 });
@@ -278,7 +244,7 @@ describe('Provider: GCP', () => {
                             && Object.keys(vm.labels)
                                 .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
                             if (vm.name.indexOf(dutPrimary.hostname) !== -1) {
-                                assert.ok(primaryVirtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
+                                assert.ok(virtualAddresses.indexOf(vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]) !== -1);
                             }
                         }
                     }
@@ -293,7 +259,7 @@ describe('Provider: GCP', () => {
             let testRouteFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((route) => {
-                    if (route.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testRouteFlag = primarySelfIps.indexOf(route.nextHopIp) !== -1;
                     }
                 });
@@ -304,7 +270,7 @@ describe('Provider: GCP', () => {
             let testFwdRuleFlag = false;
             if (response.data.items) {
                 response.data.items.forEach((fwdRule) => {
-                    if (fwdRule.name.indexOf(dutPrimary.deploymentId) !== -1) {
+                    if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testFwdRuleFlag = fwdRule.target.indexOf(`${dutPrimary.hostname.split('-')[3]}-${dutPrimary.hostname.split('-')[4]}`) !== -1;
                     }
                 });

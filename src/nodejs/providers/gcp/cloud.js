@@ -45,6 +45,7 @@ class Cloud extends AbstractCloud {
         this.tags = options.tags || null;
         this.routeTags = options.routeTags || null;
         this.routeAddresses = options.routeAddresses || null;
+        this.routeSelfIpsTag = options.routeSelfIpsTag || null;
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -64,7 +65,7 @@ class Cloud extends AbstractCloud {
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
 
-                this.logger.info('Getting GCP resources');
+                this.logger.silly('Getting GCP resources');
                 const firstKey = Object.keys(this.tags)[0]; // should support multiple
                 return Promise.all([
                     this._getVmsByTag({ key: firstKey, value: this.tags[firstKey] }),
@@ -77,7 +78,7 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = vmsData[1];
                 this.targetInstances = vmsData[2];
 
-                this.logger.info('GCP resources have been collected; gcp provider initialization is completed.');
+                this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
                 return Promise.resolve();
             })
 
@@ -121,32 +122,30 @@ class Cloud extends AbstractCloud {
     /**
      * Update Routes
      *
-     * @param {Object} localAddresses    - Local addresses
+     * @param {Object} ipAddresses    - Local addresses
      *
      * @returns {Object} promise
      */
     updateRoutes(ipAddresses) {
-        this.logger.info('updateRoutes - Local addresses', ipAddresses);
+        this.logger.silly('updateRoutes - Local addresses', ipAddresses);
         const localAddresses = ipAddresses.localAddresses;
         return this._getRoutes()
             .then((routesToUpdate) => {
                 const result = [];
                 routesToUpdate.forEach((route) => {
-                    if (route.description.indexOf('ip_addresses') !== -1) {
-                        const firstRouteIp = route.description.match(/ip_addresses=.*/g)[0].split('=')[1].split(',')[0];
-                        const secondRouteIp = route.description.match(/ip_addresses=.*/g)[0].split('=')[1].split(',')[1];
+                    if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
                         route.nextHopIp = '';
-                        localAddresses.forEach((ipAddr) => {
-                            if (firstRouteIp === ipAddr) {
-                                route.nextHopIp = firstRouteIp;
-                            } else if (secondRouteIp === ipAddr) {
-                                route.nextHopIp = secondRouteIp;
-                            }
-                        });
+                        const selfIpsToUse = route.description.match(new RegExp(`${this.routeSelfIpsTag}:\\[.*?\\]`, 'g'))[0]
+                            .split(':')[1].replace('[', '').replace(']', '').replace(/'/g, '').replace(/"/g, '')
+                            .split(','); // need to account for stuff coming after f5_self_ips=[] f5_self_ips=x.x.x.x,x.x.x.y:other_stuff
+                        if (selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1).length > 0) {
+                            route.nextHopIp = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                        }
                         if (route.nextHopIp === '') {
                             this.logger.info('NextHopIp was not set; provided ipAddresses are not matching localAddresses');
+                        } else {
+                            result.push(route);
                         }
-                        result.push(route);
                         return route;
                     }
 
@@ -155,8 +154,8 @@ class Cloud extends AbstractCloud {
                     return route;
                 });
 
-                this.logger.info('Routes with updated nextHopIp');
-                this.logger.info(result);
+                this.logger.silly('Routes with updated nextHopIp');
+                this.logger.silly(result);
 
                 // Deleting routes
                 const deletePromises = [];
@@ -171,8 +170,8 @@ class Cloud extends AbstractCloud {
 
 
                 if (result.length === 0) {
-                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
-                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAdresses, in description field.');
+                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
+                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
                 }
 
                 return Promise.all(deletePromises)
@@ -188,9 +187,9 @@ class Cloud extends AbstractCloud {
                     })
                     .then((response) => {
                         this.logger.info('Routes have been successfully deleted. Re-creating routes with new nextHopIp');
-                        this.logger.info(`Response: ${JSON.stringify(response)}`);
+                        this.logger.debug(`Response: ${util.stringify(response)}`);
                         // Reacreating routes
-                        this.logger.info(`Available Routes: ${JSON.stringify(result)}`);
+                        this.logger.debug(`Available Routes: ${util.stringify(result)}`);
                         const createPromises = [];
                         result.forEach((item) => {
                             createPromises.push(this._sendRequest('POST', 'global/routes/', item));
@@ -199,7 +198,7 @@ class Cloud extends AbstractCloud {
                     })
                     .then((response) => {
                         this.logger.info('Routes have been successfully re-created. Route failover is completed now.');
-                        this.logger.info(JSON.stringify(response));
+                        this.logger.debug(util.stringify(response));
                         return Promise.resolve();
                     });
             })
@@ -215,7 +214,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _getRoutes() {
-        this.logger.info(`_getRoutes with tags: ${JSON.stringify(this.routeTags)}`);
+        this.logger.debug(`_getRoutes with tags: ${util.stringify(this.routeTags)}`);
 
         return this._sendRequest(
             'GET',
@@ -226,8 +225,12 @@ class Cloud extends AbstractCloud {
                 const that = this;
                 if (routesList.items.length > 0) {
                     routesList.items.forEach((tag) => {
-                        if (tag.description.indexOf('labels=') !== -1
-                            && tag.description.indexOf('ip_addresses=') !== -1) {
+                        if (tag.description.indexOf('f5_cloud_failover_labels=') !== -1
+                            && Object.keys(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
+                                .length === Object.keys(that.routeTags).length
+                            && Object.values(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
+                                .length === Object.values(that.routeTags).length
+                            && tag.description.indexOf(this.routeSelfIpsTag) !== -1) {
                             let flag = true;
                             for (let i = 0; i < Object.values(that.routeTags).length; i += 1) {
                                 if (tag.description.indexOf(Object.keys(that.routeTags)[i]) === -1
@@ -242,9 +245,9 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 } else {
-                    this.logger.info('WARNING: No available routes found.');
+                    this.logger.warn('No available routes found.');
                 }
-                this.logger.info(`Routes for update: ${JSON.stringify(routesToUpdate)}`);
+                this.logger.debug(`Routes for update: ${util.stringify(routesToUpdate)}`);
                 return Promise.resolve(routesToUpdate);
             })
             .catch(err => Promise.reject(err));
@@ -265,19 +268,9 @@ class Cloud extends AbstractCloud {
             Authorization: `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json'
         };
-
-        /*
-        // Debug remove when doen
-        if (method == 'POST'){
-            this.logger.info('DEBUG_API_PATH: ' + path);
-            this.logger.info('DEBUG_API_BODY: ' + JSON.stringify(body));
-            this.logger.info('DEBUG_API_HEADERS: ' + JSON.stringify(headers));
-        }
-        */
         const url = `${this.BASE_URL}/projects/${this.projectId}/${path}`;
         return httpUtil.request(method, url, { headers, body });
     }
-
 
     /**
      * Get local metadata for a specific entry
@@ -369,7 +362,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _updateNic(vmId, nicId, nicArr) {
-        this.logger.info(`Updating NIC: ${nicId} for VM: ${vmId}`);
+        this.logger.silly(`Updating NIC: ${nicId} for VM: ${vmId}`);
         return this._sendRequest(
             'PATCH',
             `zones/${this.zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
@@ -396,12 +389,12 @@ class Cloud extends AbstractCloud {
      *
      */
     _updateFwdRule(name, target) {
-        this.logger.info(`Updating forwarding rule: ${name} to target: ${target}`);
+        this.logger.silly(`Updating forwarding rule: ${name} to target: ${target}`);
         const rule = this.computeRegion.rule(name);
         return rule.setTarget(target)
             .then((data) => {
                 const operationName = data[0].name;
-                this.logger.info(`updateFwdRule operation name: ${operationName}`);
+                this.logger.silly(`updateFwdRule operation name: ${operationName}`);
 
                 // returns GCP region operation, wait for that to complete
                 const operation = this.computeRegion.operation(operationName);
@@ -535,7 +528,7 @@ class Cloud extends AbstractCloud {
 
         // There should be at least one item in trafficGroupIpArr
         if (!trafficGroupIpArr.length) {
-            this.logger.info('updateNics: No traffic group address(es) exist, skipping');
+            this.logger.warn('updateNics: No traffic group address(es) exist, skipping');
             return Promise.reject();
         }
 
@@ -649,7 +642,7 @@ class Cloud extends AbstractCloud {
 
         // There should be at least one item in trafficGroupIpArr
         if (!trafficGroupIpArr.length) {
-            this.logger.info('updateFwdRules: No traffic group address(es) exist, skipping');
+            this.logger.warn('updateFwdRules: No traffic group address(es) exist, skipping');
             return Promise.reject();
         }
 
@@ -686,7 +679,7 @@ class Cloud extends AbstractCloud {
             }
         });
         // debug
-        this.logger.silly(`fwdRulesToUpdate: ${JSON.stringify(fwdRulesToUpdate, null, 1)}`);
+        this.logger.silly(`fwdRulesToUpdate: ${util.stringify(fwdRulesToUpdate, null, 1)}`);
 
         // longer retry interval to avoid 'resource is not ready' API response, can take 30+ seconds
         const retryIntervalMs = 60000;
