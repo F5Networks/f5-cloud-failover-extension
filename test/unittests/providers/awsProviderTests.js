@@ -201,7 +201,7 @@ describe('Provider - AWS', () => {
         });
         */
         describe('_getTags', () => {
-            it('resolve on error if continueOnError is provided', () => provider.init(mockInitData)
+            it('should resolve on error if continueOnError is provided', () => provider.init(mockInitData)
                 .then(() => {
                     // eslint-disable-next-line arrow-body-style
                     provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
@@ -218,6 +218,25 @@ describe('Provider - AWS', () => {
                 })
                 .catch(() => {
                     assert.ok(false, 'Should have not rejected');
+                }));
+
+            it('should reject on error if not continueOnError', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject(new Error('AWS vanished'));
+                            }
+                        };
+                    });
+                    return provider._getTags(targetBucket, { continueOnError: false });
+                })
+                .then(() => {
+                    assert.ok(false, 'Should have thrown an error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, 'AWS vanished');
                 }));
 
             it('should pass correct parameters to getBucketTagging()', () => {
