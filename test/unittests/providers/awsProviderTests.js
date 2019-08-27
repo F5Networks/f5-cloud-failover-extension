@@ -19,11 +19,15 @@ describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let provider;
     let metadataPathRequest;
+    let originalgetS3BucketByTags;
 
     const mockInitData = {
         tags: {
             key1: 'value1',
             key2: 'value2'
+        },
+        storageTags: {
+            sKey1: 'storageKey1'
         }
     };
 
@@ -80,6 +84,18 @@ describe('Provider - AWS', () => {
         ]
     };
 
+    const targetBucket = 'bucket2';
+    const _getAllS3BucketsStubResponse = [
+        'bucket1',
+        targetBucket,
+        'bucket3'
+    ];
+
+    const _getTagsStubResponse = {
+        Bucket: targetBucket,
+        TagSet: [{ Key: 'sKey1', Value: 'storageKey1' }]
+    };
+
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
     });
@@ -101,7 +117,9 @@ describe('Provider - AWS', () => {
             metadataPathRequest = path;
             callback(null, JSON.stringify(mockMetadata));
         });
-        provider._getS3BucketByTags = sinon.stub().resolves();
+        originalgetS3BucketByTags = provider._getS3BucketByTags;
+        provider._getS3BucketByTags = sinon.stub().resolves(_s3FileParamsStub.Bucket);
+        provider._getAllS3Buckets = sinon.stub().resolves(_getAllS3BucketsStubResponse);
     });
     afterEach(() => {
         sinon.restore();
@@ -113,14 +131,68 @@ describe('Provider - AWS', () => {
         assert.strictEqual(provider.environment, cloud);
     });
 
-    it('should initialize AWS provider', () => provider.init(mockInitData)
-        .then(() => {
-            assert.strictEqual(provider.region, mockMetadata.region);
-            assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
-        })
-        .catch(() => {
-            assert.fail();
-        }));
+    describe('AWS Provider initialization', () => {
+        it('should initialize AWS provider', () => provider.init(mockInitData)
+            .then(() => {
+                assert.strictEqual(provider.region, mockMetadata.region);
+                assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+
+        describe('_getS3BucketByTags', () => {
+            it('should return the tagged bucket', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getTags = sinon.stub().callsFake((bucket) => {
+                        if (bucket === targetBucket) {
+                            return Promise.resolve(_getTagsStubResponse);
+                        }
+                        return Promise.resolve();
+                    });
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then((response) => {
+                    assert.strictEqual(response, targetBucket);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
+
+            it('should pass bucket names to _getTags()', () => {
+                const passedParams = [];
+                return provider.init(mockInitData)
+                    .then(() => {
+                        provider._getTags = sinon.stub().callsFake((params) => {
+                            passedParams.push(params);
+                            if (params === targetBucket) {
+                                return Promise.resolve(_getTagsStubResponse);
+                            }
+                            return Promise.resolve();
+                        });
+                        provider._getS3BucketByTags = originalgetS3BucketByTags;
+                        return provider._getS3BucketByTags(mockInitData.storageTags);
+                    })
+                    .then(() => {
+                        assert.deepEqual(passedParams, _getAllS3BucketsStubResponse);
+                    })
+                    .catch(() => {
+                        assert.fail();
+                    });
+            });
+        });
+        /*
+        describe('_getAllS3Buckets', () => {
+
+        });
+        */
+        /*
+        describe('_getTags', () => {
+
+        });
+        */
+    });
 
     describe('_getInstanceIdentityDoc function', () => {
         it('should call _getInstanceIdentityDoc to get instance data', () => provider._getInstanceIdentityDoc()

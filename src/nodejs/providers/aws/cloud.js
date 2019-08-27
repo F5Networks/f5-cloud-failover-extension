@@ -58,6 +58,9 @@ class Cloud extends AbstractCloud {
 
                 return this._getS3BucketByTags(this.storageTags);
             })
+            .then((bucketName) => {
+                this.s3BucketName = bucketName;
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -413,8 +416,7 @@ class Cloud extends AbstractCloud {
                 if (!filteredBuckets.length) {
                     return Promise.reject(new Error('No valid S3 Buckets found!'));
                 }
-                this.s3BucketName = filteredBuckets[0].Bucket; // grab the first bucket for now
-                return Promise.resolve();
+                return Promise.resolve(filteredBuckets[0].Bucket); // grab the first bucket for now
             })
             .catch(err => Promise.reject(err));
     }
