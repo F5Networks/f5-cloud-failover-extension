@@ -21,7 +21,6 @@ describe('Provider - AWS', () => {
     let metadataPathRequest;
     let originalgetS3BucketByTags;
     let originalgetAllS3Buckets;
-    let util;
 
     const mockInitData = {
         tags: {
@@ -113,7 +112,6 @@ describe('Provider - AWS', () => {
 
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
-        util = require('../../../src/nodejs/util.js');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
