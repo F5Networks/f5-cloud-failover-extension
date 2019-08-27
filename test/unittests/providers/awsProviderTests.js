@@ -66,6 +66,12 @@ describe('Provider - AWS', () => {
         }
     };
 
+    const _s3FileParamsStub = {
+        Body: 's3 state file body',
+        Bucket: 'myfailoverbucket',
+        Key: 'f5cloudfailover/file.json'
+    };
+
     const _getElasticIPsStubResponse = {
         Addresses: [
             {
@@ -89,6 +95,7 @@ describe('Provider - AWS', () => {
         provider.logger.info = sinon.stub();
         provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
+        provider.logger.silly = sinon.stub();
 
         provider.metadata.request = sinon.stub().callsFake((path, callback) => {
             metadataPathRequest = path;
@@ -567,8 +574,27 @@ describe('Provider - AWS', () => {
     });
 
     describe('function uploadDataToStorage', () => {
-        it('should upload data to correct path', () => {
+        let passedParams;
 
-        });
+        it('should pass correct params to putObject', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.putObject = sinon.stub().callsFake((params) => {
+                    passedParams = params;
+                    return {
+                        promise() {
+                            return Promise.resolve();
+                        }
+                    };
+                });
+                return provider.uploadDataToStorage('file.json', _s3FileParamsStub.Body);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, _s3FileParamsStub);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
     });
 });
