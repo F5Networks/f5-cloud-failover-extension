@@ -135,9 +135,7 @@ class Cloud extends AbstractCloud {
                 routesToUpdate.forEach((route) => {
                     if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
                         route.nextHopIp = '';
-                        const selfIpsToUse = route.description.match(new RegExp(`${this.routeSelfIpsTag}:\\[.*?\\]`, 'g'))[0]
-                            .split(':')[1].replace('[', '').replace(']', '').replace(/'/g, '').replace(/"/g, '')
-                            .split(','); // need to account for stuff coming after f5_self_ips=[] f5_self_ips=x.x.x.x,x.x.x.y:other_stuff
+                        const selfIpsToUse = JSON.parse(route.description.match(new RegExp('f5_cloud_failover_labels=.*\\{.*\\}', 'g'))[0].split('=')[1])[this.routeSelfIpsTag];
                         if (selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1).length > 0) {
                             route.nextHopIp = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
                         }
@@ -154,8 +152,8 @@ class Cloud extends AbstractCloud {
                     return route;
                 });
 
-                this.logger.silly('Routes with updated nextHopIp');
-                this.logger.silly(result);
+                this.logger.debug('Routes with updated nextHopIp');
+                this.logger.debug(result);
 
                 // Deleting routes
                 const deletePromises = [];

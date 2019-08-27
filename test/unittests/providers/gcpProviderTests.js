@@ -143,7 +143,7 @@ describe('Provider - GCP', () => {
         getRouytesMock.onCall(0).callsFake(() => Promise.resolve([
             {
                 kind: 'test-route',
-                description: 'f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}',
+                description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}',
                 id: 'some-test-id',
                 creationTimestamp: '101010101010',
                 selfLink: 'https://test-self-link',
@@ -162,7 +162,7 @@ describe('Provider - GCP', () => {
             assert.strictEqual(method, 'POST');
             assert.strictEqual(path, 'global/routes/');
             assert.strictEqual(payload.nextHopIp, '1.1.1.1');
-            assert.strictEqual(payload.description, 'f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}');
+            assert.strictEqual(payload.description, 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}');
             return Promise.resolve();
         });
         sinon.stub(provider.compute, 'operation').callsFake((name) => {
@@ -187,7 +187,7 @@ describe('Provider - GCP', () => {
     it('validate updateRoute method response when no failover routes identified ', () => {
         const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
         const getRouytesMock = sinon.stub(provider, '_getRoutes');
-        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'f5_self_ips:[\'1.1.0.0\',\'0.1.1.2\']', nextHopIp: '' }]));
+        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.0.0","1.0.0.0"]}', nextHopIp: '' }]));
         return provider.updateRoutes(localAddresses)
             .then((response) => {
                 assert.strictEqual(response, 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
