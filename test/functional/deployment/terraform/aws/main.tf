@@ -292,7 +292,6 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "ec2:DescribeRouteTables",
             "ec2:ReplaceRoute",
             "ec2:CreateRoute",
-            "ec2:DeleteRoute",
             "ec2:assignprivateipaddresses",
             "sts:AssumeRole"
         ],
@@ -629,6 +628,7 @@ output "deployment_info" {
       }
     ],
     deploymentId: module.utils.env_prefix,
-    environment: "aws"
+    environment: "aws",
+    region: var.aws_region
   }
 }

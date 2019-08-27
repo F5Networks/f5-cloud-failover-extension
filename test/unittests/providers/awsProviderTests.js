@@ -563,5 +563,62 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(err.message, expectedError);
                 });
         });
+
+        it('validate updateRoutes with resolved promise', () => {
+            const routeTable = {
+                RouteTableId: 'rtb-123',
+                Routes: [
+                    {
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        InstanceId: 'i-123',
+                        InstanceOwnerId: '123',
+                        NetworkInterfaceId: 'eni-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    },
+                    {
+                        DestinationCidrBlock: '10.0.0.0/16',
+                        GatewayId: 'local',
+                        Origin: 'CreateRouteTable',
+                        State: 'active'
+                    },
+                    {
+                        DestinationCidrBlock: '0.0.0.0/0',
+                        GatewayId: 'igw-0068444f356a177c9',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    }
+                ],
+                Tags: [
+                    {
+                        Key: 'F5_CLOUD_FAILOVER_LABEL',
+                        Value: 'foo'
+                    },
+                    {
+                        Key: 'F5_SELF_IPS',
+                        Value: '10.0.1.211, 10.0.11.52'
+                    }
+                ]
+            };
+
+            provider.networkClient = sinon.stub();
+            provider.networkClient.routeTables = sinon.stub();
+            provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable]);
+            provider.networkClient.routes = sinon.stub();
+
+            const providerRouteUpdateSpy = sinon.stub().yields(null, []);
+            provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
+
+            const localAddresses = ['10.0.1.11'];
+            provider.routeTags = { F5_LABEL: 'foo' };
+            provider.routeAddresses = ['192.0.0.0/24'];
+            provider.routeSelfIpsTag = 'F5_SELF_IPS';
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 });

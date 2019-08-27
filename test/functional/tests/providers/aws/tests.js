@@ -8,8 +8,11 @@
 
 'use strict';
 
+const AWS = require('aws-sdk');
+
 describe('Provider: AWS', () => {
     before(() => {
+        this.metadata = new AWS.MetadataService();
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
