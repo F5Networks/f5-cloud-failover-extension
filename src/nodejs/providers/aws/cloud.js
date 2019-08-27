@@ -73,11 +73,53 @@ class Cloud extends AbstractCloud {
         }).catch(err => Promise.reject(err));
     }
 
-    updateRoutes() {
+    updateRoutes(options) {
+        const localAddresses = options.localAddresses || [];
+        this.logger.debug('Local addresses', localAddresses);
         this._getRouteTables(this.routeTags)
             .then((RouteTableListResult) => {
-                this.logger.info(RouteTableListResult);
+                const routeTables = RouteTableListResult.RouteTables;
+                this.logger.debug('Route Tables', routeTables);
+                routeTables.forEach((routeTable) => {
+                    const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                    this.logger.info('selfIpToUse ', selfIpToUse);
+                    this._getNetworkInterfaceId(selfIpToUse).then((networkInterfaceId) => {
+                        this.logger.debug('Network Interface ID', networkInterfaceId);
+                        routeTable.Routes.forEach((route) => {
+                            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+                                this.logger.info('delete route');
+                            }
+                        });
+                        this.logger.info('Creating Route');
+                        this._createRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
+                            .then((yay) => {
+                                this.logger.info('yay', yay);
+                            })
+                            .catch((err) => {
+                                this.logger.info('blah this sucks', err);
+                            });
+                    });
+                });
             });
+    }
+
+    _getNetworkInterfaceId(privateIp) {
+        const params = {
+            Filters: [
+                {
+                    Name: 'private-ip-address',
+                    Values: [privateIp]
+                }]
+        };
+        return new Promise((resolve, reject) => {
+            this.ec2.describeNetworkInterfaces(params).promise()
+                .then((data) => {
+                    this.logger.debug('blah ', data.NetworkInterfaces[0].NetworkInterfaceId);
+                    resolve(data.NetworkInterfaces[0].NetworkInterfaceId);
+                })
+                .catch(err => reject(err));
+        });
     }
 
     _getRouteTables(tags) {
@@ -106,13 +148,32 @@ class Cloud extends AbstractCloud {
         });
     }
 
+    _createRoute(distCidr, networkInterfaceId, routeTableId) {
+        const params = {
+            DestinationCidrBlock: distCidr,
+            NetworkInterfaceId: networkInterfaceId,
+            RouteTableId: routeTableId
+        };
+        this.logger.debug('This is params', params);
+        return new Promise((resolve, reject) => {
+            this.ec2.createRoute(params).promise()
+                .then((data) => {
+                    this.logger.info('this is data 2 ', data);
+                    resolve(data);
+                })
+                .catch(err => reject(err));
+        });
+    }
+
     // stub
     uploadDataToStorage() {
+        this.logger.debug('uploadDataToStorage');
         return Promise.resolve();
     }
 
     // stub
     downloadDataFromStorage() {
+        this.logger.debug('downloadDataFromStorage');
         return Promise.resolve({});
     }
 
@@ -281,13 +342,12 @@ class Cloud extends AbstractCloud {
                 }
             ]
         };
-
+        this.logger.info('this is pRAMS seccc ', params);
         return new Promise((resolve, reject) => {
             this.ec2.describeNetworkInterfaces(params).promise()
                 .then((data) => {
                     const privateIps = {};
                     data.NetworkInterfaces.forEach((nic) => {
-                        this.logger.info('Nic ', nic);
                         nic.PrivateIpAddresses.forEach((privateIp) => {
                             if (privateIp.Primary === false) {
                                 privateIps[privateIp.PrivateIpAddress] = {

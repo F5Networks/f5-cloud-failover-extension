@@ -181,61 +181,6 @@ class FailoverClient {
                         reject(err);
                     });
             }, TASK_RETRY_MS);
-            cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
-            return cloudProvider.init({
-                tags: util.getDataByKey(config, 'failoverAddresses.scopingTags'),
-                routeTags: util.getDataByKey(config, 'failoverRoutes.scopingTags'),
-                routeAddresses: util.getDataByKey(config, 'failoverRoutes.scopingAddressRanges'),
-                routeSelfIpsTag: 'F5_SELF_IPS'
-            });
-        })
-        .then(() => {
-            logger.info('Cloud provider has been initialized');
-        })
-        .then(() => {
-            device = new Device({
-                hostname: 'localhost',
-                username: 'admin',
-                password: 'admin',
-                port: '443'
-            });
-            return device.initialize();
-        })
-        .then(() => {
-            logger.info('BIG-IP has been initialized');
-        })
-        .then(() => device.getConfig([
-            '/tm/sys/global-settings',
-            '/tm/cm/traffic-group/stats',
-            '/tm/net/self',
-            '/tm/ltm/virtual-address'
-        ]))
-        .then((results) => {
-            device.initFailoverConfig(results);
-            hostname = device.getGlobalSettings().hostname;
-            const trafficGroups = getTrafficGroups(device.getTrafficGroupsStats(), hostname);
-            const selfAddresses = getSelfAddresses(device.getSelfAddresses(), trafficGroups);
-            const virtualAddresses = getVirtualAddresses(device.getVirtualAddresses(), trafficGroups);
-            return getFailoverAddresses(selfAddresses, virtualAddresses);
-        })
-        .then((addresses) => {
-            logger.info('Performing Failover');
-            const actions = [
-                cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
-            ];
-            // updating routes is conditional - TODO: rethink this...
-            const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AWS];
-            if (config.environment.indexOf(routeFeatureEnvironments) !== -1) {
-                actions.push(cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
-            }
-            return Promise.all(actions);
-        })
-        .then(() => {
-            logger.info('Failover complete');
-        })
-        .catch((err) => {
-            logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
-            return Promise.reject(err);
         });
     }
 

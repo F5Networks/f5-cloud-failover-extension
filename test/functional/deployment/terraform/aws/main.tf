@@ -291,6 +291,8 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "ec2:DescribeNetworkInterfaceAttribute",
             "ec2:DescribeRouteTables",
             "ec2:ReplaceRoute",
+            "ec2:CreateRoute",
+            "ec2:DeleteRoute",
             "ec2:assignprivateipaddresses",
             "sts:AssumeRole"
         ],
