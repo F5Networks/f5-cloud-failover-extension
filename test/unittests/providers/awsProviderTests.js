@@ -20,6 +20,8 @@ describe('Provider - AWS', () => {
     let provider;
     let metadataPathRequest;
     let originalgetS3BucketByTags;
+    let originalgetAllS3Buckets;
+    let util;
 
     const mockInitData = {
         tags: {
@@ -91,13 +93,27 @@ describe('Provider - AWS', () => {
         'bucket3'
     ];
 
+    const listBucketsSubResponse = {
+        Buckets: [
+            { Name: _getAllS3BucketsStubResponse[0] },
+            { Name: _getAllS3BucketsStubResponse[1] },
+            { Name: _getAllS3BucketsStubResponse[2] }
+        ],
+        Owner: {
+            Name: 'owner'
+        }
+    };
+
     const _getTagsStubResponse = {
         Bucket: targetBucket,
         TagSet: [{ Key: 'sKey1', Value: 'storageKey1' }]
     };
 
+    const genericAWSError = new Error('AWS vanished');
+
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
+        util = require('../../../src/nodejs/util.js');
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -119,6 +135,8 @@ describe('Provider - AWS', () => {
         });
         originalgetS3BucketByTags = provider._getS3BucketByTags;
         provider._getS3BucketByTags = sinon.stub().resolves(_s3FileParamsStub.Bucket);
+
+        originalgetAllS3Buckets = provider._getAllS3Buckets;
         provider._getAllS3Buckets = sinon.stub().resolves(_getAllS3BucketsStubResponse);
     });
     afterEach(() => {
@@ -140,6 +158,17 @@ describe('Provider - AWS', () => {
             .catch(() => {
                 assert.fail();
             }));
+
+        it('should reject if error', () => {
+            provider._getInstanceIdentityDoc = sinon.stub().rejects(genericAWSError);
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, genericAWSError.message);
+                });
+        });
 
         describe('_getS3BucketByTags', () => {
             it('should return the tagged bucket', () => provider.init(mockInitData)
@@ -173,6 +202,19 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(err.message, 'No valid S3 Buckets found!');
                 }));
 
+            it('should reject if there is an error', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getAllS3Buckets = sinon.stub().rejects(genericAWSError);
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then(() => {
+                    assert.ok(false, 'should have thrown error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, genericAWSError.message);
+                }));
+
             it('should pass bucket names to _getTags()', () => {
                 const passedParams = [];
                 return provider.init(mockInitData)
@@ -195,11 +237,29 @@ describe('Provider - AWS', () => {
                     });
             });
         });
-        /*
-        describe('_getAllS3Buckets', () => {
 
+        describe('_getAllS3Buckets', () => {
+            it('should return an array of bucket names', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.listBuckets = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.resolve(listBucketsSubResponse);
+                            }
+                        };
+                    });
+                    provider._getAllS3Buckets = originalgetAllS3Buckets;
+                    return provider._getAllS3Buckets();
+                })
+                .then((response) => {
+                    assert.deepEqual(response, _getAllS3BucketsStubResponse);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
         });
-        */
+
         describe('_getTags', () => {
             it('should resolve on error if continueOnError is provided', () => provider.init(mockInitData)
                 .then(() => {
@@ -226,7 +286,7 @@ describe('Provider - AWS', () => {
                     provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
                         return {
                             promise() {
-                                return Promise.reject(new Error('AWS vanished'));
+                                return Promise.reject(genericAWSError);
                             }
                         };
                     });
