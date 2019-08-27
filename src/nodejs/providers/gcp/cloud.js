@@ -18,7 +18,7 @@
 
 const ipaddr = require('ipaddr.js');
 const Compute = require('@google-cloud/compute');
-const Storage = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
@@ -62,6 +62,7 @@ class Cloud extends AbstractCloud {
                 this.instanceName = data[2];
                 this.instanceZone = data[3];
                 this.bucket = data[4];
+                this.logger.silly(`bucket name: ${this.bucket}`);
                 // zone format: 'projects/734288666861/zones/us-west1-a'
                 const parts = this.instanceZone.split('/');
                 this.zone = parts[parts.length - 1];
@@ -123,13 +124,18 @@ class Cloud extends AbstractCloud {
      */
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-        return this.bucket.file(storageContainerName + '/' + fileName).save(JSON.stringify(data), (err) => {
-            if (!err) {
-                this.logger.silly(`Data uploaded to ${fileName}: `, data);
-                return Promise.resolve();
-            }
-            return Promise.reject(err);
-        });
+        return new Promise(((resolve, reject) => {
+            this.bucket.file(storageContainerName + '/' + fileName).save(JSON.stringify(data), (err) => {
+                if (!err) {
+                    this.logger.silly(`Data uploaded to ${fileName}: `, data);
+                    resolve();
+                }else {
+                    this.logger.silly(`error uploading storage: ${err}`);
+                    reject(err);
+                }
+            });
+        }))
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -142,12 +148,14 @@ class Cloud extends AbstractCloud {
     downloadDataFromStorage(fileName) {
         const stream = this.bucket.file(storageContainerName + '/' + fileName).createReadStream();
         let buffer = '';
-        stream.on('data', (data) => {
-            buffer += data;
-        }).on('error', (err) => {
-            return Promise.reject(err);
-        }).on('end', () => {
-            return Promise.resolve(JSON.parse(buffer));
+        return new Promise((resolve, reject) => {
+            stream.on('data', (data) => {
+                buffer += data;
+            }).on('error', (err) => {
+                reject(err);
+            }).on('end', () => {
+                resolve(JSON.parse(buffer));
+            });
         });
     }
 
@@ -209,18 +217,28 @@ class Cloud extends AbstractCloud {
      *
      */
     _getBucketFromLabel(storageLabel) {
-        this.storage.getBuckets((err, buckets) => {
-            if (!err){
-                buckets.forEach((bucket) => {
-                    bucket.getLabels((err, labels) => {
-                        if (JSON.stringify(labels) === JSON.stringify(storageLabel)){
-                            return Promise.resolve(bucket);
-                        }
-                    })
-                })
-            }
-            return Promise.reject(err);
-        })
+        return this.storage.getBuckets()
+            // let buckets = null
+            .then((data) => {
+                this.buckets = data[0];
+                const promises = [];
+                this.buckets.forEach((bucket) => {
+                    this.logger.info(`discovering bucket: ${bucket.name}`);
+                    promises.push(bucket.getLabels());
+                });
+                return Promise.all(promises);
+            })
+            .then((labels) => {
+                let bucket = null;
+                labels.forEach((label, index) => {
+                    this.logger.info(`discovering label: ${this.label}`);
+                    if (JSON.stringify(label) === JSON.stringify([storageLabel])) {
+                        this.logger.info(`returning bucket: ${this.buckets[index].name}`);
+                        bucket = this.buckets[index];
+                    }
+                });
+                return Promise.resolve(bucket);
+            });
     }
 
     /**
