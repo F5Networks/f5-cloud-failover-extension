@@ -597,4 +597,34 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
+    describe('function downloadDataFromStorage', () => {
+        let passedParams;
+        const mockObjectBody = {
+            Body: 'objectData'
+        };
+
+        it('should pass correct params to downloadObject', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.getObject = sinon.stub().callsFake((params) => {
+                    passedParams = params;
+                    return {
+                        promise() {
+                            return Promise.resolve(mockObjectBody);
+                        }
+                    };
+                });
+                return provider.downloadDataFromStorage('file.json');
+            })
+            .then((data) => {
+                assert.strictEqual(passedParams.Bucket, _s3FileParamsStub.Bucket);
+                assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
+                assert.strictEqual(data, mockObjectBody.Body);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
 });
