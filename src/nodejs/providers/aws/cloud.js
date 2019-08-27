@@ -88,16 +88,22 @@ class Cloud extends AbstractCloud {
                         this.logger.debug('Network Interface ID', networkInterfaceId);
                         routeTable.Routes.forEach((route) => {
                             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                                this.logger.info('delete route');
+                                this._deleteRoute(this.routeAddresses[0], routeTable.RouteTableId)
+                                    .then((success) => {
+                                        this.logger.debug('Success', success);
+                                    })
+                                    .catch((err) => {
+                                        this.logger.info('Error', err);
+                                    });
                             }
                         });
                         this.logger.info('Creating Route');
                         this._createRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
-                            .then((yay) => {
-                                this.logger.info('yay', yay);
+                            .then((success) => {
+                                this.logger.debug('Success', success);
                             })
                             .catch((err) => {
-                                this.logger.info('blah this sucks', err);
+                                this.logger.info('Error', err);
                             });
                     });
                 });
@@ -152,6 +158,22 @@ class Cloud extends AbstractCloud {
         const params = {
             DestinationCidrBlock: distCidr,
             NetworkInterfaceId: networkInterfaceId,
+            RouteTableId: routeTableId
+        };
+        this.logger.debug('This is params', params);
+        return new Promise((resolve, reject) => {
+            this.ec2.createRoute(params).promise()
+                .then((data) => {
+                    this.logger.info('this is data 2 ', data);
+                    resolve(data);
+                })
+                .catch(err => reject(err));
+        });
+    }
+
+    _deleteRoute(distCidr, routeTableId) {
+        const params = {
+            DestinationCidrBlock: distCidr,
             RouteTableId: routeTableId
         };
         this.logger.debug('This is params', params);
