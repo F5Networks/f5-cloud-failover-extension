@@ -450,6 +450,7 @@ class Cloud extends AbstractCloud {
      *                          rejected if an error occurs
      */
     _getTags(bucket, options) {
+        options = options || {};
         const continueOnError = options.continueOnError || false;
         const params = {
             Bucket: bucket

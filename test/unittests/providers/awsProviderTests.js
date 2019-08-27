@@ -160,6 +160,19 @@ describe('Provider - AWS', () => {
                     assert.fail();
                 }));
 
+            it('should reject if no buckets are found', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getTags = sinon.stub().resolves();
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then(() => {
+                    assert.ok(false, 'should have thrown error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, 'No valid S3 Buckets found!');
+                }));
+
             it('should pass bucket names to _getTags()', () => {
                 const passedParams = [];
                 return provider.init(mockInitData)
@@ -187,11 +200,35 @@ describe('Provider - AWS', () => {
 
         });
         */
-        /*
         describe('_getTags', () => {
+            /*
+            it('resolve on error if continueOnError is provided', () => {
 
+            });
+            */
+            it('should pass correct parameters to getBucketTagging()', () => {
+                let passedParams;
+                return provider.init(mockInitData)
+                    .then(() => {
+                        provider.s3.getBucketTagging = sinon.stub().callsFake((params) => {
+                            passedParams = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve(_getTagsStubResponse);
+                                }
+                            };
+                        });
+                        return provider._getTags(targetBucket);
+                    })
+                    .then((response) => {
+                        assert.strictEqual(passedParams.Bucket, _getTagsStubResponse.Bucket);
+                        assert.deepEqual(response, _getTagsStubResponse);
+                    })
+                    .catch(() => {
+                        assert.fail();
+                    });
+            });
         });
-        */
     });
 
     describe('_getInstanceIdentityDoc function', () => {
