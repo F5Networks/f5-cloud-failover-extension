@@ -83,28 +83,33 @@ class Cloud extends AbstractCloud {
                 routeTables.forEach((routeTable) => {
                     const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
                     const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    this.logger.info('selfIpToUse ', selfIpToUse);
+                    this.logger.debug('selfIpToUse ', selfIpToUse);
                     this._getNetworkInterfaceId(selfIpToUse).then((networkInterfaceId) => {
                         this.logger.debug('Network Interface ID', networkInterfaceId);
+                        let routeReplaced = false;
                         routeTable.Routes.forEach((route) => {
                             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                                this._deleteRoute(this.routeAddresses[0], routeTable.RouteTableId)
+                                this.logger.info('Updating Route');
+                                routeReplaced = true;
+                                this._replaceRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
                                     .then((success) => {
-                                        this.logger.debug('Success', success);
+                                        this.logger.debug('_replaceRoute Success', success);
                                     })
                                     .catch((err) => {
-                                        this.logger.info('Error', err);
+                                        this.logger.info('_replaceRoute Error', err);
                                     });
                             }
                         });
-                        this.logger.info('Creating Route');
-                        this._createRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
-                            .then((success) => {
-                                this.logger.debug('Success', success);
-                            })
-                            .catch((err) => {
-                                this.logger.info('Error', err);
-                            });
+                        if (!routeReplaced) {
+                            this.logger.info('Creating Route');
+                            this._createRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
+                                .then((success) => {
+                                    this.logger.debug('_createRoute Success', success);
+                                })
+                                .catch((err) => {
+                                    this.logger.info('_createRoute Error', err);
+                                });
+                        }
                     });
                 });
             });
@@ -164,23 +169,22 @@ class Cloud extends AbstractCloud {
         return new Promise((resolve, reject) => {
             this.ec2.createRoute(params).promise()
                 .then((data) => {
-                    this.logger.info('this is data 2 ', data);
                     resolve(data);
                 })
                 .catch(err => reject(err));
         });
     }
 
-    _deleteRoute(distCidr, routeTableId) {
+    _replaceRoute(distCidr, networkInterfaceId, routeTableId) {
         const params = {
             DestinationCidrBlock: distCidr,
+            NetworkInterfaceId: networkInterfaceId,
             RouteTableId: routeTableId
         };
         this.logger.debug('This is params', params);
         return new Promise((resolve, reject) => {
-            this.ec2.createRoute(params).promise()
+            this.ec2.replaceRoute(params).promise()
                 .then((data) => {
-                    this.logger.info('this is data 2 ', data);
                     resolve(data);
                 })
                 .catch(err => reject(err));
@@ -364,7 +368,6 @@ class Cloud extends AbstractCloud {
                 }
             ]
         };
-        this.logger.info('this is pRAMS seccc ', params);
         return new Promise((resolve, reject) => {
             this.ec2.describeNetworkInterfaces(params).promise()
                 .then((data) => {
