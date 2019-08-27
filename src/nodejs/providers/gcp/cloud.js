@@ -404,7 +404,6 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-
     /**
      * Get all VMs with a given tag (label)
      *
