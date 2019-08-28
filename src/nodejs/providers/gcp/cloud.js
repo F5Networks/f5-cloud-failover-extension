@@ -231,7 +231,7 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 } else {
-                    this.logger.warn('No available routes found.');
+                    this.logger.warn('No available routes found');
                 }
                 this.logger.debug(`Routes for update: ${util.stringify(routesToUpdate)}`);
                 return Promise.resolve(routesToUpdate);
