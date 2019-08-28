@@ -502,23 +502,30 @@ describe('Provider - AWS', () => {
             let passedParams;
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub().resolves(_getElasticIPsStubResponse);
-                    provider._getPrivateSecondaryIPs = sinon.stub().resolves(_getPrivateSecondaryIPsStubResponse);
-                    provider._reassociateEIPs = sinon.stub().resolves();
-                    provider._generateEIPConfigs = sinon.stub().callsFake((eips, secondaryPrivateIps) => {
-                        passedParams = {
-                            eips,
-                            secondaryPrivateIps
-                        };
-                        return Promise.resolve();
-                    });
+                    provider._getElasticIPs = sinon.stub()
+                        .resolves(_getElasticIPsStubResponse);
+                    provider._getPrivateSecondaryIPs = sinon.stub()
+                        .resolves(_getPrivateSecondaryIPsStubResponse);
+                    provider._reassociateEIPs = sinon.stub()
+                        .resolves();
+                    provider._generateEIPConfigs = sinon.stub()
+                        .callsFake((eips, secondaryPrivateIps) => {
+                            passedParams = {
+                                eips,
+                                secondaryPrivateIps
+                            };
+                            return Promise.resolve();
+                        });
 
                     return provider.updateAddresses();
                 })
                 .then(() => {
                     const elasticIps = _getElasticIPsStubResponse.Addresses;
                     assert.deepEqual(passedParams,
-                        { eips: elasticIps, secondaryPrivateIps: _getPrivateSecondaryIPsStubResponse });
+                        {
+                            eips: elasticIps,
+                            secondaryPrivateIps: _getPrivateSecondaryIPsStubResponse
+                        });
                 })
                 .catch(() => {
                     assert.fail();
@@ -529,13 +536,17 @@ describe('Provider - AWS', () => {
             let passedParams;
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub().resolves(_getElasticIPsStubResponse);
-                    provider._getPrivateSecondaryIPs = sinon.stub().resolves(_getPrivateSecondaryIPsStubResponse);
-                    provider._reassociateEIPs = sinon.stub().callsFake((EIPConfigs) => {
-                        passedParams = EIPConfigs;
-                        return Promise.resolve();
-                    });
-                    provider._generateEIPConfigs = sinon.stub().resolves(_generateEIPConfigsStubResponse);
+                    provider._getElasticIPs = sinon.stub()
+                        .resolves(_getElasticIPsStubResponse);
+                    provider._getPrivateSecondaryIPs = sinon.stub()
+                        .resolves(_getPrivateSecondaryIPsStubResponse);
+                    provider._reassociateEIPs = sinon.stub()
+                        .callsFake((EIPConfigs) => {
+                            passedParams = EIPConfigs;
+                            return Promise.resolve();
+                        });
+                    provider._generateEIPConfigs = sinon.stub()
+                        .resolves(_generateEIPConfigsStubResponse);
 
                     return provider.updateAddresses();
                 })
@@ -551,8 +562,10 @@ describe('Provider - AWS', () => {
             const expectedError = '_getPrivateSecondaryIPs error';
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub().resolves();
-                    provider._getPrivateSecondaryIPs = sinon.stub().rejects(new Error(expectedError));
+                    provider._getElasticIPs = sinon.stub()
+                        .resolves();
+                    provider._getPrivateSecondaryIPs = sinon.stub()
+                        .rejects(new Error(expectedError));
 
                     return provider.updateAddresses();
                 })
@@ -563,62 +576,74 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(err.message, expectedError);
                 });
         });
-
+    });
+    describe('Update Routes should', () => {
         it('validate updateRoutes with resolved promise', () => {
-            const routeTable = {
-                RouteTableId: 'rtb-123',
-                Routes: [
-                    {
-                        DestinationCidrBlock: '192.0.2.0/24',
-                        InstanceId: 'i-123',
-                        InstanceOwnerId: '123',
-                        NetworkInterfaceId: 'eni-123',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    },
-                    {
-                        DestinationCidrBlock: '10.0.0.0/16',
-                        GatewayId: 'local',
-                        Origin: 'CreateRouteTable',
-                        State: 'active'
-                    },
-                    {
-                        DestinationCidrBlock: '0.0.0.0/0',
-                        GatewayId: 'igw-0068444f356a177c9',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    }
-                ],
-                Tags: [
-                    {
-                        Key: 'F5_CLOUD_FAILOVER_LABEL',
-                        Value: 'foo'
-                    },
-                    {
-                        Key: 'F5_SELF_IPS',
-                        Value: '10.0.1.211, 10.0.11.52'
-                    }
-                ]
-            };
-
-            provider.networkClient = sinon.stub();
-            provider.networkClient.routeTables = sinon.stub();
-            provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable]);
-            provider.networkClient.routes = sinon.stub();
-
-            const providerRouteUpdateSpy = sinon.stub().yields(null, []);
-            provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
-
-            const localAddresses = ['10.0.1.11'];
-            provider.routeTags = { F5_LABEL: 'foo' };
-            provider.routeAddresses = ['192.0.0.0/24'];
-            provider.routeSelfIpsTag = 'F5_SELF_IPS';
-
-            return provider.updateRoutes({ localAddresses })
+            const createRouteSpy = sinon.stub().resolves('Success');
+            provider.init(mockInitData)
                 .then(() => {
-                    assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    const routeTable = {
+                        RouteTableId: 'rtb-123',
+                        Routes: [
+                            {
+                                DestinationCidrBlock: '192.0.2.0/24',
+                                InstanceId: 'i-123',
+                                InstanceOwnerId: '123',
+                                NetworkInterfaceId: 'eni-123',
+                                Origin: 'CreateRoute',
+                                State: 'active'
+                            },
+                            {
+                                DestinationCidrBlock: '10.0.0.0/16',
+                                GatewayId: 'local',
+                                Origin: 'CreateRouteTable',
+                                State: 'active'
+                            },
+                            {
+                                DestinationCidrBlock: '0.0.0.0/0',
+                                GatewayId: 'igw-123',
+                                Origin: 'CreateRoute',
+                                State: 'active'
+                            }
+                        ],
+                        Tags: [
+                            {
+                                Key: 'F5_CLOUD_FAILOVER_LABEL',
+                                Value: 'foo'
+                            },
+                            {
+                                Key: 'F5_SELF_IPS',
+                                Value: '10.0.1.211, 10.0.11.52'
+                            }
+                        ]
+                    };
+                    const localAddresses = ['10.0.1.211'];
+                    provider.routeTags = { F5_LABEL: 'foo' };
+                    provider.routeAddresses = ['192.0.0.0/24'];
+                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
+                    const describeNetworkInterfacesResponse = {
+                        NetworkInterfaces: [
+                            {
+                                NetworkInterfaceId: 'eni-2345'
+                            }
+                        ]
+                    };
+                    provider.ec2.describeNetworkInterfaces = sinon.stub();
+                    provider.ec2.describeNetworkInterfaces.promise = sinon.stub()
+                        .resolves(describeNetworkInterfacesResponse);
+                    provider.ec2.describeRouteTables = sinon.stub();
+                    provider.ec2.describeRouteTables.promise = sinon.stub()
+                        .resolves({ RouteTables: [routeTable] });
+                    provider.ec2.createRoute = sinon.stub();
+                    provider.ec2.createRoute = createRouteSpy;
+                    return provider.updateRoutes({ localAddresses });
                 })
-                .catch(err => Promise.reject(err));
+                .then(() => {
+                    assert(createRouteSpy.calledWith('192.0.0.0/24', 'eni-2345', 'rtb-123'));
+                })
+                .catch(() => {
+                    assert.fail();
+                });
         });
     });
 });

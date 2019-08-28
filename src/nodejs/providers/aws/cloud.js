@@ -73,6 +73,12 @@ class Cloud extends AbstractCloud {
         }).catch(err => Promise.reject(err));
     }
 
+    /**
+     * Updates the route table on the BIG-IP Cluster, by using the F5_SELF_IPS tag to find the network interface the
+     * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     *
+     * @returns {Promise} - Resolves or rejects with the status of updating the route table
+     */
     updateRoutes(options) {
         const localAddresses = options.localAddresses || [];
         this.logger.debug('Local addresses', localAddresses);
@@ -82,7 +88,6 @@ class Cloud extends AbstractCloud {
                 routeTables.forEach((routeTable) => {
                     const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
                     const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    this.logger.debug('selfIpToUse ', selfIpToUse);
                     this._getNetworkInterfaceId(selfIpToUse).then((networkInterfaceId) => {
                         this.logger.debug('Network Interface ID', networkInterfaceId);
                         let routeReplaced = false;
@@ -125,8 +130,8 @@ class Cloud extends AbstractCloud {
         return new Promise((resolve, reject) => {
             this.ec2.describeNetworkInterfaces(params).promise()
                 .then((data) => {
-                    this.logger.debug('blah ', data.NetworkInterfaces[0].NetworkInterfaceId);
-                    resolve(data.NetworkInterfaces[0].NetworkInterfaceId);
+                    const networkId = data.NetworkInterfaces[0].NetworkInterfaceId;
+                    resolve(networkId);
                 })
                 .catch(err => reject(err));
         });
