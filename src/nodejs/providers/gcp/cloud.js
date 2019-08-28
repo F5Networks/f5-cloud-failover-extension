@@ -227,17 +227,7 @@ class Cloud extends AbstractCloud {
                             && Object.values(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
                                 .length === Object.values(that.routeTags).length
                             && tag.description.indexOf(this.routeSelfIpsTag) !== -1) {
-                            let flag = true;
-                            for (let i = 0; i < Object.values(that.routeTags).length; i += 1) {
-                                if (tag.description.indexOf(Object.keys(that.routeTags)[i]) === -1
-                                    && tag.description.indexOf(Object.values(that.routeTags)[i]) === -1) {
-                                    flag = false;
-                                }
-                            }
-                            if (flag) {
-                                that.logger.info(tag);
-                                routesToUpdate.push(tag);
-                            }
+                            routesToUpdate.push(tag);
                         }
                     });
                 } else {
