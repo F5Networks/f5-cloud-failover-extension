@@ -11,7 +11,7 @@ variable "global_tags" {
   default = {
     creator = "Terraform - Failover Extension"
     delete = "False"
-    deploymentId = "${module.utils.env_prefix}"
+    deploymentId = "$${module.utils.env_prefix}"
   }
 }
 
