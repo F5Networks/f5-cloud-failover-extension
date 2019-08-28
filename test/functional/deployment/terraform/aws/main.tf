@@ -11,7 +11,6 @@ variable "global_tags" {
   default = {
     creator = "Terraform - Failover Extension"
     delete = "False"
-    deploymentId = "$${module.utils.env_prefix}"
   }
 }
 
@@ -496,6 +495,7 @@ resource "aws_instance" "vm0" {
     var.global_tags,
     {
       Name = "BigIp 1: Failover Extension-${module.utils.env_prefix}"
+      deploymentId = "${module.utils.env_prefix}"
     }
   )}"
 
@@ -529,6 +529,7 @@ resource "aws_instance" "vm1" {
     var.global_tags,
     {
       Name = "BigIp 2: Failover Extension-${module.utils.env_prefix}"
+      deploymentId = "${module.utils.env_prefix}"
     }
   )}"
 
