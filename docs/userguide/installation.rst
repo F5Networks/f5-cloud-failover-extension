@@ -40,7 +40,7 @@ If you want to use cURL to install Cloud Failover, use the following command syn
 
 .. code-block:: shell
 
-    FN=f5-telemetry-1.0.0-1.noarch.rpm
+    FN=f5-cloud-failover-1.0.0-1.noarch.rpm
 
     CREDS=admin:password
 
