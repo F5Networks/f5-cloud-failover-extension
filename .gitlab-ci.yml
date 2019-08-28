@@ -125,8 +125,7 @@ test_functional_aws:
         CF_ENV_CLOUD: "aws"
 
 # run functional tests: gcp
-# note: disabled until quota for compute network and subnetwork limit is increased
-.test_functional_gcp:
+test_functional_gcp:
     <<: *test_functional_generic
     variables:
         CF_ENV_CLOUD: "gcp"

@@ -318,8 +318,8 @@ resource "google_compute_instance" "vm02" {
 
 resource "google_compute_route" "ext-route" {
   name        = "network-route-${random_string.env_prefix.result}"
-  description = "${var.reaper_tag} labels=f5_cloud_failover_label,${random_string.env_prefix.result}|ip_addresses=${google_compute_instance.vm01.network_interface.2.network_ip},${google_compute_instance.vm02.network_interface.2.network_ip}"
-  dest_range  = "15.0.0.0/24"
+  description = "${var.reaper_tag} f5_cloud_failover_labels={\"f5_cloud_failover_label\":\"${random_string.env_prefix.result}\",\"f5_self_ips\": [\"${google_compute_instance.vm01.network_interface.2.network_ip}\",\"${google_compute_instance.vm02.network_interface.2.network_ip}\"]}"
+  dest_range  = "192.0.2.0/24"
   network     = "${google_compute_network.int_network.name}"
   next_hop_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}"
   priority    = 100
@@ -353,9 +353,9 @@ resource "null_resource" "login01" {
   depends_on = [google_compute_instance.vm01]
 }
 
-resource "null_resource" "delay_one_minute01" {
+resource "null_resource" "delay_five_minutes" {
   provisioner "local-exec" {
-    command = "sleep 280"
+    command = "sleep 300"
   }
   depends_on = [null_resource.login01]
 }
@@ -367,7 +367,7 @@ resource "null_resource" "onboard01" {
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
   }
-  depends_on = [local_file.do01, null_resource.delay_one_minute01]
+  depends_on = [local_file.do01, null_resource.delay_five_minutes]
 }
 
 
@@ -420,7 +420,6 @@ resource "null_resource" "create_virtual02" {
   }
   depends_on = [null_resource.create_virtual01]
 }
-
 
 output "deployment_info" {
   value = {

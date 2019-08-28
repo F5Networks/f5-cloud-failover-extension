@@ -71,31 +71,31 @@ After you post the declaration to the BIG-IP, it will respond with a success mes
 .. code-block:: json
     :linenos:
 
-  {
-      "message": "success",
-      "declaration": {
-          "class": "Cloud_Failover",
-          "environment": "azure",
-          "externalStorage": {
-              "scopingTags": {
-                  "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
-              }
-          },
-          "failoverAddresses": {
-              "scopingTags": {
-                  "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
-              }
-          },
-          "failoverRoutes": {
-              "scopingTags": {
-                  "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
-              },
-              "scopingAddressRanges": [
-                  "192.168.1.0/24"
-              ]
-          }
-      }
-  }
+    {
+        "message": "success",
+        "declaration": {
+            "class": "Cloud_Failover",
+            "environment": "azure",
+            "externalStorage": {
+                "scopingTags": {
+                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                }
+            },
+            "failoverAddresses": {
+                "scopingTags": {
+                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                }
+            },
+            "failoverRoutes": {
+                "scopingTags": {
+                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                },
+                "scopingAddressRanges": [
+                    "192.168.1.0/24"
+                ]
+            }
+        }
+    }
 
 
 

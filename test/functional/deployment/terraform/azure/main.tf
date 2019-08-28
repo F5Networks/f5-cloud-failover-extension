@@ -218,7 +218,7 @@ resource "azurerm_route_table" "route_table" {
 
   tags = {
     f5_cloud_failover_label = "${module.utils.env_prefix}",
-    F5_SELF_IPS = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
+    f5_self_ips = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
 }
 
