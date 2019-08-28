@@ -77,8 +77,7 @@ class Cloud extends AbstractCloud {
         const localAddresses = options.localAddresses || [];
         this.logger.debug('Local addresses', localAddresses);
         this._getRouteTables(this.routeTags)
-            .then((RouteTableListResult) => {
-                const routeTables = RouteTableListResult.RouteTables;
+            .then((routeTables) => {
                 this.logger.debug('Route Tables', routeTables);
                 routeTables.forEach((routeTable) => {
                     const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
@@ -153,7 +152,7 @@ class Cloud extends AbstractCloud {
             this.ec2.describeRouteTables(params)
                 .promise()
                 .then((routeTables) => {
-                    resolve(routeTables);
+                    resolve(routeTables.RouteTables);
                 })
                 .catch(err => reject(err));
         });
