@@ -444,7 +444,7 @@ resource "aws_eip" "vip1" {
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
       F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}",
-      VIPS = "${tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[0]}"
+      VIPS = "${"${index("${tolist(aws_network_interface.external1.private_ips)}", "${aws_network_interface.external1.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external1.private_ips)[1]}" : "${tolist(aws_network_interface.external1.private_ips)[0]}"},${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
     }
   )}"
 }
