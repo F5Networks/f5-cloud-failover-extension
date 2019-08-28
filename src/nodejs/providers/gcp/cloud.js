@@ -21,6 +21,7 @@ const Compute = require('@google-cloud/compute');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
@@ -134,7 +135,7 @@ class Cloud extends AbstractCloud {
                 routesToUpdate.forEach((route) => {
                     if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
                         route.nextHopIp = '';
-                        const selfIpsToUse = JSON.parse(route.description.match(new RegExp('f5_cloud_failover_labels=.*\\{.*\\}', 'g'))[0].split('=')[1])[this.routeSelfIpsTag];
+                        const selfIpsToUse = JSON.parse(route.description.match(new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g'))[0].split('=')[1])[this.routeSelfIpsTag];
                         if (selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1).length > 0) {
                             route.nextHopIp = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
                         }
@@ -158,7 +159,6 @@ class Cloud extends AbstractCloud {
                 const deletePromises = [];
                 result.forEach((item) => {
                     deletePromises.push(this._sendRequest('DELETE', `global/routes/${item.id}`));
-                    // Striping out unique fields in order to be able to re-use payload
                     delete item.id;
                     delete item.creationTimestamp;
                     delete item.kind;
@@ -185,7 +185,6 @@ class Cloud extends AbstractCloud {
                     .then((response) => {
                         this.logger.info('Routes have been successfully deleted. Re-creating routes with new nextHopIp');
                         this.logger.debug(`Response: ${util.stringify(response)}`);
-                        // Reacreating routes
                         this.logger.debug(`Available Routes: ${util.stringify(result)}`);
                         const createPromises = [];
                         result.forEach((item) => {
@@ -222,7 +221,7 @@ class Cloud extends AbstractCloud {
                 const that = this;
                 if (routesList.items.length > 0) {
                     routesList.items.forEach((tag) => {
-                        if (tag.description.indexOf('f5_cloud_failover_labels=') !== -1
+                        if (tag.description.indexOf(`${GCP_LABEL_NAME}=`) !== -1
                             && Object.keys(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
                                 .length === Object.keys(that.routeTags).length
                             && Object.values(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
