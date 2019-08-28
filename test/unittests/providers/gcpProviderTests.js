@@ -444,4 +444,73 @@ describe('Provider - GCP', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('validate _getBucketFromLabel', () => {
+
+        const payload = [[{ name: 'testBucket',
+            getLabels: () => {
+                return Promise.resolve(['test']);
+            }}]]
+        provider.storage.getBuckets = () => {
+            return Promise.resolve(payload);
+        };
+        provider.storage.bucket.getLabels = () => {
+            return Promise.resolve(['test']);
+        };
+        return provider._getBucketFromLabel('test')
+            .then((data) => {
+                assert.strictEqual(data.name, 'testBucket');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate uploadDataToStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' }
+        // const errorMsg = 'Error msg';
+        provider.bucket = payload;
+        provider.bucket.file = (name) => {
+            return {
+                fileName: name,
+                save: (data) => {
+                    if (data.toString().length > 0) {
+                        assert.strictEqual(JSON.parse(data).status, payload.status);
+                        return Promise.resolve(data);
+                    }
+                }
+            };
+        }
+        return provider.uploadDataToStorage(fileName, payload)
+            .then((data) => {
+                assert.strictEqual(JSON.parse(data).status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+
+    });
+
+    it('validate downloadDataFromStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' }
+        // const errorMsg = 'Error msg';
+        provider.bucket = payload;
+
+        provider.bucket.file = (name) => {
+            return {
+                fileName: name,
+                createReadStream: () => {
+                    return {
+                        on: (data) => {
+                            return Promise.resolve(data);
+                        }
+                    };
+                }
+            };
+        };
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.strictEqual(JSON.parse(data).status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
 });

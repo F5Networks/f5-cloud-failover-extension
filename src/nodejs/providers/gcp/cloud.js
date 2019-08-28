@@ -125,16 +125,19 @@ class Cloud extends AbstractCloud {
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
         return new Promise(((resolve, reject) => {
-            this.bucket.file(storageContainerName + '/' + fileName).save(JSON.stringify(data), (err) => {
-                if (!err) {
-                    this.logger.silly(`Data uploaded to ${fileName}: `, data);
-                    resolve();
-                }else {
-                    this.logger.silly(`error uploading storage: ${err}`);
-                    reject(err);
-                }
-            });
+            const file = this.bucket.file(storageContainerName + '/' + fileName)
+            if (file != null){
+                resolve(file)
+            } else {
+                reject(file)
+            }
         }))
+            .then((file) => {
+                return file.save(JSON.stringify(data))
+                // return Promise.resolve(file.save(JSON.stringify(data)));
+            }).then((result) => {
+                return Promise.resolve(result);
+            })
             .catch(err => Promise.reject(err));
     }
 
