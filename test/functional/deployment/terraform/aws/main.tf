@@ -444,7 +444,7 @@ resource "aws_eip" "vip1" {
     var.global_tags,
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
-      F5_CLOUD_FAILOVER_LABEL = "deployment-functional-testing",
+      F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}",
       VIPS = "${tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[0]}"
     }
   )}"
