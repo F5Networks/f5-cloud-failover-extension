@@ -221,7 +221,7 @@ class Cloud extends AbstractCloud {
                 const that = this;
                 if (routesList.items.length > 0) {
                     routesList.items.forEach((tag) => {
-                        if (tag.description.indexOf(`${GCP_LABEL_NAME}=`) !== -1
+                        if (tag.description.indexOf(`${GCP_LABEL_NAME}`) !== -1
                             && Object.keys(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
                                 .length === Object.keys(that.routeTags).length
                             && Object.values(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
