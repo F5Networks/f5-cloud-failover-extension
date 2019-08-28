@@ -152,13 +152,18 @@ class Cloud extends AbstractCloud {
         const stream = this.bucket.file(storageContainerName + '/' + fileName).createReadStream();
         let buffer = '';
         return new Promise((resolve, reject) => {
-            stream.on('data', (data) => {
-                buffer += data;
-            }).on('error', (err) => {
-                reject(err);
-            }).on('end', () => {
-                resolve(JSON.parse(buffer));
-            });
+            stream
+                .on('data', (data) => {
+                    buffer += data;
+                });
+            stream
+                .on('error', (err) => {
+                    reject(err);
+                });
+            stream
+                .on('end', () => {
+                    resolve(JSON.parse(buffer));
+                });
         });
     }
 

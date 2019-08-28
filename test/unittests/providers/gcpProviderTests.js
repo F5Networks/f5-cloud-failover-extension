@@ -485,32 +485,24 @@ describe('Provider - GCP', () => {
                 assert.strictEqual(JSON.parse(data).status, payload.status);
             })
             .catch(err => Promise.reject(err));
-
     });
 
     it('validate downloadDataFromStorage', () => {
         const fileName = 'test.json';
-        const payload = { status: 'progress' }
-        // const errorMsg = 'Error msg';
+        const payload = { status: 'progress' };
         provider.bucket = payload;
 
-        provider.bucket.file = (name) => {
-            return {
-                fileName: name,
-                createReadStream: () => {
-                    return {
-                        on: (data) => {
-                            return Promise.resolve(data);
-                        }
-                    };
-                }
-            };
-        };
+        const returnObject = sinon.stub();
+        returnObject.on = sinon.stub();
+        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
+        returnObject.on.withArgs('end').yields(null);
+        const createReadStreamReturn = sinon.stub().returns(returnObject);
+
+        provider.bucket.file = sinon.stub().returns({ createReadStream: createReadStreamReturn });
         return provider.downloadDataFromStorage(fileName)
             .then((data) => {
-                assert.strictEqual(JSON.parse(data).status, payload.status);
+                assert.strictEqual(data.status, payload.status);
             })
             .catch(err => Promise.reject(err));
     });
-
 });
