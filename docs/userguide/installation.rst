@@ -21,21 +21,15 @@ Installing Cloud Failover using the BIG-IP Configuration utility
 From the Configuration utility:
 
 1. If you are using a BIG-IP version prior to 14.0,  before you can use the Configuration utility, you must enable the framework using the BIG-IP command line. From the CLI, type the following command:  ``touch /var/config/rest/iapps/enable``.  You only need to run this command once (per BIG-IP system).
-2. Click **iApps > Package Management LX**.  Your Cloud Failover version number may be different than the one shown in the following example.
 
-   .. image:: /images/install1.png
+2. Click **iApps > Package Management LX**.  Your Cloud Failover version number may be different than the one shown in the following example.
 
 3. Click the **Import** button.
 
-   .. image:: /images/install2.png
-
 4. Click **Choose File** and then browse to the location you saved the RPM file, and then click **Ok**.
+
 5. Click the **Upload** button.
 
-   .. image:: /images/install3.png
-
-
-|
 
 .. _installcurl-ref:
 
