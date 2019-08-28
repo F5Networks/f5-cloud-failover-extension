@@ -232,25 +232,9 @@ describe('Provider - GCP', () => {
         assert.strictEqual(typeof provider.downloadDataFromStorage, 'function');
     });
 
-    it('validate downloadDataFromStorage resolves', () => provider.downloadDataFromStorage()
-        .then(() => {
-            assert.ok(true);
-        })
-        .catch(() => {
-            assert.ok(false);
-        }));
-
     it('validate uploadDataToStorage method exists', () => {
         assert.strictEqual(typeof provider.uploadDataToStorage, 'function');
     });
-
-    it('validate downloadDataFromStorage resolves', () => provider.uploadDataToStorage()
-        .then(() => {
-            assert.ok(true);
-        })
-        .catch(() => {
-            assert.ok(false);
-        }));
 
     it('validate _getRoutes method exists', () => {
         assert.strictEqual(typeof provider._getRoutes, 'function');
