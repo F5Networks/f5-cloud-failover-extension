@@ -467,7 +467,7 @@ class Cloud extends AbstractCloud {
             .then((vmsData) => {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
-                computeVms.flat(2).forEach((vm) => {
+                computeVms[0].forEach((vm) => {
                     let flag = true;
                     Object.keys(vm.metadata.labels)
                         .forEach((labelName) => {
