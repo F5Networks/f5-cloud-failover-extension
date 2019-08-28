@@ -34,6 +34,7 @@ User Guide Index
    userguide/prereqs
    userguide/faq
    userguide/quickstart
+   userguide/installation
    userguide/azure
    userguide/aws
    userguide/gcp
