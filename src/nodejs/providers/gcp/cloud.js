@@ -66,9 +66,8 @@ class Cloud extends AbstractCloud {
                 this.computeRegion = this.compute.region(this.region);
 
                 this.logger.silly('Getting GCP resources');
-                const firstKey = Object.keys(this.tags)[0]; // should support multiple
                 return Promise.all([
-                    this._getVmsByTag({ key: firstKey, value: this.tags[firstKey] }),
+                    this._getVmsByTags(this.tags),
                     this._getFwdRules(),
                     this._getTargetInstances()
                 ]);
@@ -437,6 +436,56 @@ class Cloud extends AbstractCloud {
             .then(data => Promise.resolve(data))
             .catch(err => Promise.reject(err));
     }
+
+
+    /**
+     * Get all VMs with a given tags (labels)
+     *
+     * @param {Object} tags - Tags to search for. Tags should be in the format:
+     *
+     *
+     *                 {
+     *                     key01: value01,
+     *                     key02: value02
+     *                 }
+     *
+     * @returns {Promise} A promise which will be resolved with an array of instances
+     *
+     */
+    _getVmsByTags(tags) {
+        if (!tags) {
+            return Promise.reject(new Error('getVmsByTags: no tag, load configuration file first'));
+        }
+        const options = {};
+        options.filter = [];
+
+        Object.keys(tags).forEach((tagKey) => {
+            // Labels in GCP must be lower case
+            options.filter.push(`labels.${tagKey.toLowerCase()} eq ${tags[tagKey].toLowerCase()}`);
+        });
+        return this.compute.getVMs(options)
+            .then((vmsData) => {
+                const computeVms = vmsData !== undefined ? vmsData : [[]];
+                const promises = [];
+                computeVms.flat(2).forEach((vm) => {
+                    let flag = true;
+                    Object.keys(vm.metadata.labels)
+                        .forEach((labelName) => {
+                            if (Object.keys(tags).indexOf(labelName) === -1
+                            || Object.values(tags).indexOf(vm.metadata.labels[labelName]) === -1) {
+                                flag = false;
+                            }
+                        });
+                    if (flag) {
+                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
+                    }
+                });
+                return Promise.all(promises);
+            })
+            .then(data => Promise.resolve(data))
+            .catch(err => Promise.reject(err));
+    }
+
 
     /**
      * Get all forwarding rules (non-global)
