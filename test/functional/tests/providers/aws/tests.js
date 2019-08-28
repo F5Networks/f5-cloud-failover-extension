@@ -184,19 +184,21 @@ describe('Provider: AWS', () => {
     // Functional tests
 
     // Test IP and Route failover
-    it('should check AWS route table routes for next hop matches primary (vm0)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRouteTable(dutPrimary)
-            .catch(err => Promise.reject(err));
-    });
-
     it('should check that Elastic IP is mapped to primary (vm0)', function () {
         this.retries(RETRIES.LONG);
 
         return checkElasticIP(dutPrimary)
             .catch(err => Promise.reject(err));
     });
+
+    /*
+    it('should check AWS route table routes for next hop matches primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkRouteTable(dutPrimary)
+            .catch(err => Promise.reject(err));
+    });
+    */
 
     it('should force BIG-IP (primary) to standby', () => forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
