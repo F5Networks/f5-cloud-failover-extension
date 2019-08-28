@@ -26,7 +26,7 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
+// const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
 
 // Helper functions
 function matchElasticIpToInstance(privateIp, instances, instance) {
@@ -47,12 +47,14 @@ function matchElasticIpToInstance(privateIp, instances, instance) {
     }
 }
 
+/*
 function matchRouteTables(routes, instance) {
     console.log(deploymentDeclaration);
     console.log(routes);
     // iterate over routes to filter for the deployment declaration
     console.log(instance);
 }
+*/
 
 function forceStandby(ip, username, password) {
     const uri = '/mgmt/tm/sys/failover';
@@ -145,6 +147,7 @@ describe('Provider: AWS', () => {
         });
     }
 
+    /*
     function getRouteTableRoutes() {
         const params = {
             Filters: [
@@ -164,6 +167,7 @@ describe('Provider: AWS', () => {
                 .catch(err => reject(err));
         });
     }
+    */
 
     function checkElasticIP(instance) {
         return getElasticIpPrivateAddress()
@@ -173,6 +177,7 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     }
 
+    /*
     function checkRouteTable(instance) {
         return getRouteTableRoutes()
             .then((response) => {
@@ -180,6 +185,7 @@ describe('Provider: AWS', () => {
             })
             .catch(err => Promise.reject(err));
     }
+    */
 
     // Functional tests
 
