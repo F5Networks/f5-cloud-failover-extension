@@ -106,7 +106,6 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
-        sinon.replace(provider, '_getVmsByTag', sinon.fake.resolves('vmsTagResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
 
         return provider.init(testPayload)
@@ -126,7 +125,6 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
-        sinon.replace(provider, '_getVmsByTag', sinon.fake.rejects('test-error'));
 
         return provider.init(testPayload)
             .then(() => {
@@ -677,27 +675,6 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate promise rejection for _getVmsByTag due to missing tags', () => provider._getVmsByTag()
-        .then(() => {
-            assert.ok(false);
-        })
-        .catch((error) => {
-            assert.strictEqual(error.message, 'getVmsByTag: no tag, load configuration file first');
-        }));
-
-    it('validate promise rejection for _getVmsByTag during compute.getVMs execution', () => {
-        provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().rejects();
-
-        return provider._getVmsByTag({ key: 'key01', value: 'value01' })
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch((error) => {
-                assert.strictEqual(error.message, 'Error');
-            });
-    });
-
     /* eslint-disable arrow-body-style */
     it('validate _updateFwdRule method execution', () => {
         provider.computeRegion = {
@@ -759,18 +736,6 @@ describe('Provider - GCP', () => {
                 assert.ok(true);
             });
     });
-
-    it('validate promise resolve for _getVmsByTag method during compute.getVMs execution', () => {
-        provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm' }]]);
-        provider._getVmInfo = sinon.stub().resolves('test_data');
-
-        return provider._getVmsByTag({ key: 'key01', value: 'value01' })
-            .then((data) => {
-                assert.strictEqual(data[0], 'test_data');
-            });
-    });
-
 
     it('validate _getVmsByTags', () => {
         provider.compute = sinon.stub();

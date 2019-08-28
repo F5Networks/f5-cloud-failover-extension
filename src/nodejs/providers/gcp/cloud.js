@@ -402,43 +402,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get all VMs with a given tag (label)
-     *
-     * @param {Object} tag - Tag to search for. Tag should be in the format:
-     *
-     *                 {
-     *                     key: key to search for
-     *                     value: value to search for
-     *                 }
-     *
-     * @returns {Promise} A promise which will be resolved with an array of instances
-     *
-     */
-    _getVmsByTag(tag) {
-        if (!tag) {
-            return Promise.reject(new Error('getVmsByTag: no tag, load configuration file first'));
-        }
-
-        // Labels in GCP must be lower case
-        const options = {
-            filter: `labels.${tag.key.toLowerCase()} eq ${tag.value.toLowerCase()}`
-        };
-        return this.compute.getVMs(options)
-            .then((vmsData) => {
-                const computeVms = vmsData !== undefined ? vmsData : [[]];
-                const promises = [];
-                computeVms[0].forEach((vm) => {
-                    // retry if vm is stopping as metadata fingerprint returned may change
-                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
-                });
-                return Promise.all(promises);
-            })
-            .then(data => Promise.resolve(data))
-            .catch(err => Promise.reject(err));
-    }
-
-
-    /**
      * Get all VMs with a given tags (labels)
      *
      * @param {Object} tags - Tags to search for. Tags should be in the format:
