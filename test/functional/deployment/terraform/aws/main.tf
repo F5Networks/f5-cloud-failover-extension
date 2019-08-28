@@ -437,7 +437,7 @@ resource "aws_eip" "external2" {
 resource "aws_eip" "vip1" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[1]}"
+  associate_with_private_ip = "${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
 
   tags = "${merge(
     var.global_tags,
@@ -468,6 +468,12 @@ data "template_file" "user_data_vm1" {
     admin_password = "${module.utils.admin_password}"
     external_self  = "${aws_network_interface.external2.private_ip}/24"
     default_gw      = "10.0.11.1"
+  }
+}
+
+resource "null_resource" "delay" {
+  provisioner "local-exec" {
+    command = "sleep 30"
   }
 }
 
@@ -503,6 +509,8 @@ resource "aws_instance" "vm0" {
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm0.id} --region ${var.aws_region}"
   }
+
+  depends_on = [null_resource.delay]
 }
 
 resource "aws_instance" "vm1" {
@@ -537,6 +545,8 @@ resource "aws_instance" "vm1" {
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm1.id} --region ${var.aws_region}"
   }
+
+  depends_on = [null_resource.delay]
 }
 
 resource "local_file" "do0" {
@@ -619,14 +629,14 @@ output "deployment_info" {
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt1.public_ip,
         mgmt_port = 443,
-        primary = true
+        primary = false
       },
       {
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt2.public_ip,
         mgmt_port = 443,
-        primary = false
+        primary = true
       }
     ],
     deploymentId: module.utils.env_prefix,
