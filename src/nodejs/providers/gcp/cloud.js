@@ -21,6 +21,7 @@ const Compute = require('@google-cloud/compute');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
@@ -43,6 +44,9 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.routeTags = options.routeTags || null;
+        this.routeAddresses = options.routeAddresses || null;
+        this.routeSelfIpsTag = options.routeSelfIpsTag || null;
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -62,10 +66,9 @@ class Cloud extends AbstractCloud {
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
 
-                this.logger.info('Getting GCP resources');
-                const firstKey = Object.keys(this.tags)[0]; // should support multiple
+                this.logger.silly('Getting GCP resources');
                 return Promise.all([
-                    this._getVmsByTag({ key: firstKey, value: this.tags[firstKey] }),
+                    this._getVmsByTags(this.tags),
                     this._getFwdRules(),
                     this._getTargetInstances()
                 ]);
@@ -75,13 +78,12 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = vmsData[1];
                 this.targetInstances = vmsData[2];
 
-                this.logger.info('GCP resources have been collected; gcp provider initialization is completed.');
+                this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
                 return Promise.resolve();
             })
 
             .catch(err => Promise.reject(err));
     }
-
 
     /**
      * Update Addresses
@@ -118,6 +120,126 @@ class Cloud extends AbstractCloud {
 
 
     /**
+     * Update Routes
+     *
+     * @param {Object} ipAddresses    - Local addresses
+     *
+     * @returns {Object} promise
+     */
+    updateRoutes(ipAddresses) {
+        this.logger.silly('updateRoutes - Local addresses', ipAddresses);
+        const localAddresses = ipAddresses.localAddresses;
+        return this._getRoutes()
+            .then((routesToUpdate) => {
+                const result = [];
+                routesToUpdate.forEach((route) => {
+                    if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
+                        route.nextHopIp = '';
+                        const selfIpsToUse = JSON.parse(route.description.match(new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g'))[0].split('=')[1])[this.routeSelfIpsTag];
+                        if (selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1).length > 0) {
+                            route.nextHopIp = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                        }
+                        if (route.nextHopIp === '') {
+                            this.logger.info('NextHopIp was not set; provided ipAddresses are not matching localAddresses');
+                        } else {
+                            result.push(route);
+                        }
+                        return route;
+                    }
+
+                    this.logger.info('Route object does not include ipAddresses, within description; however, the ipAddeses are required for failover');
+                    this.logger.info(JSON.stringify(route));
+                    return route;
+                });
+
+                this.logger.debug('Routes with updated nextHopIp');
+                this.logger.debug(result);
+
+                // Deleting routes
+                const deletePromises = [];
+                result.forEach((item) => {
+                    deletePromises.push(this._sendRequest('DELETE', `global/routes/${item.id}`));
+                    delete item.id;
+                    delete item.creationTimestamp;
+                    delete item.kind;
+                    delete item.selfLink;
+                });
+
+
+                if (result.length === 0) {
+                    this.logger.info('No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
+                    return Promise.resolve('No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
+                }
+
+                return Promise.all(deletePromises)
+                    .then((response) => {
+                        const operationPromises = [];
+                        if (response) {
+                            response.forEach((item) => {
+                                const operation = this.compute.operation(item.name);
+                                operationPromises.push(operation.promise());
+                            });
+                        }
+                        return Promise.all(operationPromises);
+                    })
+                    .then((response) => {
+                        this.logger.info('Routes have been successfully deleted. Re-creating routes with new nextHopIp');
+                        this.logger.debug(`Response: ${util.stringify(response)}`);
+                        this.logger.debug(`Available Routes: ${util.stringify(result)}`);
+                        const createPromises = [];
+                        result.forEach((item) => {
+                            createPromises.push(this._sendRequest('POST', 'global/routes/', item));
+                        });
+                        return Promise.all(createPromises);
+                    })
+                    .then((response) => {
+                        this.logger.info('Routes have been successfully re-created. Route failover is completed now.');
+                        this.logger.debug(util.stringify(response));
+                        return Promise.resolve();
+                    });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+
+    /**
+     * Returns routes objects used for failover; method uses routes' description values
+     * to identify route objects to work with
+     *
+     * @returns {Promise} A promise which will provide list of routes which need to be updated
+     *
+     */
+    _getRoutes() {
+        this.logger.debug(`_getRoutes with tags: ${util.stringify(this.routeTags)}`);
+
+        return this._sendRequest(
+            'GET',
+            'global/routes'
+        )
+            .then((routesList) => {
+                const routesToUpdate = [];
+                const that = this;
+                if (routesList.items.length > 0) {
+                    routesList.items.forEach((tag) => {
+                        if (tag.description.indexOf(`${GCP_LABEL_NAME}`) !== -1
+                            && Object.keys(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
+                                .length === Object.keys(that.routeTags).length
+                            && Object.values(that.routeTags).filter(item => tag.description.indexOf(item) !== -1)
+                                .length === Object.values(that.routeTags).length
+                            && tag.description.indexOf(this.routeSelfIpsTag) !== -1) {
+                            routesToUpdate.push(tag);
+                        }
+                    });
+                } else {
+                    this.logger.warn('No available routes found');
+                }
+                this.logger.debug(`Routes for update: ${util.stringify(routesToUpdate)}`);
+                return Promise.resolve(routesToUpdate);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
      * Send HTTP Request to GCP API (Compute)
      *
      * @returns {Promise} A promise which will be resolved upon complete response
@@ -127,6 +249,7 @@ class Cloud extends AbstractCloud {
         if (!this.accessToken) {
             return Promise.reject(new Error('httpUtil.sendRequest: no auth token. call init first'));
         }
+
         const headers = {
             Authorization: `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json'
@@ -134,7 +257,6 @@ class Cloud extends AbstractCloud {
         const url = `${this.BASE_URL}/projects/${this.projectId}/${path}`;
         return httpUtil.request(method, url, { headers, body });
     }
-
 
     /**
      * Get local metadata for a specific entry
@@ -226,7 +348,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _updateNic(vmId, nicId, nicArr) {
-        this.logger.info(`Updating NIC: ${nicId} for VM: ${vmId}`);
+        this.logger.silly(`Updating NIC: ${nicId} for VM: ${vmId}`);
         return this._sendRequest(
             'PATCH',
             `zones/${this.zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
@@ -253,12 +375,12 @@ class Cloud extends AbstractCloud {
      *
      */
     _updateFwdRule(name, target) {
-        this.logger.info(`Updating forwarding rule: ${name} to target: ${target}`);
+        this.logger.silly(`Updating forwarding rule: ${name} to target: ${target}`);
         const rule = this.computeRegion.rule(name);
         return rule.setTarget(target)
             .then((data) => {
                 const operationName = data[0].name;
-                this.logger.info(`updateFwdRule operation name: ${operationName}`);
+                this.logger.silly(`updateFwdRule operation name: ${operationName}`);
 
                 // returns GCP region operation, wait for that to complete
                 const operation = this.computeRegion.operation(operationName);
@@ -268,42 +390,54 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-
     /**
-     * Get all VMs with a given tag (label)
+     * Get all VMs with a given tags (labels)
      *
-     * @param {Object} tag - Tag to search for. Tag should be in the format:
+     * @param {Object} tags - Tags to search for. Tags should be in the format:
+     *
      *
      *                 {
-     *                     key: key to search for
-     *                     value: value to search for
+     *                     key01: value01,
+     *                     key02: value02
      *                 }
      *
      * @returns {Promise} A promise which will be resolved with an array of instances
      *
      */
-    _getVmsByTag(tag) {
-        if (!tag) {
-            return Promise.reject(new Error('getVmsByTag: no tag, load configuration file first'));
+    _getVmsByTags(tags) {
+        if (!tags) {
+            return Promise.reject(new Error('getVmsByTags: no tag, load configuration file first'));
         }
+        const options = {};
+        options.filter = [];
 
-        // Labels in GCP must be lower case
-        const options = {
-            filter: `labels.${tag.key.toLowerCase()} eq ${tag.value.toLowerCase()}`
-        };
+        Object.keys(tags).forEach((tagKey) => {
+            // Labels in GCP must be lower case
+            options.filter.push(`labels.${tagKey.toLowerCase()} eq ${tags[tagKey].toLowerCase()}`);
+        });
         return this.compute.getVMs(options)
             .then((vmsData) => {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
-                    // retry if vm is stopping as metadata fingerprint returned may change
-                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
+                    let flag = true;
+                    Object.keys(vm.metadata.labels)
+                        .forEach((labelName) => {
+                            if (Object.keys(tags).indexOf(labelName) === -1
+                            || Object.values(tags).indexOf(vm.metadata.labels[labelName]) === -1) {
+                                flag = false;
+                            }
+                        });
+                    if (flag) {
+                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
+                    }
                 });
                 return Promise.all(promises);
             })
             .then(data => Promise.resolve(data))
             .catch(err => Promise.reject(err));
     }
+
 
     /**
      * Get all forwarding rules (non-global)
@@ -392,7 +526,7 @@ class Cloud extends AbstractCloud {
 
         // There should be at least one item in trafficGroupIpArr
         if (!trafficGroupIpArr.length) {
-            this.logger.info('updateNics: No traffic group address(es) exist, skipping');
+            this.logger.warn('updateNics: No traffic group address(es) exist, skipping');
             return Promise.reject();
         }
 
@@ -506,7 +640,7 @@ class Cloud extends AbstractCloud {
 
         // There should be at least one item in trafficGroupIpArr
         if (!trafficGroupIpArr.length) {
-            this.logger.info('updateFwdRules: No traffic group address(es) exist, skipping');
+            this.logger.warn('updateFwdRules: No traffic group address(es) exist, skipping');
             return Promise.reject();
         }
 
@@ -543,7 +677,7 @@ class Cloud extends AbstractCloud {
             }
         });
         // debug
-        this.logger.silly(`fwdRulesToUpdate: ${JSON.stringify(fwdRulesToUpdate, null, 1)}`);
+        this.logger.silly(`fwdRulesToUpdate: ${util.stringify(fwdRulesToUpdate, null, 1)}`);
 
         // longer retry interval to avoid 'resource is not ready' API response, can take 30+ seconds
         const retryIntervalMs = 60000;

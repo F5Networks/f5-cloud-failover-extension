@@ -39,6 +39,7 @@
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "beta",
+        "googleapis": "^42.0.0",
         "@google-cloud/compute": "^1.0.1",
         "@google-cloud/storage": "^2.5.0",
         "ajv": "^6.10.0",

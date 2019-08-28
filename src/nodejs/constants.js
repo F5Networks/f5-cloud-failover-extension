@@ -60,5 +60,6 @@ module.exports = {
         PASS: 'SUCCEEDED',
         FAIL: 'FAILED',
         RUNNING: 'RUNNING'
-    }
+    },
+    GCP_LABEL_NAME: 'f5_cloud_failover_labels'
 };
