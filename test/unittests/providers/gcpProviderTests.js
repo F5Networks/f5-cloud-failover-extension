@@ -52,6 +52,7 @@ const mockVms = [
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
+    const testErrorMessage = 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.';
     const mockMetadata = {
         compute: {
             resourceGroupName: mockResourceGroup,
@@ -190,20 +191,20 @@ describe('Provider - GCP', () => {
         getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.0.0","1.0.0.0"]}', nextHopIp: '' }]));
         return provider.updateRoutes(localAddresses)
             .then((response) => {
-                assert.strictEqual(response, 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
+                assert.strictEqual(response, testErrorMessage);
             })
             .catch(() => {
                 assert.ok(false);
             });
     });
 
-    it('validate updateRoute method response when no failover routes identified ', () => {
+    it('validate updateRoute method response when description does not include labels', () => {
         const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
         const getRouytesMock = sinon.stub(provider, '_getRoutes');
         getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'foo', nextHopIp: '' }]));
         return provider.updateRoutes(localAddresses)
             .then((response) => {
-                assert.strictEqual(response, 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.');
+                assert.strictEqual(response, testErrorMessage);
             })
             .catch(() => {
                 assert.ok(false);
