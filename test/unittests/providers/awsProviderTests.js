@@ -591,7 +591,7 @@ describe('Provider - AWS', () => {
                 ],
                 Tags: [
                     {
-                        Key: 'F5_CLOUD_FAILOVER_LABEL',
+                        Key: 'f5_cloud_failover_label',
                         Value: 'foo'
                     },
                     {
