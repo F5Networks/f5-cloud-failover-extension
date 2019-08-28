@@ -107,6 +107,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTag', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
 
         return provider.init(testPayload)
             .then(() => {
