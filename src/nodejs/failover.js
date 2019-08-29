@@ -92,11 +92,7 @@ class FailoverClient {
                 const actions = [
                     this.cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
                 ];
-                // updating routes is conditional - TODO: rethink this...
-                const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE, constants.CLOUD_PROVIDERS.GCP];
-                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
-                    actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
-                }
+                actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
                 return Promise.all(actions);
             })
             .then(() => {

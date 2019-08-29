@@ -29,7 +29,7 @@ resource "aws_vpc" "main" {
 
 resource "aws_internet_gateway" "gateway" {
   vpc_id = "${aws_vpc.main.id}"
-  
+
   tags = "${merge(
     var.global_tags,
     {
@@ -61,11 +61,17 @@ resource "aws_route_table" "external" {
     cidr_block = "0.0.0.0/0"
     gateway_id = "${aws_internet_gateway.gateway.id}"
   }
+  route {
+    cidr_block = "192.0.2.0/24"
+    network_interface_id = "${aws_network_interface.external1.id}"
+  }
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
+      f5_cloud_failover_label = "${module.utils.env_prefix}"
+      F5_SELF_IPS = "${tolist(aws_network_interface.external1.private_ips)[0]}, ${tolist(aws_network_interface.external2.private_ips)[0]}"
     }
   )}"
 }
@@ -285,6 +291,7 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "ec2:DescribeNetworkInterfaceAttribute",
             "ec2:DescribeRouteTables",
             "ec2:ReplaceRoute",
+            "ec2:CreateRoute",
             "ec2:assignprivateipaddresses",
             "sts:AssumeRole"
         ],
@@ -430,14 +437,14 @@ resource "aws_eip" "external2" {
 resource "aws_eip" "vip1" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[1]}"
+  associate_with_private_ip = "${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
-      F5_CLOUD_FAILOVER_LABEL = "deployment-functional-testing",
-      VIPS = "${tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[0]}"
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
+      VIPS = "${"${index("${tolist(aws_network_interface.external1.private_ips)}", "${aws_network_interface.external1.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external1.private_ips)[1]}" : "${tolist(aws_network_interface.external1.private_ips)[0]}"},${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
     }
   )}"
 }
@@ -461,6 +468,12 @@ data "template_file" "user_data_vm1" {
     admin_password = "${module.utils.admin_password}"
     external_self  = "${aws_network_interface.external2.private_ip}/24"
     default_gw      = "10.0.11.1"
+  }
+}
+
+resource "null_resource" "delay" {
+  provisioner "local-exec" {
+    command = "sleep 30"
   }
 }
 
@@ -488,13 +501,16 @@ resource "aws_instance" "vm0" {
     var.global_tags,
     {
       Name = "BigIp 1: Failover Extension-${module.utils.env_prefix}"
+      deploymentId = "${module.utils.env_prefix}"
     }
   )}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm0.id} --region ${var.aws_region}"
-  } 
+  }
+
+  depends_on = [null_resource.delay]
 }
 
 resource "aws_instance" "vm1" {
@@ -521,13 +537,16 @@ resource "aws_instance" "vm1" {
     var.global_tags,
     {
       Name = "BigIp 2: Failover Extension-${module.utils.env_prefix}"
+      deploymentId = "${module.utils.env_prefix}"
     }
   )}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.vm1.id} --region ${var.aws_region}"
-  } 
+  }
+
+  depends_on = [null_resource.delay]
 }
 
 resource "local_file" "do0" {
@@ -609,18 +628,21 @@ output "deployment_info" {
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt1.public_ip,
+        instanceId = aws_instance.vm0.id,
         mgmt_port = 443,
-        primary = true
+        primary = false
       },
       {
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt2.public_ip,
+        instanceId = aws_instance.vm1.id,
         mgmt_port = 443,
-        primary = false
+        primary = true
       }
     ],
     deploymentId: module.utils.env_prefix,
-    environment: "aws"
+    environment: "aws",
+    region: var.aws_region
   }
 }
