@@ -61,5 +61,7 @@ module.exports = {
         FAIL: 'FAILED',
         RUNNING: 'RUNNING'
     },
-    GCP_LABEL_NAME: 'f5_cloud_failover_labels'
+    GCP_LABEL_NAME: 'f5_cloud_failover_labels',
+    MAX_RETRIES: 4,
+    RETRY_INTERVAL: 15000
 };

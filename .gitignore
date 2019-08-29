@@ -13,9 +13,9 @@ coverage/
 test/functional/logs/
 test/functional/*_harness_file.json
 **/.terraform/*
-*.tfstate
-*.tfstate.*
-failover-tf
+*.tfstate*
+terraform
+terraform.zip
 # virtual envs
 venv/
 # deployment info
