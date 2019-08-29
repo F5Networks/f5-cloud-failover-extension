@@ -751,9 +751,15 @@ describe('Provider - GCP', () => {
         const payload = [
             [
                 {
-                    name: 'testBucket',
+                    name: 'notOurBucket',
                     getLabels: () => {
-                        return Promise.resolve(['test']);
+                        return Promise.resolve([{ some_key: 'some_value' }]);
+                    }
+                },
+                {
+                    name: 'ourBucket',
+                    getLabels: () => {
+                        return Promise.resolve([{ foo: 'bar', foo1: 'bar1' }]);
                     }
                 }
             ]
@@ -761,12 +767,9 @@ describe('Provider - GCP', () => {
         provider.storage.getBuckets = () => {
             return Promise.resolve(payload);
         };
-        provider.storage.bucket.getLabels = () => {
-            return Promise.resolve(['test']);
-        };
-        return provider._getBucketFromLabel('test')
+        return provider._getBucketFromLabel({ foo: 'bar', foo1: 'bar1' })
             .then((data) => {
-                assert.strictEqual(data.name, 'testBucket');
+                assert.strictEqual(data.name, 'ourBucket');
             })
             .catch(err => Promise.reject(err));
     });

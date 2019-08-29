@@ -349,33 +349,42 @@ class Cloud extends AbstractCloud {
     /**
      * Get google storage bucket from given label
      *
-     * @param {String} storageLabel - The label name of a bucket. For example 'f5_cloud_failover_label: x'
+     * @param {Object} labels - The label name of a bucket. For example { 'f5_cloud_failover_label: x'
      *
      * @returns {Promise} A promise which is resolved with the bucket requested
      *
      */
-    _getBucketFromLabel(storageLabel) {
+    _getBucketFromLabel(labels) {
+        // helper function
+        function getBucketLabels(bucket) {
+            return bucket.getLabels()
+                .then(bucketLabels => Promise.resolve({ name: bucket.name, labels: bucketLabels }))
+                .catch(err => Promise.reject(err));
+        }
+
         return this.storage.getBuckets()
-            // let buckets = null
             .then((data) => {
-                this.buckets = data[0];
                 const promises = [];
-                this.buckets.forEach((bucket) => {
-                    this.logger.info(`discovering bucket: ${bucket.name}`);
-                    promises.push(bucket.getLabels());
+                data[0].forEach((bucket) => {
+                    promises.push(getBucketLabels(bucket));
                 });
                 return Promise.all(promises);
             })
-            .then((labels) => {
-                let bucket = null;
-                labels.forEach((label, index) => {
-                    this.logger.info(`discovering label: ${this.label}`);
-                    if (util.stringify(label) === util.stringify([storageLabel])) {
-                        this.logger.info(`returning bucket: ${this.buckets[index].name}`);
-                        bucket = this.buckets[index];
-                    }
+            .then((buckets) => {
+                const labelKeys = Object.keys(labels);
+                const filteredBuckets = buckets.filter((bucket) => {
+                    let matchedTags = 0;
+                    labelKeys.forEach((labelKey) => {
+                        bucket.labels.forEach((bucketLabel) => {
+                            if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
+                                && bucketLabel[labelKey] === labels[labelKey]) {
+                                matchedTags += 1;
+                            }
+                        });
+                    });
+                    return labelKeys.length === matchedTags;
                 });
-                return Promise.resolve(bucket);
+                return Promise.resolve(filteredBuckets[0]); // there should only be one
             });
     }
 
