@@ -7,9 +7,7 @@ Cloud Failover in Microsoft Azure
 Failover Event Diagram
 ----------------------
 
-IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
-
-User-defined routes with a destinaation and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribut that corresponds to the self-IP address of the active BIG-IP.
+This diagram shows a failover event with Cloud Failover implemented in Microsoft Azure. IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s). User-defined routes with a destinaation and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self-IP address of the active BIG-IP.
 
 .. image:: ../images/AzureFailoverExtensionHighLevel.gif
   :width: 800

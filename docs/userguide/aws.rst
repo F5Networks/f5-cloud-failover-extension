@@ -6,9 +6,7 @@ Cloud Failover in AWS
 Failover Event Diagram
 ----------------------
 
-Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device
-
-Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device
+This diagram shows a failover event with Cloud Failover implemented in AWS. You can see Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
 .. image:: ../images/AWSFailoverExtensionHighLevel.gif
   :width: 800
@@ -60,15 +58,6 @@ This example declaration shows the minimum information needed to update the clou
           ]
         }
     }
-
-
-Example Response
-----------------
-After you post the declaration to the BIG-IP, it will respond with a success message. Below is an example response.
-
-.. code-block:: json
-    :linenos:
-
 
 
 
