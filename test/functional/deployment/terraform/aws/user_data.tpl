@@ -4,7 +4,7 @@ adminUsername='${admin_username}'
 adminPassword='${admin_password}'
 
 # disable 1nic auto configuration
-/usr/bin/setdb provision.1nicautoconfig disable
+# /usr/bin/setdb provision.1nicautoconfig disable
 
 # wait for mcpd ready before attempting any tmsh command(s)
 source /usr/lib/bigstart/bigip-ready-functions
