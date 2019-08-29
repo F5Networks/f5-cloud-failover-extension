@@ -579,7 +579,6 @@ describe('Provider - AWS', () => {
     });
     describe('Update Routes should', () => {
         it('validate updateRoutes with resolved promise', () => {
-            const createRouteSpy = sinon.stub().resolves('Success');
             provider.init(mockInitData)
                 .then(() => {
                     const routeTable = {
@@ -619,7 +618,7 @@ describe('Provider - AWS', () => {
                     };
                     const localAddresses = ['10.0.1.211'];
                     provider.routeTags = { F5_LABEL: 'foo' };
-                    provider.routeAddresses = ['192.0.0.0/24'];
+                    provider.routeAddresses = ['192.0.2.0/24'];
                     provider.routeSelfIpsTag = 'F5_SELF_IPS';
                     const describeNetworkInterfacesResponse = {
                         NetworkInterfaces: [
@@ -628,21 +627,35 @@ describe('Provider - AWS', () => {
                             }
                         ]
                     };
-                    provider.ec2.describeNetworkInterfaces = sinon.stub();
-                    provider.ec2.describeNetworkInterfaces.promise = sinon.stub()
-                        .resolves(describeNetworkInterfacesResponse);
-                    provider.ec2.describeRouteTables = sinon.stub();
-                    provider.ec2.describeRouteTables.promise = sinon.stub()
-                        .resolves({ RouteTables: [routeTable] });
-                    provider.ec2.createRoute = sinon.stub();
-                    provider.ec2.createRoute = createRouteSpy;
-                    return provider.updateRoutes({ localAddresses });
+                    provider.ec2.describeNetworkInterfaces = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve(describeNetworkInterfacesResponse);
+                            }
+                        });
+                    provider.ec2.describeRouteTables = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve({ RouteTables: [routeTable] });
+                            }
+                        });
+                    provider.ec2.replaceRoute = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve({});
+                            }
+                        });
+                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
+                    return provider.updateRoutes({ localAddresses })
+                        .then(() => {
+                            assert(createRouteSpy.calledOnce);
+                        })
+                        .catch((err) => {
+                            return Promise.reject(err);
+                        });
                 })
-                .then(() => {
-                    assert(createRouteSpy.calledWith('192.0.0.0/24', 'eni-2345', 'rtb-123'));
-                })
-                .catch(() => {
-                    assert.fail();
+                .catch((err) => {
+                    return Promise.reject(err);
                 });
         });
     });

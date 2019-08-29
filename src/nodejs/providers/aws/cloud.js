@@ -82,40 +82,28 @@ class Cloud extends AbstractCloud {
     updateRoutes(options) {
         const localAddresses = options.localAddresses || [];
         this.logger.debug('Local addresses', localAddresses);
-        this._getRouteTables(this.routeTags)
+        return this._getRouteTables(this.routeTags)
             .then((routeTables) => {
+                const promises = [];
                 this.logger.debug('Route Tables', routeTables);
                 routeTables.forEach((routeTable) => {
                     const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
                     const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    this._getNetworkInterfaceId(selfIpToUse).then((networkInterfaceId) => {
-                        this.logger.debug('Network Interface ID', networkInterfaceId);
-                        let routeReplaced = false;
-                        routeTable.Routes.forEach((route) => {
-                            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                                this.logger.info('Updating Route');
-                                routeReplaced = true;
-                                this._replaceRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
-                                    .then((success) => {
-                                        this.logger.debug('_replaceRoute Success', success);
-                                    })
-                                    .catch((err) => {
-                                        this.logger.info('_replaceRoute Error', err);
-                                    });
-                            }
+                    const promise = this._getNetworkInterfaceId(selfIpToUse)
+                        .then((networkInterfaceId) => {
+                            this.logger.debug('Network Interface ID', networkInterfaceId);
+                            const innerPromises = [];
+                            routeTable.Routes.forEach((route) => {
+                                if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+                                    this.logger.info('Updating Route');
+                                    innerPromises.push(this._replaceRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId));
+                                }
+                            });
+                            return Promise.all(innerPromises);
                         });
-                        if (!routeReplaced) {
-                            this.logger.info('Creating Route');
-                            this._createRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
-                                .then((success) => {
-                                    this.logger.debug('_createRoute Success', success);
-                                })
-                                .catch((err) => {
-                                    this.logger.info('_createRoute Error', err);
-                                });
-                        }
-                    });
+                    promises.push(promise);
                 });
+                return Promise.all(promises);
             });
     }
 
@@ -158,22 +146,6 @@ class Cloud extends AbstractCloud {
                 .promise()
                 .then((routeTables) => {
                     resolve(routeTables.RouteTables);
-                })
-                .catch(err => reject(err));
-        });
-    }
-
-    _createRoute(distCidr, networkInterfaceId, routeTableId) {
-        const params = {
-            DestinationCidrBlock: distCidr,
-            NetworkInterfaceId: networkInterfaceId,
-            RouteTableId: routeTableId
-        };
-        this.logger.debug('This is params', params);
-        return new Promise((resolve, reject) => {
-            this.ec2.createRoute(params).promise()
-                .then((data) => {
-                    resolve(data);
                 })
                 .catch(err => reject(err));
         });
