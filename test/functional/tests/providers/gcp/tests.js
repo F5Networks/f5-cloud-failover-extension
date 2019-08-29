@@ -27,26 +27,26 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const declaration = funcUtils.getDeploymentDeclaration();
 
-// Helper functions
+let request = {};
 
-const configureAuth = () => {
+// Helper functions
+function configureAuth() {
     if (process.env.GOOGLE_CREDENTIALS) {
-        fs.writeFileSync(`${process.env.CI_PROJECT_DIR}/gcloud_creds.json`, process.env.GOOGLE_CREDENTIALS);
-        process.env.GOOGLE_APPLICATION_CREDENTIALS = `${process.env.CI_PROJECT_DIR}/gcloud_creds.json`;
+        const tmpCredsFile = `${process.env.CI_PROJECT_DIR}/gcloud_creds.json`;
+        fs.writeFileSync(tmpCredsFile, process.env.GOOGLE_CREDENTIALS);
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpCredsFile;
         return google.auth.getClient({
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         });
     }
     return Promise.reject(new Error('gcloud creds are not provided via env variable titled as GOOGLE_CREDENTIALS'));
-};
-
-let request = {};
+}
 
 describe('Provider: GCP', () => {
     let primarySelfIps = [];
     let secondarySelfIps = [];
     let virtualAddresses = [];
-    let gcloudVms = [];
+    let vms = [];
 
     before(() => configureAuth()
         .then((authClient) => {
@@ -103,13 +103,13 @@ describe('Provider: GCP', () => {
                             .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
                         && Object.keys(vm.labels)
                             .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
-                            gcloudVms.push(vm);
+                            vms.push(vm);
                         }
                     }
                 });
             }
             const networkIp = [];
-            gcloudVms.forEach((vm) => {
+            vms.forEach((vm) => {
                 vm.networkInterfaces.forEach((nic) => {
                     networkIp.push(nic.networkIP);
                 });
@@ -173,7 +173,7 @@ describe('Provider: GCP', () => {
     });
 
     it('validate failover event - secondary should be active now', () => {
-        gcloudVms = [];
+        vms = [];
         compute.instances.list(request, (err, response) => {
             if (response.data.items) {
                 response.data.items.forEach((vm) => {
@@ -234,7 +234,7 @@ describe('Provider: GCP', () => {
     });
 
     it('validate failover event - primary should be active now', () => {
-        gcloudVms = [];
+        vms = [];
         compute.instances.list(request, (err, response) => {
             if (response.data.items) {
                 response.data.items.forEach((vm) => {
