@@ -15,14 +15,11 @@ const AzureCliCredentials = require('@azure/ms-rest-nodeauth').AzureCliCredentia
 const AzureSPCredentials = require('@azure/ms-rest-nodeauth').loginWithServicePrincipalSecretWithAuthResponse;
 const NetworkManagementClient = require('@azure/arm-network').NetworkManagementClient;
 
+const constants = require('../../../../constants.js');
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
 
-const RETRIES = {
-    LONG: 500,
-    MEDIUM: 100,
-    SHORT: 10
-};
+const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
@@ -87,21 +84,6 @@ function routeMatch(routeTables, selfIps) {
     if (!match) {
         assert.fail('Matching next hop not found');
     }
-}
-function forceStandby(ip, username, password) {
-    const uri = '/mgmt/tm/sys/failover';
-
-    return utils.getAuthToken(ip, username, password)
-        .then((data) => {
-            const options = funcUtils.makeOptions({ authToken: data.token });
-            options.method = 'POST';
-            options.body = {
-                command: 'run',
-                standby: true
-            };
-            return utils.makeRequest(ip, uri, options);
-        })
-        .catch(err => Promise.reject(err));
 }
 // end helper functions
 
@@ -203,7 +185,7 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (primary) to standby', () => forceStandby(
+    it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
@@ -221,7 +203,7 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (secondary) to standby', () => forceStandby(
+    it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
 
@@ -248,7 +230,7 @@ describe('Provider: Azure', () => {
         resolve => setTimeout(resolve, 10000)
     ));
 
-    it('Flapping scenario: should force BIG-IP (primary) to standby', () => forceStandby(
+    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
@@ -256,7 +238,7 @@ describe('Provider: Azure', () => {
         resolve => setTimeout(resolve, 10000)
     ));
 
-    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => forceStandby(
+    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
 

@@ -125,8 +125,7 @@ test_functional_aws:
         CF_ENV_CLOUD: "aws"
 
 # run functional tests: gcp
-# note: disabled until quota for compute network and subnetwork limit is increased
-.test_functional_gcp:
+test_functional_gcp:
     <<: *test_functional_generic
     variables:
         CF_ENV_CLOUD: "gcp"
@@ -229,21 +228,51 @@ pages:
         - master
         - develop
 
+# Publish docs to clouddocs.f5networks.com
+docs to stage:
+    image: ${CONTAINTHEDOCS_IMAGE}
+    stage: publish
+    variables:
+        # aws vars
+        AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
+        AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
+        AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+    environment:
+        name: stage
+        url: https://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
+    only:
+        # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
+        - develop@cloudsolutions/f5-cloud-failover
+    tags:
+        - cm-official-docker-executor
+    dependencies:
+        - build_docs
+    script:
+        # Uncomment and set to create desired version format
+        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
+        # create invalidation to clear cloudfront cache
+        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
+
+
 # Publish docs to clouddocs.f5.com
 docs to production:
   image: ${CONTAINTHEDOCS_IMAGE}
   stage: publish
+  variables:
+      # aws vars
+      AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
+      AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
+      AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
   environment:
     name: production
     url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
   only:
-  # Currently will only deploy to clouddocs.f5.com on commits to doc-publish
-  # fill in desired release branch name and uncomment to add deployment from a branch
-  - docs-publish@cloudsolutions/f5-cloud-failover
+    # Currently will only deploy to clouddocs.f5.com on commits to master branch
+    - master@cloudsolutions/f5-cloud-failover
   tags:
-  - cm-official-docker-executor
+    - cm-official-docker-executor
   dependencies:
-  - build_docs
+    - build_docs
   script:
   # Uncomment and set to create desired version format
     - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest

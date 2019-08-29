@@ -32,7 +32,8 @@ module.exports = {
                 ip: item.mgmt_address,
                 username: item.admin_username,
                 password: item.admin_password,
-                primary: item.primary
+                primary: item.primary,
+                hostname: item.hostname
             };
             return item;
         });
@@ -86,5 +87,30 @@ module.exports = {
             };
         }
         return retOptions;
+    },
+
+    /**
+     * Force a BIG-IP standby
+     *
+     * @param {String} host     - host address
+     * @param {String} username - host username
+     * @param {String} password - host password
+     *
+     * @returns {Promise}
+     */
+    forceStandby(host, username, password) {
+        const uri = '/mgmt/tm/sys/failover';
+
+        return utils.getAuthToken(host, username, password)
+            .then((data) => {
+                const options = this.makeOptions({ authToken: data.token });
+                options.method = 'POST';
+                options.body = {
+                    command: 'run',
+                    standby: true
+                };
+                return utils.makeRequest(host, uri, options);
+            })
+            .catch(err => Promise.reject(err));
     }
 };

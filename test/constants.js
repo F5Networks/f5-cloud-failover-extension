@@ -51,5 +51,10 @@ module.exports = {
     PKG_NAME: 'f5-cloud-failover',
     DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
     DEPLOYMENT_FILE: 'deployment_info.json',
-    FAILOVER_STATES: constants.FAILOVER_STATES
+    FAILOVER_STATES: constants.FAILOVER_STATES,
+    RETRIES: {
+        LONG: 500,
+        MEDIUM: 100,
+        SHORT: 10
+    }
 };

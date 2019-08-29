@@ -21,6 +21,9 @@ let provider;
 const testPayload = {
     tags: {
         key01: 'value01'
+    },
+    routeTags: {
+        key01: 'value01'
     }
 };
 const mockVms = [
@@ -49,6 +52,7 @@ const mockVms = [
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
+    const testErrorMessage = 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.';
     const mockMetadata = {
         compute: {
             resourceGroupName: mockResourceGroup,
@@ -70,6 +74,23 @@ describe('Provider - GCP', () => {
         provider.logger.error = sinon.stub();
         provider.logger.info = sinon.stub();
         provider.logger.silly = sinon.stub();
+        provider.logger.warn = sinon.stub();
+
+        provider.tags = {
+            'test-tag-key': 'test-tag-value'
+        };
+        provider.routeTags = {
+            'test-tag-key': 'test-tag-value'
+        };
+        provider.routeSelfIpsTag = 'f5_self_ips';
+        /* eslint-disable arrow-body-style */
+        provider.computeZone = {
+            operation: () => {
+                return {
+                    promise: () => Promise.resolve()
+                };
+            }
+        };
     });
     afterEach(() => {
         sinon.restore();
@@ -82,17 +103,18 @@ describe('Provider - GCP', () => {
     it('validate init method', () => {
         assert.strictEqual(typeof provider.init, 'function');
 
-
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
-        sinon.replace(provider, '_getVmsByTag', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
 
         return provider.init(testPayload)
             .then(() => {
                 assert.strictEqual(provider.fwdRules, 'fwrResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
+                assert.strictEqual(provider.bucket, 'bucketResponse');
             })
             .catch(err => Promise.reject(err));
     });
@@ -104,7 +126,8 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
-        sinon.replace(provider, '_getVmsByTag', sinon.fake.rejects('test-error'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+        sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
         return provider.init(testPayload)
             .then(() => {
@@ -112,6 +135,207 @@ describe('Provider - GCP', () => {
             })
             .catch((error) => {
                 assert.strictEqual(error.message, 'test-error');
+                assert.ok(true);
+            });
+    });
+
+    it('validate updateRoute method', () => {
+        assert.strictEqual(typeof provider.updateRoutes, 'function');
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const getRouytesMock = sinon.stub(provider, '_getRoutes');
+        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([
+            {
+                kind: 'test-route',
+                description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}',
+                id: 'some-test-id',
+                creationTimestamp: '101010101010',
+                selfLink: 'https://test-self-link',
+                nextHopIp: '1.1.1.2'
+            }]));
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'DELETE');
+            assert.strictEqual(path, 'global/routes/some-test-id');
+
+            return Promise.resolve({
+                name: 'test-name'
+            });
+        });
+        providerSendRequestMock.onCall(2).callsFake((method, path, payload) => {
+            assert.strictEqual(method, 'POST');
+            assert.strictEqual(path, 'global/routes/');
+            assert.strictEqual(payload.nextHopIp, '1.1.1.1');
+            assert.strictEqual(payload.description, 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}');
+            return Promise.resolve();
+        });
+        sinon.stub(provider.compute, 'operation').callsFake((name) => {
+            assert.strictEqual(name, 'test-name');
+            return {
+                promise: () => {
+                    assert.ok(true);
+                    return Promise.resolve();
+                }
+            };
+        });
+        return provider.updateRoutes(localAddresses)
+            .then(() => {
+                assert.strictEqual(provider.tags['test-tag-key'], 'test-tag-value');
+                assert.ok(true);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+    it('validate updateRoute method response when no failover routes identified ', () => {
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const getRouytesMock = sinon.stub(provider, '_getRoutes');
+        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.0.0","1.0.0.0"]}', nextHopIp: '' }]));
+        return provider.updateRoutes(localAddresses)
+            .then((response) => {
+                assert.strictEqual(response, testErrorMessage);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+    it('validate updateRoute method response when description does not include labels', () => {
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const getRouytesMock = sinon.stub(provider, '_getRoutes');
+        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'foo', nextHopIp: '' }]));
+        return provider.updateRoutes(localAddresses)
+            .then((response) => {
+                assert.strictEqual(response, testErrorMessage);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+    it('validate updateRoute method response when route object is labeled incorrectly', () => {
+        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
+        const getRouytesMock = sinon.stub(provider, '_getRoutes');
+        getRouytesMock.onCall(0).callsFake(() => Promise.resolve({
+            items: [{ description: 'f5_self_ips', nextHopIp: '' }]
+        }));
+        return provider.updateRoutes(localAddresses)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+
+    it('validate downloadDataFromStorage method exists', () => {
+        assert.strictEqual(typeof provider.downloadDataFromStorage, 'function');
+    });
+
+    it('validate uploadDataToStorage method exists', () => {
+        assert.strictEqual(typeof provider.uploadDataToStorage, 'function');
+    });
+
+    it('validate _getRoutes method exists', () => {
+        assert.strictEqual(typeof provider._getRoutes, 'function');
+    });
+
+    it('validate _sendRequest method exists', () => {
+        assert.strictEqual(typeof provider._sendRequest, 'function');
+    });
+
+    it('validate _updateNic method exists', () => {
+        assert.strictEqual(typeof provider._updateNic, 'function');
+    });
+
+    it('validate _getRoutes method execution', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        description: 'f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}'
+                    }
+                ]
+            });
+        });
+
+        return provider._getRoutes()
+            .then((data) => {
+                assert.strictEqual('f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}', data[0].description);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+    it('validate _getRoutes method execution when routeTags do not match', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        description: 'f5_cloud_failover_labels={test01-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}'
+                    }
+                ]
+            });
+        });
+
+        return provider._getRoutes()
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+    it('validate _getRoutes method execution no routes found', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                ]
+            });
+        });
+
+        return provider._getRoutes()
+            .then((data) => {
+                assert.ok(data.length === 0);
+            })
+            .catch(() => {
+                assert.ok(false);
+            });
+    });
+
+
+    it('validate _getRoutes method promise rejection', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes');
+
+            return Promise.reject();
+        });
+
+        return provider._getRoutes()
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
                 assert.ok(true);
             });
     });
@@ -129,10 +353,12 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_updateNic', updateNicSpy);
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1'];
-        provider.vms = mockVms;
+
         provider.instanceName = 'testInstanceName';
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
+
+        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
 
         return provider.updateAddresses(localAddresses, failoverAddresses)
             .then(() => {
@@ -321,6 +547,35 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate _updateFwdRules promise rejection when unable locate targetInstance', () => {
+        provider.instanceName = 'instance01';
+        provider.computeRegion = provider.compute.region('us-west');
+
+
+        sinon.stub(provider, '_updateFwdRule').callsFake((target) => {
+            assert.strictEqual(target, 'item01');
+            return Promise.resolve();
+        });
+
+        return provider._updateFwdRules({
+            name: 'test-fwrdRule',
+            items: [{ name: 'item01', IPAddress: '10.0.2.1', target: 'target01' },
+                { name: 'item02', IPAddress: '10.0.2.2', target: 'target02' }]
+        },
+        {
+            name: 'test-target-instances',
+            items: [{ name: 'instance03', instance: 'instance03', selfLink: 'urn:none' },
+                { name: 'instance02', instance: 'instance02', selfLink: 'urn:none' }]
+        }, ['10.0.2.1'])
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch((err) => {
+                assert.strictEqual('Unable to locate our target instance: instance01', err.message);
+            });
+    });
+
+
     it('validate promise rejection for _updateFwdRules due to missing failover ip', () => {
         provider.instanceName = 'instance01';
         provider.computeRegion = provider.compute.region('us-west');
@@ -408,39 +663,160 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate promise rejection for _getVmsByTag due to missing tags', () => {
-        sinon.stub();
-        return provider._getVmsByTag()
+    /* eslint-disable arrow-body-style */
+    it('validate _updateFwdRule method execution', () => {
+        provider.computeRegion = {
+            rule: () => {
+                return {
+                    setTarget: () => {
+                        return Promise.resolve([{ name: 'test-name' }]);
+                    }
+                };
+            },
+            operation: () => {
+                return {
+                    promise: () => {
+                        return Promise.resolve();
+                    }
+                };
+            }
+        };
+        return provider._updateFwdRule()
             .then(() => {
-                assert.ok(false);
+                assert.ok(true);
             })
-            .catch((error) => {
-                assert.strictEqual(error.message, 'getVmsByTag: no tag, load configuration file first');
+            .catch(() => {
+                assert.ok(false);
             });
     });
 
-    it('validate promise rejection for _getVmsByTag during compute.getVMs execution', () => {
-        provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().rejects();
-
-        return provider._getVmsByTag({ key: 'key01', value: 'value01' })
+    /* eslint-disable arrow-body-style */
+    it('validate _updateFwdRule method promise rejection', () => {
+        provider.computeRegion = {
+            rule: () => {
+                return {
+                    setTarget: () => Promise.resolve([{ name: 'test-name' }])
+                };
+            },
+            operation: () => {
+                return {
+                    promise: () => Promise.reject()
+                };
+            }
+        };
+        return provider._updateFwdRule()
             .then(() => {
                 assert.ok(false);
             })
-            .catch((error) => {
-                assert.strictEqual(error.message, 'Error');
+            .catch(() => {
+                assert.ok(true);
             });
     });
 
+    it('validate _updateNic method execution', () => {
+        sinon.stub(provider, '_sendRequest').callsFake(() => Promise.resolve({ name: 'test-name' }));
 
-    it('validate promise resolve for _getVmsByTag method during compute.getVMs execution', () => {
+        return provider._updateNic()
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+    it('validate _getVmsByTags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm' }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
-        return provider._getVmsByTag({ key: 'key01', value: 'value01' })
+        return provider._getVmsByTags(provider.tags)
             .then((data) => {
                 assert.strictEqual(data[0], 'test_data');
+            });
+    });
+
+    it('validate _getVmsByTags with extra tag - should return no result', () => {
+        provider.compute = sinon.stub();
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-tag-key': 'test-tag-value', 'missing-label': 'missing-label-value' } } }]]);
+        provider._getVmInfo = sinon.stub().resolves('test_data');
+
+        return provider._getVmsByTags(provider.tags)
+            .then((data) => {
+                assert.ok(data.length === 0);
+            });
+    });
+
+    it('validate _getBucketFromLabel', () => {
+        const payload = [
+            [
+                {
+                    name: 'notOurBucket',
+                    getLabels: () => {
+                        return Promise.resolve([{ some_key: 'some_value' }]);
+                    }
+                },
+                {
+                    name: 'ourBucket',
+                    getLabels: () => {
+                        return Promise.resolve([{ foo: 'bar', foo1: 'bar1' }]);
+                    }
+                }
+            ]
+        ];
+        provider.storage.getBuckets = () => {
+            return Promise.resolve(payload);
+        };
+        return provider._getBucketFromLabel({ foo: 'bar', foo1: 'bar1' })
+            .then((data) => {
+                assert.strictEqual(data.name, 'ourBucket');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate uploadDataToStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+        provider.bucket.file = (name) => {
+            return {
+                fileName: name,
+                save: (data) => {
+                    if (data.toString().length > 0) {
+                        assert.strictEqual(JSON.parse(data).status, payload.status);
+                        return Promise.resolve(data);
+                    }
+                    return Promise.resolve();
+                }
+            };
+        };
+        return provider.uploadDataToStorage(fileName, payload)
+            .then((data) => {
+                assert.strictEqual(JSON.parse(data).status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate downloadDataFromStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+
+        const returnObject = sinon.stub();
+        returnObject.on = sinon.stub();
+        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
+        returnObject.on.withArgs('end').yields(null);
+        const createReadStreamReturn = sinon.stub().returns(returnObject);
+
+        const existsReturn = sinon.stub().resolves([true]);
+
+        provider.bucket.file = sinon.stub().returns({
+            createReadStream: createReadStreamReturn,
+            exists: existsReturn
+        });
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.strictEqual(data.status, payload.status);
             })
             .catch(err => Promise.reject(err));
     });

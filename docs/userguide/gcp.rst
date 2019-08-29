@@ -1,18 +1,25 @@
 .. _gcp:
 
-Google
-======
+Cloud Failover in Google Cloud
+==============================
+
+
 
 Failover Event Diagram
 ----------------------
 
+This diagram shows a failover event with Cloud Failover implemented in GCP. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
+
 .. image:: ../images/GCPFailoverExtensionHighLevel.gif
   :width: 800
 
+
+
 Prerequisites
 -------------
+These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
 
-- 2 clustered BIG-IPs in GCE. See example ARM templates on |github|.
+- 2 clustered BIG-IP systems in GCE. See example ARM templates on |github|.
 - Network access to the Google metadata service
 - A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
 - Virtual addresses created in a named traffic group and matching *Alias IP* addresses on the BIG-IP NICs serving application traffic
@@ -22,8 +29,10 @@ Prerequisites
 
 Example Declaration
 -------------------
+This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.
 
 .. code-block:: json
+    :linenos:
 
 
     {

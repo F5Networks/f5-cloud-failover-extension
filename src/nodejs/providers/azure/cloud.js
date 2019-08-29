@@ -28,7 +28,10 @@ const constants = require('../../constants');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
-const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+const MAX_RETRIES = require('../../constants').MAX_RETRIES;
+const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+
+const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 class Cloud extends AbstractCloud {

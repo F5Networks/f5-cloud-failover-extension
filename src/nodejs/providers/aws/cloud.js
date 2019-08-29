@@ -37,6 +37,10 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.routeTags = options.routeTags || {};
+        this.routeAddresses = options.routeAddresses || [];
+        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
+
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -69,13 +73,145 @@ class Cloud extends AbstractCloud {
         }).catch(err => Promise.reject(err));
     }
 
+    /**
+     * Updates the route table on the BIG-IP Cluster, by using the F5_SELF_IPS tag to find the network interface the
+     * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     *
+     * @returns {Promise} - Resolves or rejects with the status of updating the route table
+     */
+    updateRoutes(options) {
+        const localAddresses = options.localAddresses || [];
+        this.logger.debug('Local addresses', localAddresses);
+        return this._getRouteTables(this.routeTags)
+            .then((routeTables) => {
+                const promises = [];
+                this.logger.debug('Route Tables', routeTables);
+                routeTables.forEach((routeTable) => {
+                    const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                    const promise = this._getNetworkInterfaceId(selfIpToUse)
+                        .then((networkInterfaceId) => {
+                            this.logger.debug('Network Interface ID', networkInterfaceId);
+                            return this._updateRouteTable(routeTable, networkInterfaceId);
+                        });
+                    promises.push(promise);
+                });
+                return Promise.all(promises);
+            });
+    }
+
+    /**
+     * _updateRouteTable iterates through the routes and calls _replaceRoute if expected route exists
+     *
+     * @param {Object} routeTable - Route table with routes
+     * @param {String} networkInterfaceId - Network interface that the route if to be updated to
+     *
+     * @returns {Promise} - Resolves or rejects if route is replaced
+     */
+    _updateRouteTable(routeTable, networkInterfaceId) {
+        routeTable.Routes.forEach((route) => {
+            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+                this.logger.info('Updating Route');
+                this._replaceRoute(route.DestinationCidrBlock, networkInterfaceId, routeTable.RouteTableId)
+                    .then(data => Promise.resolve(data))
+                    .catch(error => Promise.reject(error));
+            }
+        });
+        this.logger.info(routeTable.Name, ' route table not updated');
+        return Promise.resolve();
+    }
+
+    /**
+     * Fetches the route tables based on the provided tag
+     *
+     * @param {Object} privateIp - Private IP
+     *
+     * @returns {Promise} - Resolves with the network interface id associated with the private Ip or rejects
+     */
+    _getNetworkInterfaceId(privateIp) {
+        const params = {
+            Filters: [
+                {
+                    Name: 'private-ip-address',
+                    Values: [privateIp]
+                }]
+        };
+        return new Promise((resolve, reject) => {
+            this.ec2.describeNetworkInterfaces(params).promise()
+                .then((data) => {
+                    const networkId = data.NetworkInterfaces[0].NetworkInterfaceId;
+                    resolve(networkId);
+                })
+                .catch(err => reject(err));
+        });
+    }
+
+    /**
+     * Fetches the route tables based on the provided tag
+     *
+     * @param {Object} tags - List of tags
+     *
+     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
+     */
+    _getRouteTables(tags) {
+        const params = {
+            Filters: []
+        };
+
+        const tagKeys = Object.keys(tags);
+        tagKeys.forEach((tagKey) => {
+            params.Filters.push(
+                {
+                    Name: `tag:${tagKey}`,
+                    Values: [
+                        tags[tagKey]
+                    ]
+                }
+            );
+        });
+        return new Promise((resolve, reject) => {
+            this.ec2.describeRouteTables(params)
+                .promise()
+                .then((routeTables) => {
+                    resolve(routeTables.RouteTables);
+                })
+                .catch(err => reject(err));
+        });
+    }
+
+    /**
+     * Replaces route in a route table
+     *
+     * @param {String} distCidr - Destination Cidr of the Route that is to be replaced
+     * @param {String} networkInterfaceId - Network interface ID to update the route to
+     * @param {String} routeTableId - Route table ID where the route is to be updated
+     *
+     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
+     */
+    _replaceRoute(distCidr, networkInterfaceId, routeTableId) {
+        const params = {
+            DestinationCidrBlock: distCidr,
+            NetworkInterfaceId: networkInterfaceId,
+            RouteTableId: routeTableId
+        };
+        return new Promise((resolve, reject) => {
+            this.ec2.replaceRoute(params).promise()
+                .then((data) => {
+                    resolve(data);
+                })
+                .catch(err => reject(err));
+        });
+    }
+
     // stub
     uploadDataToStorage() {
+        this.logger.debug('uploadDataToStorage');
         return Promise.resolve();
     }
 
     // stub
     downloadDataFromStorage() {
+        this.logger.debug('downloadDataFromStorage');
         return Promise.resolve({});
     }
 
@@ -244,7 +380,6 @@ class Cloud extends AbstractCloud {
                 }
             ]
         };
-
         return new Promise((resolve, reject) => {
             this.ec2.describeNetworkInterfaces(params).promise()
                 .then((data) => {

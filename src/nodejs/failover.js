@@ -35,9 +35,6 @@ const stateFileContents = {
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
 
-// updating routes is conditional, for now
-const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
-
 class FailoverClient {
     constructor() {
         this.device = new Device();
@@ -67,7 +64,7 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: 'F5_SELF_IPS',
+                    routeSelfIpsTag: 'f5_self_ips',
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
@@ -111,14 +108,12 @@ class FailoverClient {
                         localAddresses: this.localAddresses,
                         failoverAddresses: this.failoverAddresses,
                         discoverOnly: true
-                    })
-                ];
-                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
-                    discoverActions.push(this.cloudProvider.updateRoutes({
+                    }),
+                    this.cloudProvider.updateRoutes({
                         localAddresses: this.localAddresses,
                         discoverOnly: true
-                    }));
-                }
+                    })
+                ];
                 return Promise.all(discoverActions);
             })
             .then((discovery) => {
@@ -133,11 +128,9 @@ class FailoverClient {
             .then(() => {
                 logger.info('Performing Failover - update');
                 const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery })
+                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
                 ];
-                if (routeFeatureEnvironments.indexOf(this.config.environment) !== -1) {
-                    updateActions.push(this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery }));
-                }
                 return Promise.all(updateActions);
             })
             .then(() => this._createAndUpdateStateObject({ taskState: failoverStates.PASS }))
@@ -247,13 +240,13 @@ class FailoverClient {
     }
 
     /**
-    * Get traffic groups (local)
-    *
-    * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
-    * @param {String} hostname          - The hostname of the device
-    *
-    * @returns {Object}
-    */
+     * Get traffic groups (local)
+     *
+     * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
+     * @param {String} hostname          - The hostname of the device
+     *
+     * @returns {Object}
+     */
     _getTrafficGroups(trafficGroupStats, hostname) {
         const trafficGroups = [];
 
@@ -272,13 +265,13 @@ class FailoverClient {
     }
 
     /**
-    * Get self addresses
-    *
-    * @param {Object} selfAddresses - Self addresses
-    * @param {Object} trafficGroups - Traffic groups
-    *
-    * @returns {Object}
-    */
+     * Get self addresses
+     *
+     * @param {Object} selfAddresses - Self addresses
+     * @param {Object} trafficGroups - Traffic groups
+     *
+     * @returns {Object}
+     */
     _getSelfAddresses(selfAddresses, trafficGroups) {
         const addresses = [];
         selfAddresses.forEach((item) => {
@@ -299,13 +292,13 @@ class FailoverClient {
     }
 
     /**
-    * Get virtual addresses
-    *
-    * @param {Object} virtualAddresses - Virtual addresses
-    * @param {Object} trafficGroups - Traffic groups
-    *
-    * @returns {Object}
-    */
+     * Get virtual addresses
+     *
+     * @param {Object} virtualAddresses - Virtual addresses
+     * @param {Object} trafficGroups - Traffic groups
+     *
+     * @returns {Object}
+     */
     _getVirtualAddresses(virtualAddresses, trafficGroups) {
         const addresses = [];
 
@@ -329,13 +322,13 @@ class FailoverClient {
     }
 
     /**
-    * Get failover addresses
-    *
-    * @param {Object} selfAddresses   - Self addresses
-    * @param {Object} virtualAddresses - Virtual addresses
-    *
-    * @returns {Object}
-    */
+     * Get failover addresses
+     *
+     * @param {Object} selfAddresses   - Self addresses
+     * @param {Object} virtualAddresses - Virtual addresses
+     *
+     * @returns {Object}
+     */
     _getFailoverAddresses(selfAddresses, virtualAddresses) {
         const localAddresses = [];
         const failoverAddresses = [];
