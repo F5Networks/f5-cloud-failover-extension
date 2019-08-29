@@ -18,20 +18,28 @@
 
 const ipaddr = require('ipaddr.js');
 const Compute = require('@google-cloud/compute');
+const { Storage } = require('@google-cloud/storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
+const MAX_RETRIES = require('../../constants').MAX_RETRY;
+const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+
+const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.GCP, options);
         this.BASE_URL = 'https://www.googleapis.com/compute/v1';
         this.compute = new Compute();
+        this.storage = new Storage();
+        this.bucket = null;
     }
 
 
@@ -44,6 +52,7 @@ class Cloud extends AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.storageTags = options.storageTags || {};
         this.routeTags = options.routeTags || null;
         this.routeAddresses = options.routeAddresses || null;
         this.routeSelfIpsTag = options.routeSelfIpsTag || null;
@@ -52,13 +61,16 @@ class Cloud extends AbstractCloud {
             this._getLocalMetadata('project/project-id'),
             this._getLocalMetadata('instance/service-accounts/default/token'),
             this._getLocalMetadata('instance/name'),
-            this._getLocalMetadata('instance/zone')
+            this._getLocalMetadata('instance/zone'),
+            this._getBucketFromLabel(this.storageTags)
         ])
             .then((data) => {
                 this.projectId = data[0];
                 this.accessToken = data[1].access_token;
                 this.instanceName = data[2];
                 this.instanceZone = data[3];
+                this.bucket = data[4];
+                this.logger.silly(`bucket name: ${this.bucket}`);
                 // zone format: 'projects/734288666861/zones/us-west1-a'
                 const parts = this.instanceZone.split('/');
                 this.zone = parts[parts.length - 1];
@@ -94,12 +106,16 @@ class Cloud extends AbstractCloud {
      * @returns {Object}
      */
     updateAddresses(localAddresses, failoverAddresses) {
-        return this._updateNics(localAddresses, failoverAddresses)
+        return this._getVmsByTags(this.tags)
+            .then((vms) => {
+                this.vms = vms;
+                return this._updateNics(localAddresses, failoverAddresses);
+            })
             .then(() => {
                 this.logger.info('GCP Provider: ip re-association is completed. Updating forwarding rules.');
                 const promises = [];
                 promises.push(util.retrier.call(this, this._updateFwdRules,
-                    [this.fwdRules, this.targetInstances, failoverAddresses]));
+                    [this.fwdRules, this.targetInstances, failoverAddresses], shortRetry));
                 return Promise.all(promises);
             })
             .then(() => {
@@ -108,14 +124,54 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-    // stub
-    uploadDataToStorage() {
-        return Promise.resolve();
+    /**
+     * Upload data to storage (cloud)
+     *
+     * @param {Object} fileName - file name where data should be uploaded
+     * @param {Object} data     - data to upload
+     *
+     * @returns {Promise}
+     */
+    uploadDataToStorage(fileName, data) {
+        this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
+        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
+        return file.save(util.stringify(data))
+            .then(result => Promise.resolve(result))
+            .catch(err => Promise.reject(err));
     }
 
-    // stub
-    downloadDataFromStorage() {
-        return Promise.resolve({});
+    /**
+     * Download data from storage (cloud)
+     *
+     * @param {Object} fileName - file name where data should be downloaded
+     *
+     * @returns {Promise}
+     */
+    downloadDataFromStorage(fileName) {
+        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
+        return file.exists()
+            .then((exists) => {
+                if (!exists[0]) {
+                    return Promise.resolve({});
+                }
+                const stream = file.createReadStream();
+                let buffer = '';
+                return new Promise((resolve, reject) => {
+                    stream
+                        .on('data', (data) => {
+                            buffer += data;
+                        });
+                    stream
+                        .on('error', (err) => {
+                            reject(err);
+                        });
+                    stream
+                        .on('end', () => {
+                            resolve(JSON.parse(buffer));
+                        });
+                });
+            })
+            .catch(err => Promise.reject(err));
     }
 
 
@@ -148,7 +204,7 @@ class Cloud extends AbstractCloud {
                     }
 
                     this.logger.info('Route object does not include ipAddresses, within description; however, the ipAddeses are required for failover');
-                    this.logger.info(JSON.stringify(route));
+                    this.logger.info(util.stringify(route));
                     return route;
                 });
 
@@ -277,16 +333,61 @@ class Cloud extends AbstractCloud {
             `http://metadata.google.internal/computeMetadata/v1/${entry}`,
             options
         )
-            .then((data) => {
-                this.logger.silly('Returning local metadata: ');
-                return data;
-            })
+            .then(data => Promise.resolve(data))
             .catch((err) => {
                 const message = `Error getting local metadata ${err.message}`;
                 return Promise.reject(new Error(message));
             });
     }
 
+    /**
+     * Get google storage bucket from given label
+     *
+     * @param {Object} labels - The label name of a bucket. For example { 'f5_cloud_failover_label: x'
+     *
+     * @returns {Promise} A promise which is resolved with the bucket requested
+     *
+     */
+    _getBucketFromLabel(labels) {
+        // helper function
+        function getBucketLabels(bucket) {
+            return bucket.getLabels()
+                .then(bucketLabels => Promise.resolve({
+                    name: bucket.name,
+                    labels: bucketLabels,
+                    bucketObject: bucket
+                }))
+                .catch(err => Promise.reject(err));
+        }
+
+        return this.storage.getBuckets()
+            .then((data) => {
+                const promises = [];
+                data[0].forEach((bucket) => {
+                    promises.push(getBucketLabels(bucket));
+                });
+                return Promise.all(promises);
+            })
+            .then((buckets) => {
+                const labelKeys = Object.keys(labels);
+                const filteredBuckets = buckets.filter((bucket) => {
+                    let matchedTags = 0;
+                    labelKeys.forEach((labelKey) => {
+                        bucket.labels.forEach((bucketLabel) => {
+                            if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
+                                && bucketLabel[labelKey] === labels[labelKey]) {
+                                matchedTags += 1;
+                            }
+                        });
+                    });
+                    return labelKeys.length === matchedTags;
+                });
+                if (!filteredBuckets) {
+                    return Promise.reject(new Error(`filteredBuckets is empty: ${filteredBuckets}`));
+                }
+                return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
+            });
+    }
 
     /**
      * Get instance metadata from GCP
@@ -429,7 +530,7 @@ class Cloud extends AbstractCloud {
                             }
                         });
                     if (flag) {
-                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
+                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
                     }
                 });
                 return Promise.all(promises);
@@ -604,12 +705,17 @@ class Cloud extends AbstractCloud {
         this.logger.silly('associateArr:', associateArr);
 
         const disassociatePromises = [];
-        disassociatePromises.push(util.retrier.call(this, this._updateNic, disassociateArr[0]));
+        disassociateArr.forEach((item) => {
+            disassociatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+        });
         return Promise.all(disassociatePromises)
             .then(() => {
                 this.logger.info('Disassociate NICs successful');
                 const associatePromises = [];
-                associatePromises.push(util.retrier.call(this, this._updateNic, associateArr[0]));
+
+                associateArr.forEach((item) => {
+                    associatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+                });
                 return Promise.all(associatePromises);
             })
             .then(() => {
@@ -679,10 +785,8 @@ class Cloud extends AbstractCloud {
         // debug
         this.logger.silly(`fwdRulesToUpdate: ${util.stringify(fwdRulesToUpdate, null, 1)}`);
 
-        // longer retry interval to avoid 'resource is not ready' API response, can take 30+ seconds
-        const retryIntervalMs = 60000;
         const promises = [];
-        promises.push(util.retrier.call(this, this._updateFwdRule, fwdRulesToUpdate, { retryIntervalMs }));
+        promises.push(util.retrier.call(this, this._updateFwdRule, fwdRulesToUpdate, shortRetry));
         return Promise.all(promises)
             .then(() => {
                 this.logger.info('Update forwarding rules successful');

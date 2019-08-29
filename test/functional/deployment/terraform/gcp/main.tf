@@ -156,6 +156,14 @@ resource "google_compute_firewall" "ext" {
 
 }
 
+resource "google_storage_bucket" "file-store" {
+  name = "${random_string.env_prefix.result}"
+  force_destroy = true
+  labels = {
+    f5_cloud_failover_label = "${random_string.env_prefix.result}"
+  }
+}
+
 data "template_file" "vm01_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 

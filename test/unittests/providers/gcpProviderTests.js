@@ -103,17 +103,18 @@ describe('Provider - GCP', () => {
     it('validate init method', () => {
         assert.strictEqual(typeof provider.init, 'function');
 
-
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
 
         return provider.init(testPayload)
             .then(() => {
                 assert.strictEqual(provider.fwdRules, 'fwrResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
+                assert.strictEqual(provider.bucket, 'bucketResponse');
             })
             .catch(err => Promise.reject(err));
     });
@@ -125,6 +126,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
         return provider.init(testPayload)
@@ -211,7 +213,6 @@ describe('Provider - GCP', () => {
             });
     });
 
-
     it('validate updateRoute method response when route object is labeled incorrectly', () => {
         const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
         const getRouytesMock = sinon.stub(provider, '_getRoutes');
@@ -232,25 +233,9 @@ describe('Provider - GCP', () => {
         assert.strictEqual(typeof provider.downloadDataFromStorage, 'function');
     });
 
-    it('validate downloadDataFromStorage resolves', () => provider.downloadDataFromStorage()
-        .then(() => {
-            assert.ok(true);
-        })
-        .catch(() => {
-            assert.ok(false);
-        }));
-
     it('validate uploadDataToStorage method exists', () => {
         assert.strictEqual(typeof provider.uploadDataToStorage, 'function');
     });
-
-    it('validate downloadDataFromStorage resolves', () => provider.uploadDataToStorage()
-        .then(() => {
-            assert.ok(true);
-        })
-        .catch(() => {
-            assert.ok(false);
-        }));
 
     it('validate _getRoutes method exists', () => {
         assert.strictEqual(typeof provider._getRoutes, 'function');
@@ -368,10 +353,12 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_updateNic', updateNicSpy);
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1'];
-        provider.vms = mockVms;
+
         provider.instanceName = 'testInstanceName';
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
+
+        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
 
         return provider.updateAddresses(localAddresses, failoverAddresses)
             .then(() => {
@@ -758,5 +745,79 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.ok(data.length === 0);
             });
+    });
+
+    it('validate _getBucketFromLabel', () => {
+        const payload = [
+            [
+                {
+                    name: 'notOurBucket',
+                    getLabels: () => {
+                        return Promise.resolve([{ some_key: 'some_value' }]);
+                    }
+                },
+                {
+                    name: 'ourBucket',
+                    getLabels: () => {
+                        return Promise.resolve([{ foo: 'bar', foo1: 'bar1' }]);
+                    }
+                }
+            ]
+        ];
+        provider.storage.getBuckets = () => {
+            return Promise.resolve(payload);
+        };
+        return provider._getBucketFromLabel({ foo: 'bar', foo1: 'bar1' })
+            .then((data) => {
+                assert.strictEqual(data.name, 'ourBucket');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate uploadDataToStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+        provider.bucket.file = (name) => {
+            return {
+                fileName: name,
+                save: (data) => {
+                    if (data.toString().length > 0) {
+                        assert.strictEqual(JSON.parse(data).status, payload.status);
+                        return Promise.resolve(data);
+                    }
+                    return Promise.resolve();
+                }
+            };
+        };
+        return provider.uploadDataToStorage(fileName, payload)
+            .then((data) => {
+                assert.strictEqual(JSON.parse(data).status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate downloadDataFromStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+
+        const returnObject = sinon.stub();
+        returnObject.on = sinon.stub();
+        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
+        returnObject.on.withArgs('end').yields(null);
+        const createReadStreamReturn = sinon.stub().returns(returnObject);
+
+        const existsReturn = sinon.stub().resolves([true]);
+
+        provider.bucket.file = sinon.stub().returns({
+            createReadStream: createReadStreamReturn,
+            exists: existsReturn
+        });
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.strictEqual(data.status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
     });
 });
