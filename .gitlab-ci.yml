@@ -145,6 +145,9 @@ build_docs:
         paths:
             - docs/_build/html
         expire_in: 1 month
+    only:
+        - master
+        - develop
 
 build_api_docs:
     stage: build
