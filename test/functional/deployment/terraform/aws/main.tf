@@ -460,6 +460,7 @@ data "template_file" "user_data_vm0" {
     admin_username  = "${var.admin_username}"
     admin_password  = "${module.utils.admin_password}"
     external_self   = "${aws_network_interface.external1.private_ip}/24"
+    subnet          = "${aws_subnet.externalAz2.cidr_block}"
     default_gw      = "10.0.1.1"
   }
 }
@@ -471,6 +472,7 @@ data "template_file" "user_data_vm1" {
     admin_username = "${var.admin_username}"
     admin_password = "${module.utils.admin_password}"
     external_self  = "${aws_network_interface.external2.private_ip}/24"
+    subnet          = "${aws_subnet.externalAz1.cidr_block}"
     default_gw      = "10.0.11.1"
   }
 }
