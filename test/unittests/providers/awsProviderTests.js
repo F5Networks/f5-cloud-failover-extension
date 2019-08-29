@@ -578,7 +578,6 @@ describe('Provider - AWS', () => {
         });
     });
     describe('function updateRoutes should', () => {
-        provider.routeSelfIpsTag = 'F5_SELF_IPS';
         it('update routes if route exists', () => {
             provider.init(mockInitData)
                 .then(() => {
@@ -620,6 +619,7 @@ describe('Provider - AWS', () => {
                     const localAddresses = ['10.0.1.211'];
                     provider.routeTags = { F5_LABEL: 'foo' };
                     provider.routeAddresses = ['192.0.2.0/24'];
+                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
                     const describeNetworkInterfacesResponse = {
                         NetworkInterfaces: [
                             {
@@ -688,6 +688,7 @@ describe('Provider - AWS', () => {
                     const localAddresses = ['10.0.2.211'];
                     provider.routeTags = { F5_LABEL: 'foo1' };
                     provider.routeAddresses = ['192.1.2.0/24'];
+                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
                     const describeNetworkInterfacesResponse = {
                         NetworkInterfaces: [
                             {
