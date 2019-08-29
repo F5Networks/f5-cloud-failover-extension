@@ -28,11 +28,18 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const declaration = funcUtils.getDeploymentDeclaration();
+const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
+const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
+const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];
+const storageTagValue = declaration.externalStorage.scopingTags[storageTagKey];
+
 
 let request = {};
 
 // Helper functions
 function configureAuth() {
+    // To run this in local environment, make sure to export the environmental variable
+    // GOOGLE_CREDENTIALS and CI_PROJECT_DIR
     if (process.env.GOOGLE_CREDENTIALS) {
         const tmpCredsFile = `${process.env.CI_PROJECT_DIR}/gcloud_creds.json`;
         fs.writeFileSync(tmpCredsFile, process.env.GOOGLE_CREDENTIALS);
@@ -60,9 +67,9 @@ function checkAliasIPs(hostname, virtualAddresses) {
             instances.forEach((vm) => {
                 if (vm.labels) {
                     if (Object.values(vm.labels)
-                        .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                        .indexOf(networkInterfaceTagValue) !== -1
                         && Object.keys(vm.labels)
-                            .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
+                            .indexOf(storageTagKey) !== -1) {
                         if (vm.name.indexOf(hostname) !== -1) {
                             if (virtualAddresses.indexOf(
                                 vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]
@@ -207,9 +214,9 @@ describe('Provider: GCP', () => {
                     instances.forEach((vm) => {
                         if (vm.labels) {
                             if (Object.values(vm.labels)
-                                .indexOf(declaration.externalStorage.scopingTags.f5_cloud_failover_label) !== -1
+                                .indexOf(storageTagValue) !== -1
                             && Object.keys(vm.labels)
-                                .indexOf(Object.keys(declaration.externalStorage.scopingTags)[0]) !== -1) {
+                                .indexOf(storageTagKey) !== -1) {
                                 vms.push(vm);
                             }
                         }

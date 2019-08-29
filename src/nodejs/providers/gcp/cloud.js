@@ -28,7 +28,10 @@ const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
-const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
+const MAX_RETRIES = require('../../constants').MAX_RETRY;
+const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+
+const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -131,16 +134,11 @@ class Cloud extends AbstractCloud {
      */
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-        return new Promise(((resolve, reject) => {
-            const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-            if (file != null) {
-                resolve(file);
-            } else {
-                reject(file);
-            }
-        }))
-            .then(file => file.save(util.stringify(data)))
-            .then(result => Promise.resolve(result))
+        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
+        return file.save(util.stringify(data))
+            .then((result) => {
+                return Promise.resolve(result);
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -174,7 +172,8 @@ class Cloud extends AbstractCloud {
                             resolve(JSON.parse(buffer));
                         });
                 });
-            }).catch(err => Promise.reject(err));
+            })
+            .catch(err => Promise.reject(err));
     }
 
 
@@ -361,7 +360,6 @@ class Cloud extends AbstractCloud {
                 this.buckets = data[0];
                 const promises = [];
                 this.buckets.forEach((bucket) => {
-                    this.logger.info(`discovering bucket: ${bucket.name}`);
                     promises.push(bucket.getLabels());
                 });
                 return Promise.all(promises);
@@ -369,9 +367,7 @@ class Cloud extends AbstractCloud {
             .then((labels) => {
                 let bucket = null;
                 labels.forEach((label, index) => {
-                    this.logger.info(`discovering label: ${this.label}`);
                     if (util.stringify(label) === util.stringify([storageLabel])) {
-                        this.logger.info(`returning bucket: ${this.buckets[index].name}`);
                         bucket = this.buckets[index];
                     }
                 });
