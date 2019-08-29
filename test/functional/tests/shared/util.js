@@ -32,7 +32,8 @@ module.exports = {
                 ip: item.mgmt_address,
                 username: item.admin_username,
                 password: item.admin_password,
-                primary: item.primary
+                primary: item.primary,
+                instanceId: item.instanceId
             };
             return item;
         });

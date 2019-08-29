@@ -628,6 +628,7 @@ output "deployment_info" {
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt1.public_ip,
+        instanceId = aws_instance.vm0.id,
         mgmt_port = 443,
         primary = false
       },
@@ -635,6 +636,7 @@ output "deployment_info" {
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt2.public_ip,
+        instanceId = aws_instance.vm1.id,
         mgmt_port = 443,
         primary = true
       }

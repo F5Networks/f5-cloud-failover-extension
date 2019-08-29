@@ -12,6 +12,7 @@ const assert = require('assert');
 
 const AWS = require('aws-sdk');
 
+const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
 
 const RETRIES = {
@@ -25,11 +26,12 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
+// const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
 
 // Helper functions
-function matchElasticIpToInstance(privateIp, instances) {
+function matchElasticIpToInstance(privateIp, instances, instance) {
     let match = false;
-    const primary = instances[dutPrimary.ip];
+    const primary = instances[instance.ip];
 
     primary.NetworkInterfaces.forEach((nic) => {
         nic.PrivateIpAddresses.forEach((pip) => {
@@ -43,6 +45,31 @@ function matchElasticIpToInstance(privateIp, instances) {
     if (!match) {
         assert.fail('ElasticIP does not match primary\'s secondary private IP');
     }
+}
+
+/*
+function matchRouteTables(routes, instance) {
+    console.log(deploymentDeclaration);
+    console.log(routes);
+    // iterate over routes to filter for the deployment declaration
+    console.log(instance);
+}
+*/
+
+function forceStandby(ip, username, password) {
+    const uri = '/mgmt/tm/sys/failover';
+
+    return utils.getAuthToken(ip, username, password)
+        .then((data) => {
+            const options = funcUtils.makeOptions({ authToken: data.token });
+            options.method = 'POST';
+            options.body = {
+                command: 'run',
+                standby: true
+            };
+            return utils.makeRequest(ip, uri, options);
+        })
+        .catch(err => Promise.reject(err));
 }
 
 describe('Provider: AWS', () => {
@@ -100,18 +127,11 @@ describe('Provider: AWS', () => {
     }
 
     // function get
-
     function getElasticIpPrivateAddress() {
         const params = {
             Filters: [
                 {
-                    Name: 'tag-key',
-                    Values: [
-                        'F5_CLOUD_FAILOVER_LABEL'
-                    ]
-                },
-                {
-                    Name: 'tag:deploymentId',
+                    Name: 'tag:f5_cloud_failover_label',
                     Values: [deploymentInfo.deploymentId]
                 }
             ]
@@ -127,21 +147,84 @@ describe('Provider: AWS', () => {
         });
     }
 
-    function checkElasticIP() {
+    /*
+    function getRouteTableRoutes() {
+        const params = {
+            Filters: [
+                {
+                    Name: 'tag:f5_cloud_failover_label',
+                    Values: [deploymentInfo.deploymentId]
+                }
+            ]
+        };
+
+        return new Promise((resolve, reject) => {
+            ec2.describeRouteTables(params).promise()
+                .then((data) => {
+                    const routes = data.RouteTables[0].Routes;
+                    resolve(routes);
+                })
+                .catch(err => reject(err));
+        });
+    }
+    */
+
+    function checkElasticIP(instance) {
         return getElasticIpPrivateAddress()
             .then((privateIp) => {
-                matchElasticIpToInstance(privateIp, privateIpToInstance);
+                matchElasticIpToInstance(privateIp, privateIpToInstance, instance);
             })
             .catch(err => Promise.reject(err));
     }
 
-    // Functional tests!
+    /*
+    function checkRouteTable(instance) {
+        return getRouteTableRoutes()
+            .then((response) => {
+                matchRouteTables(response, instance);
+            })
+            .catch(err => Promise.reject(err));
+    }
+    */
+
+    // Functional tests
 
     // Test IP and Route failover
     it('should check that Elastic IP is mapped to primary (vm0)', function () {
         this.retries(RETRIES.LONG);
 
-        return checkElasticIP()
+        return checkElasticIP(dutPrimary)
+            .catch(err => Promise.reject(err));
+    });
+
+    /*
+    it('should check AWS route table routes for next hop matches primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkRouteTable(dutPrimary)
+            .catch(err => Promise.reject(err));
+    });
+    */
+
+    it('should force BIG-IP (primary) to standby', () => forceStandby(
+        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+    ));
+
+    it('should check that Elastic IP is mapped to secondary (vm1)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkElasticIP(dutSecondary)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should force BIG-IP (secondary) to standby', () => forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
+    it('should check that Elastic IP is mapped to primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkElasticIP(dutPrimary)
             .catch(err => Promise.reject(err));
     });
 });
