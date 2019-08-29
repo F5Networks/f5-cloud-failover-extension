@@ -10,7 +10,7 @@ variable "global_tags" {
   type = "map"
   default = {
     creator = "Terraform - Failover Extension"
-    delete = "False"
+    delete = "True"
   }
 }
 
