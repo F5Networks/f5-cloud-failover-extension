@@ -136,9 +136,7 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
         const file = this.bucket.file(`${storageContainerName}/${fileName}`);
         return file.save(util.stringify(data))
-            .then((result) => {
-                return Promise.resolve(result);
-            })
+            .then(result => Promise.resolve(result))
             .catch(err => Promise.reject(err));
     }
 
@@ -335,10 +333,7 @@ class Cloud extends AbstractCloud {
             `http://metadata.google.internal/computeMetadata/v1/${entry}`,
             options
         )
-            .then((data) => {
-                this.logger.silly('Returning local metadata: ');
-                return data;
-            })
+            .then(data => Promise.resolve(data))
             .catch((err) => {
                 const message = `Error getting local metadata ${err.message}`;
                 return Promise.reject(new Error(message));
@@ -357,7 +352,11 @@ class Cloud extends AbstractCloud {
         // helper function
         function getBucketLabels(bucket) {
             return bucket.getLabels()
-                .then(bucketLabels => Promise.resolve({ name: bucket.name, labels: bucketLabels }))
+                .then(bucketLabels => Promise.resolve({
+                    name: bucket.name,
+                    labels: bucketLabels,
+                    bucketObject: bucket
+                }))
                 .catch(err => Promise.reject(err));
         }
 
@@ -383,7 +382,10 @@ class Cloud extends AbstractCloud {
                     });
                     return labelKeys.length === matchedTags;
                 });
-                return Promise.resolve(filteredBuckets[0]); // there should only be one
+                if (!filteredBuckets) {
+                    return Promise.reject(new Error(`filteredBuckets is empty: ${filteredBuckets}`));
+                }
+                return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
             });
     }
 
