@@ -8,6 +8,11 @@ variable "zone" {
   default     = "us-west1-a"
 }
 
+variable "instance-type" {
+  description = "Google Cloud instance type"
+  default = "n1-standard-8"
+}
+
 variable "publisher" {
   default = "f5-networks"
 }

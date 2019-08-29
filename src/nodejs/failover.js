@@ -61,7 +61,7 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: 'F5_SELF_IPS',
+                    routeSelfIpsTag: 'f5_self_ips',
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
@@ -92,11 +92,7 @@ class FailoverClient {
                 const actions = [
                     this.cloudProvider.updateAddresses(addresses.localAddresses, addresses.failoverAddresses)
                 ];
-                // updating routes is conditional - TODO: rethink this...
-                const routeFeatureEnvironments = [constants.CLOUD_PROVIDERS.AZURE];
-                if (this.config.environment.indexOf(routeFeatureEnvironments) !== -1) {
-                    actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
-                }
+                actions.push(this.cloudProvider.updateRoutes({ localAddresses: addresses.localAddresses }));
                 return Promise.all(actions);
             })
             .then(() => {
@@ -185,13 +181,13 @@ class FailoverClient {
     }
 
     /**
-    * Get traffic groups (local)
-    *
-    * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
-    * @param {String} hostname          - The hostname of the device
-    *
-    * @returns {Object}
-    */
+     * Get traffic groups (local)
+     *
+     * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
+     * @param {String} hostname          - The hostname of the device
+     *
+     * @returns {Object}
+     */
     _getTrafficGroups(trafficGroupStats, hostname) {
         const trafficGroups = [];
 
@@ -210,13 +206,13 @@ class FailoverClient {
     }
 
     /**
-    * Get self addresses
-    *
-    * @param {Object} selfAddresses - Self addresses
-    * @param {Object} trafficGroups - Traffic groups
-    *
-    * @returns {Object}
-    */
+     * Get self addresses
+     *
+     * @param {Object} selfAddresses - Self addresses
+     * @param {Object} trafficGroups - Traffic groups
+     *
+     * @returns {Object}
+     */
     _getSelfAddresses(selfAddresses, trafficGroups) {
         const addresses = [];
         selfAddresses.forEach((item) => {
@@ -237,13 +233,13 @@ class FailoverClient {
     }
 
     /**
-    * Get virtual addresses
-    *
-    * @param {Object} virtualAddresses - Virtual addresses
-    * @param {Object} trafficGroups - Traffic groups
-    *
-    * @returns {Object}
-    */
+     * Get virtual addresses
+     *
+     * @param {Object} virtualAddresses - Virtual addresses
+     * @param {Object} trafficGroups - Traffic groups
+     *
+     * @returns {Object}
+     */
     _getVirtualAddresses(virtualAddresses, trafficGroups) {
         const addresses = [];
 
@@ -267,13 +263,13 @@ class FailoverClient {
     }
 
     /**
-    * Get failover addresses
-    *
-    * @param {Object} selfAddresses   - Self addresses
-    * @param {Object} virtualAddresses - Virtual addresses
-    *
-    * @returns {Object}
-    */
+     * Get failover addresses
+     *
+     * @param {Object} selfAddresses   - Self addresses
+     * @param {Object} virtualAddresses - Virtual addresses
+     *
+     * @returns {Object}
+     */
     _getFailoverAddresses(selfAddresses, virtualAddresses) {
         const localAddresses = [];
         const failoverAddresses = [];

@@ -19,7 +19,7 @@ up and running with Cloud Failover.
    - For complete instructions see :ref:`installgui-ref` or
      :ref:`installcurl-ref`.
 
-#. Be sure to see the known issues on GitHub (https://github.com/F5Networks/f5-cloud-failover/issues) to review any known issues and other important information before you attempt to use Telemetry Streaming.
+#. Be sure to see the known issues on GitHub (https://github.com/F5Networks/f5-cloud-failover/issues) to review any known issues and other important information before you attempt to use Cloud Failover.
 
 #. Provide authorization (basic auth) to the BIG-IP system:  
 
@@ -27,12 +27,11 @@ up and running with Cloud Failover.
    - If using cURL, see :ref:`installcurl-ref`.
 
 #. Using a RESTful API client like Postman, send a GET request to the URI
-   ``https://{{host}}/mgmt/shared/telemetry/info`` to ensure Cloud Failover is running
+   ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover is running
    properly.
 
 #. Copy one of the :ref:`examples` which best matches the configuration you want
-   to use.  Alternatively, you can use the simple "Hello World" example below,
-   which is a good start if you don't have an example in mind.
+   to use.
 
 #. Paste the declaration into your API client, and modify names and IP addresses
    as applicable.
@@ -42,10 +41,34 @@ up and running with Cloud Failover.
 Quick Start Example
 -------------------
 
-.. literalinclude:: ../examples/declarations/basic.json
-    :language: json
+Here is an example declaration for Microsoft Azure.
+
+.. code-block:: json
     :linenos:
 
+
+    {
+        "class": "Cloud_Failover",
+        "environment": "azure",
+          "externalStorage": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+          "failoverAddresses": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+        "failoverRoutes": {
+          "scopingTags": {
+            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+          },
+          "scopingAddressRanges": [
+            "192.168.1.0/24"
+          ]
+        }
+    }
 
 
  
