@@ -11,6 +11,7 @@ F5 Cloud Failover (CF) is a solution for those who want L3 failover functionalit
 - Failover IP(s) - Update IP configurations on a NIC, update EIP associations, update forwarding rule target instance, etc.
 - Failover Route(s) - Update User-Defined Routes (UDR), update route table, etc.
 
+Cloud Failover 
 
 The diagram below shows a typical failover scenario for an active/standby pair of BIG-IP systems in an Azure cloud environment.
 
@@ -33,6 +34,7 @@ User Guide Index
    userguide/prereqs
    userguide/faq
    userguide/quickstart
+   userguide/installation
    userguide/azure
    userguide/aws
    userguide/gcp

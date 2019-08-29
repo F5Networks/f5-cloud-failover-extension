@@ -41,10 +41,34 @@ up and running with Cloud Failover.
 Quick Start Example
 -------------------
 
-.. literalinclude:: ../examples/declarations/basic.json
-    :language: json
+Here is an example declaration for Microsoft Azure.
+
+.. code-block:: json
     :linenos:
 
+
+    {
+        "class": "Cloud_Failover",
+        "environment": "azure",
+          "externalStorage": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+          "failoverAddresses": {
+            "scopingTags": {
+              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            }
+        },
+        "failoverRoutes": {
+          "scopingTags": {
+            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+          },
+          "scopingAddressRanges": [
+            "192.168.1.0/24"
+          ]
+        }
+    }
 
 
  

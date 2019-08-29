@@ -33,7 +33,7 @@ module.exports = {
                 username: item.admin_username,
                 password: item.admin_password,
                 primary: item.primary,
-                instanceId: item.instanceId
+                hostname: item.hostname
             };
             return item;
         });
@@ -45,20 +45,14 @@ module.exports = {
      *
      * @returns {Object} Returns
      * { deploymentId: foo, environment: bar }
-     * and includes 'region' if defined in Deployment file:
-     * { deploymentId: foo, environment: bar, region: baz }
      */
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
         const deploymentInfo = require(deploymentFile);
-        const environmentData = {
+        return {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId
         };
-        if (deploymentInfo.region) {
-            environmentData.region = deploymentInfo.region;
-        }
-        return environmentData;
     },
 
     /**
