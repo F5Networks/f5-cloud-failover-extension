@@ -127,19 +127,15 @@ class Cloud extends AbstractCloud {
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
         return new Promise(((resolve, reject) => {
-            const file = this.bucket.file(storageContainerName + '/' + fileName)
-            if (file != null){
-                resolve(file)
+            const file = this.bucket.file(`${storageContainerName}/${fileName}`);
+            if (file != null) {
+                resolve(file);
             } else {
-                reject(file)
+                reject(file);
             }
         }))
-            .then((file) => {
-                return file.save(JSON.stringify(data))
-                // return Promise.resolve(file.save(JSON.stringify(data)));
-            }).then((result) => {
-                return Promise.resolve(result);
-            })
+            .then(file => file.save(util.stringify(data)))
+            .then(result => Promise.resolve(result))
             .catch(err => Promise.reject(err));
     }
 
@@ -151,7 +147,7 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}
      */
     downloadDataFromStorage(fileName) {
-        const stream = this.bucket.file(storageContainerName + '/' + fileName).createReadStream();
+        const stream = this.bucket.file(`${storageContainerName}/${fileName}`).createReadStream();
         let buffer = '';
         return new Promise((resolve, reject) => {
             stream
@@ -199,7 +195,7 @@ class Cloud extends AbstractCloud {
                     }
 
                     this.logger.info('Route object does not include ipAddresses, within description; however, the ipAddeses are required for failover');
-                    this.logger.info(JSON.stringify(route));
+                    this.logger.info(util.stringify(route));
                     return route;
                 });
 
@@ -362,7 +358,7 @@ class Cloud extends AbstractCloud {
                 let bucket = null;
                 labels.forEach((label, index) => {
                     this.logger.info(`discovering label: ${this.label}`);
-                    if (JSON.stringify(label) === JSON.stringify([storageLabel])) {
+                    if (util.stringify(label) === util.stringify([storageLabel])) {
                         this.logger.info(`returning bucket: ${this.buckets[index].name}`);
                         bucket = this.buckets[index];
                     }

@@ -211,7 +211,6 @@ describe('Provider - GCP', () => {
             });
     });
 
-
     it('validate updateRoute method response when route object is labeled incorrectly', () => {
         const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
         const getRouytesMock = sinon.stub(provider, '_getRoutes');
@@ -745,11 +744,16 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getBucketFromLabel', () => {
-
-        const payload = [[{ name: 'testBucket',
-            getLabels: () => {
-                return Promise.resolve(['test']);
-            }}]]
+        const payload = [
+            [
+                {
+                    name: 'testBucket',
+                    getLabels: () => {
+                        return Promise.resolve(['test']);
+                    }
+                }
+            ]
+        ];
         provider.storage.getBuckets = () => {
             return Promise.resolve(payload);
         };
@@ -765,7 +769,7 @@ describe('Provider - GCP', () => {
 
     it('validate uploadDataToStorage', () => {
         const fileName = 'test.json';
-        const payload = { status: 'progress' }
+        const payload = { status: 'progress' };
         // const errorMsg = 'Error msg';
         provider.bucket = payload;
         provider.bucket.file = (name) => {
@@ -776,9 +780,10 @@ describe('Provider - GCP', () => {
                         assert.strictEqual(JSON.parse(data).status, payload.status);
                         return Promise.resolve(data);
                     }
+                    return Promise.resolve();
                 }
             };
-        }
+        };
         return provider.uploadDataToStorage(fileName, payload)
             .then((data) => {
                 assert.strictEqual(JSON.parse(data).status, payload.status);
