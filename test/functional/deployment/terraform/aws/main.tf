@@ -70,7 +70,7 @@ resource "aws_route_table" "external" {
     var.global_tags,
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
-      F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}"
+      f5_cloud_failover_label = "${module.utils.env_prefix}"
       F5_SELF_IPS = "${tolist(aws_network_interface.external1.private_ips)[0]}, ${tolist(aws_network_interface.external2.private_ips)[0]}"
     }
   )}"
@@ -443,7 +443,7 @@ resource "aws_eip" "vip1" {
     var.global_tags,
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
-      F5_CLOUD_FAILOVER_LABEL = "${module.utils.env_prefix}",
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
       VIPS = "${"${index("${tolist(aws_network_interface.external1.private_ips)}", "${aws_network_interface.external1.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external1.private_ips)[1]}" : "${tolist(aws_network_interface.external1.private_ips)[0]}"},${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
     }
   )}"
