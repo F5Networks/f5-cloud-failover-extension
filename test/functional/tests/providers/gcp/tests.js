@@ -316,4 +316,46 @@ describe('Provider: GCP', () => {
         return checkRoutes(primarySelfIps)
             .catch(err => Promise.reject(err));
     });
+
+    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+
+    // ideally this would be replaced by a check for previous failover task success completion
+    // right now cloud API's can state interfaces are moved before failover actually completes
+    // on BIG-IP resulting in strange race conditions
+    it('Flapping scenario: should wait 60 seconds', () => new Promise(
+        resolve => setTimeout(resolve, 60000)
+    ));
+
+    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
+        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+    ));
+
+    it('Flapping scenario: should wait 10 seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
+    ));
+
+    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
+    it('Flapping scenario: should check network interface alias IP(s) contains virtual addresses (primary)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Flapping scenario: should check forwarding rule target matches instance (primary)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkForwardingRules(dutPrimary.hostname)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Flapping scenario: should check route(s) next hop matches self IP (primary)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkRoutes(primarySelfIps)
+            .catch(err => Promise.reject(err));
+    });
 });

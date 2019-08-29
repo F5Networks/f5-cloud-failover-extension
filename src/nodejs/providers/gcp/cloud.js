@@ -28,6 +28,7 @@ const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
+const shortRetry = { maxRetries: 4, retryIntervalMs: 15000 };
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -102,12 +103,16 @@ class Cloud extends AbstractCloud {
      * @returns {Object}
      */
     updateAddresses(localAddresses, failoverAddresses) {
-        return this._updateNics(localAddresses, failoverAddresses)
+        return this._getVmsByTags(this.tags)
+            .then((vms) => {
+                this.vms = vms;
+                return this._updateNics(localAddresses, failoverAddresses);
+            })
             .then(() => {
                 this.logger.info('GCP Provider: ip re-association is completed. Updating forwarding rules.');
                 const promises = [];
                 promises.push(util.retrier.call(this, this._updateFwdRules,
-                    [this.fwdRules, this.targetInstances, failoverAddresses]));
+                    [this.fwdRules, this.targetInstances, failoverAddresses], shortRetry));
                 return Promise.all(promises);
             })
             .then(() => {
@@ -515,7 +520,7 @@ class Cloud extends AbstractCloud {
                             }
                         });
                     if (flag) {
-                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], { maxRetries: 1, retryIntervalMs: 100 }));
+                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
                     }
                 });
                 return Promise.all(promises);
@@ -690,12 +695,17 @@ class Cloud extends AbstractCloud {
         this.logger.silly('associateArr:', associateArr);
 
         const disassociatePromises = [];
-        disassociatePromises.push(util.retrier.call(this, this._updateNic, disassociateArr[0]));
+        disassociateArr.forEach((item) => {
+            disassociatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+        });
         return Promise.all(disassociatePromises)
             .then(() => {
                 this.logger.info('Disassociate NICs successful');
                 const associatePromises = [];
-                associatePromises.push(util.retrier.call(this, this._updateNic, associateArr[0]));
+
+                associateArr.forEach((item) => {
+                    associatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+                });
                 return Promise.all(associatePromises);
             })
             .then(() => {
@@ -765,10 +775,8 @@ class Cloud extends AbstractCloud {
         // debug
         this.logger.silly(`fwdRulesToUpdate: ${util.stringify(fwdRulesToUpdate, null, 1)}`);
 
-        // longer retry interval to avoid 'resource is not ready' API response, can take 30+ seconds
-        const retryIntervalMs = 60000;
         const promises = [];
-        promises.push(util.retrier.call(this, this._updateFwdRule, fwdRulesToUpdate, { retryIntervalMs }));
+        promises.push(util.retrier.call(this, this._updateFwdRule, fwdRulesToUpdate, shortRetry));
         return Promise.all(promises)
             .then(() => {
                 this.logger.info('Update forwarding rules successful');

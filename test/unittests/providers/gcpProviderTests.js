@@ -353,10 +353,12 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_updateNic', updateNicSpy);
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1'];
-        provider.vms = mockVms;
+
         provider.instanceName = 'testInstanceName';
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
+
+        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
 
         return provider.updateAddresses(localAddresses, failoverAddresses)
             .then(() => {
