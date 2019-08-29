@@ -145,9 +145,6 @@ build_docs:
         paths:
             - docs/_build/html
         expire_in: 1 month
-    only:
-        - master
-        - develop
 
 build_api_docs:
     stage: build
@@ -244,8 +241,7 @@ docs to stage:
         name: stage
         url: https://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
     only:
-        # Currently will only deploy to clouddocs.f5networks.com on commits to doc-publish
-        # fill in desired release branch name and uncomment to add deployment from a branch
+        # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
         - develop@cloudsolutions/f5-cloud-failover
     tags:
         - cm-official-docker-executor
@@ -271,8 +267,7 @@ docs to production:
     name: production
     url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
   only:
-  # Currently will only deploy to clouddocs.f5.com on commits to doc-publish
-  # fill in desired release branch name and uncomment to add deployment from a branch
+    # Currently will only deploy to clouddocs.f5.com on commits to master branch
     - master@cloudsolutions/f5-cloud-failover
   tags:
     - cm-official-docker-executor
