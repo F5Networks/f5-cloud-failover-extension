@@ -777,7 +777,6 @@ describe('Provider - GCP', () => {
     it('validate uploadDataToStorage', () => {
         const fileName = 'test.json';
         const payload = { status: 'progress' };
-        // const errorMsg = 'Error msg';
         provider.bucket = payload;
         provider.bucket.file = (name) => {
             return {
