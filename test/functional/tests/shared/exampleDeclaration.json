@@ -3,17 +3,17 @@
     "environment": "{{environment}}",
     "externalStorage": {
       "scopingTags": {
-        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+        "f5_cloud_failover_label": "{{deploymentId}}"
       }
     },
     "failoverAddresses": {
       "scopingTags": {
-        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+        "f5_cloud_failover_label": "{{deploymentId}}"
       }
     },
     "failoverRoutes": {
       "scopingTags": {
-        "F5_CLOUD_FAILOVER_LABEL": "{{deploymentId}}"
+        "f5_cloud_failover_label": "{{deploymentId}}"
       },
       "scopingAddressRanges": [
         "192.0.2.0/24"
