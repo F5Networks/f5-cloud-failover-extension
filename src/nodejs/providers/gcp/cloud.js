@@ -151,22 +151,29 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}
      */
     downloadDataFromStorage(fileName) {
-        const stream = this.bucket.file(storageContainerName + '/' + fileName).createReadStream();
-        let buffer = '';
-        return new Promise((resolve, reject) => {
-            stream
-                .on('data', (data) => {
-                    buffer += data;
+        const file = this.bucket.file(storageContainerName + '/' + fileName);
+        return file.exists()
+            .then((exists) => {
+                if (!exists[0]) {
+                    return Promise.resolve({});
+                }
+                const stream = file.createReadStream();
+                let buffer = '';
+                return new Promise((resolve, reject) => {
+                    stream
+                        .on('data', (data) => {
+                            buffer += data;
+                        });
+                    stream
+                        .on('error', (err) => {
+                            reject(err);
+                        });
+                    stream
+                        .on('end', () => {
+                            resolve(JSON.parse(buffer));
+                        });
                 });
-            stream
-                .on('error', (err) => {
-                    reject(err);
-                });
-            stream
-                .on('end', () => {
-                    resolve(JSON.parse(buffer));
-                });
-        });
+            }).catch(err => Promise.reject(err));
     }
 
 
