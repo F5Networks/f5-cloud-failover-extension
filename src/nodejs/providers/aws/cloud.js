@@ -92,19 +92,24 @@ class Cloud extends AbstractCloud {
                     const promise = this._getNetworkInterfaceId(selfIpToUse)
                         .then((networkInterfaceId) => {
                             this.logger.debug('Network Interface ID', networkInterfaceId);
-                            const innerPromises = [];
-                            routeTable.Routes.forEach((route) => {
-                                if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                                    this.logger.info('Updating Route');
-                                    innerPromises.push(this._replaceRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId));
-                                }
-                            });
-                            return Promise.all(innerPromises);
+                            return this._updateRouteTable(routeTable, networkInterfaceId);
                         });
                     promises.push(promise);
                 });
                 return Promise.all(promises);
             });
+    }
+
+    _updateRouteTable(routeTable, networkInterfaceId) {
+        routeTable.Routes.forEach((route) => {
+            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+                this.logger.info('Updating Route');
+                this._replaceRoute(this.routeAddresses[0], networkInterfaceId, routeTable.RouteTableId)
+                    .then(data => Promise.resolve(data))
+                    .catch(error => Promise.reject(error));
+            }
+            this.logger.info(routeTable.Name, ' route table not updated');
+        });
     }
 
     _getNetworkInterfaceId(privateIp) {

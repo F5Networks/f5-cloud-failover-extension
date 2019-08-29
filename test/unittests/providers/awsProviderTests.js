@@ -650,13 +650,9 @@ describe('Provider - AWS', () => {
                         .then(() => {
                             assert(createRouteSpy.calledOnce);
                         })
-                        .catch((err) => {
-                            return Promise.reject(err);
-                        });
+                        .catch(err => Promise.reject(err));
                 })
-                .catch((err) => {
-                    return Promise.reject(err);
-                });
+                .catch(err => Promise.reject(err));
         });
     });
 });
