@@ -158,8 +158,9 @@ resource "google_compute_firewall" "ext" {
 
 resource "google_storage_bucket" "file-store" {
   name = "${random_string.env_prefix.result}"
+  force_destroy = true
   labels = {
-    f5_cloud_failover_label : "${random_string.env_prefix.result}"
+    f5_cloud_failover_label = "${random_string.env_prefix.result}"
   }
 }
 
