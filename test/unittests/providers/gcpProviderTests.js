@@ -103,17 +103,18 @@ describe('Provider - GCP', () => {
     it('validate init method', () => {
         assert.strictEqual(typeof provider.init, 'function');
 
-
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
 
         return provider.init(testPayload)
             .then(() => {
                 assert.strictEqual(provider.fwdRules, 'fwrResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
+                assert.strictEqual(provider.bucket, 'bucketResponse');
             })
             .catch(err => Promise.reject(err));
     });
@@ -125,6 +126,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
         return provider.init(testPayload)
@@ -802,7 +804,12 @@ describe('Provider - GCP', () => {
         returnObject.on.withArgs('end').yields(null);
         const createReadStreamReturn = sinon.stub().returns(returnObject);
 
-        provider.bucket.file = sinon.stub().returns({ createReadStream: createReadStreamReturn });
+        const existsReturn = sinon.stub().resolves([true]);
+
+        provider.bucket.file = sinon.stub().returns({
+            createReadStream: createReadStreamReturn,
+            exists: existsReturn
+        });
         return provider.downloadDataFromStorage(fileName)
             .then((data) => {
                 assert.strictEqual(data.status, payload.status);
