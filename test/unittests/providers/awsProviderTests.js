@@ -577,8 +577,9 @@ describe('Provider - AWS', () => {
                 });
         });
     });
-    describe('Update Routes should', () => {
-        it('validate updateRoutes with resolved promise', () => {
+    describe('function updateRoutes should', () => {
+        provider.routeSelfIpsTag = 'F5_SELF_IPS';
+        it('update routes if route exists', () => {
             provider.init(mockInitData)
                 .then(() => {
                     const routeTable = {
@@ -619,11 +620,10 @@ describe('Provider - AWS', () => {
                     const localAddresses = ['10.0.1.211'];
                     provider.routeTags = { F5_LABEL: 'foo' };
                     provider.routeAddresses = ['192.0.2.0/24'];
-                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
                     const describeNetworkInterfacesResponse = {
                         NetworkInterfaces: [
                             {
-                                NetworkInterfaceId: 'eni-2345'
+                                NetworkInterfaceId: 'eni-345'
                             }
                         ]
                     };
@@ -649,6 +649,74 @@ describe('Provider - AWS', () => {
                     return provider.updateRoutes({ localAddresses })
                         .then(() => {
                             assert(createRouteSpy.calledOnce);
+                            assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+                        })
+                        .catch(err => Promise.reject(err));
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('not update routes if route does not exist', () => {
+            provider.init(mockInitData)
+                .then(() => {
+                    const routeTable = {
+                        RouteTableId: 'rtb-123',
+                        Routes: [
+                            {
+                                DestinationCidrBlock: '10.0.0.0/16',
+                                GatewayId: 'local',
+                                Origin: 'CreateRouteTable',
+                                State: 'active'
+                            },
+                            {
+                                DestinationCidrBlock: '0.0.0.0/0',
+                                GatewayId: 'igw-123',
+                                Origin: 'CreateRoute',
+                                State: 'active'
+                            }
+                        ],
+                        Tags: [
+                            {
+                                Key: 'F5_CLOUD_FAILOVER_LABEL',
+                                Value: 'foo'
+                            },
+                            {
+                                Key: 'F5_SELF_IPS',
+                                Value: '10.0.1.211, 10.0.11.52'
+                            }
+                        ]
+                    };
+                    const localAddresses = ['10.0.2.211'];
+                    provider.routeTags = { F5_LABEL: 'foo1' };
+                    provider.routeAddresses = ['192.1.2.0/24'];
+                    const describeNetworkInterfacesResponse = {
+                        NetworkInterfaces: [
+                            {
+                                NetworkInterfaceId: 'eni-345'
+                            }
+                        ]
+                    };
+                    provider.ec2.describeNetworkInterfaces = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve(describeNetworkInterfacesResponse);
+                            }
+                        });
+                    provider.ec2.describeRouteTables = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve({ RouteTables: [routeTable] });
+                            }
+                        });
+                    provider.ec2.replaceRoute = sinon.stub()
+                        .returns({
+                            promise() {
+                                return Promise.resolve({});
+                            }
+                        });
+                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
+                    return provider.updateRoutes({ localAddresses })
+                        .then(() => {
+                            assert(createRouteSpy.notCalled);
                         })
                         .catch(err => Promise.reject(err));
                 })

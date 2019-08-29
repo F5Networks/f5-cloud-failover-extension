@@ -100,6 +100,14 @@ class Cloud extends AbstractCloud {
             });
     }
 
+    /**
+     * _updateRouteTable iterates through the routes and calls _replaceRoute if expected route exists
+     *
+     * @param {Object} routeTable - Route table with routes
+     * @param {String} networkInterfaceId - Network interface that the route if to be updated to
+     *
+     * @returns {Promise} - Resolves or rejects if route is replaced
+     */
     _updateRouteTable(routeTable, networkInterfaceId) {
         routeTable.Routes.forEach((route) => {
             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
@@ -108,10 +116,18 @@ class Cloud extends AbstractCloud {
                     .then(data => Promise.resolve(data))
                     .catch(error => Promise.reject(error));
             }
-            this.logger.info(routeTable.Name, ' route table not updated');
         });
+        this.logger.info(routeTable.Name, ' route table not updated');
+        return Promise.resolve();
     }
 
+    /**
+     * Fetches the route tables based on the provided tag
+     *
+     * @param {Object} privateIp - Private IP
+     *
+     * @returns {Promise} - Resolves with the network interface id associated with the private Ip or rejects
+     */
     _getNetworkInterfaceId(privateIp) {
         const params = {
             Filters: [
@@ -130,6 +146,13 @@ class Cloud extends AbstractCloud {
         });
     }
 
+    /**
+     * Fetches the route tables based on the provided tag
+     *
+     * @param {Object} tags - List of tags
+     *
+     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
+     */
     _getRouteTables(tags) {
         const params = {
             Filters: []
@@ -156,13 +179,21 @@ class Cloud extends AbstractCloud {
         });
     }
 
+    /**
+     * Replaces route in a route table
+     *
+     * @param {String} distCidr - Destination Cidr of the Route that is to be replaced
+     * @param {String} networkInterfaceId - Network interface ID to update the route to
+     * @param {String} routeTableId - Route table ID where the route is to be updated
+     *
+     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
+     */
     _replaceRoute(distCidr, networkInterfaceId, routeTableId) {
         const params = {
             DestinationCidrBlock: distCidr,
             NetworkInterfaceId: networkInterfaceId,
             RouteTableId: routeTableId
         };
-        this.logger.debug('This is params', params);
         return new Promise((resolve, reject) => {
             this.ec2.replaceRoute(params).promise()
                 .then((data) => {
