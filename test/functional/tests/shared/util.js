@@ -49,10 +49,15 @@ module.exports = {
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
         const deploymentInfo = require(deploymentFile);
-        return {
+        const environmentInfo = {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId
         };
+        // Get deployment region for AWS
+        if (deploymentInfo.region) {
+            environmentInfo.region = deploymentInfo.region;
+        }
+        return environmentInfo;
     },
 
     /**
