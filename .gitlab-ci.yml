@@ -261,8 +261,8 @@ docs to production:
   stage: publish
   variables:
       # aws vars
-      AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID_DOCS"
-      AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY_DOCS"
+      AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
+      AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
       AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
   environment:
     name: production
