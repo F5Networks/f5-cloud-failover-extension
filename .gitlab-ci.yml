@@ -137,8 +137,6 @@ test_functional_init_gcp:
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
     image: python:3
-    dependencies:
-        - test_functional_init_generic
     retry:
         max: 2
     script:
@@ -168,26 +166,29 @@ test_functional_execute_azure:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
 
 # run functional tests: aws
 test_functional_execute_aws:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
 
 # run functional tests: gcp
 test_functional_execute_gcp:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "gcp"
-
+    dependencies:
+        - test_functional_init_gcp
 
 # Functional Tests - Cleanup phase (executes always with 3 retries in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
     stage: test_functional_cleanup
     image: python:3
-    dependencies:
-        - test_functional_init_generic
     retry:
         max: 2
     when: always
@@ -218,19 +219,24 @@ test_functional_azure:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
 
 # run functional tests: aws
 test_functional_aws:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
 
 # run functional tests: gcp
 test_functional_gcp:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "gcp"
-
+    dependencies:
+        - test_functional_init_gcp
 
 ###  End of Functional Tests
 
