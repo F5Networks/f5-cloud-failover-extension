@@ -171,6 +171,7 @@ test_functional_execute_azure:
         CF_ENV_CLOUD: "azure"
     dependencies:
         - test_functional_init_azure
+        - build_package
 
 # run functional tests: aws
 test_functional_execute_aws:
@@ -179,6 +180,7 @@ test_functional_execute_aws:
         CF_ENV_CLOUD: "aws"
     dependencies:
         - test_functional_init_aws
+        - build_package
 
 # run functional tests: gcp
 test_functional_execute_gcp:
@@ -187,6 +189,7 @@ test_functional_execute_gcp:
         CF_ENV_CLOUD: "gcp"
     dependencies:
         - test_functional_init_gcp
+        - build_package
 
 # Functional Tests - Cleanup phase (executes always with 3 retries in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
