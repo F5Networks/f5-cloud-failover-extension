@@ -154,8 +154,8 @@ describe('Provider: GCP', () => {
             request = {
                 project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
                 auth: authClient,
-                region: 'us-west1',
-                zone: 'us-west1-a'
+                region: deploymentInfo.region,
+                zone: deploymentInfo.zone
             };
             return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
         })
