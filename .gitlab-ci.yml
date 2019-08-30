@@ -362,7 +362,6 @@ docs to stage:
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
 
-
 # Publish docs to clouddocs.f5.com
 docs to production:
   image: ${CONTAINTHEDOCS_IMAGE}
