@@ -102,7 +102,7 @@ test_package:
         - npm install
         # setup environment
         - npm run deployment-create
-        - mkdir terraform/${CF_ENV_CLOUD}
+        - mkdir -p terraform/${CF_ENV_CLOUD}
         - chmod -R +wr terraform/${CF_ENV_CLOUD}
         - cp deployment_info.json terraform/${CF_ENV_CLOUD}
         - cp *.tfstate terraform/${CF_ENV_CLOUD}
