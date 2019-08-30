@@ -132,7 +132,6 @@ test_functional_init_gcp:
     variables:
         CF_ENV_CLOUD: "gcp"
 
-
 # Functional Tests - Execute phase (with 3 retries in a case of any failures)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
