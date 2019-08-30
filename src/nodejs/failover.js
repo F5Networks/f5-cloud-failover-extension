@@ -44,7 +44,7 @@ class FailoverClient {
 
         this.addressDiscovery = null;
         this.routeDiscovery = null;
-        this.recoverPreviousTask = false;
+        this.recoverPreviousTask = null;
         this.recoveryOperations = null;
     }
 
@@ -52,6 +52,9 @@ class FailoverClient {
      * Execute (primary function)
      */
     execute() {
+        // reset certain properties on every execute invocation
+        this.recoverPreviousTask = false;
+
         return configWorker.getConfig()
             .then((data) => {
                 this.config = data;
@@ -76,6 +79,8 @@ class FailoverClient {
                 return this._waitForTask();
             })
             .then((taskResponse) => {
+                logger.debug('Task response: ', taskResponse);
+
                 // check if we are recovering from a previous task
                 if (taskResponse.recoverPreviousTask === true) {
                     this.recoverPreviousTask = true;
@@ -84,16 +89,16 @@ class FailoverClient {
                 return this._createAndUpdateStateObject({ taskState: failoverStates.RUN });
             })
             .then(() => {
-                logger.info('Performing Failover - discovery');
-
                 // recovering previous task - skip discovery
                 if (this.recoverPreviousTask === true) {
-                    logger.info('Recovering previous task: ', this.recoveryOperations);
+                    logger.warn('Recovering previous task: ', this.recoveryOperations);
                     return Promise.resolve([
                         this.recoveryOperations.addresses,
                         this.recoveryOperations.routes
                     ]);
                 }
+
+                logger.info('Performing Failover - discovery');
 
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
                 const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
@@ -201,7 +206,7 @@ class FailoverClient {
     _checkTaskState() {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
-                logger.debug('State file data: ', data);
+                logger.silly('State file data: ', data);
 
                 // initial case - simply create state object in next step
                 if (!data || !data.taskState) {

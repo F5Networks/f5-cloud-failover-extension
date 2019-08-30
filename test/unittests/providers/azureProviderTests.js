@@ -268,7 +268,7 @@ describe('Provider - Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _updateNics promise callback for valid case', () => {
+    it('validate _updateNic promise callback for valid case', () => {
         provider.networkClient = sinon.stub();
         provider.networkClient.networkInterfaces = sinon.stub();
         provider.networkClient.networkInterfaces.createOrUpdate = sinon.stub()
@@ -286,14 +286,14 @@ describe('Provider - Azure', () => {
             tags: 'tagsNic01'
         };
 
-        return provider._updateNics('resourceGroup01', 'nic01', nicParams, 'Dissasociate')
+        return provider._updateNic('resourceGroup01', 'nic01', nicParams, 'Dissasociate')
             .then((updateNicsResponse) => {
                 assert.strictEqual(updateNicsResponse, 'some_data');
             })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _updateNics promise rejection', () => {
+    it('validate _updateNic promise rejection', () => {
         provider.networkClient = sinon.stub();
         provider.networkClient.networkInterfaces = sinon.stub();
         provider.networkClient.networkInterfaces.createOrUpdate = sinon.stub()
@@ -311,7 +311,7 @@ describe('Provider - Azure', () => {
             tags: 'tagsNic01'
         };
 
-        return provider._updateNics('resourceGroup01', 'nic01', nicParams, 'Dissasociate')
+        return provider._updateNic('resourceGroup01', 'nic01', nicParams, 'Dissasociate')
             .then(() => {
                 // fails when promise gets resolved
                 assert.fail();
@@ -360,7 +360,7 @@ describe('Provider - Azure', () => {
             'Associate'
         ]
         ];
-        sinon.stub(provider, '_updateNics').resolves();
+        sinon.stub(provider, '_updateNic').resolves();
 
         return provider._updateAddresses(disassociate, associate)
             .then(() => {

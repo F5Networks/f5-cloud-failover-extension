@@ -48,11 +48,11 @@ const mockVms = [
         ]
     }
 ];
+const description = 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
 
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
-    const testErrorMessage = 'No routes identified for update. If routes update required, provide failover ip addresses, matching localAddresses, in description field.';
     const mockMetadata = {
         compute: {
             resourceGroupName: mockResourceGroup,
@@ -140,18 +140,20 @@ describe('Provider - GCP', () => {
     });
 
     it('validate updateRoute method', () => {
-        assert.strictEqual(typeof provider.updateRoutes, 'function');
-        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
-        const getRouytesMock = sinon.stub(provider, '_getRoutes');
-        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([
+        const localAddresses = ['1.1.1.1', '2.2.2.2'];
+        const getRoutesResponse = [
             {
                 kind: 'test-route',
-                description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}',
+                description,
                 id: 'some-test-id',
                 creationTimestamp: '101010101010',
                 selfLink: 'https://test-self-link',
-                nextHopIp: '1.1.1.2'
-            }]));
+                nextHopIp: '1.1.1.2',
+                destRange: '192.0.0.0/24'
+            }
+        ];
+        sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
+
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'DELETE');
@@ -165,7 +167,7 @@ describe('Provider - GCP', () => {
             assert.strictEqual(method, 'POST');
             assert.strictEqual(path, 'global/routes/');
             assert.strictEqual(payload.nextHopIp, '1.1.1.1');
-            assert.strictEqual(payload.description, 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}');
+            assert.strictEqual(payload.description, description);
             return Promise.resolve();
         });
         sinon.stub(provider.compute, 'operation').callsFake((name) => {
@@ -177,76 +179,15 @@ describe('Provider - GCP', () => {
                 }
             };
         });
-        return provider.updateRoutes(localAddresses)
+
+        provider.routeAddresses = ['192.0.0.0/24'];
+
+        return provider.updateRoutes({ localAddresses, discoverOnly: true })
+            .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert.strictEqual(provider.tags['test-tag-key'], 'test-tag-value');
-                assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
-    });
-
-    it('validate updateRoute method response when no failover routes identified ', () => {
-        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
-        const getRouytesMock = sinon.stub(provider, '_getRoutes');
-        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.0.0","1.0.0.0"]}', nextHopIp: '' }]));
-        return provider.updateRoutes(localAddresses)
-            .then((response) => {
-                assert.strictEqual(response, testErrorMessage);
-            })
-            .catch(() => {
-                assert.ok(false);
-            });
-    });
-
-    it('validate updateRoute method response when description does not include labels', () => {
-        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
-        const getRouytesMock = sinon.stub(provider, '_getRoutes');
-        getRouytesMock.onCall(0).callsFake(() => Promise.resolve([{ description: 'foo', nextHopIp: '' }]));
-        return provider.updateRoutes(localAddresses)
-            .then((response) => {
-                assert.strictEqual(response, testErrorMessage);
-            })
-            .catch(() => {
-                assert.ok(false);
-            });
-    });
-
-    it('validate updateRoute method response when route object is labeled incorrectly', () => {
-        const localAddresses = { localAddresses: ['1.1.1.1', '2.2.2.2'] };
-        const getRouytesMock = sinon.stub(provider, '_getRoutes');
-        getRouytesMock.onCall(0).callsFake(() => Promise.resolve({
-            items: [{ description: 'f5_self_ips', nextHopIp: '' }]
-        }));
-        return provider.updateRoutes(localAddresses)
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
-
-    it('validate downloadDataFromStorage method exists', () => {
-        assert.strictEqual(typeof provider.downloadDataFromStorage, 'function');
-    });
-
-    it('validate uploadDataToStorage method exists', () => {
-        assert.strictEqual(typeof provider.uploadDataToStorage, 'function');
-    });
-
-    it('validate _getRoutes method exists', () => {
-        assert.strictEqual(typeof provider._getRoutes, 'function');
-    });
-
-    it('validate _sendRequest method exists', () => {
-        assert.strictEqual(typeof provider._sendRequest, 'function');
-    });
-
-    it('validate _updateNic method exists', () => {
-        assert.strictEqual(typeof provider._updateNic, 'function');
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _getRoutes method execution', () => {
@@ -259,19 +200,25 @@ describe('Provider - GCP', () => {
                 name: 'test-name',
                 items: [
                     {
-                        description: 'f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}'
+                        name: 'notOurRoute'
+                    },
+                    {
+                        name: 'alsoNotOurRoute',
+                        description: 'foo'
+                    },
+                    {
+                        name: 'ourRoute',
+                        description
                     }
                 ]
             });
         });
 
-        return provider._getRoutes()
+        return provider._getRoutes({ tags: provider.routeTags })
             .then((data) => {
-                assert.strictEqual('f5_cloud_failover_labels={test-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}', data[0].description);
+                assert.strictEqual(data[0].name, 'ourRoute');
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _getRoutes method execution when routeTags do not match', () => {
@@ -284,19 +231,17 @@ describe('Provider - GCP', () => {
                 name: 'test-name',
                 items: [
                     {
-                        description: 'f5_cloud_failover_labels={test01-tag-key:\'test-tag-value\',f5_self_ips:[\'1.1.1.1\',\'1.1.1.2\']}'
+                        description
                     }
                 ]
             });
         });
 
-        return provider._getRoutes()
+        return provider._getRoutes({ tags: provider.routeTags })
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     it('validate _getRoutes method execution no routes found', () => {
@@ -312,13 +257,11 @@ describe('Provider - GCP', () => {
             });
         });
 
-        return provider._getRoutes()
+        return provider._getRoutes({ tags: provider.routeTags })
             .then((data) => {
                 assert.ok(data.length === 0);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
 
@@ -331,7 +274,7 @@ describe('Provider - GCP', () => {
             return Promise.reject();
         });
 
-        return provider._getRoutes()
+        return provider._getRoutes({ tags: provider.routeTags })
             .then(() => {
                 assert.ok(false);
             })
@@ -360,7 +303,8 @@ describe('Provider - GCP', () => {
 
         sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
 
-        return provider.updateAddresses(localAddresses, failoverAddresses)
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
             .then(() => {
                 assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
                 assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
@@ -372,10 +316,10 @@ describe('Provider - GCP', () => {
 
     it('validate promise rejection for updateAddresses method', () => {
         assert.strictEqual(typeof provider.updateAddresses, 'function');
-        sinon.stub(provider, '_updateNics').callsFake((localAddresses, failoverAddresses) => {
-            assert.strictEqual(localAddresses[0], '1.1.1.1');
-            assert.strictEqual(localAddresses[1], '4.4.4.4');
-            assert.strictEqual(failoverAddresses[0], '10.0.2.1');
+        sinon.stub(provider, '_updateNic').callsFake((options) => {
+            assert.strictEqual(options.localAddresses[0], '1.1.1.1');
+            assert.strictEqual(options.localAddresses[1], '4.4.4.4');
+            assert.strictEqual(options.failoverAddresses[0], '10.0.2.1');
             return Promise.reject();
         });
 
@@ -387,7 +331,7 @@ describe('Provider - GCP', () => {
         provider.fwdRules = [{ name: 'testFwrRule' }];
         provider.targetInstances = [{ name: 'testTargetInstance' }];
 
-        return provider.updateAddresses(localAddresses, failoverAddresses)
+        return provider.updateAddresses({ localAddresses, failoverAddresses })
             .then(() => {
                 assert.ok(false);
             })
@@ -468,56 +412,6 @@ describe('Provider - GCP', () => {
             })
             .catch((error) => {
                 assert.strictEqual(error.message, 'vm status is in failOnStatusCodes');
-            });
-    });
-
-    it('validate _updateNics', () => {
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
-
-
-        provider.instanceName = 'test-vm-01';
-        provider.vms = [{ name: 'test-vm-01', networkInterfaces: [{ name: 'testNic', aliasIpRanges: [] }] }, { name: 'test-vm-02', networkInterfaces: [{ name: 'testNic', aliasIpRanges: ['10.0.2.1/24'] }] }];
-        sinon.replace(provider, '_updateNic', sinon.fake.resolves());
-
-        return provider._updateNics(localAddresses, failoverAddresses)
-            .then(() => {
-                assert.ok(true);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate promise rejection for_updateNics due to missing failover ip', () => {
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = [];
-
-        provider.instanceName = 'test-vm-01';
-        provider.vms = [{ name: 'test-vm-01', networkInterfaces: [{ name: 'testNic', aliasIpRanges: [] }] }, { name: 'test-vm-02', networkInterfaces: [{ name: 'testNic', aliasIpRanges: ['10.0.2.1/24'] }] }];
-        sinon.replace(provider, '_updateNic', sinon.fake.rejects());
-
-        return provider._updateNics(localAddresses, failoverAddresses)
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
-    it('validate promise rejection for_updateNics due to missing myVms', () => {
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
-
-        provider.instanceName = 'this-is-invalid';
-        provider.vms = [{ name: 'test-vm-01', networkInterfaces: [{ name: 'testNic', aliasIpRanges: [] }] }, { name: 'test-vm-02', networkInterfaces: [{ name: 'testNic', aliasIpRanges: ['10.0.2.1/24'] }] }];
-        sinon.replace(provider, '_updateNic', sinon.fake.resolves());
-
-        return provider._updateNics(localAddresses, failoverAddresses)
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
             });
     });
 
@@ -685,9 +579,7 @@ describe('Provider - GCP', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(() => {
-                assert.ok(false);
-            });
+            .catch(err => Promise.reject(err));
     });
 
     /* eslint-disable arrow-body-style */
@@ -707,18 +599,6 @@ describe('Provider - GCP', () => {
         return provider._updateFwdRule()
             .then(() => {
                 assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
-    it('validate _updateNic method execution', () => {
-        sinon.stub(provider, '_sendRequest').callsFake(() => Promise.resolve({ name: 'test-name' }));
-
-        return provider._updateNic()
-            .then(() => {
-                assert.ok(true);
             })
             .catch(() => {
                 assert.ok(true);

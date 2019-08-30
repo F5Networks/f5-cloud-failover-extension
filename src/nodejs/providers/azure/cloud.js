@@ -126,10 +126,12 @@ class Cloud extends AbstractCloud {
         const updateOperations = options.updateOperations || {};
 
         if (discoverOnly === true) {
-            return this._discoverAddressOperations(localAddresses, failoverAddresses);
+            return this._discoverAddressOperations(localAddresses, failoverAddresses)
+                .catch(err => Promise.reject(err));
         }
         if (updateOperations && updateOperations.disassociate && updateOperations.associate) {
-            return this._updateAddresses(updateOperations.disassociate, updateOperations.associate);
+            return this._updateAddresses(updateOperations.disassociate, updateOperations.associate)
+                .catch(err => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
@@ -154,10 +156,12 @@ class Cloud extends AbstractCloud {
         const updateOperations = options.updateOperations || {};
 
         if (discoverOnly === true) {
-            return this._discoverRouteOperations(localAddresses);
+            return this._discoverRouteOperations(localAddresses)
+                .catch(err => Promise.reject(err));
         }
         if (updateOperations && updateOperations.operations) {
-            return this._updateRoutes(updateOperations.operations);
+            return this._updateRoutes(updateOperations.operations)
+                .catch(err => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverRouteOperations(localAddresses)
@@ -396,7 +400,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update Nics
+    * Update Nic
     *
     * @param {String} group     - group
     * @param {String} nicName   - nicName
@@ -405,7 +409,7 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    _updateNics(group, nicName, nicParams, action) {
+    _updateNic(group, nicName, nicParams, action) {
         return new Promise(
             ((resolve, reject) => {
                 this.logger.debug(action, 'NIC: ', nicName);
@@ -569,7 +573,7 @@ class Cloud extends AbstractCloud {
         }
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(util.retrier.call(this, this._updateNics, item, shortRetry));
+            disassociatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
         });
         return Promise.all(disassociatePromises)
             .then(() => {
@@ -577,7 +581,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(util.retrier.call(this, this._updateNics, item, shortRetry));
+                    associatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
                 });
                 return Promise.all(associatePromises);
             })
@@ -631,7 +635,7 @@ class Cloud extends AbstractCloud {
     *
     * @param {Object} localAddresses - local addresses
     *
-    * @returns {Promise} [ ['id', 'name', 'routeName', {}] ]
+    * @returns {Promise} { operations: ['id', 'name', 'routeName', {}] }
     */
     _discoverRouteOperations(localAddresses) {
         return this._getRouteTables({ tags: this.routeTags })
@@ -659,7 +663,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update addresses (given disassociate/associate operations)
+    * Update routes (given reassociate operations)
     *
     * @param {Array} operations - operations array
     *
