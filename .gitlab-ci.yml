@@ -3,7 +3,9 @@ image: node:8
 stages:
     - build_package
     - test
-    - test_functional
+    - test_functional_init
+    - test_functional_execute
+    - test_functional_cleanup
     - build
     - publish
 
@@ -81,11 +83,14 @@ test_package:
         paths:
             - coverage
 
-# run functional tests: generic template
-# note: the tests will run on production/release branch(es) and merge requests only
-.test_functional_generic: &test_functional_generic
-    stage: test_functional
+### Functional Tests Section
+
+# Functional Tests - Initialization phase (with 3 retries in a case of any failures)
+.test_functional_init_generic: &test_functional_init_generic
+    stage: test_functional_init
     image: python:3
+    retry:
+        max: 3
     script:
         # install jq
         - apt-get update
@@ -97,10 +102,106 @@ test_package:
         - npm install
         # setup environment
         - npm run deployment-create
-        # run functional tests
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+    artifacts:
+        paths:
+            - terraform/${CF_ENV_CLOUD}
+
+# run functional tests: azure
+test_functional_init_azure:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_init_aws:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+test_functional_init_gcp:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+
+
+# Functional Tests - Execute phase (with 3 retries in a case of any failures)
+.test_functional_execute_generic: &test_functional_execute_generic
+    stage: test_functional_execute
+    image: python:3
+    dependencies:
+        - test_functional_init_generic
+    retry:
+        max: 3
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp terraform/${CF_ENV_CLOUD} .
+        # executing fuctional test
         - npm run test-functional
         # run API smoke tests
         - npm run validate-api
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+
+# run functional tests: azure
+test_functional_execute_azure:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_execute_aws:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+test_functional_execute_gcp:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+
+
+# Functional Tests - Cleanup phase (executes always with 3 retries in a case of any failures)
+.test_functional_cleanup_generic: &test_functional_cleanup_generic
+    stage: test_functional_cleanup
+    image: python:3
+    dependencies:
+        - test_functional_init_generic
+    retry:
+        max: 3
+    when: always
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install terraform
+        - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp terraform/${CF_ENV_CLOUD} .
         # teardown environment
         - npm run deployment-delete
     tags:
@@ -114,21 +215,24 @@ test_package:
 
 # run functional tests: azure
 test_functional_azure:
-    <<: *test_functional_generic
+    <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "azure"
 
 # run functional tests: aws
 test_functional_aws:
-    <<: *test_functional_generic
+    <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "aws"
 
 # run functional tests: gcp
 test_functional_gcp:
-    <<: *test_functional_generic
+    <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+
+
+###  End of Functional Tests
 
 build_docs:
     image: python:3.7
