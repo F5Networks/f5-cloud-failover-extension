@@ -214,7 +214,7 @@ test_functional_execute_gcp:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: azure
-test_functional_azure:
+test_functional_cleanup_azure:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "azure"
@@ -222,7 +222,7 @@ test_functional_azure:
         - test_functional_init_azure
 
 # run functional tests: aws
-test_functional_aws:
+test_functional_cleanup_aws:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "aws"
@@ -230,7 +230,7 @@ test_functional_aws:
         - test_functional_init_aws
 
 # run functional tests: gcp
-test_functional_gcp:
+test_functional_cleanup_gcp:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "gcp"
