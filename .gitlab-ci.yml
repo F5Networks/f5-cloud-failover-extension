@@ -90,7 +90,7 @@ test_package:
     stage: test_functional_init
     image: python:3
     retry:
-        max: 3
+        max: 2
     script:
         # install jq
         - apt-get update
@@ -140,7 +140,7 @@ test_functional_init_gcp:
     dependencies:
         - test_functional_init_generic
     retry:
-        max: 3
+        max: 2
     script:
         # install jq
         - apt-get update
@@ -189,7 +189,7 @@ test_functional_execute_gcp:
     dependencies:
         - test_functional_init_generic
     retry:
-        max: 3
+        max: 2
     when: always
     script:
         # install jq
