@@ -102,10 +102,10 @@ test_package:
         - npm install
         # setup environment
         - npm run deployment-create
-        - mkdir -p terraform/${CF_ENV_CLOUD}
-        - chmod -R +wr terraform/${CF_ENV_CLOUD}
-        - cp deployment_info.json terraform/${CF_ENV_CLOUD}
-        - cp *.tfstate terraform/${CF_ENV_CLOUD}
+        - mkdir -p env_metadata/${CF_ENV_CLOUD}
+        - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
+        - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
+        - cp *.tfstate env_metadata/${CF_ENV_CLOUD}
     tags:
         - cm-official-docker-executor
     only:
@@ -116,7 +116,7 @@ test_package:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
     artifacts:
         paths:
-            - terraform/${CF_ENV_CLOUD}
+            - env_metadata/${CF_ENV_CLOUD}
 
 # run functional tests: azure
 test_functional_init_azure:
@@ -150,7 +150,7 @@ test_functional_init_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a terraform/${CF_ENV_CLOUD}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # executing fuctional test
         - npm run test-functional
         # run API smoke tests
@@ -205,7 +205,7 @@ test_functional_execute_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a terraform/${CF_ENV_CLOUD}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # teardown environment
         - npm run deployment-delete
     tags:
