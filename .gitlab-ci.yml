@@ -102,6 +102,10 @@ test_package:
         - npm install
         # setup environment
         - npm run deployment-create
+        - mkdir terraform/${CF_ENV_CLOUD}
+        - chmod -R +wr terraform/${CF_ENV_CLOUD}
+        - cp deployment_info.json terraform/${CF_ENV_CLOUD}
+        - cp *.tfstate terraform/${CF_ENV_CLOUD}
     tags:
         - cm-official-docker-executor
     only:
@@ -146,7 +150,7 @@ test_functional_init_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp terraform/${CF_ENV_CLOUD} .
+        - cp -a terraform/${CF_ENV_CLOUD}/. .
         # executing fuctional test
         - npm run test-functional
         # run API smoke tests
@@ -201,7 +205,7 @@ test_functional_execute_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp terraform/${CF_ENV_CLOUD} .
+        - cp -a terraform/${CF_ENV_CLOUD}/. .
         # teardown environment
         - npm run deployment-delete
     tags:
