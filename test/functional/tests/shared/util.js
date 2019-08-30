@@ -51,7 +51,8 @@ module.exports = {
         const deploymentInfo = require(deploymentFile);
         return {
             environment: deploymentInfo.environment,
-            deploymentId: deploymentInfo.deploymentId
+            deploymentId: deploymentInfo.deploymentId,
+            region: deploymentInfo.region || null // Optional; supporting AWS
         };
     },
 
