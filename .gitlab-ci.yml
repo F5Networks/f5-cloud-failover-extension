@@ -227,7 +227,7 @@ pages:
     only:
         - master
         - develop
-        - publish_docs
+        - docs_staging
 
 # Publish docs to clouddocs.f5networks.com
 docs to stage:
@@ -245,7 +245,7 @@ docs to stage:
         variables:
             # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
             - $CI_COMMIT_REF_NAME == "develop"
-            - $CI_COMMIT_REF_NAME == "publish_docs"
+            - $CI_COMMIT_REF_NAME == "docs_staging"
     tags:
         - cm-official-docker-executor
     dependencies:
@@ -273,6 +273,7 @@ docs to production:
         variables:
             # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
             - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "docs_production"
     tags:
         - cm-official-docker-executor
     dependencies:
