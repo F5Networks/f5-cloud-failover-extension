@@ -8,11 +8,11 @@ variable "publisher" {
 }
 
 variable "offer" {
-  default = "f5-big-ip-good"
+  default = "f5-big-ip-best"
 }
 
 variable "sku" {
-  default = "f5-bigip-virtual-edition-25m-good-hourly"
+  default = "f5-bigip-virtual-edition-25m-best-hourly"
 }
 
 variable "bigip_version" {
