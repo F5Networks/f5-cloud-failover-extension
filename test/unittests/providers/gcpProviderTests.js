@@ -173,9 +173,12 @@ describe('Provider - GCP', () => {
         returnObject.on.withArgs('data').yields(JSON.stringify(payload));
         returnObject.on.withArgs('end').yields(null);
 
+        const createReadStreamSpy = sinon.stub().returns(returnObject);
+        const existsSpy = sinon.stub().resolves([true]);
+
         provider.bucket.file = sinon.stub().returns({
-            createReadStream: sinon.stub().resolves([true]),
-            exists: sinon.stub().resolves([true])
+            createReadStream: createReadStreamSpy,
+            exists: existsSpy
         });
         return provider.downloadDataFromStorage(fileName)
             .then((data) => {
@@ -482,7 +485,7 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getFwdRules returned promise', () => {
-        sinon.replace(provider, '_sendRequest', sinon.fake.resolves('test_data'));
+        sinon.replace(provider, '_sendRequest', sinon.fake.resolves({ items: 'test_data' }));
 
         return provider._getFwdRules()
             .then((data) => {
