@@ -230,7 +230,7 @@ pages:
         - docs_staging
 
 # Publish docs to clouddocs.f5networks.com
-docs to stage:
+docs to staging:
     image: ${CONTAINTHEDOCS_IMAGE}
     stage: publish
     variables:
