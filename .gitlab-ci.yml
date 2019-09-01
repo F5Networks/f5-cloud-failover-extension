@@ -230,7 +230,7 @@ pages:
         - docs_staging
 
 # Publish docs to clouddocs.f5networks.com
-docs to stage:
+docs to staging:
     image: ${CONTAINTHEDOCS_IMAGE}
     stage: publish
     variables:
@@ -240,7 +240,7 @@ docs to stage:
         AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
     environment:
         name: stage
-        url: https://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
+        url: https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
     only:
         variables:
             # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
@@ -252,7 +252,7 @@ docs to stage:
         - build_docs
     script:
         # Uncomment and set to create desired version format
-        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
+        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
 
