@@ -139,6 +139,96 @@ describe('Provider - GCP', () => {
             });
     });
 
+    it('validate uploadDataToStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+        provider.bucket.file = (name) => {
+            return {
+                fileName: name,
+                save: (data) => {
+                    if (data.toString().length > 0) {
+                        assert.strictEqual(JSON.parse(data).status, payload.status);
+                        return Promise.resolve(data);
+                    }
+                    return Promise.resolve();
+                }
+            };
+        };
+
+        return provider.uploadDataToStorage(fileName, payload)
+            .then((data) => {
+                assert.strictEqual(JSON.parse(data).status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate downloadDataFromStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'progress' };
+        provider.bucket = payload;
+
+        const returnObject = sinon.stub();
+        returnObject.on = sinon.stub();
+        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
+        returnObject.on.withArgs('end').yields(null);
+
+        provider.bucket.file = sinon.stub().returns({
+            createReadStream: sinon.stub().resolves([true]),
+            exists: sinon.stub().resolves([true])
+        });
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.strictEqual(data.status, payload.status);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate updateAddresses method', () => {
+        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
+        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{ instance: 'compute/testInstanceName' }]);
+
+        const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+
+        provider.instanceName = 'testInstanceName';
+
+        const localAddresses = ['1.1.1.1', '4.4.4.4'];
+        const failoverAddresses = ['10.0.2.1'];
+
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(() => {
+                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
+                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
+                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
+                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate updateAddresses method, promise rejection', () => {
+        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
+        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{ instance: 'compute/testInstanceName' }]);
+
+        sinon.stub(provider, '_updateNic').rejects(new Error('rejection'));
+
+        provider.instanceName = 'testInstanceName';
+
+        const localAddresses = ['1.1.1.1', '4.4.4.4'];
+        const failoverAddresses = ['10.0.2.1'];
+
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(() => {
+                assert.ok(false, 'Expected an error');
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
     it('validate updateRoute method', () => {
         const localAddresses = ['1.1.1.1', '2.2.2.2'];
         const getRoutesResponse = [
@@ -174,7 +264,6 @@ describe('Provider - GCP', () => {
             assert.strictEqual(name, 'test-name');
             return {
                 promise: () => {
-                    assert.ok(true);
                     return Promise.resolve();
                 }
             };
@@ -283,63 +372,6 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate updateAddresses method', () => {
-        assert.strictEqual(typeof provider.updateAddresses, 'function');
-        sinon.stub(provider, '_updateFwdRules').callsFake((fwdRules, targetInstances, failoverIpAddresses) => {
-            assert.strictEqual(failoverIpAddresses[0], '10.0.2.1');
-            assert.strictEqual(targetInstances[0].name, 'testTargetInstance');
-            assert.strictEqual(fwdRules[0].name, 'testFwrRule');
-            return Promise.resolve();
-        });
-
-        const updateNicSpy = sinon.stub().resolves();
-        sinon.replace(provider, '_updateNic', updateNicSpy);
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
-
-        provider.instanceName = 'testInstanceName';
-        provider.fwdRules = [{ name: 'testFwrRule' }];
-        provider.targetInstances = [{ name: 'testTargetInstance' }];
-
-        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
-
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
-            .then(() => {
-                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
-                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
-                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
-                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate promise rejection for updateAddresses method', () => {
-        assert.strictEqual(typeof provider.updateAddresses, 'function');
-        sinon.stub(provider, '_updateNic').callsFake((options) => {
-            assert.strictEqual(options.localAddresses[0], '1.1.1.1');
-            assert.strictEqual(options.localAddresses[1], '4.4.4.4');
-            assert.strictEqual(options.failoverAddresses[0], '10.0.2.1');
-            return Promise.reject();
-        });
-
-        sinon.replace(provider, '_updateNic', sinon.fake.resolves());
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
-        provider.vms = mockVms;
-        provider.instanceName = 'testInstanceName';
-        provider.fwdRules = [{ name: 'testFwrRule' }];
-        provider.targetInstances = [{ name: 'testTargetInstance' }];
-
-        return provider.updateAddresses({ localAddresses, failoverAddresses })
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
     it('validate _getLocalMetadata', () => {
         cloudLibsUtil.getDataFromUrl = sinon.stub().resolves('test-data');
 
@@ -366,7 +398,7 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate _matchIps methode', () => {
+    it('validate _matchIps method', () => {
         assert.strictEqual(provider.environment, cloud);
         const result = provider._matchIps([{ ipCidrRange: '10.0.0.0/24' }, { ipCidrRange: '10.0.1.0/24' }], [{ address: '10.0.0.1' }]);
         assert.strictEqual(result[0].ipCidrRange, '10.0.0.0/24');
@@ -415,104 +447,8 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate _updateFwdRules', () => {
-        provider.instanceName = 'instance01';
-        provider.computeRegion = provider.compute.region('us-west');
-
-
-        sinon.stub(provider, '_updateFwdRule').callsFake((target) => {
-            assert.strictEqual(target, 'item01');
-            return Promise.resolve();
-        });
-
-        return provider._updateFwdRules({
-            name: 'test-fwrdRule',
-            items: [{ name: 'item01', IPAddress: '10.0.2.1', target: 'target01' },
-                { name: 'item02', IPAddress: '10.0.2.2', target: 'target02' }]
-        },
-        {
-            name: 'test-target-instances',
-            items: [{ name: 'instance01', instance: 'instance01', selfLink: 'urn:none' },
-                { name: 'instance02', instance: 'instance02', selfLink: 'urn:none' }]
-        }, ['10.0.2.1'])
-            .then(() => {
-                assert.ok(true);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate _updateFwdRules promise rejection when unable locate targetInstance', () => {
-        provider.instanceName = 'instance01';
-        provider.computeRegion = provider.compute.region('us-west');
-
-
-        sinon.stub(provider, '_updateFwdRule').callsFake((target) => {
-            assert.strictEqual(target, 'item01');
-            return Promise.resolve();
-        });
-
-        return provider._updateFwdRules({
-            name: 'test-fwrdRule',
-            items: [{ name: 'item01', IPAddress: '10.0.2.1', target: 'target01' },
-                { name: 'item02', IPAddress: '10.0.2.2', target: 'target02' }]
-        },
-        {
-            name: 'test-target-instances',
-            items: [{ name: 'instance03', instance: 'instance03', selfLink: 'urn:none' },
-                { name: 'instance02', instance: 'instance02', selfLink: 'urn:none' }]
-        }, ['10.0.2.1'])
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch((err) => {
-                assert.strictEqual('Unable to locate our target instance: instance01', err.message);
-            });
-    });
-
-
-    it('validate promise rejection for _updateFwdRules due to missing failover ip', () => {
-        provider.instanceName = 'instance01';
-        provider.computeRegion = provider.compute.region('us-west');
-
-        return provider._updateFwdRules({
-            name: 'test-fwrdRule',
-            items: [{ name: 'item01', IPAddress: '10.0.2.1', target: 'target01' },
-                { name: 'item02', IPAddress: '10.0.2.2', target: 'target02' }]
-        },
-        {
-            name: 'test-target-instances',
-            items: []
-        }, [])
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
-    it('validate promise rejection for _updateFwdRules due to missing target instance', () => {
-        provider.instanceName = 'instance01';
-        provider.computeRegion = provider.compute.region('us-west');
-
-
-        return provider._updateFwdRules({
-            name: 'test-fwrdRule',
-            items: [{ name: 'item01', IPAddress: '10.0.2.1', target: 'target01' },
-                { name: 'item02', IPAddress: '10.0.2.2', target: 'target02' }]
-        },
-        { name: 'test-target-instances', items: [] }, ['10.0.2.1'])
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
-    });
-
-
     it('validate promise resolve for _getTargetInstances', () => {
-        sinon.replace(provider, '_sendRequest', sinon.fake.resolves('test_data'));
+        sinon.stub(provider, '_sendRequest').resolves({ items: 'test_data' });
 
         return provider._getTargetInstances()
             .then((data) => {
@@ -529,7 +465,6 @@ describe('Provider - GCP', () => {
                 assert.ok(false);
             })
             .catch((error) => {
-                assert.ok(true);
                 assert.strictEqual('test_error', error.message);
             });
     });
@@ -542,7 +477,6 @@ describe('Provider - GCP', () => {
                 assert.ok(false);
             })
             .catch((error) => {
-                assert.ok(true);
                 assert.strictEqual(error.message, 'test_error');
             });
     });
@@ -582,7 +516,6 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    /* eslint-disable arrow-body-style */
     it('validate _updateFwdRule method promise rejection', () => {
         provider.computeRegion = {
             rule: () => {
@@ -647,56 +580,10 @@ describe('Provider - GCP', () => {
         provider.storage.getBuckets = () => {
             return Promise.resolve(payload);
         };
+
         return provider._getBucketFromLabel({ foo: 'bar', foo1: 'bar1' })
             .then((data) => {
                 assert.strictEqual(data.name, 'ourBucket');
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate uploadDataToStorage', () => {
-        const fileName = 'test.json';
-        const payload = { status: 'progress' };
-        provider.bucket = payload;
-        provider.bucket.file = (name) => {
-            return {
-                fileName: name,
-                save: (data) => {
-                    if (data.toString().length > 0) {
-                        assert.strictEqual(JSON.parse(data).status, payload.status);
-                        return Promise.resolve(data);
-                    }
-                    return Promise.resolve();
-                }
-            };
-        };
-        return provider.uploadDataToStorage(fileName, payload)
-            .then((data) => {
-                assert.strictEqual(JSON.parse(data).status, payload.status);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate downloadDataFromStorage', () => {
-        const fileName = 'test.json';
-        const payload = { status: 'progress' };
-        provider.bucket = payload;
-
-        const returnObject = sinon.stub();
-        returnObject.on = sinon.stub();
-        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
-        returnObject.on.withArgs('end').yields(null);
-        const createReadStreamReturn = sinon.stub().returns(returnObject);
-
-        const existsReturn = sinon.stub().resolves([true]);
-
-        provider.bucket.file = sinon.stub().returns({
-            createReadStream: createReadStreamReturn,
-            exists: existsReturn
-        });
-        return provider.downloadDataFromStorage(fileName)
-            .then((data) => {
-                assert.strictEqual(data.status, payload.status);
             })
             .catch(err => Promise.reject(err));
     });
