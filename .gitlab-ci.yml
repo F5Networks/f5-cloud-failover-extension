@@ -227,6 +227,7 @@ pages:
     only:
         - master
         - develop
+        - docs_staging
 
 # Publish docs to clouddocs.f5networks.com
 docs to stage:
@@ -241,8 +242,10 @@ docs to stage:
         name: stage
         url: https://clouddocs.f5networks.com/products/extensions/f5-cloud-failover/latest
     only:
-        # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
-        - develop@cloudsolutions/f5-cloud-failover
+        variables:
+            # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $CI_COMMIT_REF_NAME == "docs_staging"
     tags:
         - cm-official-docker-executor
     dependencies:
@@ -256,26 +259,28 @@ docs to stage:
 
 # Publish docs to clouddocs.f5.com
 docs to production:
-  image: ${CONTAINTHEDOCS_IMAGE}
-  stage: publish
-  variables:
-      # aws vars
-      AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
-      AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
-      AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
-  environment:
-    name: production
-    url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
-  only:
-    # Currently will only deploy to clouddocs.f5.com on commits to master branch
-    - master@cloudsolutions/f5-cloud-failover
-  tags:
-    - cm-official-docker-executor
-  dependencies:
-    - build_docs
-  script:
-  # Uncomment and set to create desired version format
-    - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
-    # create invalidation to clear cloudfront cache
-    - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
+    image: ${CONTAINTHEDOCS_IMAGE}
+    stage: publish
+    variables:
+        # aws vars
+        AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
+        AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
+        AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+    environment:
+        name: production
+        url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
+    only:
+        variables:
+            # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "docs_production"
+    tags:
+        - cm-official-docker-executor
+    dependencies:
+        - build_docs
+    script:
+    # Uncomment and set to create desired version format
+        - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
+        # create invalidation to clear cloudfront cache
+        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
 
