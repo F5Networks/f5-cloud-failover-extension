@@ -37,7 +37,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
     * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
     * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
-    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
+    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'f5_self_ips'
     * @param {Object} [options.storageTags]     - object containing storage tags to filter on { 'key': 'value' }
     */
     init(options) {
@@ -97,7 +97,7 @@ class Cloud extends AbstractCloud {
     */
     uploadDataToStorage(fileName, data) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Uploading data to: ${s3Key}`);
+        this.logger.silly(`Uploading data to: ${s3Key} ${util.stringify(data)}`);
 
         const uploadObject = () => new Promise((resolve, reject) => {
             const params = {
@@ -124,6 +124,8 @@ class Cloud extends AbstractCloud {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Downloading data from: ${s3Key}`);
 
+        // TODO: if the folder or file does not exist, an error get's returned
+        // error: 'The specified key does not exist'
         const downloadObject = () => new Promise((resolve, reject) => {
             const params = {
                 Bucket: this.s3BucketName,
@@ -151,14 +153,23 @@ class Cloud extends AbstractCloud {
                 const promises = [];
                 this.logger.debug('Route Tables', routeTables);
                 routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    const promise = this._getNetworkInterfaceId(selfIpToUse)
-                        .then((networkInterfaceId) => {
-                            this.logger.debug('Network Interface ID', networkInterfaceId);
-                            return this._updateRouteTable(routeTable, networkInterfaceId);
-                        });
-                    promises.push(promise);
+                    const getSelfIpsFromTag = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0];
+                    if (getSelfIpsFromTag) {
+                        const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
+                        const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                        if (selfIpToUse) {
+                            const promise = this._getNetworkInterfaceId(selfIpToUse)
+                                .then((networkInterfaceId) => {
+                                    this.logger.debug('Network Interface ID', networkInterfaceId);
+                                    return this._updateRouteTable(routeTable, networkInterfaceId);
+                                });
+                            promises.push(promise);
+                        } else {
+                            this.logger.warn(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
+                        }
+                    } else {
+                        this.logger.warn(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
+                    }
                 });
                 return Promise.all(promises);
             });
@@ -175,13 +186,12 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTable, networkInterfaceId) {
         routeTable.Routes.forEach((route) => {
             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                this.logger.info('Updating Route');
+                this.logger.silly('Updating route: ', route);
                 this._replaceRoute(route.DestinationCidrBlock, networkInterfaceId, routeTable.RouteTableId)
                     .then(data => Promise.resolve(data))
                     .catch(error => Promise.reject(error));
             }
         });
-        this.logger.info(routeTable.Name, ' route table not updated');
         return Promise.resolve();
     }
 
@@ -289,11 +299,7 @@ class Cloud extends AbstractCloud {
         // Disassociate EIP, in case EIP wasn't created with ability to reassociate when already associated
         return Promise.all(disassociatePromises)
             .then(() => {
-                if (disassociatePromises.length === 0) {
-                    this.logger.info('Disassociation of Elastic IP addresses not required');
-                } else {
-                    this.logger.info('Disassociation of Elastic IP addresses successful');
-                }
+                this.logger.silly('Disassociation of Elastic IP addresses successful');
 
                 Object.keys(EIPConfigs).forEach((eipKeys) => {
                     const allocationId = EIPConfigs[eipKeys].AllocationId;

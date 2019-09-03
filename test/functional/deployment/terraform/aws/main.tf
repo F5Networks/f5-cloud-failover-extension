@@ -71,7 +71,7 @@ resource "aws_route_table" "external" {
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
       f5_cloud_failover_label = "${module.utils.env_prefix}"
-      F5_SELF_IPS = "${tolist(aws_network_interface.external1.private_ips)[0]}, ${tolist(aws_network_interface.external2.private_ips)[0]}"
+      f5_self_ips = "${aws_network_interface.external1.private_ip},${aws_network_interface.external2.private_ip}"
     }
   )}"
 }
@@ -244,7 +244,8 @@ resource "aws_s3_bucket" "configdb" {
   tags = "${merge(
     var.global_tags,
     {
-      Name = "failoverextension-${module.utils.env_prefix}-s3bucket"
+      Name = "failoverextension-${module.utils.env_prefix}-s3bucket",
+      f5_cloud_failover_label = "${module.utils.env_prefix}"
     }
   )}"
 }

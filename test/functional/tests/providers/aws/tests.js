@@ -221,6 +221,10 @@ describe('Provider: AWS', () => {
 
     // Functional tests
 
+    it('should ensure secondary is not primary', () => forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
     // Test IP and Route failover
     it('should check that Elastic IP is mapped to primary (vm0)', function () {
         this.retries(RETRIES.LONG);

@@ -126,6 +126,7 @@ describe('Provider - AWS', () => {
         provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
         provider.logger.silly = sinon.stub();
+        provider.logger.warn = sinon.stub();
 
         provider.metadata.request = sinon.stub().callsFake((path, callback) => {
             metadataPathRequest = path;
