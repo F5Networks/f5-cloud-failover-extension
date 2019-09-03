@@ -90,7 +90,7 @@ test_package:
     stage: test_functional_init
     image: python:3
     retry:
-        max: 2
+        max: 1
     script:
         # install jq
         - apt-get update
@@ -102,6 +102,7 @@ test_package:
         - npm install
         # setup environment
         - npm run deployment-create
+        - if [ $? -ne 0 ]; then exit 1; else echo 'deployment succeeded - continue ...'; fi
         - mkdir -p env_metadata/${CF_ENV_CLOUD}
         - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
         - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
@@ -153,6 +154,7 @@ test_functional_init_gcp:
         - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # executing fuctional test
         - npm run test-functional
+        - if [ $? -ne 0 ]; then exit 1; else echo 'functional tests succeeded - continue ...'; fi
         # run API smoke tests
         - npm run validate-api
     tags:
