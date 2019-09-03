@@ -233,11 +233,6 @@ pages:
 docs to staging:
     image: ${CONTAINTHEDOCS_IMAGE}
     stage: publish
-    variables:
-        # aws vars
-        AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
-        AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
-        AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
     environment:
         name: stage
         url: https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
@@ -251,21 +246,18 @@ docs to staging:
     dependencies:
         - build_docs
     script:
+        - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
+        - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
         # Uncomment and set to create desired version format
-        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
+        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
         # create invalidation to clear cloudfront cache
-        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
+        - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 
 
 # Publish docs to clouddocs.f5.com
 docs to production:
     image: ${CONTAINTHEDOCS_IMAGE}
     stage: publish
-    variables:
-        # aws vars
-        AWS_ACCESS_KEY_ID: "$DOCS_AWS_ACCESS_KEY_ID"
-        AWS_SECRET_ACCESS_KEY: "$DOCS_AWS_SECRET_ACCESS_KEY"
-        AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
     environment:
         name: production
         url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
@@ -279,8 +271,10 @@ docs to production:
     dependencies:
         - build_docs
     script:
-    # Uncomment and set to create desired version format
-        - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
+        - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
+        - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
+        # Uncomment and set to create desired version format
+        - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest --profile=docs
         # create invalidation to clear cloudfront cache
-        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest
+        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 
