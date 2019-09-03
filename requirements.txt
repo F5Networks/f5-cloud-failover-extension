@@ -1,10 +1,8 @@
 # doc requirements
 awscli
-f5-sphinx-theme==2.0.1 # lock to version that contains stylesheets
-sphinx==1.8.5
+f5-sphinx-theme>=2.0.1 # lock to version that contains stylesheets
+sphinx=>2.0
 recommonmark
 sphinxjp.themes.basicstrap
 cloud_sptheme
 sphinx_copybutton
-
-

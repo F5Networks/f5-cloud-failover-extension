@@ -131,7 +131,7 @@ test_functional_gcp:
         CF_ENV_CLOUD: "gcp"
 
 build_docs:
-    image: python:3.7
+    image: ${CONTAINTHEDOCS_IMAGE}
     stage: build
     script:
         # install packages
