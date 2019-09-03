@@ -124,15 +124,17 @@ class Cloud extends AbstractCloud {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Downloading data from: ${s3Key}`);
 
-        // TODO: if the folder or file does not exist, an error get's returned
-        // error: 'The specified key does not exist'
         const downloadObject = () => new Promise((resolve, reject) => {
-            const params = {
-                Bucket: this.s3BucketName,
-                Key: s3Key
-            };
-            this.s3.getObject(params).promise()
-                .then(response => resolve(response.Body.toString()))
+            // check if the object exists first, if not return an empty object
+            this.s3.listObjectsV2({ Bucket: this.s3BucketName, Prefix: s3Key }).promise()
+                .then((data) => {
+                    if (data.Contents && data.Contents.length) {
+                        return this.s3.getObject({ Bucket: this.s3BucketName, Key: s3Key }).promise()
+                            .then(response => JSON.parse(response.Body.toString()));
+                    }
+                    return Promise.resolve({});
+                })
+                .then(response => resolve(response))
                 .catch(err => reject(err));
         });
 

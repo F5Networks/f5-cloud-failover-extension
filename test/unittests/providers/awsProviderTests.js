@@ -814,14 +814,23 @@ describe('Provider - AWS', () => {
 
     describe('function downloadDataFromStorage', () => {
         let passedParams;
+        const mockResponseBody = { foo: 'bar' };
         const mockObjectBody = {
-            Body: 'objectData'
+            Body: Buffer.from(JSON.stringify(mockResponseBody))
         };
 
         it('should pass correct params to downloadObject', () => provider.init(mockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
 
+                provider.s3.listObjectsV2 = sinon.stub().callsFake(() => {
+                    const response = { Contents: ['foo'] };
+                    return {
+                        promise() {
+                            return Promise.resolve(response);
+                        }
+                    };
+                });
                 provider.s3.getObject = sinon.stub().callsFake((params) => {
                     passedParams = params;
                     return {
@@ -835,11 +844,28 @@ describe('Provider - AWS', () => {
             .then((data) => {
                 assert.strictEqual(passedParams.Bucket, _s3FileParamsStub.Bucket);
                 assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
-                assert.strictEqual(data, mockObjectBody.Body);
+                assert.deepStrictEqual(data, mockResponseBody);
             })
-            .catch(() => {
-                assert.fail();
-            }));
+            .catch(err => Promise.reject(err)));
+
+        it('should return empty object if listObjects is empty', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.listObjectsV2 = sinon.stub().callsFake(() => {
+                    const response = { Contents: [] };
+                    return {
+                        promise() {
+                            return Promise.resolve(response);
+                        }
+                    };
+                });
+                return provider.downloadDataFromStorage('file.json');
+            })
+            .then((data) => {
+                assert.deepStrictEqual(data, {});
+            })
+            .catch(err => Promise.reject(err)));
 
         describe('function updateRoutes should', () => {
             it('update routes if route exists', () => {

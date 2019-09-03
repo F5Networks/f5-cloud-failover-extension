@@ -275,4 +275,37 @@ describe('Provider: AWS', () => {
         return checkRouteTable(dutPrimary)
             .catch(err => Promise.reject(err));
     });
+
+    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+
+    // ideally this would be replaced by a check for previous failover task success completion
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
+    ));
+
+    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
+        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+    ));
+
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
+    ));
+
+    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
+    it('Flapping scenario: should check that Elastic IP is mapped to primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkElasticIP(dutPrimary)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Flapping scenario: should check AWS route table routes for next hop matches primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+
+        return checkRouteTable(dutPrimary)
+            .catch(err => Promise.reject(err));
+    });
 });
