@@ -88,7 +88,7 @@ test_package:
 # Functional Tests - Initialization phase (with 3 retries in a case of any failures)
 .test_functional_init_generic: &test_functional_init_generic
     stage: test_functional_init
-    image: python:3
+    image: python:3.7
     retry:
         max: 1
     script:
@@ -140,7 +140,7 @@ test_functional_init_gcp:
 # Functional Tests - Execute phase (with 3 retries in a case of any failures)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
-    image: python:3
+    image: python:3.7
     retry:
         max: 2
     script:
@@ -196,7 +196,7 @@ test_functional_execute_gcp:
 # Functional Tests - Cleanup phase (executes always with 3 retries in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
     stage: test_functional_cleanup
-    image: python:3
+    image: python:3.7
     retry:
         max: 2
     when: always
