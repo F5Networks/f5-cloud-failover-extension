@@ -188,7 +188,7 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTable, networkInterfaceId) {
         routeTable.Routes.forEach((route) => {
             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                this.logger.silly('Updating route: ', route);
+                this.logger.info('Updating route: ', route);
                 this._replaceRoute(route.DestinationCidrBlock, networkInterfaceId, routeTable.RouteTableId)
                     .then(data => Promise.resolve(data))
                     .catch(error => Promise.reject(error));
