@@ -9,6 +9,8 @@ Downloading the RPM file
 ------------------------
 The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file.
 
+.. NOTE:: During beta release the RPM is available on on artifactory here: https://***REMOVED***/artifactory/list/ecosystems-f5-cloud-failover-rpm/
+
 Uploading and installing the Cloud Failover file on the BIG-IP
 --------------------------------------------------------------
 After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you would still have to use cURL command to install the package).  Use only one of the following procedures.
