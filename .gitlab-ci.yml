@@ -135,7 +135,7 @@ build_docs:
     stage: build
     script:
         # install packages
-        - pip install -r requirements.txt
+        # - pip install -r requirements.txt
         # generate docs
         - make html
     tags:
