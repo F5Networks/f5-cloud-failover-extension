@@ -9,6 +9,16 @@ stages:
     - build
     - publish
 
+.helpers: &helpers |
+    function validate () {
+        "$@"
+        if [[ $? -ne 0 ]]; then exit 1; fi
+    }
+
+before_script:
+    - *helpers
+
+
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
     # azure vars - normalize env var options between ansible and terraform
@@ -102,7 +112,7 @@ test_package:
         - npm install
         # setup environment
         - set -e
-        - npm run deployment-create
+        - validate npm run deployment-create
         - mkdir -p env_metadata/${CF_ENV_CLOUD}
         - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
         - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
@@ -153,10 +163,9 @@ test_functional_init_gcp:
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # executing fuctional test
-        - set -e
-        - npm run test-functional
+        - validate npm run test-functional
         # run API smoke tests
-        - npm run validate-api
+        - validate npm run validate-api
     tags:
         - cm-official-docker-executor
     only:
@@ -212,7 +221,7 @@ test_functional_execute_gcp:
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # teardown environment
-        - npm run deployment-delete
+        - validate npm run deployment-delete
     tags:
         - cm-official-docker-executor
     only:
