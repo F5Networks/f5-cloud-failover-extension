@@ -41,17 +41,17 @@ This example declaration shows the minimum information needed to update the clou
         "environment": "azure",
         "externalStorage": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverAddresses": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverRoutes": {
           "scopingTags": {
-            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
             "192.168.1.0/24"
@@ -75,17 +75,17 @@ After you post the declaration to the BIG-IP, it will respond with a success mes
             "environment": "azure",
             "externalStorage": {
                 "scopingTags": {
-                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                    "f5_cloud_failover_label": "mydeployment"
                 }
             },
             "failoverAddresses": {
                 "scopingTags": {
-                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                    "f5_cloud_failover_label": "mydeployment"
                 }
             },
             "failoverRoutes": {
                 "scopingTags": {
-                    "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+                    "f5_cloud_failover_label": "mydeployment"
                 },
                 "scopingAddressRanges": [
                     "192.168.1.0/24"
@@ -93,13 +93,6 @@ After you post the declaration to the BIG-IP, it will respond with a success mes
             }
         }
     }
-
-
-
-
-
-
-
 
 
 .. |github| raw:: html

@@ -52,17 +52,17 @@ Here is an example declaration for Microsoft Azure.
         "environment": "azure",
           "externalStorage": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
           "failoverAddresses": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverRoutes": {
           "scopingTags": {
-            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
             "192.168.1.0/24"
