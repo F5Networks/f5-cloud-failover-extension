@@ -28,6 +28,7 @@ class Cloud extends AbstractCloud {
 
         this.metadata = new AWS.MetadataService();
         this.s3 = {};
+        this.ec2 = {};
     }
 
     /**
@@ -63,6 +64,7 @@ class Cloud extends AbstractCloud {
             })
             .then((bucketName) => {
                 this.s3BucketName = bucketName;
+                Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
@@ -562,7 +564,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get all S3 buckets in account, to filter on later
+     * Get all S3 buckets in account, these buckets will later be filtered by tags
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
      *                          rejected if an error occurs
