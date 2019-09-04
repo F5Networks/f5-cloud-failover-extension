@@ -364,3 +364,12 @@ The current process involves adding a `doc` label to an issue to note it require
 See the [examples](../examples) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
 
 See the [INTERNAL_README.md](../INTERNAL_README.md) for an internal explanation of most features.
+
+---
+### Releasing the failover extension
+
+- Once the 'develop' branch is ready for release, merge develop into master
+- Publish the docs to production by creating a docs_prod branch
+- Change/increment version to anticipated future rpm version in package.json in develop branch to make sure the latest rpm isn't overridden on next release
+
+
