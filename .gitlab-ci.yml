@@ -18,7 +18,6 @@ stages:
 before_script:
     - *helpers
 
-
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
     # azure vars - normalize env var options between ansible and terraform
