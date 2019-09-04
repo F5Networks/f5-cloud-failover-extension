@@ -154,8 +154,8 @@ describe('Provider: GCP', () => {
             request = {
                 project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
                 auth: authClient,
-                zone: 'us-west1-a',
-                region: 'us-west1'
+                region: deploymentInfo.region,
+                zone: deploymentInfo.zone
             };
             return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
         })
@@ -327,8 +327,7 @@ describe('Provider: GCP', () => {
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
     // ideally this would be replaced by a check for previous failover task success completion
-    // right now cloud API's can state interfaces are moved before failover actually completes
-    // on BIG-IP resulting in strange race conditions
+    // GCP: long wait time to avoid long-running failover race conditions
     it('Flapping scenario: should wait 60 seconds', () => new Promise(
         resolve => setTimeout(resolve, 60000)
     ));
@@ -337,7 +336,7 @@ describe('Provider: GCP', () => {
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait 10 seconds', () => new Promise(
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
         resolve => setTimeout(resolve, 10000)
     ));
 

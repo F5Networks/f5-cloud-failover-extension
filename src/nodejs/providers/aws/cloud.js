@@ -20,23 +20,32 @@ const AWS = require('aws-sdk');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const constants = require('../../constants');
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AWS, options);
 
         this.metadata = new AWS.MetadataService();
+        this.s3 = {};
+        this.ec2 = {};
     }
 
     /**
     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
     *
     * @param {Object} options        - function options
-    * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
+    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'f5_self_ips'
+    * @param {Object} [options.storageTags]     - object containing storage tags to filter on { 'key': 'value' }
     */
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
+        this.storageTags = options.storageTags || null;
+        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.routeTags = options.routeTags || {};
         this.routeAddresses = options.routeAddresses || [];
         this.routeSelfIpsTag = options.routeSelfIpsTag || '';
@@ -49,55 +58,231 @@ class Cloud extends AbstractCloud {
 
                 AWS.config.update({ region: this.region });
                 this.ec2 = new AWS.EC2();
+                this.s3 = new AWS.S3();
+
+                return this._getS3BucketByTags(this.storageTags);
+            })
+            .then((bucketName) => {
+                this.s3BucketName = bucketName;
+                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
 
     /**
-    * Updates the Public IP Addresses on the BIG-IP Cluster, by re-associating AWS Elastic IP Addresses
+    * Upload data to storage (cloud)
     *
-    * @returns {Promise} - Resolves or rejects with the status of re-associating the Elastic IP Address(es)
+    * @param {Object} fileName - file name where data should be uploaded
+    * @param {Object} data     - data to upload
+    *
+    * @returns {Promise}
     */
-    updateAddresses() {
-        return Promise.all([
-            this._getElasticIPs(this.tags),
-            this._getPrivateSecondaryIPs()
-        ]).then((results) => {
-            const eips = results[0].Addresses;
-            const secondaryPrivateIps = results[1];
+    uploadDataToStorage(fileName, data) {
+        const s3Key = `${this.s3FilePrefix}/${fileName}`;
+        this.logger.silly(`Uploading data to: ${s3Key} ${util.stringify(data)}`);
 
-            return this._generateEIPConfigs(eips, secondaryPrivateIps);
-        }).then((results) => {
-            this.logger.info('Reassociating Elastic IP addresses');
-            return this._reassociateEIPs(results);
-        }).catch(err => Promise.reject(err));
+        const uploadObject = () => new Promise((resolve, reject) => {
+            const params = {
+                Body: util.stringify(data),
+                Bucket: this.s3BucketName,
+                Key: s3Key
+            };
+            this.s3.putObject(params).promise()
+                .then(() => resolve())
+                .catch(err => reject(err));
+        });
+
+        return util.retrier.call(this, uploadObject);
     }
 
     /**
-     * Updates the route table on the BIG-IP Cluster, by using the F5_SELF_IPS tag to find the network interface the
+    * Download data from storage (cloud)
+    *
+    * @param {Object} fileName - file name where data should be downloaded
+    *
+    * @returns {Promise}
+    */
+    downloadDataFromStorage(fileName) {
+        const s3Key = `${this.s3FilePrefix}/${fileName}`;
+        this.logger.silly(`Downloading data from: ${s3Key}`);
+
+        const downloadObject = () => new Promise((resolve, reject) => {
+            // check if the object exists first, if not return an empty object
+            this.s3.listObjectsV2({ Bucket: this.s3BucketName, Prefix: s3Key }).promise()
+                .then((data) => {
+                    if (data.Contents && data.Contents.length) {
+                        return this.s3.getObject({ Bucket: this.s3BucketName, Key: s3Key }).promise()
+                            .then(response => JSON.parse(response.Body.toString()));
+                    }
+                    return Promise.resolve({});
+                })
+                .then(response => resolve(response))
+                .catch(err => reject(err));
+        });
+
+        return util.retrier.call(this, downloadObject);
+    }
+
+    /**
+    * Update Addresses - Updates the public ip(s) on the BIG-IP Cluster, by re-associating Elastic IP Addresses
+    *
+    * @param {Object} options                     - function options
+    * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+    * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+    * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
+    *
+    * @returns {Object}
+    */
+    updateAddresses(options) {
+        options = options || {};
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations;
+
+        this.logger.silly('updateAddresses: ', options);
+
+        // discover only logic
+        if (discoverOnly === true) {
+            return this._discoverAddressOperations()
+                .catch(err => Promise.reject(err));
+        }
+        // update only logic
+        if (updateOperations) {
+            return this._updateAddresses(updateOperations)
+                .catch(err => Promise.reject(err));
+        }
+        // default - discover and update
+        return this._discoverAddressOperations()
+            .then(operations => this._updateAddresses(operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover address operations
+    *
+    * @returns {Promise} { 'x.x.x.x': {} }
+    */
+    _discoverAddressOperations() {
+        return Promise.all([
+            this._getElasticIPs(this.tags),
+            this._getPrivateSecondaryIPs()
+        ])
+            .then((results) => {
+                const eips = results[0].Addresses;
+                const secondaryPrivateIps = results[1];
+
+                return this._generateEIPConfigs(eips, secondaryPrivateIps);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses - given reassociate operation(s)
+    *
+    * @param {Object} operations - operations object
+    *
+    * @returns {Promise}
+    */
+    _updateAddresses(operations) {
+        return this._reassociateEIPs(operations)
+            .then(() => {
+                this.logger.info('EIP(s) reassociated successfully');
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Updates the route table on the BIG-IP Cluster, by using the routeSelfIpsTag tag to find the network interface the
      * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     *
+     * @param {Object} options                     - function options
+     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
      *
      * @returns {Promise} - Resolves or rejects with the status of updating the route table
      */
     updateRoutes(options) {
+        options = options || {};
         const localAddresses = options.localAddresses || [];
-        this.logger.debug('Local addresses', localAddresses);
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations;
+
+        this.logger.silly('updateRoutes: ', options);
+
+        // discover only logic
+        if (discoverOnly === true) {
+            return this._discoverRouteOperations(localAddresses)
+                .catch(err => Promise.reject(err));
+        }
+        // update only logic
+        if (updateOperations) {
+            return this._updateRoutes(updateOperations)
+                .catch(err => Promise.reject(err));
+        }
+        // default - discover and update
+        return this._discoverRouteOperations(localAddresses)
+            .then(operations => this._updateRoutes(operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover route operations
+    *
+    * @param {Array} localAddresses - array containing local (self) addresses [ '192.0.2.1' ]
+    *
+    * @returns {Promise} [ { routeTable: {}, networkInterfaceId: 'foo' }]
+    */
+    _discoverRouteOperations(localAddresses) {
+        localAddresses = localAddresses || [];
+
+        const _getUpdateOperationObject = (ip, routeTable) => this._getNetworkInterfaceId(ip)
+            .then(networkInterfaceId => Promise.resolve({ routeTable, networkInterfaceId }))
+            .catch(err => Promise.reject(err));
+
         return this._getRouteTables(this.routeTags)
             .then((routeTables) => {
                 const promises = [];
-                this.logger.debug('Route Tables', routeTables);
+
+                this.logger.debug('Route Tables: ', routeTables);
                 routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0].Value.split(',').map(i => i.trim());
+                    const getSelfIpsFromTag = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0];
+                    if (!getSelfIpsFromTag) {
+                        this.logger.warn(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
+                    }
+
+                    const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
                     const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    const promise = this._getNetworkInterfaceId(selfIpToUse)
-                        .then((networkInterfaceId) => {
-                            this.logger.debug('Network Interface ID', networkInterfaceId);
-                            return this._updateRouteTable(routeTable, networkInterfaceId);
-                        });
-                    promises.push(promise);
+                    if (!selfIpToUse) {
+                        this.logger.warn(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
+                    }
+
+                    promises.push(_getUpdateOperationObject(selfIpToUse, routeTable));
                 });
                 return Promise.all(promises);
-            });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses - given reassociate operation(s)
+    *
+    * @param {Object} operations - operations object
+    *
+    * @returns {Promise}
+    */
+    _updateRoutes(operations) {
+        const promises = [];
+
+        operations.forEach((operation) => {
+            promises.push(this._updateRouteTable(operation.routeTable, operation.networkInterfaceId));
+        });
+        return Promise.all(promises)
+            .then(() => {
+                this.logger.info('Route(s) updated successfully');
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -109,16 +294,19 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
     _updateRouteTable(routeTable, networkInterfaceId) {
+        const promises = [];
         routeTable.Routes.forEach((route) => {
             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
-                this.logger.info('Updating Route');
-                this._replaceRoute(route.DestinationCidrBlock, networkInterfaceId, routeTable.RouteTableId)
-                    .then(data => Promise.resolve(data))
-                    .catch(error => Promise.reject(error));
+                this.logger.info('Updating route: ', route);
+                promises.push(this._replaceRoute(
+                    route.DestinationCidrBlock,
+                    networkInterfaceId,
+                    routeTable.RouteTableId
+                ));
             }
         });
-        this.logger.info(routeTable.Name, ' route table not updated');
-        return Promise.resolve();
+        return Promise.all(promises)
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -203,18 +391,6 @@ class Cloud extends AbstractCloud {
         });
     }
 
-    // stub
-    uploadDataToStorage() {
-        this.logger.debug('uploadDataToStorage');
-        return Promise.resolve();
-    }
-
-    // stub
-    downloadDataFromStorage() {
-        this.logger.debug('downloadDataFromStorage');
-        return Promise.resolve({});
-    }
-
     /**
      * Re-associates the Elastic IP Addresses. Will first attempt to disassociate and then associate
      * the Elastic IP Address(es) to the newly active BIG-IP
@@ -237,11 +413,7 @@ class Cloud extends AbstractCloud {
         // Disassociate EIP, in case EIP wasn't created with ability to reassociate when already associated
         return Promise.all(disassociatePromises)
             .then(() => {
-                if (disassociatePromises.length === 0) {
-                    this.logger.info('Disassociation of Elastic IP addresses not required');
-                } else {
-                    this.logger.info('Disassociation of Elastic IP addresses successful');
-                }
+                this.logger.silly('Disassociation of Elastic IP addresses successful');
 
                 Object.keys(EIPConfigs).forEach((eipKeys) => {
                     const allocationId = EIPConfigs[eipKeys].AllocationId;
@@ -450,6 +622,105 @@ class Cloud extends AbstractCloud {
                     JSON.parse(data)
                 );
             });
+        });
+    }
+
+    /**
+     * Gets the S3 bucket to use, from the provided storage tags
+     *
+     * @param   {Object}    tags - object containing tags to filter on { 'key': 'value' }
+     *
+     * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getS3BucketByTags(tags) {
+        const getBucketTagsPromises = [];
+
+        return this._getAllS3Buckets()
+            .then((data) => {
+                data.forEach((bucket) => {
+                    const getTagsArgs = [bucket, { continueOnError: true }];
+                    getBucketTagsPromises.push(util.retrier.call(this, this._getTags, getTagsArgs));
+                });
+                return Promise.all(getBucketTagsPromises);
+            })
+            // Filter out any 'undefined' responses
+            .then(data => Promise.resolve(data.filter(i => i)))
+            .then((taggedBuckets) => {
+                const tagKeys = Object.keys(tags);
+                const filteredBuckets = taggedBuckets.filter((taggedBucket) => {
+                    let matchedTags = 0;
+                    const bucketDict = taggedBucket.TagSet.reduce((acc, cur) => {
+                        acc[cur.Key] = cur.Value;
+                        return acc;
+                    }, {});
+                    tagKeys.forEach((tagKey) => {
+                        if (Object.keys(bucketDict).indexOf(tagKey) !== -1 && bucketDict[tagKey] === tags[tagKey]) {
+                            matchedTags += 1;
+                        }
+                    });
+                    return tagKeys.length === matchedTags;
+                });
+                this.logger.info('Filtered Buckets:');
+                return Promise.resolve(filteredBuckets);
+            })
+            .then((filteredBuckets) => {
+                if (!filteredBuckets.length) {
+                    return Promise.reject(new Error('No valid S3 Buckets found!'));
+                }
+                return Promise.resolve(filteredBuckets[0].Bucket); // grab the first bucket for now
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get all S3 buckets in account, these buckets will later be filtered by tags
+     *
+     * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getAllS3Buckets() {
+        const listAllBuckets = () => new Promise((resolve, reject) => {
+            this.s3.listBuckets({}).promise()
+                .then((data) => {
+                    const bucketNames = data.Buckets.map(b => b.Name);
+                    resolve(bucketNames);
+                })
+                .catch(err => reject(err));
+        });
+        return util.retrier.call(this, listAllBuckets);
+    }
+
+    /**
+     * Get the Tags of a given S3 bucket, optionally rejecting or resolving on errors
+     *
+     * @param   {String}    bucket                  - name of the S3 bucket
+     * @param   {Object}    options                 - function options
+     * @param   {Boolean}   [options.continueOnError] - whether or not to reject on error. Default: reject on error
+     *
+     * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
+     *                          rejected if an error occurs
+     */
+    _getTags(bucket, options) {
+        options = options || {};
+        const continueOnError = options.continueOnError || false;
+        const params = {
+            Bucket: bucket
+        };
+        return new Promise((resolve, reject) => {
+            this.s3.getBucketTagging(params).promise()
+                .then((data) => {
+                    resolve({
+                        Bucket: params.Bucket,
+                        TagSet: data.TagSet
+                    });
+                })
+                .catch((err) => {
+                    if (!continueOnError) {
+                        reject(err);
+                    }
+                    resolve(); // resolving since ignoring permissions errors to extraneous buckets
+                });
         });
     }
 }

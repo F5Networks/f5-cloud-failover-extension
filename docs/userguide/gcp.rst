@@ -19,12 +19,13 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
 
-- 2 clustered BIG-IP systems in GCE. See example ARM templates on |github|.
+- 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
 - Network access to the Google metadata service
 - A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
-- Virtual addresses created in a named traffic group and matching *Alias IP* addresses on the BIG-IP NICs serving application traffic
-- Virtual machine instances tagged with the key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
-- Forwarding rules(s) configured with targets that match the self IP address of the active BIG-IP
+- Virtual addresses created in a named traffic group and matching Alias IP addresses on the BIG-IP NICs serving application traffic
+- Virtual machine instances tagged with the following
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
+- Forwarding rules(s) configured with targets that match a virtual address or floating self IP of the active BIG-IP
 
 
 Example Declaration
@@ -38,19 +39,19 @@ This example declaration shows the minimum information needed to update the clou
     {
         "class": "Cloud_Failover",
         "environment": "gcp",
-          "externalStorage": {
+        "externalStorage": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
-          "failoverAddresses": {
+        "failoverAddresses": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverRoutes": {
           "scopingTags": {
-            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
             "192.168.1.0/24"

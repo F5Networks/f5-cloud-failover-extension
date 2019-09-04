@@ -13,19 +13,16 @@ This diagram shows a failover event with Cloud Failover implemented in AWS. You 
 
 Prerequisites
 -------------
-These are the minimum requirements for setting up Cloud Failover in Azure:
+These are the minimum requirements for setting up Cloud Failover in AWS:
 
-- 2 clustered BIG-IP systems in AWS. See example ARM templates on |github|.
+- 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
 - An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
 - Network access to the AWS metadata service
-- Virtual addresses created in traffic group None and matching *Secondary Private IP* addresses on the BIG-IP NICs serving application traffic
-- Elastic IP addresses, tagged with:
-    - the key(s) and values(s) from the *addressTags* section in the Failover Extension Configuration request
-    - the private IP addresses that each Elastic IP is associated with, separated by a comma. For example: 
-    
-    .. image:: ../images/AWSEIPTags.png
-
-- Route(s) in a route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
+- Virtual addresses created in traffic group None and matching Secondary Private IP addresses on the BIG-IP NICs serving application traffic
+- Elastic IP addresses tagged with the following
+    -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
+    - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
+- Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
 
 
 Example Declaration
@@ -35,23 +32,22 @@ This example declaration shows the minimum information needed to update the clou
 .. code-block:: json
     :linenos:
 
-
     {
         "class": "Cloud_Failover",
         "environment": "aws",
-          "externalStorage": {
+        "externalStorage": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
-          "failoverAddresses": {
+        "failoverAddresses": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverRoutes": {
           "scopingTags": {
-            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
             "192.168.1.0/24"

@@ -196,21 +196,20 @@ What happens in the system internals between request and response?
 - 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
 - An Azure system-assigned or user-managed identity with Contributor role to the virtual machines and resource group where network interfaces and route tables are configured
 - Network access to the Azure metadata service
-- Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
-- The aforementioned Azure network interfaces tagged with:
-    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request:
-    ![diagram](images/AzureTags.png)
-- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
-- Route table(s) tagged with:
-    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices:  
-    ![diagram](images/AzureRouteTags.png)
+- Virtual addresses created in a floating traffic group and matching Secondary Private IP addresses on the IP configurations of the BIG-IP NICs serving application traffic
+- The aforementioned Azure network interfaces tagged with the following
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
+- Route table(s) tagged with the following
+    - The key(s) and value(s) from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
+    - Key(s) named "f5_self_ips" with value(s) matching the self IP address(es) from the BIG-IP devices
+- Route(s) in the route table with destination networks corresponding to the values from the *failoverRoutes.scopingAddressRanges* section in the Failover Extension Configuration request
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
 ##### Result
 
 - IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
-- User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
+- User-defined routes with a destination and parent route table with tags matching the Cloud Failover extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
 
 ---
 #### AWS
@@ -220,12 +219,11 @@ What happens in the system internals between request and response?
 - 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
 - An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
 - Network access to the AWS metadata service
-- Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
-- Elastic IP addresses tagged with:
-    -  The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
+- Virtual addresses created in traffic group None and matching Secondary Private IP addresses on the BIG-IP NICs serving application traffic
+- Elastic IP addresses tagged with the following
+    -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
     - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
-    ![diagram](images/AWSEIPTags.png) 
-- Route(s) in a route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
+- Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
@@ -242,9 +240,9 @@ What happens in the system internals between request and response?
 - 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
 - Network access to the Google metadata service
 - A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
-- Virtual addresses created in a named traffic group and matching _Alias IP_ addresses on the BIG-IP NICs serving application traffic
-- Virtual machine instances tagged with:
-    - The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+- Virtual addresses created in a named traffic group and matching Alias IP addresses on the BIG-IP NICs serving application traffic
+- Virtual machine instances tagged with the following
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
 - Forwarding rules(s) configured with targets that match a virtual address or floating self IP of the active BIG-IP
 
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
