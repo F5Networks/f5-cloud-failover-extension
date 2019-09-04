@@ -70,26 +70,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Updates the Public IP Addresses on the BIG-IP Cluster, by re-associating AWS Elastic IP Addresses
-    *
-    * @returns {Promise} - Resolves or rejects with the status of re-associating the Elastic IP Address(es)
-    */
-    updateAddresses() {
-        return Promise.all([
-            this._getElasticIPs(this.tags),
-            this._getPrivateSecondaryIPs()
-        ]).then((results) => {
-            const eips = results[0].Addresses;
-            const secondaryPrivateIps = results[1];
-
-            return this._generateEIPConfigs(eips, secondaryPrivateIps);
-        }).then((results) => {
-            this.logger.info('Reassociating Elastic IP addresses');
-            return this._reassociateEIPs(results);
-        }).catch(err => Promise.reject(err));
-    }
-
-    /**
     * Upload data to storage (cloud)
     *
     * @param {Object} fileName - file name where data should be uploaded
@@ -143,40 +123,166 @@ class Cloud extends AbstractCloud {
         return util.retrier.call(this, downloadObject);
     }
 
-    /*
-     * Updates the route table on the BIG-IP Cluster, by using the F5_SELF_IPS tag to find the network interface the
+    /**
+    * Update Addresses - Updates the public ip(s) on the BIG-IP Cluster, by re-associating Elastic IP Addresses
+    *
+    * @param {Object} options                     - function options
+    * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+    * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+    * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
+    *
+    * @returns {Object}
+    */
+    updateAddresses(options) {
+        options = options || {};
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations;
+
+        this.logger.silly('updateAddresses: ', options);
+
+        // discover only logic
+        if (discoverOnly === true) {
+            return this._discoverAddressOperations()
+                .catch(err => Promise.reject(err));
+        }
+        // update only logic
+        if (updateOperations) {
+            return this._updateAddresses(updateOperations)
+                .catch(err => Promise.reject(err));
+        }
+        // default - discover and update
+        return this._discoverAddressOperations()
+            .then(operations => this._updateAddresses(operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover address operations
+    *
+    * @returns {Promise} { 'x.x.x.x': {} }
+    */
+    _discoverAddressOperations() {
+        return Promise.all([
+            this._getElasticIPs(this.tags),
+            this._getPrivateSecondaryIPs()
+        ])
+            .then((results) => {
+                const eips = results[0].Addresses;
+                const secondaryPrivateIps = results[1];
+
+                return this._generateEIPConfigs(eips, secondaryPrivateIps);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses - given reassociate operation(s)
+    *
+    * @param {Object} operations - operations object
+    *
+    * @returns {Promise}
+    */
+    _updateAddresses(operations) {
+        return this._reassociateEIPs(operations)
+            .then(() => {
+                this.logger.info('EIP(s) reassociated successfully');
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Updates the route table on the BIG-IP Cluster, by using the routeSelfIpsTag tag to find the network interface the
      * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     *
+     * @param {Object} options                     - function options
+     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
      *
      * @returns {Promise} - Resolves or rejects with the status of updating the route table
      */
     updateRoutes(options) {
+        options = options || {};
         const localAddresses = options.localAddresses || [];
-        this.logger.debug('Local addresses', localAddresses);
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations;
+
+        this.logger.silly('updateRoutes: ', options);
+
+        // discover only logic
+        if (discoverOnly === true) {
+            return this._discoverRouteOperations(localAddresses)
+                .catch(err => Promise.reject(err));
+        }
+        // update only logic
+        if (updateOperations) {
+            return this._updateRoutes(updateOperations)
+                .catch(err => Promise.reject(err));
+        }
+        // default - discover and update
+        return this._discoverRouteOperations(localAddresses)
+            .then(operations => this._updateRoutes(operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover route operations
+    *
+    * @param {Array} localAddresses - array containing local (self) addresses [ '192.0.2.1' ]
+    *
+    * @returns {Promise} [ { routeTable: {}, networkInterfaceId: 'foo' }]
+    */
+    _discoverRouteOperations(localAddresses) {
+        localAddresses = localAddresses || [];
+
+        const _getUpdateOperationObject = (ip, routeTable) => this._getNetworkInterfaceId(ip)
+            .then(networkInterfaceId => Promise.resolve({ routeTable, networkInterfaceId }))
+            .catch(err => Promise.reject(err));
+
         return this._getRouteTables(this.routeTags)
             .then((routeTables) => {
                 const promises = [];
-                this.logger.debug('Route Tables', routeTables);
+
+                this.logger.debug('Route Tables: ', routeTables);
                 routeTables.forEach((routeTable) => {
                     const getSelfIpsFromTag = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0];
-                    if (getSelfIpsFromTag) {
-                        const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
-                        const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                        if (selfIpToUse) {
-                            const promise = this._getNetworkInterfaceId(selfIpToUse)
-                                .then((networkInterfaceId) => {
-                                    this.logger.debug('Network Interface ID', networkInterfaceId);
-                                    return this._updateRouteTable(routeTable, networkInterfaceId);
-                                });
-                            promises.push(promise);
-                        } else {
-                            this.logger.warn(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
-                        }
-                    } else {
+                    if (!getSelfIpsFromTag) {
                         this.logger.warn(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
                     }
+
+                    const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                    if (!selfIpToUse) {
+                        this.logger.warn(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
+                    }
+
+                    promises.push(_getUpdateOperationObject(selfIpToUse, routeTable));
                 });
                 return Promise.all(promises);
-            });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Update addresses - given reassociate operation(s)
+    *
+    * @param {Object} operations - operations object
+    *
+    * @returns {Promise}
+    */
+    _updateRoutes(operations) {
+        const promises = [];
+
+        operations.forEach((operation) => {
+            promises.push(this._updateRouteTable(operation.routeTable, operation.networkInterfaceId));
+        });
+        return Promise.all(promises)
+            .then(() => {
+                this.logger.info('Route(s) updated successfully');
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -188,15 +294,19 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
     _updateRouteTable(routeTable, networkInterfaceId) {
+        const promises = [];
         routeTable.Routes.forEach((route) => {
             if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
                 this.logger.info('Updating route: ', route);
-                this._replaceRoute(route.DestinationCidrBlock, networkInterfaceId, routeTable.RouteTableId)
-                    .then(data => Promise.resolve(data))
-                    .catch(error => Promise.reject(error));
+                promises.push(this._replaceRoute(
+                    route.DestinationCidrBlock,
+                    networkInterfaceId,
+                    routeTable.RouteTableId
+                ));
             }
         });
-        return Promise.resolve();
+        return Promise.all(promises)
+            .catch(err => Promise.reject(err));
     }
 
     /**

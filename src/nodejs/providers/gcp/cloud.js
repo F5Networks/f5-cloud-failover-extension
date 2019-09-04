@@ -519,7 +519,6 @@ class Cloud extends AbstractCloud {
     /**
      * Discover address operations
      *
-     * @param {Object} localAddresses    - local addresses
      * @param {Object} failoverAddresses - failover addresses
      *
      * @returns {Promise} { nics: [], fwdRules: [] }
