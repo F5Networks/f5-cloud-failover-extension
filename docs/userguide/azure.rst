@@ -39,12 +39,12 @@ This example declaration shows the minimum information needed to update the clou
     {
         "class": "Cloud_Failover",
         "environment": "azure",
-          "externalStorage": {
+        "externalStorage": {
             "scopingTags": {
               "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
             }
         },
-          "failoverAddresses": {
+        "failoverAddresses": {
             "scopingTags": {
               "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
             }

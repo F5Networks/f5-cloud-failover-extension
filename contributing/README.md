@@ -221,10 +221,9 @@ What happens in the system internals between request and response?
 - Network access to the AWS metadata service
 - Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
 - Elastic IP addresses tagged with:
-    -  The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request
+    -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
     - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
-    ![diagram](images/AWSEIPTags.png) 
-- Route(s) in a route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension configuration request
+- Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
@@ -243,7 +242,7 @@ What happens in the system internals between request and response?
 - A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
 - Virtual addresses created in a named traffic group and matching _Alias IP_ addresses on the BIG-IP NICs serving application traffic
 - Virtual machine instances tagged with:
-    - The key(s) and value(s) from the *addressTags* section in the Failover Extension Configuration request
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
 - Forwarding rules(s) configured with targets that match a virtual address or floating self IP of the active BIG-IP
 
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
