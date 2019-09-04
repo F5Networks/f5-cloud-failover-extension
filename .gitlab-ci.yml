@@ -101,8 +101,8 @@ test_package:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # setup environment
+        - set -e
         - npm run deployment-create
-        - if [ $? -ne 0 ]; then exit 1; else echo 'deployment succeeded - continue ...'; fi
         - mkdir -p env_metadata/${CF_ENV_CLOUD}
         - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
         - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
@@ -153,8 +153,8 @@ test_functional_init_gcp:
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}/. .
         # executing fuctional test
+        - set -e
         - npm run test-functional
-        - if [ $? -ne 0 ]; then exit 1; else echo 'functional tests succeeded - continue ...'; fi
         # run API smoke tests
         - npm run validate-api
     tags:
