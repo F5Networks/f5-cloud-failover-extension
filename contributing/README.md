@@ -196,21 +196,20 @@ What happens in the system internals between request and response?
 - 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
 - An Azure system-assigned or user-managed identity with Contributor role to the virtual machines and resource group where network interfaces and route tables are configured
 - Network access to the Azure metadata service
-- Virtual addresses created in a named traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
+- Virtual addresses created in a floating traffic group and matching _Secondary Private IP_ addresses on the IP configurations of the BIG-IP NICs serving application traffic
 - The aforementioned Azure network interfaces tagged with:
-    1. The key(s) and value(s) from the *addressTags* section in the Failover Extension configuration request:
-    ![diagram](images/AzureTags.png)
-- Route(s) in the route table with destination networks corresponding to the values from the *managedRoutes* section in the Failover Extension Configuration request
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
 - Route table(s) tagged with:
-    1. Key(s) named "f5_ha" with value(s) matching the self IP address name(s) from the BIG-IP devices:  
-    ![diagram](images/AzureRouteTags.png)
+    - The key(s) and value(s) from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
+    - Key(s) named "f5_self_ips" with value(s) matching the self IP address(es) from the BIG-IP devices
+- Route(s) in the route table with destination networks corresponding to the values from the *failoverRoutes.scopingAddressRanges* section in the Failover Extension Configuration request
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
 ##### Result
 
 - IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s)
-- User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
+- User-defined routes with a destination and parent route table with tags matching the Cloud Failover extension configuration are updated with a next hop attribute that corresponds to the self IP address of the active BIG-IP    
 
 ---
 #### AWS
