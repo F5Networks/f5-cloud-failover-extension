@@ -146,12 +146,10 @@ test_functional_init_gcp:
     variables:
         CF_ENV_CLOUD: "gcp"
 
-# Functional Tests - Execute phase (with 2 retries in a case of any failures)
+# Functional Tests - Execute phase (with no retries)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
     image: python:3.7
-    retry:
-        max: 2
     script:
         # install jq
         - apt-get update
@@ -201,12 +199,12 @@ test_functional_execute_gcp:
         - test_functional_init_gcp
         - build_package
 
-# Functional Tests - Cleanup phase (executes always with 2 retries in a case of any failures)
+# Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
     stage: test_functional_cleanup
     image: python:3.7
     retry:
-        max: 2
+        max: 1
     when: always
     script:
         # install jq

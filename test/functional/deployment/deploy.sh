@@ -2,6 +2,8 @@
 # helper script to deploy infrastructure based on environment
 # usage: ./deploy.sh azure create
 
+set -e
+
 environment=${1}
 action=${2:-create}
 script_location=$(dirname "$0")
