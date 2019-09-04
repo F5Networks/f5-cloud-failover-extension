@@ -255,11 +255,11 @@ test_functional_cleanup_gcp:
 ###  End of Functional Tests
 
 build_docs:
-    image: python:3.7
+    image: ${CONTAINTHEDOCS_IMAGE}
     stage: build
     script:
         # install packages
-        - pip install -r requirements.txt
+        # - pip install -r requirements.txt
         # generate docs
         - make html
     tags:
