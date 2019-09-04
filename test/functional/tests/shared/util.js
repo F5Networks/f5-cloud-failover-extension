@@ -45,7 +45,7 @@ module.exports = {
      * Get environment info
      *
      * @returns {Object} Returns
-     * { deploymentId: foo, environment: bar }
+     * { deploymentId: 'foo', environment: 'foo', region: 'foo', zone: 'foo' }
      */
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
@@ -53,7 +53,8 @@ module.exports = {
         return {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
-            region: deploymentInfo.region || null // Optional; supporting AWS
+            region: deploymentInfo.region || null, // optional: used by AWS|GCP
+            zone: deploymentInfo.zone || null // optional: used by GCP
         };
     },
 

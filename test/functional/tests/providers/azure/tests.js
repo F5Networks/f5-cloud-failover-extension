@@ -171,6 +171,10 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     }
 
+    it('should should ensure secondary is not primary', () => funcUtils.forceStandby(
+        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    ));
+
     it('should check network interfaces contains virtual address (primary)', function () {
         this.retries(RETRIES.LONG);
 

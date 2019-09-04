@@ -726,8 +726,9 @@ describe('Provider - AWS', () => {
                             return Promise.resolve();
                         });
 
-                    return provider.updateAddresses();
+                    return provider.updateAddresses({ discoverOnly: true });
                 })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     const elasticIps = _getElasticIPsStubResponse.Addresses;
                     assert.deepEqual(passedParams,
@@ -936,7 +937,8 @@ describe('Provider - AWS', () => {
                                 }
                             });
                         const createRouteSpy = sinon.spy(provider, '_replaceRoute');
-                        return provider.updateRoutes({ localAddresses })
+                        return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                            .then(operations => provider.updateRoutes({ updateOperations: operations }))
                             .then(() => {
                                 assert(createRouteSpy.calledOnce);
                                 assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));

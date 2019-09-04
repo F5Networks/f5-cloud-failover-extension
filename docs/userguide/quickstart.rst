@@ -30,7 +30,7 @@ up and running with Cloud Failover.
    ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover is running
    properly.
 
-#. Copy one of the :ref:`examples` which best matches the configuration you want
+#. Copy one of the :ref:`example-declarations` which best matches the configuration you want
    to use.
 
 #. Paste the declaration into your API client, and modify names and IP addresses
@@ -52,17 +52,17 @@ Here is an example declaration for Microsoft Azure.
         "environment": "azure",
           "externalStorage": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
           "failoverAddresses": {
             "scopingTags": {
-              "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+              "f5_cloud_failover_label": "mydeployment"
             }
         },
         "failoverRoutes": {
           "scopingTags": {
-            "F5_CLOUD_FAILOVER_LABEL": "mydeployment"
+            "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
             "192.168.1.0/24"

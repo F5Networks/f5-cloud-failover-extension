@@ -443,7 +443,9 @@ output "deployment_info" {
       }
     ],
     deploymentId: random_string.env_prefix.result,
-    environment: "gcp"
+    environment: "gcp",
+    region: "${var.region}",
+    zone: "${var.zone}"
   }
 }
 
