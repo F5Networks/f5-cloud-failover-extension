@@ -18,8 +18,8 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 - 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
 - An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
 - Network access to the AWS metadata service
-- Virtual addresses created in traffic group None and matching _Secondary Private IP_ addresses on the BIG-IP NICs serving application traffic
-- Elastic IP addresses tagged with:
+- Virtual addresses created in traffic group None and matching Secondary Private IP addresses on the BIG-IP NICs serving application traffic
+- Elastic IP addresses tagged with the following
     -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
     - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
 - Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
