@@ -85,7 +85,7 @@ test_package:
 
 ### Functional Tests Section
 
-# Functional Tests - Initialization phase (with 3 retries in a case of any failures)
+# Functional Tests - Initialization phase (with 1 retries in a case of any failures)
 .test_functional_init_generic: &test_functional_init_generic
     stage: test_functional_init
     image: python:3.7
@@ -137,7 +137,7 @@ test_functional_init_gcp:
     variables:
         CF_ENV_CLOUD: "gcp"
 
-# Functional Tests - Execute phase (with 3 retries in a case of any failures)
+# Functional Tests - Execute phase (with 2 retries in a case of any failures)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
     image: python:3.7
@@ -193,7 +193,7 @@ test_functional_execute_gcp:
         - test_functional_init_gcp
         - build_package
 
-# Functional Tests - Cleanup phase (executes always with 3 retries in a case of any failures)
+# Functional Tests - Cleanup phase (executes always with 2 retries in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
     stage: test_functional_cleanup
     image: python:3.7
