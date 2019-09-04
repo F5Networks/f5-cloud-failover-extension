@@ -19,11 +19,16 @@ describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let provider;
     let metadataPathRequest;
+    let originalgetS3BucketByTags;
+    let originalgetAllS3Buckets;
 
     const mockInitData = {
         tags: {
             key1: 'value1',
             key2: 'value2'
+        },
+        storageTags: {
+            sKey1: 'storageKey1'
         }
     };
 
@@ -66,6 +71,12 @@ describe('Provider - AWS', () => {
         }
     };
 
+    const _s3FileParamsStub = {
+        Body: 's3 state file body',
+        Bucket: 'myfailoverbucket',
+        Key: 'f5cloudfailover/file.json'
+    };
+
     const _getElasticIPsStubResponse = {
         Addresses: [
             {
@@ -73,6 +84,31 @@ describe('Provider - AWS', () => {
             }
         ]
     };
+
+    const targetBucket = 'bucket2';
+    const _getAllS3BucketsStubResponse = [
+        'bucket1',
+        targetBucket,
+        'bucket3'
+    ];
+
+    const listBucketsSubResponse = {
+        Buckets: [
+            { Name: _getAllS3BucketsStubResponse[0] },
+            { Name: _getAllS3BucketsStubResponse[1] },
+            { Name: _getAllS3BucketsStubResponse[2] }
+        ],
+        Owner: {
+            Name: 'owner'
+        }
+    };
+
+    const _getTagsStubResponse = {
+        Bucket: targetBucket,
+        TagSet: [{ Key: 'sKey1', Value: 'storageKey1' }]
+    };
+
+    const genericAWSError = new Error('AWS vanished');
 
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
@@ -89,11 +125,18 @@ describe('Provider - AWS', () => {
         provider.logger.info = sinon.stub();
         provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
+        provider.logger.silly = sinon.stub();
+        provider.logger.warn = sinon.stub();
 
         provider.metadata.request = sinon.stub().callsFake((path, callback) => {
             metadataPathRequest = path;
             callback(null, JSON.stringify(mockMetadata));
         });
+        originalgetS3BucketByTags = provider._getS3BucketByTags;
+        provider._getS3BucketByTags = sinon.stub().resolves(_s3FileParamsStub.Bucket);
+
+        originalgetAllS3Buckets = provider._getAllS3Buckets;
+        provider._getAllS3Buckets = sinon.stub().resolves(_getAllS3BucketsStubResponse);
     });
     afterEach(() => {
         sinon.restore();
@@ -105,14 +148,180 @@ describe('Provider - AWS', () => {
         assert.strictEqual(provider.environment, cloud);
     });
 
-    it('should initialize AWS provider', () => provider.init(mockInitData)
-        .then(() => {
-            assert.strictEqual(provider.region, mockMetadata.region);
-            assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
-        })
-        .catch(() => {
-            assert.fail();
-        }));
+    describe('AWS Provider initialization', () => {
+        it('should initialize AWS provider', () => provider.init(mockInitData)
+            .then(() => {
+                assert.strictEqual(provider.region, mockMetadata.region);
+                assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+
+        it('should reject if error', () => {
+            provider._getInstanceIdentityDoc = sinon.stub().rejects(genericAWSError);
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, genericAWSError.message);
+                });
+        });
+
+        describe('_getS3BucketByTags', () => {
+            it('should return the tagged bucket', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getTags = sinon.stub().callsFake((bucket) => {
+                        if (bucket === targetBucket) {
+                            return Promise.resolve(_getTagsStubResponse);
+                        }
+                        return Promise.resolve();
+                    });
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then((response) => {
+                    assert.strictEqual(response, targetBucket);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
+
+            it('should reject if no buckets are found', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getTags = sinon.stub().resolves();
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then(() => {
+                    assert.ok(false, 'should have thrown error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, 'No valid S3 Buckets found!');
+                }));
+
+            it('should reject if there is an error', () => provider.init(mockInitData)
+                .then(() => {
+                    provider._getAllS3Buckets = sinon.stub().rejects(genericAWSError);
+                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    return provider._getS3BucketByTags(mockInitData.storageTags);
+                })
+                .then(() => {
+                    assert.ok(false, 'should have thrown error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, genericAWSError.message);
+                }));
+
+            it('should pass bucket names to _getTags()', () => {
+                const passedParams = [];
+                return provider.init(mockInitData)
+                    .then(() => {
+                        provider._getTags = sinon.stub().callsFake((params) => {
+                            passedParams.push(params);
+                            if (params === targetBucket) {
+                                return Promise.resolve(_getTagsStubResponse);
+                            }
+                            return Promise.resolve();
+                        });
+                        provider._getS3BucketByTags = originalgetS3BucketByTags;
+                        return provider._getS3BucketByTags(mockInitData.storageTags);
+                    })
+                    .then(() => {
+                        assert.deepEqual(passedParams, _getAllS3BucketsStubResponse);
+                    })
+                    .catch(() => {
+                        assert.fail();
+                    });
+            });
+        });
+
+        describe('_getAllS3Buckets', () => {
+            it('should return an array of bucket names', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.listBuckets = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.resolve(listBucketsSubResponse);
+                            }
+                        };
+                    });
+                    provider._getAllS3Buckets = originalgetAllS3Buckets;
+                    return provider._getAllS3Buckets();
+                })
+                .then((response) => {
+                    assert.deepEqual(response, _getAllS3BucketsStubResponse);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
+        });
+
+        describe('_getTags', () => {
+            it('should resolve on error if continueOnError is provided', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject();
+                            }
+                        };
+                    });
+                    return provider._getTags(targetBucket, { continueOnError: true });
+                })
+                .then(() => {
+                    assert.ok(true);
+                })
+                .catch(() => {
+                    assert.ok(false, 'Should have not rejected');
+                }));
+
+            it('should reject on error if not continueOnError', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.getBucketTagging = sinon.stub().callsFake(() => {
+                        return {
+                            promise() {
+                                return Promise.reject(genericAWSError);
+                            }
+                        };
+                    });
+                    return provider._getTags(targetBucket, { continueOnError: false });
+                })
+                .then(() => {
+                    assert.ok(false, 'Should have thrown an error');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, 'AWS vanished');
+                }));
+
+            it('should pass correct parameters to getBucketTagging()', () => {
+                let passedParams;
+                return provider.init(mockInitData)
+                    .then(() => {
+                        provider.s3.getBucketTagging = sinon.stub().callsFake((params) => {
+                            passedParams = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve(_getTagsStubResponse);
+                                }
+                            };
+                        });
+                        return provider._getTags(targetBucket);
+                    })
+                    .then((response) => {
+                        assert.strictEqual(passedParams.Bucket, _getTagsStubResponse.Bucket);
+                        assert.deepEqual(response, _getTagsStubResponse);
+                    })
+                    .catch(() => {
+                        assert.fail();
+                    });
+            });
+        });
+    });
 
     describe('_getInstanceIdentityDoc function', () => {
         it('should call _getInstanceIdentityDoc to get instance data', () => provider._getInstanceIdentityDoc()
@@ -577,151 +786,234 @@ describe('Provider - AWS', () => {
                 });
         });
     });
-    describe('function updateRoutes should', () => {
-        it('update routes if route exists', () => {
-            provider.init(mockInitData)
-                .then(() => {
-                    const routeTable = {
-                        RouteTableId: 'rtb-123',
-                        Routes: [
-                            {
-                                DestinationCidrBlock: '192.0.2.0/24',
-                                InstanceId: 'i-123',
-                                InstanceOwnerId: '123',
-                                NetworkInterfaceId: 'eni-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '10.0.0.0/16',
-                                GatewayId: 'local',
-                                Origin: 'CreateRouteTable',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '0.0.0.0/0',
-                                GatewayId: 'igw-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            }
-                        ],
-                        Tags: [
-                            {
-                                Key: 'F5_CLOUD_FAILOVER_LABEL',
-                                Value: 'foo'
-                            },
-                            {
-                                Key: 'F5_SELF_IPS',
-                                Value: '10.0.1.211, 10.0.11.52'
-                            }
-                        ]
+
+    describe('function uploadDataToStorage', () => {
+        let passedParams;
+
+        it('should pass correct params to putObject', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.putObject = sinon.stub().callsFake((params) => {
+                    passedParams = params;
+                    return {
+                        promise() {
+                            return Promise.resolve();
+                        }
                     };
-                    const localAddresses = ['10.0.1.211'];
-                    provider.routeTags = { F5_LABEL: 'foo' };
-                    provider.routeAddresses = ['192.0.2.0/24'];
-                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
-                    const describeNetworkInterfacesResponse = {
-                        NetworkInterfaces: [
-                            {
-                                NetworkInterfaceId: 'eni-345'
-                            }
-                        ]
+                });
+                return provider.uploadDataToStorage('file.json', _s3FileParamsStub.Body);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, _s3FileParamsStub);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
+
+    describe('function downloadDataFromStorage', () => {
+        let passedParams;
+        const mockResponseBody = { foo: 'bar' };
+        const mockObjectBody = {
+            Body: Buffer.from(JSON.stringify(mockResponseBody))
+        };
+
+        it('should pass correct params to downloadObject', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.listObjectsV2 = sinon.stub().callsFake(() => {
+                    const response = { Contents: ['foo'] };
+                    return {
+                        promise() {
+                            return Promise.resolve(response);
+                        }
                     };
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve(describeNetworkInterfacesResponse);
-                            }
-                        });
-                    provider.ec2.describeRouteTables = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({ RouteTables: [routeTable] });
-                            }
-                        });
-                    provider.ec2.replaceRoute = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({});
-                            }
-                        });
-                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
-                    return provider.updateRoutes({ localAddresses })
-                        .then(() => {
-                            assert(createRouteSpy.calledOnce);
-                            assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
-                        })
-                        .catch(err => Promise.reject(err));
-                })
-                .catch(err => Promise.reject(err));
-        });
-        it('not update routes if route does not exist', () => {
-            provider.init(mockInitData)
-                .then(() => {
-                    const routeTable = {
-                        RouteTableId: 'rtb-123',
-                        Routes: [
-                            {
-                                DestinationCidrBlock: '10.0.0.0/16',
-                                GatewayId: 'local',
-                                Origin: 'CreateRouteTable',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '0.0.0.0/0',
-                                GatewayId: 'igw-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            }
-                        ],
-                        Tags: [
-                            {
-                                Key: 'F5_CLOUD_FAILOVER_LABEL',
-                                Value: 'foo'
-                            },
-                            {
-                                Key: 'F5_SELF_IPS',
-                                Value: '10.0.1.211, 10.0.11.52'
-                            }
-                        ]
+                });
+                provider.s3.getObject = sinon.stub().callsFake((params) => {
+                    passedParams = params;
+                    return {
+                        promise() {
+                            return Promise.resolve(mockObjectBody);
+                        }
                     };
-                    const localAddresses = ['10.0.2.211'];
-                    provider.routeTags = { F5_LABEL: 'foo1' };
-                    provider.routeAddresses = ['192.1.2.0/24'];
-                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
-                    const describeNetworkInterfacesResponse = {
-                        NetworkInterfaces: [
-                            {
-                                NetworkInterfaceId: 'eni-345'
-                            }
-                        ]
+                });
+                return provider.downloadDataFromStorage('file.json');
+            })
+            .then((data) => {
+                assert.strictEqual(passedParams.Bucket, _s3FileParamsStub.Bucket);
+                assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
+                assert.deepStrictEqual(data, mockResponseBody);
+            })
+            .catch(err => Promise.reject(err)));
+
+        it('should return empty object if listObjects is empty', () => provider.init(mockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.listObjectsV2 = sinon.stub().callsFake(() => {
+                    const response = { Contents: [] };
+                    return {
+                        promise() {
+                            return Promise.resolve(response);
+                        }
                     };
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve(describeNetworkInterfacesResponse);
-                            }
-                        });
-                    provider.ec2.describeRouteTables = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({ RouteTables: [routeTable] });
-                            }
-                        });
-                    provider.ec2.replaceRoute = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({});
-                            }
-                        });
-                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
-                    return provider.updateRoutes({ localAddresses })
-                        .then(() => {
-                            assert(createRouteSpy.notCalled);
-                        })
-                        .catch(err => Promise.reject(err));
-                })
-                .catch(err => Promise.reject(err));
+                });
+                return provider.downloadDataFromStorage('file.json');
+            })
+            .then((data) => {
+                assert.deepStrictEqual(data, {});
+            })
+            .catch(err => Promise.reject(err)));
+
+        describe('function updateRoutes should', () => {
+            it('update routes if route exists', () => {
+                provider.init(mockInitData)
+                    .then(() => {
+                        const routeTable = {
+                            RouteTableId: 'rtb-123',
+                            Routes: [
+                                {
+                                    DestinationCidrBlock: '192.0.2.0/24',
+                                    InstanceId: 'i-123',
+                                    InstanceOwnerId: '123',
+                                    NetworkInterfaceId: 'eni-123',
+                                    Origin: 'CreateRoute',
+                                    State: 'active'
+                                },
+                                {
+                                    DestinationCidrBlock: '10.0.0.0/16',
+                                    GatewayId: 'local',
+                                    Origin: 'CreateRouteTable',
+                                    State: 'active'
+                                },
+                                {
+                                    DestinationCidrBlock: '0.0.0.0/0',
+                                    GatewayId: 'igw-123',
+                                    Origin: 'CreateRoute',
+                                    State: 'active'
+                                }
+                            ],
+                            Tags: [
+                                {
+                                    Key: 'F5_CLOUD_FAILOVER_LABEL',
+                                    Value: 'foo'
+                                },
+                                {
+                                    Key: 'F5_SELF_IPS',
+                                    Value: '10.0.1.211, 10.0.11.52'
+                                }
+                            ]
+                        };
+                        const localAddresses = ['10.0.1.211'];
+                        provider.routeTags = { F5_LABEL: 'foo' };
+                        provider.routeAddresses = ['192.0.2.0/24'];
+                        provider.routeSelfIpsTag = 'F5_SELF_IPS';
+                        const describeNetworkInterfacesResponse = {
+                            NetworkInterfaces: [
+                                {
+                                    NetworkInterfaceId: 'eni-345'
+                                }
+                            ]
+                        };
+                        provider.ec2.describeNetworkInterfaces = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve(describeNetworkInterfacesResponse);
+                                }
+                            });
+                        provider.ec2.describeRouteTables = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve({ RouteTables: [routeTable] });
+                                }
+                            });
+                        provider.ec2.replaceRoute = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve({});
+                                }
+                            });
+                        const createRouteSpy = sinon.spy(provider, '_replaceRoute');
+                        return provider.updateRoutes({ localAddresses })
+                            .then(() => {
+                                assert(createRouteSpy.calledOnce);
+                                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+                            })
+                            .catch(err => Promise.reject(err));
+                    })
+                    .catch(err => Promise.reject(err));
+            });
+
+            it('not update routes if route does not exist', () => {
+                provider.init(mockInitData)
+                    .then(() => {
+                        const routeTable = {
+                            RouteTableId: 'rtb-123',
+                            Routes: [
+                                {
+                                    DestinationCidrBlock: '10.0.0.0/16',
+                                    GatewayId: 'local',
+                                    Origin: 'CreateRouteTable',
+                                    State: 'active'
+                                },
+                                {
+                                    DestinationCidrBlock: '0.0.0.0/0',
+                                    GatewayId: 'igw-123',
+                                    Origin: 'CreateRoute',
+                                    State: 'active'
+                                }
+                            ],
+                            Tags: [
+                                {
+                                    Key: 'F5_CLOUD_FAILOVER_LABEL',
+                                    Value: 'foo'
+                                },
+                                {
+                                    Key: 'F5_SELF_IPS',
+                                    Value: '10.0.1.211, 10.0.11.52'
+                                }
+                            ]
+                        };
+                        const localAddresses = ['10.0.2.211'];
+                        provider.routeTags = { F5_LABEL: 'foo1' };
+                        provider.routeAddresses = ['192.1.2.0/24'];
+                        provider.routeSelfIpsTag = 'F5_SELF_IPS';
+                        const describeNetworkInterfacesResponse = {
+                            NetworkInterfaces: [
+                                {
+                                    NetworkInterfaceId: 'eni-345'
+                                }
+                            ]
+                        };
+                        provider.ec2.describeNetworkInterfaces = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve(describeNetworkInterfacesResponse);
+                                }
+                            });
+                        provider.ec2.describeRouteTables = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve({ RouteTables: [routeTable] });
+                                }
+                            });
+                        provider.ec2.replaceRoute = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve({});
+                                }
+                            });
+                        const createRouteSpy = sinon.spy(provider, '_replaceRoute');
+                        return provider.updateRoutes({ localAddresses })
+                            .then(() => {
+                                assert(createRouteSpy.notCalled);
+                            })
+                            .catch(err => Promise.reject(err));
+                    })
+                    .catch(err => Promise.reject(err));
+            });
         });
     });
 });
