@@ -3,9 +3,20 @@ image: node:8
 stages:
     - build_package
     - test
-    - test_functional
+    - test_functional_init
+    - test_functional_execute
+    - test_functional_cleanup
     - build
     - publish
+
+.helpers: &helpers |
+    function validate () {
+        "$@"
+        if [[ $? -ne 0 ]]; then exit 1; fi
+    }
+
+before_script:
+    - *helpers
 
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
@@ -81,11 +92,14 @@ test_package:
         paths:
             - coverage
 
-# run functional tests: generic template
-# note: the tests will run on production/release branch(es) and merge requests only
-.test_functional_generic: &test_functional_generic
-    stage: test_functional
-    image: python:3
+### Functional Tests Section
+
+# Functional Tests - Initialization phase (with 1 retries in a case of any failures)
+.test_functional_init_generic: &test_functional_init_generic
+    stage: test_functional_init
+    image: python:3.7
+    retry:
+        max: 1
     script:
         # install jq
         - apt-get update
@@ -96,13 +110,61 @@ test_package:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # setup environment
-        - npm run deployment-create
-        # run functional tests
-        - npm run test-functional
+        - set -e
+        - validate npm run deployment-create
+        - mkdir -p env_metadata/${CF_ENV_CLOUD}
+        - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
+        - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
+        - cp *.tfstate env_metadata/${CF_ENV_CLOUD}
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+    artifacts:
+        paths:
+            - env_metadata/${CF_ENV_CLOUD}
+
+# run functional tests: azure
+test_functional_init_azure:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_init_aws:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+test_functional_init_gcp:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+
+# Functional Tests - Execute phase (with 2 retries in a case of any failures)
+.test_functional_execute_generic: &test_functional_execute_generic
+    stage: test_functional_execute
+    image: python:3.7
+    retry:
+        max: 2
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        # executing fuctional test
+        - validate npm run test-functional
         # run API smoke tests
-        - npm run validate-api
-        # teardown environment
-        - npm run deployment-delete
+        - validate npm run validate-api
     tags:
         - cm-official-docker-executor
     only:
@@ -113,22 +175,86 @@ test_package:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: azure
-test_functional_azure:
-    <<: *test_functional_generic
+test_functional_execute_azure:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
+        - build_package
 
 # run functional tests: aws
-test_functional_aws:
-    <<: *test_functional_generic
+test_functional_execute_aws:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
+        - build_package
 
 # run functional tests: gcp
-test_functional_gcp:
-    <<: *test_functional_generic
+test_functional_execute_gcp:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+    dependencies:
+        - test_functional_init_gcp
+        - build_package
+
+# Functional Tests - Cleanup phase (executes always with 2 retries in a case of any failures)
+.test_functional_cleanup_generic: &test_functional_cleanup_generic
+    stage: test_functional_cleanup
+    image: python:3.7
+    retry:
+        max: 2
+    when: always
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install terraform
+        - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        # teardown environment
+        - validate npm run deployment-delete
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+
+# run functional tests: azure
+test_functional_cleanup_azure:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
+
+# run functional tests: aws
+test_functional_cleanup_aws:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
+
+# run functional tests: gcp
+test_functional_cleanup_gcp:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+    dependencies:
+        - test_functional_init_gcp
+
+###  End of Functional Tests
 
 build_docs:
     image: python:3.7
@@ -252,7 +378,6 @@ docs to staging:
         - aws s3 sync docs/_build/html s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
-
 
 # Publish docs to clouddocs.f5.com
 docs to production:

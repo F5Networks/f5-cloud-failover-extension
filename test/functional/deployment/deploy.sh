@@ -23,6 +23,7 @@ if [[ ${action} == "create" ]]; then
     terraform output -json
     echo $(terraform output -json) | jq .deployment_info.value -r > deployment_info.json
 elif [[ ${action} == "delete" ]]; then
+    terraform init ${script_location}/terraform/${environment}
     terraform destroy -auto-approve ${script_location}/terraform/${environment}
 elif [[ ${action} == "show" ]]; then
     terraform output -json
