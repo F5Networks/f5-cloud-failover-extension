@@ -33,7 +33,8 @@ module.exports = {
                 username: item.admin_username,
                 password: item.admin_password,
                 primary: item.primary,
-                hostname: item.hostname
+                hostname: item.hostname,
+                instanceId: item.instanceId
             };
             return item;
         });

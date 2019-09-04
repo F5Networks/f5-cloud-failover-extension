@@ -71,7 +71,7 @@ resource "aws_route_table" "external" {
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
       f5_cloud_failover_label = "${module.utils.env_prefix}"
-      F5_SELF_IPS = "${tolist(aws_network_interface.external1.private_ips)[0]}, ${tolist(aws_network_interface.external2.private_ips)[0]}"
+      f5_self_ips = "${aws_network_interface.external1.private_ip},${aws_network_interface.external2.private_ip}"
     }
   )}"
 }
@@ -239,10 +239,13 @@ resource "aws_security_group" "mgmt" {
 resource "aws_s3_bucket" "configdb" {
   bucket = "failoverextension-${module.utils.env_prefix}-s3bucket"
 
+  force_destroy = true
+
   tags = "${merge(
     var.global_tags,
     {
-      Name = "failoverextension-${module.utils.env_prefix}-s3bucket"
+      Name = "failoverextension-${module.utils.env_prefix}-s3bucket",
+      f5_cloud_failover_label = "${module.utils.env_prefix}"
     }
   )}"
 }
@@ -293,7 +296,8 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "ec2:ReplaceRoute",
             "ec2:CreateRoute",
             "ec2:assignprivateipaddresses",
-            "sts:AssumeRole"
+            "sts:AssumeRole",
+            "s3:ListAllMyBuckets"
         ],
         "Resource": [
             "*"
@@ -302,9 +306,10 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
     },
     {
         "Action": [
-            "s3:ListBucket"
+            "s3:ListBucket",
+            "s3:GetBucketTagging"
         ],
-        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
         "Effect": "Allow"
     },
     {
@@ -313,7 +318,7 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
             "s3:GetObject",
             "s3:DeleteObject"
         ],
-        "Resource": "arn:*:s3:::${aws_s3_bucket.configdb.id}/*",
+        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
         "Effect": "Allow"
     }
   ]
@@ -456,6 +461,7 @@ data "template_file" "user_data_vm0" {
     admin_username  = "${var.admin_username}"
     admin_password  = "${module.utils.admin_password}"
     external_self   = "${aws_network_interface.external1.private_ip}/24"
+    subnet          = "${aws_subnet.externalAz2.cidr_block}"
     default_gw      = "10.0.1.1"
   }
 }
@@ -467,6 +473,7 @@ data "template_file" "user_data_vm1" {
     admin_username = "${var.admin_username}"
     admin_password = "${module.utils.admin_password}"
     external_self  = "${aws_network_interface.external2.private_ip}/24"
+    subnet          = "${aws_subnet.externalAz1.cidr_block}"
     default_gw      = "10.0.11.1"
   }
 }

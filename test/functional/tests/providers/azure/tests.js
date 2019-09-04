@@ -224,8 +224,6 @@ describe('Provider: Azure', () => {
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
     // ideally this would be replaced by a check for previous failover task success completion
-    // right now Azure API's can state interfaces are moved before failover actually completes
-    // on BIG-IP resulting in strange race conditions
     it('Flapping scenario: should wait ten seconds', () => new Promise(
         resolve => setTimeout(resolve, 10000)
     ));
@@ -234,8 +232,8 @@ describe('Provider: Azure', () => {
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait five seconds', () => new Promise(
-        resolve => setTimeout(resolve, 5000)
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
     ));
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
