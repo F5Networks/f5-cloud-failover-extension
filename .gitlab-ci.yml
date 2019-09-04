@@ -36,8 +36,6 @@ variables:
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
-    # helper vars
-    TEST_SETUP: apt-get update && apt-get install -y jq && npm install
 
 build_package:
     image: f5devcentral/containthedocs:rpmbuild
@@ -75,7 +73,7 @@ test_node4:
 test_package:
     stage: test
     script:
-        - ${TEST_SETUP}
+        - apt-get update && apt-get install -y jq && npm install
         # unit tests
         - npm run test
     tags:
@@ -85,7 +83,7 @@ test_package:
 test_audit:
     stage: test
     script:
-        - ${TEST_SETUP}
+        - apt-get update && apt-get install -y jq && npm install
         # npm audit - install includes audit, but perform specific check and fail if needed
         - audit_report=$(npm audit --json)
         - echo $audit_report
@@ -98,7 +96,7 @@ test_audit:
 coverage:
     stage: test
     script:
-        - ${TEST_SETUP}
+        - apt-get update && apt-get install -y jq && npm install
         # unit tests + coverage report
         - npm run test && npm run check && npm run report
     tags:
