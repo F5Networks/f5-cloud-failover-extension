@@ -251,7 +251,7 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check AWS route table routes for next hop matches primary (vm1)', function () {
+    it('should check AWS route table routes for next hop matches secondary (vm1)', function () {
         this.retries(RETRIES.LONG);
 
         return checkRouteTable(dutSecondary)
