@@ -56,6 +56,7 @@ build_package:
             - dist
         expire_in: 1 month
 
+# test package against node 4.x
 test_node4:
     stage: test
     image: node:4  
@@ -68,22 +69,35 @@ test_node4:
     tags:
         - docker-executor
 
+# test package
 test_package:
     stage: test
     script:
-        # install jq
-        - apt-get update
-        - apt-get install -y jq
-        # install node modules
-        - npm install
+        - apt-get update && apt-get install -y jq && npm install
+        # unit tests
+        - npm run test
+    tags:
+        - cm-official-docker-executor
+
+# audit packages for vulnerabilities
+test_audit:
+    stage: test
+    script:
+        - apt-get update && apt-get install -y jq && npm install
         # npm audit - install includes audit, but perform specific check and fail if needed
         - audit_report=$(npm audit --json)
         - echo $audit_report
         - actions=$(echo $audit_report | jq .actions | jq length)
         - if [ $actions -ne 0 ]; then echo 'ERROR! vulnerabilities exist'; exit 1; fi
-        # linter
-        - npm run lint
-        # unit tests
+    tags:
+        - cm-official-docker-executor
+
+# job must be called coverage
+coverage:
+    stage: test
+    script:
+        - apt-get update && apt-get install -y jq && npm install
+        # unit tests + coverage report
         - npm run test && npm run check && npm run report
     tags:
         - cm-official-docker-executor
@@ -91,6 +105,7 @@ test_package:
         name: ${CI_COMMIT_REF_NAME}_unittests_coverage
         paths:
             - coverage
+        expire_in: 1 month
 
 ### Functional Tests Section
 
@@ -127,6 +142,8 @@ test_package:
     artifacts:
         paths:
             - env_metadata/${CF_ENV_CLOUD}
+        when: always
+        expire_in: 1 month
 
 # run functional tests: azure
 test_functional_init_azure:
@@ -359,6 +376,7 @@ pages:
     artifacts:
         paths:
             - public
+        expire_in: 1 month
     only:
         - develop
         - docs_staging
