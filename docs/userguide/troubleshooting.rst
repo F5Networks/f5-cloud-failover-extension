@@ -12,8 +12,6 @@ Cloud Failover general troubleshooting tips
   - A 400-level response will carry an error message with it
   - If this message is missing, incorrect, or misleading, please let us know by filing an issue on Github.
 
-- Use the trace option to create a detailed trace of the configuration process for subsequent analysis. Telemetry's trace option can be a powerful tool to learn about its working details and to review Telemetry's operations in detail.
-
 
 Troubleshooting
 ---------------

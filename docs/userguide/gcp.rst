@@ -19,7 +19,7 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
 
-- 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
+- 2 clustered BIG-IPs in GCE. See the |gdmtemplate|.
 - Network access to the Google metadata service
 - A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
 - Virtual addresses created in a named traffic group and matching Alias IP addresses on the BIG-IP NICs serving application traffic
@@ -67,3 +67,7 @@ This example declaration shows the minimum information needed to update the clou
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover site on GitHub</a>
+
+.. |gdmtemplate| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">example GDM Template</a>

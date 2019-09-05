@@ -15,13 +15,13 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in AWS:
 
-- 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
+- 2 clustered BIG-IPs in AWS. See the |cloudformation|.
 - An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
 - Network access to the AWS metadata service
 - Virtual addresses created in traffic group None and matching Secondary Private IP addresses on the BIG-IP NICs serving application traffic
-- Elastic IP addresses tagged with the following
-    -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
-    - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
+- Elastic IP addresses tagged with the following:
+    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
+    - The Private IP addresses that each Elastic IP is associated with, separated by a comma
 - Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
 
 
@@ -61,3 +61,7 @@ This example declaration shows the minimum information needed to update the clou
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">GitHub</a>
+
+.. |armtemplate| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">example Cloudformation template</a>
