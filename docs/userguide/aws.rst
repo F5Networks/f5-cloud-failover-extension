@@ -62,6 +62,6 @@ This example declaration shows the minimum information needed to update the clou
 
    <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">GitHub</a>
 
-.. |armtemplate| raw:: html
+.. |cloudformation| raw:: html
 
    <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">example Cloudformation template</a>
