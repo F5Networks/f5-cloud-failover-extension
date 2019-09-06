@@ -6,7 +6,7 @@ Prerequisites and Requirements
 The following are prerequisites for using Cloud Failover:
 
 
-- You must be using BIG-IP version v13.0 or later.
+- You must be using BIG-IP version v14.1.0 or later.
 - To use Cloud Failover, your BIG-IP user account must have the **Administrator**
   role.
 - You should be familiar with the F5 BIG-IP and F5 terminology.  For

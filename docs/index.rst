@@ -1,7 +1,7 @@
 F5 Cloud Failover
 =================
 
-Welcome to the F5 Cloud Failover User Guide. To provide feedback on this documentation, you can file a `GitHub Issue <https://github.com/f5networks/f5-cloud-failover/issues>`.
+Welcome to the F5 Cloud Failover User Guide. To provide feedback on this documentation, you can file a |github|.
 
 Introduction
 ------------
@@ -40,3 +40,8 @@ User Guide Index
    userguide/example-declarations
    userguide/troubleshooting
    revision-history
+
+
+   .. |github| raw:: html
+
+   <a href="https://github.com/f5networks/f5-cloud-failover/issues" target="_blank">GitHub issue</a>
