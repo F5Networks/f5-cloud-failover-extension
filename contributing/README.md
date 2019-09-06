@@ -193,16 +193,20 @@ What happens in the system internals between request and response?
 
 ##### Prerequisites
 
-- 2 clustered BIG-IPs in Azure ([example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg))
-- An Azure system-assigned or user-managed identity with Contributor role to the virtual machines and resource group where network interfaces and route tables are configured
-- Network access to the Azure metadata service
-- Virtual addresses created in a floating traffic group and matching Secondary Private IP addresses on the IP configurations of the BIG-IP NICs serving application traffic
-- The aforementioned Azure network interfaces tagged with the following
-    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
-- Route table(s) tagged with the following
-    - The key(s) and value(s) from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
-    - Key(s) named "f5_self_ips" with value(s) matching the self IP address(es) from the BIG-IP devices
-- Route(s) in the route table with destination networks corresponding to the values from the *failoverRoutes.scopingAddressRanges* section in the Failover Extension Configuration request
+- 2 clustered BIG-IPs
+   - Note: Here is an [example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
+- An Azure system-assigned or user-managed identity with sufficient access
+    - Using Standard roles
+        - Contributor access - Note: This should be limited to the appropriate resource groups
+- Storage account for Cloud Failover extension cluster-wide file(s)
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+- Network Interfaces should be tagged with a key/value cooresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+- Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
+- Route(s) in a route table tagged with the following (optional):
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
+    - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
+
 
 ![diagram](images/AzureFailoverExtensionHighLevel.gif)
 
@@ -216,14 +220,21 @@ What happens in the system internals between request and response?
 
 ##### Prerequisites
 
-- 2 clustered BIG-IPs in AWS ([example Cloudformation Template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg))
-- An AWS IAM role with sufficient access to update the indicated elastic IP addresses and route tables
-- Network access to the AWS metadata service
-- Virtual addresses created in traffic group None and matching Secondary Private IP addresses on the BIG-IP NICs serving application traffic
-- Elastic IP addresses tagged with the following
-    -  The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
-    - The Private IP addresses that each Elastic IP is associated with, separated by a comma:
-- Route(s) in a route table with destination networks corresponding to the values from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
+- 2 clustered BIG-IPs
+   - Note: Here is an [example AWS CloudFormation template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
+- An AWS IAM role with sufficient access
+    - Using Standard roles
+        - EC2 Full Access
+        - S3 Full Access - Note: This should be limited to necessary buckets
+- S3 bucket for Cloud Failover extension cluster-wide file(s)
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+- Elastic IP addresses tagged with the following (optional):
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a special key called `VIPS` containing a comma seperated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. Example: `10.0.0.10,10.0.0.11`
+- Route(s) in a route table tagged with the following (optional):
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
+    - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
 
@@ -237,13 +248,22 @@ What happens in the system internals between request and response?
 
 ##### Prerequisites
 
-- 2 clustered BIG-IPs in GCE ([example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg))
-- Network access to the Google metadata service
-- A Google service account with sufficent access to update the indicated virtual machines and forwarding rules
-- Virtual addresses created in a named traffic group and matching Alias IP addresses on the BIG-IP NICs serving application traffic
-- Virtual machine instances tagged with the following
-    - The key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
-- Forwarding rules(s) configured with targets that match a virtual address or floating self IP of the active BIG-IP
+- 2 clustered BIG-IPs
+   - Note: Here is an [example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
+- A Google service account with sufficent access
+    - Using Standard scopes
+        - compute-rw
+        - storage-rw
+        - cloud-platform
+- Storage bucket for Cloud Failover extension cluster-wide file(s)
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+- Instances should be tagged with a key/value cooresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+- Virtual addresses created in a traffic group (floating) and matching Alias IP addresses on the instance serving application traffic
+- Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic
+- Route(s) in a route table tagged with the following (optional):
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
+    - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
 
@@ -364,12 +384,3 @@ The current process involves adding a `doc` label to an issue to note it require
 See the [examples](../examples) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
 
 See the [INTERNAL_README.md](../INTERNAL_README.md) for an internal explanation of most features.
-
----
-### Releasing the failover extension
-
-- Once the 'develop' branch is ready for release, merge develop into master
-- Publish the docs to production by creating a docs_prod branch
-- Change/increment version to anticipated future rpm version in package.json in develop branch to make sure the latest rpm isn't overridden on next release
-
-
