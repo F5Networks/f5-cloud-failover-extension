@@ -354,6 +354,13 @@ resource "local_file" "do1" {
     filename = "${path.module}/temp_do1.json"
 }
 
+resource "null_resource" "delay_one_minute" {
+  provisioner "local-exec" {
+    command = "sleep 60"
+  }
+  depends_on = [azurerm_virtual_machine.vm0]
+}
+
 resource "null_resource" "login0" {
   provisioner "local-exec" {
     command = "f5 bigip configure-auth --host ${azurerm_public_ip.pip0.ip_address} --user ${var.admin_username} --password ${module.utils.admin_password}"
@@ -361,7 +368,7 @@ resource "null_resource" "login0" {
   triggers = {
     always_run = "${fileexists("${path.module}/../../declarations/do/azure_do_template.json")}"
   }
-  depends_on = [azurerm_virtual_machine.vm0]
+  depends_on = [null_resource.delay_one_minute]
 }
 
 resource "null_resource" "onboard0" {
