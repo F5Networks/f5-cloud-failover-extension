@@ -9,7 +9,7 @@ up and running with Cloud Failover.
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   In BIG-IP versions prior to 14.0.0, the Package Management LX tab will not show up in the user interface unless you run the following command from the BIG-IP CLI: ``touch /var/config/rest/iapps/enable``.
+   Cloud Failover extension supports BIG-IP version 14.1.X and later.
 
 #. Download the latest RPM package from |github| in the **dist** directory.
 #. Upload and install the RPM package on the using the BIG-IP GUI:

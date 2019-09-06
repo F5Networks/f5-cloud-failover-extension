@@ -52,7 +52,6 @@ Cloud Failover supports TMOS 14.1.x and later.
 
 
 
-
 .. |ilx| raw:: html
 
    <a href="https://clouddocs.f5.com/products/iapp/iapp-lx/latest/" target="_blank">iControl LX</a>
