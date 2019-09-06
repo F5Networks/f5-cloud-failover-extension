@@ -42,6 +42,8 @@ User Guide Index
    revision-history
 
 
-   .. |github| raw:: html
 
-   <a href="https://github.com/f5networks/f5-cloud-failover/issues" target="_blank">GitHub issue</a>
+
+.. |github| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">GitHub Issue</a>
