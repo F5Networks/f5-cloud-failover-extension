@@ -16,15 +16,20 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in Microsoft Azure:
 
-- 2 clustered BIG-IPs in Azure, see the |armtemplate|.
-- An Azure system-assigned or user-managed identity with Contributor role to the virtual machines and resource group where network interfaces and route tables are configured
-- Network access to the Azure metadata service
-- Virtual addresses created in a floating traffic group and matching Secondary Private IP addresses on the IP configurations of the BIG-IP NICs serving application traffic
-- The aforementioned Azure network interfaces tagged with the key(s) and value(s) from the *failoverAddresses.scopingTags* section in the Cloud Failover extension configuration
-- Route table(s) tagged with the following:
-    - The key(s) and value(s) from the *failoverRoutes.scopingTags* section in the Cloud Failover extension configuration
-    - Key(s) named *f5_self_ips* with value(s) matching the self IP address(es) from the BIG-IP devices
-- Route(s) in the route table with destination networks corresponding to the values from the *failoverRoutes.scopingAddressRanges* section in the Failover Extension Configuration request
+- 2 clustered BIG-IPs
+   - Note: Here is an [example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
+- An Azure system-assigned or user-managed identity with sufficient access
+    - Using Standard roles
+        - Contributor access - Note: This should be limited to the appropriate resource groups
+- Storage account for Cloud Failover extension cluster-wide file(s)
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+- Network Interfaces should be tagged with a key/value cooresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+- Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
+- Route(s) in a route table tagged with the following (optional):
+    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
+    - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
+
 
 
 Example Declaration
@@ -55,41 +60,6 @@ This example declaration shows the minimum information needed to update the clou
           "scopingAddressRanges": [
             "192.168.1.0/24"
           ]
-        }
-    }
-
-    
-
-Example Response
-----------------
-After you post the declaration to the BIG-IP, it will respond with a success message. Below is an example response.
-
-.. code-block:: json
-    :linenos:
-
-    {
-        "message": "success",
-        "declaration": {
-            "class": "Cloud_Failover",
-            "environment": "azure",
-            "externalStorage": {
-                "scopingTags": {
-                    "f5_cloud_failover_label": "mydeployment"
-                }
-            },
-            "failoverAddresses": {
-                "scopingTags": {
-                    "f5_cloud_failover_label": "mydeployment"
-                }
-            },
-            "failoverRoutes": {
-                "scopingTags": {
-                    "f5_cloud_failover_label": "mydeployment"
-                },
-                "scopingAddressRanges": [
-                    "192.168.1.0/24"
-                ]
-            }
         }
     }
 
