@@ -22,12 +22,12 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
         - EC2 Full Access
         - S3 Full Access - Note: This should be limited to necessary buckets
 - S3 bucket for Cloud Failover extension cluster-wide file(s)
-    - Tagged with a key/value cooresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a key/value corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
 - Elastic IP addresses tagged with the following (optional):
-    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
     - Tagged with a special key called `VIPS` containing a comma seperated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. Example: `10.0.0.10,10.0.0.11`
 - Route(s) in a route table tagged with the following (optional):
-    - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
     - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
