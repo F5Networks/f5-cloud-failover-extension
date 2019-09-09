@@ -44,6 +44,13 @@ Cloud Failover supports TMOS 14.1.x and later.
 
 |
 
+
+**Does it matter if I use Cloud Failover in same network or across network?**
+
+Cloud Failover is agnostic to same network and across network topologies.
+
+|
+
 **How do I report issues, feature requests, and get help with Telemetry Streaming?**
 
 - You can use |issues| to submit feature requests or problems with Telemetry Streaming.
