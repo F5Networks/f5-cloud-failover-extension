@@ -3,9 +3,20 @@ image: node:8
 stages:
     - build_package
     - test
-    - test_functional
+    - test_functional_init
+    - test_functional_execute
+    - test_functional_cleanup
     - build
     - publish
+
+.helpers: &helpers |
+    function validate () {
+        "$@"
+        if [[ $? -ne 0 ]]; then exit 1; fi
+    }
+
+before_script:
+    - *helpers
 
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
@@ -45,6 +56,7 @@ build_package:
             - dist
         expire_in: 1 month
 
+# test package against node 4.x
 test_node4:
     stage: test
     image: node:4  
@@ -57,22 +69,35 @@ test_node4:
     tags:
         - docker-executor
 
+# test package
 test_package:
     stage: test
     script:
-        # install jq
-        - apt-get update
-        - apt-get install -y jq
-        # install node modules
-        - npm install
+        - apt-get update && apt-get install -y jq && npm install
+        # unit tests
+        - npm run test
+    tags:
+        - cm-official-docker-executor
+
+# audit packages for vulnerabilities
+test_audit:
+    stage: test
+    script:
+        - apt-get update && apt-get install -y jq && npm install
         # npm audit - install includes audit, but perform specific check and fail if needed
         - audit_report=$(npm audit --json)
         - echo $audit_report
         - actions=$(echo $audit_report | jq .actions | jq length)
         - if [ $actions -ne 0 ]; then echo 'ERROR! vulnerabilities exist'; exit 1; fi
-        # linter
-        - npm run lint
-        # unit tests
+    tags:
+        - cm-official-docker-executor
+
+# job must be called coverage
+coverage:
+    stage: test
+    script:
+        - apt-get update && apt-get install -y jq && npm install
+        # unit tests + coverage report
         - npm run test && npm run check && npm run report
     tags:
         - cm-official-docker-executor
@@ -80,12 +105,16 @@ test_package:
         name: ${CI_COMMIT_REF_NAME}_unittests_coverage
         paths:
             - coverage
+        expire_in: 1 month
 
-# run functional tests: generic template
-# note: the tests will run on production/release branch(es) and merge requests only
-.test_functional_generic: &test_functional_generic
-    stage: test_functional
-    image: python:3
+### Functional Tests Section
+
+# Functional Tests - Initialization phase (with 1 retries in a case of any failures)
+.test_functional_init_generic: &test_functional_init_generic
+    stage: test_functional_init
+    image: python:3.7
+    retry:
+        max: 1
     script:
         # install jq
         - apt-get update
@@ -96,13 +125,61 @@ test_package:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # setup environment
-        - npm run deployment-create
-        # run functional tests
-        - npm run test-functional
+        - set -e
+        - validate npm run deployment-create
+        - mkdir -p env_metadata/${CF_ENV_CLOUD}
+        - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
+        - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
+        - cp *.tfstate env_metadata/${CF_ENV_CLOUD}
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+    artifacts:
+        paths:
+            - env_metadata/${CF_ENV_CLOUD}
+        when: always
+        expire_in: 1 month
+
+# run functional tests: azure
+test_functional_init_azure:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+
+# run functional tests: aws
+test_functional_init_aws:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+
+# run functional tests: gcp
+test_functional_init_gcp:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+
+# Functional Tests - Execute phase (with no retries)
+.test_functional_execute_generic: &test_functional_execute_generic
+    stage: test_functional_execute
+    image: python:3.7
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        # executing fuctional test
+        - validate npm run test-functional
         # run API smoke tests
-        - npm run validate-api
-        # teardown environment
-        - npm run deployment-delete
+        - validate npm run validate-api
     tags:
         - cm-official-docker-executor
     only:
@@ -113,29 +190,93 @@ test_package:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: azure
-test_functional_azure:
-    <<: *test_functional_generic
+test_functional_execute_azure:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
+        - build_package
 
 # run functional tests: aws
-test_functional_aws:
-    <<: *test_functional_generic
+test_functional_execute_aws:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
+        - build_package
 
 # run functional tests: gcp
-test_functional_gcp:
-    <<: *test_functional_generic
+test_functional_execute_gcp:
+    <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+    dependencies:
+        - test_functional_init_gcp
+        - build_package
+
+# Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
+.test_functional_cleanup_generic: &test_functional_cleanup_generic
+    stage: test_functional_cleanup
+    image: python:3.7
+    retry:
+        max: 1
+    when: always
+    script:
+        # install jq
+        - apt-get update
+        - apt-get install -y jq
+        # install terraform
+        - curl ${TERRAFORM_PKG_URL} -o terraform.zip -vvv && unzip terraform.zip && export PATH="$PATH:$(pwd)"
+        # install node (and package dependencies)
+        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - npm install
+        # copying artifacts inherited from functional_test_init target to root directory
+        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        # teardown environment
+        - validate npm run deployment-delete
+    tags:
+        - cm-official-docker-executor
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "develop"
+            - $RUN_FUNCTIONAL_TESTS == "true"
+            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+
+# run functional tests: azure
+test_functional_cleanup_azure:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "azure"
+    dependencies:
+        - test_functional_init_azure
+
+# run functional tests: aws
+test_functional_cleanup_aws:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+    dependencies:
+        - test_functional_init_aws
+
+# run functional tests: gcp
+test_functional_cleanup_gcp:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+    dependencies:
+        - test_functional_init_gcp
+
+###  End of Functional Tests
 
 build_docs:
-    image: python:3.7
+    image: ${CONTAINTHEDOCS_IMAGE}
     stage: build
     script:
         # install packages
-        - pip install -r requirements.txt
+        # - pip install -r requirements.txt
         # generate docs
         - make html
     tags:
@@ -162,20 +303,31 @@ build_api_docs:
             - apidocs
         expire_in: 1 month
 
-publish_to_artifactory:
+publish_dev_to_artifactory:
     stage: publish
     only:
-        - tags
+        variables:
+            - $CI_COMMIT_REF_NAME == "develop"
     tags:
         - cm-official-docker-executor
     script:
-        # If the tag contains a '-', then get RPM from the build artifact, otherwise, get it from dist
-        # since no '-' in the tag means it's s release and should have been committed to dist.
-        - if [[ $CI_COMMIT_TAG == *"-"* ]]; then
-        -     RPM_FILE=$(ls build/rpmbuild/RPMS/noarch/*.rpm)
-        - else
-        -     RPM_FILE=$(ls dist/new_build/*.rpm)
-        - fi
+        - RPM_FILE=$(ls dist/new_build/*.rpm)
+        - RPM_NAME=$(basename $RPM_FILE)
+        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${RPM_NAME}
+        - >-
+            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+        - echo $UPLOAD_RESULT
+
+publish_release_to_artifactory:
+    stage: publish
+    only:
+        variables:
+            - $CI_COMMIT_REF_NAME == "master"
+    tags:
+        - cm-official-docker-executor
+    script:
+        - RPM_FILE=$(ls dist/new_build/*.rpm)
         - RPM_NAME=$(basename $RPM_FILE)
         - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/${RPM_NAME}
         - >-
@@ -224,8 +376,8 @@ pages:
     artifacts:
         paths:
             - public
+        expire_in: 1 month
     only:
-        - master
         - develop
         - docs_staging
 
@@ -253,7 +405,6 @@ docs to staging:
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 
-
 # Publish docs to clouddocs.f5.com
 docs to production:
     image: ${CONTAINTHEDOCS_IMAGE}
@@ -263,8 +414,8 @@ docs to production:
         url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
     only:
         variables:
-            # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
-            - $CI_COMMIT_REF_NAME == "master"
+            # Currently will only deploy to clouddocs.f5networks.com on commits to docs_produciton branch
+            # note: master should be added here when ready to publish externally
             - $CI_COMMIT_REF_NAME == "docs_production"
     tags:
         - cm-official-docker-executor

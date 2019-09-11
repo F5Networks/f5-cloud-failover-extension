@@ -63,7 +63,7 @@ resource "aws_route_table" "external" {
   }
   route {
     cidr_block = "192.0.2.0/24"
-    network_interface_id = "${aws_network_interface.external1.id}"
+    network_interface_id = "${aws_network_interface.external2.id}"
   }
 
   tags = "${merge(

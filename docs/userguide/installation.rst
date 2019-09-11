@@ -9,6 +9,8 @@ Downloading the RPM file
 ------------------------
 The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file.
 
+.. NOTE:: During beta release the RPM is available on |artifactory|.
+
 Uploading and installing the Cloud Failover file on the BIG-IP
 --------------------------------------------------------------
 After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you would still have to use cURL command to install the package).  Use only one of the following procedures.
@@ -22,7 +24,7 @@ From the Configuration utility:
 
 1. If you are using a BIG-IP version prior to 14.0,  before you can use the Configuration utility, you must enable the framework using the BIG-IP command line. From the CLI, type the following command:  ``touch /var/config/rest/iapps/enable``.  You only need to run this command once (per BIG-IP system).
 
-2. Click **iApps > Package Management LX**.  Your Cloud Failover version number may be different than the one shown in the following example.
+2. Click **iApps > Package Management LX**.
 
 3. Click the **Import** button.
 
@@ -71,7 +73,7 @@ Copy the following commands to install the package.
 
 Updating Cloud Failover
 -----------------------
-When F5 releases a new version of Cloud Failover, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click Import and then select the new RPM, the system recognizes you are upgrading CF:
+When F5 releases a new version of Cloud Failover, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click Import and then select the new RPM, the system recognizes you are upgrading CF.
 
 
 Reverting to a previous version of Cloud Failover
@@ -85,7 +87,7 @@ If for any reason you want to revert to a previous version of Cloud Failover, yo
 
 Verifying the integrity of the Cloud Failover RPM package
 ---------------------------------------------------------
-F5 Networks provides a checksum for each of our Cloud Failover releases so you can confirm the integrity of the RPM package.
+F5 Networks provides a checksum for each Cloud Failover release so you can confirm the integrity of the RPM package.
 
 You can get a checksum for a particular template by running one of the following commands, depending on your operating system:
 
@@ -99,3 +101,8 @@ You can compare the checksum produced by that command against the **.sha256** fi
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-cloud-failover" target="_blank">F5 Cloud Failover site on GitHub</a>
+
+
+.. |artifactory| raw:: html
+
+   <a href="https://***REMOVED***/artifactory/list/ecosystems-f5-cloud-failover-rpm/" target="_blank">Artifactory</a>

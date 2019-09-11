@@ -1,7 +1,7 @@
 F5 Cloud Failover
 =================
 
-Welcome to the F5 Cloud Failover User Guide. To provide feedback on this documentation, you can file a `GitHub Issue <https://github.com/f5networks/f5-cloud-failover/issues>`.
+Welcome to the F5 Cloud Failover User Guide. To provide feedback on this documentation, you can file a |github|.
 
 Introduction
 ------------
@@ -15,7 +15,7 @@ F5 Cloud Failover (CF) is a solution for those who want L3 failover functionalit
 The diagram below shows a typical failover scenario for an active/standby pair of BIG-IP systems in an Azure cloud environment.
 
 
-.. image:: ../contributing/images/AWSFailoverExtensionHighLevel.gif
+.. image:: ../contributing/images/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
 
@@ -40,3 +40,10 @@ User Guide Index
    userguide/example-declarations
    userguide/troubleshooting
    revision-history
+
+
+
+
+.. |github| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">GitHub Issue</a>

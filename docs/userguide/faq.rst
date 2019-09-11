@@ -40,7 +40,14 @@ Cloud Failover is available on |github| and is F5-supported.
 
 **Which TMOS versions does Cloud Failover support?**
 
-Telemetry Streaming supports TMOS 13.x and later.
+Cloud Failover supports TMOS 14.1.x and later.
+
+|
+
+
+**Does it matter if I use Cloud Failover in same network or across network?**
+
+Cloud Failover is agnostic to same network and across network topologies.
 
 |
 
@@ -49,7 +56,6 @@ Telemetry Streaming supports TMOS 13.x and later.
 - You can use |issues| to submit feature requests or problems with Telemetry Streaming.
 
 |
-
 
 
 

@@ -12,14 +12,10 @@ const assert = require('assert');
 
 const AWS = require('aws-sdk');
 
-const utils = require('../../../../shared/util.js');
+const constants = require('../../../../constants.js');
 const funcUtils = require('../../shared/util.js');
 
-const RETRIES = {
-    LONG: 500,
-    MEDIUM: 100,
-    SHORT: 10
-};
+const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
@@ -67,22 +63,6 @@ function matchRouteTables(routes, nics) {
     if (!match) {
         assert.fail('ElasticIP does not match primary\'s secondary private IP');
     }
-}
-
-function forceStandby(ip, username, password) {
-    const uri = '/mgmt/tm/sys/failover';
-
-    return utils.getAuthToken(ip, username, password)
-        .then((data) => {
-            const options = funcUtils.makeOptions({ authToken: data.token });
-            options.method = 'POST';
-            options.body = {
-                command: 'run',
-                standby: true
-            };
-            return utils.makeRequest(ip, uri, options);
-        })
-        .catch(err => Promise.reject(err));
 }
 
 describe('Provider: AWS', () => {
@@ -221,7 +201,7 @@ describe('Provider: AWS', () => {
 
     // Functional tests
 
-    it('should ensure secondary is not primary', () => forceStandby(
+    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
 
@@ -240,7 +220,7 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (primary) to standby', () => forceStandby(
+    it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
@@ -258,7 +238,7 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should force BIG-IP (secondary) to standby', () => forceStandby(
+    it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
 

@@ -1,16 +1,15 @@
 # f5-cloud-failover
 
+[![pipeline status](https://***REMOVED***/cloudsolutions/f5-cloud-failover/badges/develop/pipeline.svg)](https://***REMOVED***/cloudsolutions/f5-cloud-failover/commits/develop)
+[![coverage report](https://***REMOVED***/cloudsolutions/f5-cloud-failover/badges/develop/coverage.svg)](https://***REMOVED***/cloudsolutions/f5-cloud-failover/commits/develop)
+
 ## Introduction
 
-F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the TS Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single TS JSON declaration to CF’s declarative REST API endpoint.
+F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CF Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON document to CF’s declarative REST API endpoint.
 
 ## Documentation
 
-For the documentation on Cloud Failover, including download, installation, and usage instructions, see the Cloud Failover User guides at [http://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/](http://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/).
-
-### Example Cloud Failover declarations
-
-The Cloud Failover documentation contains a variety of example declarations you can use directly or modify to suit your needs. See the [Consumers](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/setting-up-consumer.html) and [Example Declarations](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/declarations.html) pages.
+For the documentation on Cloud Failover, including download, installation, and usage instructions, see the Cloud Failover User guides at [https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest/](https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest/).
 
 ## Filing Issues and Getting Help
 

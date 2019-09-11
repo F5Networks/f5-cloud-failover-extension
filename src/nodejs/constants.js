@@ -59,7 +59,7 @@ module.exports = {
     FAILOVER_STATES: {
         PASS: 'SUCCEEDED',
         FAIL: 'FAILED',
-        RUNNING: 'RUNNING'
+        RUN: 'RUNNING'
     },
     GCP_LABEL_NAME: 'f5_cloud_failover_labels',
     MAX_RETRIES: 4,
