@@ -2,8 +2,6 @@
 
 # Embed Post-NIC-Swap
 cat << 'EOF' > /config/post-nic-swap.sh
-
-
       #!/bin/bash
       # STAGE 2
       source /usr/lib/bigstart/bigip-ready-functions
@@ -28,7 +26,6 @@ cat << 'EOF' > /config/post-nic-swap.sh
       tmsh modify cm device $(cat /config/hostname.txt) unicast-address { { effective-ip $(cat /config/int_private_ip.txt) effective-port 1026 ip $(cat /config/int_private_ip.txt) } }
       tmsh modify sys db failover.selinuxallowscripts value enable
 
-
       tmsh save /sys config
 
       #bigstart restart restjavad
@@ -36,37 +33,44 @@ cat << 'EOF' > /config/post-nic-swap.sh
 
 EOF
 
+cat << 'EOF' > /config/first-run.sh
+    #!/bin/bash
+    source /usr/lib/bigstart/bigip-ready-functions
+    # Wait for mcpd to get ready
+    wait_bigip_ready
 
-source /usr/lib/bigstart/bigip-ready-functions
-wait_bigip_ready
+    if [ ! -f /config/first_run_flag ]; then
 
+        touch /config/first_run_flag
 
-if [ ! -f /config/first_run_flag ]; then
+        adminUsername='${admin_username}'
+        adminPassword='${admin_password}'
+        sleep 15
+        tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
+        tmsh save /sys config
 
-    touch /config/first_run_flag
+        echo ${hostname} > /config/hostname.txt
+        echo ${ext_private_ip} > /config/ext_private_ip.txt
+        echo ${int_private_ip} > /config/int_private_ip.txt
+        echo ${mgmt_private_ip} > /config/mgmt_private_ip.txt
 
-    adminUsername='${admin_username}'
-    adminPassword='${admin_password}'
-    tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
+        echo ${int_subnet_gateway} > /config/int_subnet_gateway.txt
+        echo ${ext_subnet_gateway} > /config/ext_subnet_gateway.txt
+        echo ${mgmt_subnet_gateway} > /config/mgmt_subnet_gateway.txt
 
+        echo ${int_subnet_cidr_range} > /config/int_subnet_cidr_range.txt
+        echo ${ext_subnet_cidr_range} > /config/ext_subnet_cidr_range.txt
+        echo ${mgmt_subnet_cidr_range} > /config/mgmt_subnet_cidr_range.txt
 
-    echo ${hostname} > /config/hostname.txt
-    echo ${ext_private_ip} > /config/ext_private_ip.txt
-    echo ${int_private_ip} > /config/int_private_ip.txt
-    echo ${mgmt_private_ip} > /config/mgmt_private_ip.txt
+        chmod +w /config/startup
+        chmod +x /config/post-nic-swap.sh
+        echo "/config/post-nic-swap.sh" >> /config/startup
 
-    echo ${int_subnet_gateway} > /config/int_subnet_gateway.txt
-    echo ${ext_subnet_gateway} > /config/ext_subnet_gateway.txt
-    echo ${mgmt_subnet_gateway} > /config/mgmt_subnet_gateway.txt
+        /usr/bin/setdb provision.managementeth eth1
+        tmsh save /sys config
+        reboot
+    fi
+EOF
 
-    echo ${int_subnet_cidr_range} > /config/int_subnet_cidr_range.txt
-    echo ${ext_subnet_cidr_range} > /config/ext_subnet_cidr_range.txt
-    echo ${mgmt_subnet_cidr_range} > /config/mgmt_subnet_cidr_range.txt
-
-    chmod +w /config/startup
-    chmod +x /config/post-nic-swap.sh
-    echo "/config/post-nic-swap.sh" >> /config/startup
-    /usr/bin/setdb provision.managementeth eth1
-    tmsh save /sys config
-    reboot
-fi
+chmod 755 /config/first-run.sh
+nohup /config/first-run.sh &
