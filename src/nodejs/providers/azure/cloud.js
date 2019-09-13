@@ -97,6 +97,8 @@ class Cloud extends AbstractCloud {
                 return this._getStorageAccountKey(storageAccount.name);
             })
             .then((storageAccountInfo) => {
+                this.logger.silly('Storage Account Information: ', storageAccountInfo);
+
                 this.storageOperationsClient = Storage.createBlobService(
                     storageAccountInfo.name,
                     storageAccountInfo.key,
@@ -124,6 +126,8 @@ class Cloud extends AbstractCloud {
         const failoverAddresses = options.failoverAddresses;
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations || {};
+
+        this.logger.silly('updateAddresses: ', options);
 
         if (discoverOnly === true) {
             return this._discoverAddressOperations(localAddresses, failoverAddresses)
@@ -154,6 +158,8 @@ class Cloud extends AbstractCloud {
         const localAddresses = options.localAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations || {};
+
+        this.logger.silly('updateRoutes: ', options);
 
         if (discoverOnly === true) {
             return this._discoverRouteOperations(localAddresses)
@@ -281,7 +287,7 @@ class Cloud extends AbstractCloud {
     */
     _listStorageAccounts(options) {
         options = options || {};
-        const tags = options.tags || null;
+        const tags = options.tags || {};
 
         return this.storageClient.storageAccounts.list()
             .then((storageAccounts) => {
@@ -291,7 +297,8 @@ class Cloud extends AbstractCloud {
                     const filteredStorageAccounts = storageAccounts.filter((sa) => {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
-                            if (Object.keys(sa.tags).indexOf(tagKey) !== -1 && sa.tags[tagKey] === tags[tagKey]) {
+                            if (sa.tags && Object.keys(sa.tags).indexOf(tagKey) !== -1
+                            && sa.tags[tagKey] === tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
@@ -371,7 +378,8 @@ class Cloud extends AbstractCloud {
                     const filteredNics = nics.filter((nic) => {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
-                            if (Object.keys(nic.tags).indexOf(tagKey) !== -1 && nic.tags[tagKey] === tags[tagKey]) {
+                            if (nic.tags && Object.keys(nic.tags).indexOf(tagKey) !== -1
+                                && nic.tags[tagKey] === tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
@@ -618,7 +626,8 @@ class Cloud extends AbstractCloud {
                         let matchedTags = 0;
                         const tagKeys = Object.keys(tags);
                         tagKeys.forEach((key) => {
-                            if (Object.keys(item.tags).indexOf(key) !== -1 && item.tags[key] === tags[key]) {
+                            if (item.tags && Object.keys(item.tags).indexOf(key) !== -1
+                            && item.tags[key] === tags[key]) {
                                 matchedTags += 1;
                             }
                         });
