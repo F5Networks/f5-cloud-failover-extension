@@ -431,6 +431,38 @@ describe('Provider - Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate _listNics returns empty array when no tags exist', () => {
+        const options = {
+            tags: { tag01: 'value01' }
+        };
+
+        const nic01 = {
+            id: 'id_nic01',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '1.1.1.1'
+                }
+            ],
+            name: 'nic01',
+            location: 'location01',
+            enableIPForwarding: false,
+            networkSecurityGroup: 'nsgNic01'
+        };
+
+        provider.networkClient = sinon.stub();
+        provider.networkClient.networkInterfaces = sinon.stub();
+        provider.networkClient.networkInterfaces.list = sinon.stub((error, callback) => {
+            callback(error, [nic01]);
+        });
+
+        return provider._listNics(options)
+            .then((response) => {
+                assert.deepStrictEqual(response, []);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
 
     it('validate _listNics rejection', () => {
         const options = {

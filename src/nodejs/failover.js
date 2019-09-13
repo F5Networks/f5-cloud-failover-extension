@@ -143,7 +143,9 @@ class FailoverClient {
                 logger.info('Failover complete');
             })
             .catch((err) => {
-                logger.error(`failover.execute() error: ${util.stringify(err.message)}`);
+                logger.error(
+                    `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`
+                );
 
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.FAIL,
