@@ -32,6 +32,9 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 
+
+.. _aws-example:
+
 Example Declaration
 -------------------
 This example declaration shows the minimum information needed to update the cloud resources in AWS.

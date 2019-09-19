@@ -36,6 +36,11 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
     - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
+
+
+
+.. _gcp-example:
+
 Example Declaration
 -------------------
 This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.

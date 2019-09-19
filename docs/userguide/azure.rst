@@ -31,6 +31,7 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 
+.. _azure-example:
 
 Example Declaration
 -------------------
