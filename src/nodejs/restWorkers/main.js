@@ -195,8 +195,24 @@ function processRequest(restOperation) {
         break;
     case 'trigger':
         // TODO: response should use an async task pattern - for now simply execute failover and respond
-        failover.execute();
-        util.restOperationResponder(restOperation, 200, { message: 'in_progress' });
+        switch (method) {
+        case 'POST':
+            failover.execute();
+            util.restOperationResponder(restOperation, 200, { message: 'in_progress' });
+            break;
+        case 'GET':
+            configWorker.getConfig()
+                .then((config) => {
+                    util.restOperationResponder(restOperation, 200, { message: 'trigger_in_progress', declaration: config });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+            break;
+        default:
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+            break;
+        }
         break;
     case 'info':
         util.restOperationResponder(restOperation, 200, { message: 'success' });
