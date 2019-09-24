@@ -186,14 +186,11 @@ class FailoverClient {
     _createAndUpdateStateObject(options) {
         const taskState = options.taskState || failoverStates.PASS;
         const operations = options.operations || {};
-
-        return this.cloudProvider.uploadDataToStorage(
-            stateFileName,
-            this._createStateObject({
-                taskState,
-                operations
-            })
-        )
+        const stateObject = this._createStateObject({ taskState, operations });
+        const configUpdatePromises = [];
+        configUpdatePromises.push(configWorker.setConfig(stateObject));
+        return Promise.all(configUpdatePromises)
+            .then(() => this.cloudProvider.uploadDataToStorage(stateFileName, stateObject))
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
