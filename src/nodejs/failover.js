@@ -31,7 +31,8 @@ const stateFileContents = {
     taskState: failoverStates.PASS,
     timestamp: new Date().toJSON(),
     instance: '',
-    operations: {}
+    operations: {},
+    lastTaskState: {}
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
 
@@ -127,7 +128,14 @@ class FailoverClient {
 
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
-                    operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                    operations: {
+                        addresses: this.addressDiscovery,
+                        routes: this.routeDiscovery
+                    },
+                    lastTaskState: {
+                        message: failoverStates.PASS,
+                        performedOperation: 'Failover IP addresses and Routes discovered'
+                    }
                 });
             })
             .then(() => {
@@ -136,20 +144,32 @@ class FailoverClient {
                     this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
                     this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
                 ];
+                this.lastTaskState = {
+                    message: failoverStates.FAIL,
+                    performedOperation: 'Performing Failover - updateAddresses and updateRoutes'
+                };
                 return Promise.all(updateActions);
             })
-            .then(() => this._createAndUpdateStateObject({ taskState: failoverStates.PASS }))
+            .then(() => this._createAndUpdateStateObject({
+                taskState: failoverStates.PASS,
+                lastTaskState: {
+                    message: failoverStates.PASS,
+                    performedOperation: 'Performing Failover - updateAddresses and updateRoutes'
+                }
+            }))
             .then(() => {
                 logger.info('Failover complete');
             })
             .catch((err) => {
-                logger.error(
-                    `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`
-                );
-
+                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.FAIL,
-                    operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                    operations: { addresses: this.addressDiscovery, routes: this.routeDiscovery },
+                    lastTaskState: {
+                        message: errorMessage,
+                        performedOperation: this.lastTaskState.performedOperation
+                    }
                 })
                     .then(() => Promise.reject(err))
                     .catch(() => Promise.reject(err));
@@ -171,6 +191,7 @@ class FailoverClient {
         thisState.timestamp = new Date().toJSON();
         thisState.instance = this.hostname || 'none';
         thisState.operations = options.operations;
+        thisState.lastTaskState = options.lastTaskState;
         return thisState;
     }
 
@@ -186,7 +207,8 @@ class FailoverClient {
     _createAndUpdateStateObject(options) {
         const taskState = options.taskState || failoverStates.PASS;
         const operations = options.operations || {};
-        const stateObject = this._createStateObject({ taskState, operations });
+        const lastTaskState = options.lastTaskState || {};
+        const stateObject = this._createStateObject({ taskState, operations, lastTaskState });
         const configUpdatePromises = [];
         configUpdatePromises.push(configWorker.setConfig(stateObject));
         return Promise.all(configUpdatePromises)

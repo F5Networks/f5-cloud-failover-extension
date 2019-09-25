@@ -203,7 +203,8 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'trigger_in_progress', declaration: config });
+                    logger.debug(config);
+                    util.restOperationResponder(restOperation, 200, { message: 'trigger_in_progress', failoverState: config });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
