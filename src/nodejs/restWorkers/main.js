@@ -200,7 +200,7 @@ function processRequest(restOperation) {
         switch (method) {
         case 'POST':
             failover.execute();
-            util.restOperationResponder(restOperation, 200, { message: 'in_progress' });
+            util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN});
             break;
         case 'GET':
             configWorker.getConfig()
