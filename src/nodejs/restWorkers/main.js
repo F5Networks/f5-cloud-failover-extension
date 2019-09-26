@@ -212,9 +212,6 @@ function processRequest(restOperation) {
                     case failoverStates.PASS:
                         config.taskState.code = 200;
                         break;
-                    case failoverStates.FAIL:
-                        config.taskState.code = 400;
-                        break;
                     default:
                         config.taskState.code = 400;
                         break;
