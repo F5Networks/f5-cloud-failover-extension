@@ -171,6 +171,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              example:
+                {
+                  "taskState": "FAILED",
+                  "message": "Failover Unexpected Error",
+                  "code": 400
+                }
 components:
   schemas:
     Configuration:
