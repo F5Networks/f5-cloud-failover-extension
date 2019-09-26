@@ -19,8 +19,10 @@ const util = require('../util.js');
 const Logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
+const constants = require('../constants.js');
 
 const failover = new FailoverClient();
+const failoverStates = constants.FAILOVER_STATES;
 
 const logger = new Logger(module);
 
@@ -203,8 +205,21 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    logger.debug(config);
-                    util.restOperationResponder(restOperation, 200, { message: 'trigger_in_progress', failoverState: config });
+                    switch (config.taskState) {
+                    case failoverStates.RUN:
+                        config.code = 202;
+                        break;
+                    case failoverStates.PASS:
+                        config.code = 200;
+                        break;
+                    case failoverStates.FAIL:
+                        config.code = 400;
+                        break;
+                    default:
+                        config.code = 400;
+                        break;
+                    }
+                    util.restOperationResponder(restOperation, config.code, config);
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
