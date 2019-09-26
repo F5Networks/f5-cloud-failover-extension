@@ -105,7 +105,7 @@ paths:
                   taskState:
                     type: string
               example:
-                message: in_progress
+                taskState: "Running"
     get:
       summary: Running failover task state
       tags:
@@ -117,18 +117,54 @@ paths:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
+              example:
+                {
+                  "taskState": "RUNNING",
+                  "message": "Failover running",
+                  "timestamp": "2019-09-25T22:12:52.137Z",
+                  "instance": "failover1.local",
+                  "operations": {
+                    "routes": [...],
+                    "addresses": [...]
+                  },
+                  "code": 202
+                }
         "200":
           description: Failover task was successful
           content:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
+              example:
+                {
+                  "taskState": "SUCCEEDED",
+                  "message": "Failover Completed Successfully",
+                  "timestamp": "2019-09-25T23:44:44.381Z",
+                  "instance": "failover0.local",
+                  "operations": {
+                    "routes": [...],
+                    "addresses": [...]
+                  },
+                  "code": 200
+                }
         "400":
           description: Failover task failed
           content:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
+              example:
+                {
+                  "taskState": "FAILED",
+                  "message": "Failover failed because of x",
+                  "timestamp": "2019-09-25T22:12:52.137Z",
+                  "instance": "failover1.local",
+                  "operations": {
+                    "routes": [...],
+                    "addresses": [...]
+                  },
+                  "code": 400
+                }
         default:
           description: Unexpected Error
           content:

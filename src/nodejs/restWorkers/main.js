@@ -184,7 +184,7 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config.declaration });
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config.config });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
