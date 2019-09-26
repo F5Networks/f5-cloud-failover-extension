@@ -184,7 +184,7 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config.declaration });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
@@ -205,21 +205,21 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    switch (config.taskState) {
+                    switch (config.taskState.taskState) {
                     case failoverStates.RUN:
-                        config.code = 202;
+                        config.taskState.code = 202;
                         break;
                     case failoverStates.PASS:
-                        config.code = 200;
+                        config.taskState.code = 200;
                         break;
                     case failoverStates.FAIL:
-                        config.code = 400;
+                        config.taskState.code = 400;
                         break;
                     default:
-                        config.code = 400;
+                        config.taskState.code = 400;
                         break;
                     }
-                    util.restOperationResponder(restOperation, config.code, config);
+                    util.restOperationResponder(restOperation, config.taskState.code, config.taskState);
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });

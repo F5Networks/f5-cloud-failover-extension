@@ -25,7 +25,8 @@ const PATHS = require('./constants.js').PATHS;
 const logger = new Logger(module);
 
 const DFL_CONFIG_IN_STATE = {
-    config: {}
+    config: {},
+    taskState: {}
 };
 
 class ConfigWorker {
@@ -68,7 +69,7 @@ class ConfigWorker {
      *
      */
     getConfig() {
-        return Promise.resolve(this.state.config);
+        return Promise.resolve(this.state);
     }
 
     /**
@@ -76,9 +77,9 @@ class ConfigWorker {
      *
      * @param {Object} config
      */
-    setConfig(config) {
-        this.state.config = config;
-
+    setConfig(configObject) {
+        this.state.config = configObject.config || {};
+        this.state.taskState = configObject.taskState || {};
         // save to persistent storage
         return new Promise((resolve, reject) => {
             this._restWorker.saveState(null, this.state, (err) => {
@@ -151,12 +152,12 @@ class ConfigWorker {
         }
 
         logger.debug('Successfully validated declaration');
-        this.setConfig(declaration);
-
         this.device = new Device();
-
-        return this.device.init()
-            .then(() => this.updateTriggerScripts())
+        return Promise.all([
+            this.setConfig({ config: declaration }),
+            this.device.init(),
+            this.updateTriggerScripts()
+        ])
             .then(() => Promise.resolve(this.state.config))
             .catch((err) => {
                 logger.error(`Could not process configuration declaration: ${JSON.stringify(err.message)}`);

@@ -58,7 +58,7 @@ class FailoverClient {
 
         return configWorker.getConfig()
             .then((data) => {
-                this.config = data;
+                this.config = data.config;
                 if (!this.config.environment) {
                     return Promise.reject(new Error('Environment not provided'));
                 }
@@ -205,14 +205,13 @@ class FailoverClient {
         const failoverOperations = options.failoverOperations || {};
         const message = options.message || '';
         const stateObject = this._createStateObject({ taskState, failoverOperations, message });
-        const configUpdatePromises = [];
-        configUpdatePromises.push(configWorker.setConfig(stateObject));
-        return Promise.all(configUpdatePromises)
+        return configWorker.setConfig({ config: this.config, taskState: stateObject })
             .then(() => this.cloudProvider.uploadDataToStorage(stateFileName, stateObject))
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
+
     }
 
     /**

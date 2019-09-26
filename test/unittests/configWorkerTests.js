@@ -109,7 +109,7 @@ describe('Config Worker', () => {
         .then(() => config.processConfigRequest(declaration))
         .then(() => config.getConfig())
         .then((response) => {
-            assert.strictEqual(response.class, declaration.class);
+            assert.strictEqual(response.config.class, declaration.class);
         }));
 
     it('should reject if poorly formatted', () => {
