@@ -102,10 +102,33 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
+                  taskState:
                     type: string
               example:
                 message: in_progress
+    get:
+      summary: Running failover task state
+      tags:
+        - Trigger
+      responses:
+        "202":
+          description: Failover task is running
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/ConfigurationResponse"
+        "200":
+          description: Failover task was successful
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/ConfigurationResponse"
+        "400":
+          description: Failover task failed
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/ConfigurationResponse"
         default:
           description: Unexpected Error
           content:
