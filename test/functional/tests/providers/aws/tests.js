@@ -14,7 +14,6 @@ const AWS = require('aws-sdk');
 
 const constants = require('../../../../constants.js');
 const funcUtils = require('../../shared/util.js');
-const utils = require('../../../../shared/util.js');
 
 const RETRIES = constants.RETRIES;
 
@@ -260,49 +259,17 @@ describe('Provider: AWS', () => {
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
     // ideally this would be replaced by a check for previous failover task success completion
-    it('Flapping scenario: should wait ten seconds', function () {
-        this.retries(RETRIES.LONG);
-        const uri = constants.TRIGGER_ENDPOINT;
-        return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password)
-            .then((data) => {
-                utils.makeRequest(dutPrimary.ip, uri,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'x-f5-auth-token': data.token
-                        }
-                    });
-            })
-            .then((data) => {
-                data = data || {};
-                assert.deepStrictEqual(data.message, 'SUCCEEDED');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
+    ));
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait ten seconds', function () {
-        this.retries(RETRIES.LONG);
-        const uri = constants.TRIGGER_ENDPOINT;
-        return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-            .then((data) => {
-                utils.makeRequest(dutSecondary.ip, uri,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'x-f5-auth-token': data.token
-                        }
-                    });
-            })
-            .then((data) => {
-                data = data || {};
-                assert.deepStrictEqual(data.message, 'SUCCEEDED');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('Flapping scenario: should wait ten seconds', () => new Promise(
+        resolve => setTimeout(resolve, 10000)
+    ));
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
