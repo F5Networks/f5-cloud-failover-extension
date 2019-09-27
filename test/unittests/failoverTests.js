@@ -305,7 +305,6 @@ describe('Failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
         deviceGlobalSettingsMock.returns();
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
