@@ -69,7 +69,7 @@ class ConfigWorker {
      *
      */
     getConfig() {
-        return Promise.resolve(this.state);
+        return Promise.resolve(this.state.config);
     }
 
     /**
@@ -77,9 +77,38 @@ class ConfigWorker {
      *
      * @param {Object} config
      */
-    setConfig(configObject) {
-        this.state.config = configObject.config || {};
-        this.state.taskState = configObject.taskState || {};
+    setConfig(config) {
+        this.state.config = config || {};
+        // save to persistent storage
+        return new Promise((resolve, reject) => {
+            this._restWorker.saveState(null, this.state, (err) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        })
+            .catch((err) => {
+                logger.error(`Could not set config: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Get task state
+     *
+     */
+    getTaskState() {
+        return Promise.resolve(this.state.taskState);
+    }
+
+    /**
+     * Set task state
+     *
+     * @param {Object} taskState
+     */
+    setTaskState(taskState) {
+        this.state.taskState = taskState || {};
         // save to persistent storage
         return new Promise((resolve, reject) => {
             this._restWorker.saveState(null, this.state, (err) => {
@@ -143,6 +172,7 @@ class ConfigWorker {
      * @param {Object} body
      */
     processConfigRequest(body) {
+        logger.debug('this is body ', body);
         const declaration = Object.assign({}, body);
         const validation = this.validator.validate(declaration);
 
@@ -152,12 +182,12 @@ class ConfigWorker {
         }
 
         logger.debug('Successfully validated declaration');
+        this.setConfig(declaration);
+
         this.device = new Device();
-        return Promise.all([
-            this.setConfig({ config: declaration }),
-            this.device.init(),
-            this.updateTriggerScripts()
-        ])
+
+        return this.device.init()
+            .then(() => this.updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))
             .catch((err) => {
                 logger.error(`Could not process configuration declaration: ${JSON.stringify(err.message)}`);

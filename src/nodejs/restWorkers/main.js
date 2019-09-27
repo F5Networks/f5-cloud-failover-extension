@@ -184,7 +184,7 @@ function processRequest(restOperation) {
         case 'GET':
             configWorker.getConfig()
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config.config });
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
@@ -200,23 +200,23 @@ function processRequest(restOperation) {
         switch (method) {
         case 'POST':
             failover.execute();
-            util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN});
+            util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN });
             break;
         case 'GET':
-            configWorker.getConfig()
-                .then((config) => {
-                    switch (config.taskState.taskState) {
+            configWorker.getTaskState()
+                .then((taskState) => {
+                    switch (taskState.taskState) {
                     case failoverStates.RUN:
-                        config.taskState.code = 202;
+                        taskState.code = 202;
                         break;
                     case failoverStates.PASS:
-                        config.taskState.code = 200;
+                        taskState.code = 200;
                         break;
                     default:
-                        config.taskState.code = 400;
+                        taskState.code = 400;
                         break;
                     }
-                    util.restOperationResponder(restOperation, config.taskState.code, config.taskState);
+                    util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });

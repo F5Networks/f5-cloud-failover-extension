@@ -259,6 +259,7 @@ describe('Failover', () => {
     it('validate that it recovers from previous failover failure', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         const setConfigSpy = sinon.stub(Object.getPrototypeOf(config), 'setConfig').resolves();
+        const setTaskStateSpy = sinon.stub(Object.getPrototypeOf(config), 'setTaskState').resolves();
         const uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
         const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.onCall(0).resolves({
@@ -294,8 +295,8 @@ describe('Failover', () => {
                 // verify that the uploaded task state is running and then eventually succeeded
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
-                assert.strictEqual(setConfigSpy.getCall(2).lastArg.taskState.message, 'Failover running');
-                assert.strictEqual(setConfigSpy.lastCall.lastArg.taskState.message, 'Failover Completed Successfully');
+                assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
+                assert.strictEqual(setTaskStateSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
             })
             .catch(err => Promise.reject(err));
     });
