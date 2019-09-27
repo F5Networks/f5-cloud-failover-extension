@@ -123,7 +123,7 @@ paths:
                   "message": "Failover running",
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
-                  "operations": {
+                  "failoverOperations": {
                     "routes": [...],
                     "addresses": [...]
                   },
@@ -141,7 +141,7 @@ paths:
                   "message": "Failover Completed Successfully",
                   "timestamp": "2019-09-25T23:44:44.381Z",
                   "instance": "failover0.local",
-                  "operations": {
+                  "failoverOperations": {
                     "routes": [...],
                     "addresses": [...]
                   },
@@ -159,7 +159,7 @@ paths:
                   "message": "Failover failed because of x",
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
-                  "operations": {
+                  "failoverOperations": {
                     "routes": [...],
                     "addresses": [...]
                   },

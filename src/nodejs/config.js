@@ -119,7 +119,7 @@ class ConfigWorker {
             });
         })
             .catch((err) => {
-                logger.error(`Could not set config: ${util.stringify(err.message)}`);
+                logger.error(`Could not set task state: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
     }
