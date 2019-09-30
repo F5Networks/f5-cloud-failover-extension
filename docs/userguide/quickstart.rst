@@ -28,13 +28,20 @@ up and running with Cloud Failover.
 
 #. Using a RESTful API client like Postman, send a GET request to the URI
    ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover is running
-   properly.
+   properly. You should receive an expect response of Success after you have posted this declaration. For example:
 
-#. Copy one of the :ref:`example-declarations` which best matches the configuration you want
-   to use.
+   .. code-block:: shell
+
+    {
+        "message": "success"
+    }
+
+
+#. Copy one of the example declarations which best matches the configuration you want
+   to use. There are example declarations in the sections for Azure, AWS, and GCP.
 
 #. Paste the declaration into your API client, and modify names and IP addresses
-   as applicable.
+   as applicable. The key and value pair must match the tags that you assign within the cloud provider.
 
 #. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
 

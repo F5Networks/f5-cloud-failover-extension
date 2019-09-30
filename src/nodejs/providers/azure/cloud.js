@@ -510,49 +510,29 @@ class Cloud extends AbstractCloud {
                     for (let h = theirNics.length - 1; h >= 0; h -= 1) {
                         if (theirNics[h].nic.name !== myNics[s].nic.name
                             && theirNics[h].nic.name.slice(0, -1) === myNics[s].nic.name.slice(0, -1)) {
-                            let myNic = [];
-                            let theirNic = [];
-                            const ourLocation = myNics[s].nic.location;
-                            const theirNsg = theirNics[h].nic.networkSecurityGroup;
-                            const myNsg = myNics[s].nic.networkSecurityGroup;
-                            const theirIpForwarding = theirNics[h].nic.enableIPForwarding;
-                            const myIpForwarding = myNics[s].nic.enableIPForwarding;
-                            const theirTags = theirNics[h].nic.tags;
-                            const myTags = myNics[s].nic.tags;
+                            const theirNic = theirNics[h].nic;
+                            const myNic = myNics[s].nic;
+                            const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
+                            const myNicIpConfigs = this._getIpConfigs(myNic.ipConfigurations);
 
-                            myNic = this._getIpConfigs(myNics[s].nic.ipConfigurations);
-                            theirNic = this._getIpConfigs(theirNics[h].nic.ipConfigurations);
-
-                            for (let i = theirNic.length - 1; i >= 0; i -= 1) {
+                            for (let i = theirNicIpConfigs.length - 1; i >= 0; i -= 1) {
                                 for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                                    if (failoverAddresses[t] === theirNic[i].privateIPAddress) {
-                                        this.logger.silly('Match:', theirNic[i].privateIPAddress);
+                                    if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
+                                        this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
 
-                                        myNic.push(theirNic[i]);
-                                        theirNic.splice(i, 1);
+                                        myNicIpConfigs.push(theirNicIpConfigs[i]);
+                                        theirNicIpConfigs.splice(i, 1);
                                         break;
                                     }
                                 }
                             }
 
-                            const theirNicParams = {
-                                location: ourLocation,
-                                ipConfigurations: theirNic,
-                                networkSecurityGroup: theirNsg,
-                                tags: theirTags,
-                                enableIPForwarding: theirIpForwarding
-                            };
-                            const myNicParams = {
-                                location: ourLocation,
-                                ipConfigurations: myNic,
-                                networkSecurityGroup: myNsg,
-                                tags: myTags,
-                                enableIPForwarding: myIpForwarding
-                            };
+                            theirNic.ipConfigurations = theirNicIpConfigs;
+                            myNic.ipConfigurations = myNicIpConfigs;
 
-                            disassociate.push([this.resourceGroup, theirNics[h].nic.name, theirNicParams,
+                            disassociate.push([this.resourceGroup, theirNic.name, theirNic,
                                 'Disassociate']);
-                            associate.push([this.resourceGroup, myNics[s].nic.name, myNicParams,
+                            associate.push([this.resourceGroup, myNic.name, myNic,
                                 'Associate']);
                             break;
                         }
