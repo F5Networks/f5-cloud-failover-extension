@@ -28,6 +28,7 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
         - cloud-platform
 - Storage bucket for Cloud Failover extension cluster-wide file(s)
     - Tagged with a key/value corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+    - Note: Ensure that the required storage accounts have no public access
 - Instances should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
 - Virtual addresses created in a traffic group (floating) and matching Alias IP addresses on the instance serving application traffic
 - Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic
@@ -35,6 +36,11 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
     - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
     - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
+
+
+
+
+.. _gcp-example:
 
 Example Declaration
 -------------------

@@ -51,9 +51,9 @@ Cloud Failover is agnostic to same network and across network topologies.
 
 |
 
-**How do I report issues, feature requests, and get help with Telemetry Streaming?**
+**How do I report issues, feature requests, and get help with Cloud Failover?**
 
-- You can use |issues| to submit feature requests or problems with Telemetry Streaming.
+- You can use |issues| to submit feature requests or problems with Cloud Failover.
 
 |
 

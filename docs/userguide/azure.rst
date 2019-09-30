@@ -23,6 +23,7 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
         - Contributor access - Note: This should be limited to the appropriate resource groups
 - Storage account for Cloud Failover extension cluster-wide file(s)
     - Tagged with a key/value corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
+    - Note: Ensure that the required storage accounts have no public access
 - Network Interfaces should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
 - Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - Route(s) in a route table tagged with the following (optional):
@@ -31,6 +32,7 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 
+.. _azure-example:
 
 Example Declaration
 -------------------
