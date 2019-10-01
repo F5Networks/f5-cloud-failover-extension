@@ -78,7 +78,7 @@ class ConfigWorker {
      * @param {Object} config
      */
     setConfig(config) {
-        this.state.config = config || {};
+        this.state.config = config;
         // save to persistent storage
         return new Promise((resolve, reject) => {
             this._restWorker.saveState(null, this.state, (err) => {
@@ -161,7 +161,7 @@ class ConfigWorker {
         const auth = '-u admin:admin';
         const curlUrl = 'localhost:8100/mgmt/shared/cloud-failover/trigger';
         const checkExisting = `if [[ -z $(grep \"${staticComment}\" ${scriptPath}) ]]; then`;
-        const writeCommand = `echo \"\n${staticComment}\ncurl ${auth} ${curlUrl}\" >> ${scriptPath};`;
+        const writeCommand = `echo \"\n${staticComment}\ncurl -d {} ${auth} -X POST ${curlUrl}\" >> ${scriptPath};`;
         /* eslint-enable no-useless-escape */
         return `'${checkExisting} ${writeCommand} fi'`;
     }
@@ -172,7 +172,6 @@ class ConfigWorker {
      * @param {Object} body
      */
     processConfigRequest(body) {
-        logger.debug('this is body ', body);
         const declaration = Object.assign({}, body);
         const validation = this.validator.validate(declaration);
 
