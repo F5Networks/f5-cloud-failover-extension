@@ -116,7 +116,7 @@ paths:
           content:
             "application/json; charset=UTF-8":
               schema:
-                $ref: "#/components/schemas/ConfigurationResponse"
+                $ref: "#/components/schemas/TaskStateResponse"
               example:
                 {
                   "taskState": "RUNNING",
@@ -134,7 +134,7 @@ paths:
           content:
             "application/json; charset=UTF-8":
               schema:
-                $ref: "#/components/schemas/ConfigurationResponse"
+                $ref: "#/components/schemas/TaskStateResponse"
               example:
                 {
                   "taskState": "SUCCEEDED",
@@ -152,7 +152,7 @@ paths:
           content:
             "application/json; charset=UTF-8":
               schema:
-                $ref: "#/components/schemas/ConfigurationResponse"
+                $ref: "#/components/schemas/TaskStateResponse"
               example:
                 {
                   "taskState": "FAILED",
@@ -221,6 +221,30 @@ components:
         declaration:
           type: object
           $ref: "#/components/schemas/Configuration"
+    TaskStateResponse:
+      type: object
+      properties:
+        taskState:
+          type: string
+          enum:
+            - "RUNNING"
+            - "SUCCEEDED"
+            - "FAILED"
+        timestamp:
+          type: string
+        instance:
+          type: string
+        failoverOperations:
+          type: object
+          properties:
+            routes:
+              type: object
+              additionalProperties: true
+            addresses:
+              type: object
+              additionalProperties: true
+        code:
+          type: string
     Error:
       required:
         - code
