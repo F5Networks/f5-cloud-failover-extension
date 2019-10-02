@@ -238,9 +238,9 @@ components:
           type: object
           properties:
             routes:
-              type: object
+              type: array
             addresses:
-              type: object
+              type: array
         code:
           type: string
     Error:
