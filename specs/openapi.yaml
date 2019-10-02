@@ -124,8 +124,8 @@ paths:
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
                   "failoverOperations": {
-                    "routes": [...],
-                    "addresses": [...]
+                    "routes": [],
+                    "addresses": []
                   },
                   "code": 202
                 }
@@ -142,8 +142,8 @@ paths:
                   "timestamp": "2019-09-25T23:44:44.381Z",
                   "instance": "failover0.local",
                   "failoverOperations": {
-                    "routes": [...],
-                    "addresses": [...]
+                    "routes": [],
+                    "addresses": []
                   },
                   "code": 200
                 }
@@ -160,8 +160,8 @@ paths:
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
                   "failoverOperations": {
-                    "routes": [...],
-                    "addresses": [...]
+                    "routes": [],
+                    "addresses": []
                   },
                   "code": 400
                 }
@@ -239,10 +239,8 @@ components:
           properties:
             routes:
               type: object
-              additionalProperties: true
             addresses:
               type: object
-              additionalProperties: true
         code:
           type: string
     Error:
