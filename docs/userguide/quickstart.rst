@@ -15,9 +15,12 @@ up and running with Cloud Failover.
 #. Upload and install the RPM package on the using the BIG-IP GUI:
 
    - :guilabel:`Main tab > iApps > Package Management LX > Import`
+   .. image:: ../images/cloud-failover-import.png
+      :width: 800
    - Select the downloaded file and click :guilabel:`Upload`
    - For complete instructions see :ref:`installgui-ref` or
      :ref:`installcurl-ref`.
+
 
 #. Be sure to see the known issues on GitHub (https://github.com/F5Networks/f5-cloud-failover/issues) to review any known issues and other important information before you attempt to use Cloud Failover.
 
@@ -72,13 +75,23 @@ Here is an example declaration for Microsoft Azure.
             "f5_cloud_failover_label": "mydeployment"
           },
           "scopingAddressRanges": [
-            "192.168.1.0/24"
+            "0.0.0.0/0"
           ]
         }
     }
 
 
- 
+You should receive a response back from Postman that will look like the following example:
+
+.. code-block:: json
+    :linenos:
+
+    {"message":"success","declaration":{"class":"Cloud_Failover","environment":"azure","externalStorage":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"}},"failoverAddresses":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"}},"failoverRoutes":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"},"scopingAddressRanges":["0.0.0.0/0"]},"schemaVersion":"0.9.0"}}
+
+
+
+
+
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-cloud-failover" target="_blank">F5 Cloud Failover site on GitHub</a>

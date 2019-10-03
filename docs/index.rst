@@ -12,7 +12,7 @@ F5 Cloud Failover (CF) is a solution for those who want L3 failover functionalit
 - Failover Route(s) - Update User-Defined Routes (UDR), update route table, etc.
 
 
-The diagram below shows a typical failover scenario for an active/standby pair of BIG-IP systems in an Azure cloud environment.
+The diagram below shows a typical failover scenario for an active/standby pair of BIG-IP systems in an Azure cloud environment. Failover is triggered when the BIG-IP system fails a traffic group over, resulting in the /config/failover/tgactive script running. The failover extension then updates that file during any configuration request to ensure it triggers failover by calling the Cloud Failover /trigger API.
 
 
 .. image:: ../contributing/images/AzureFailoverExtensionHighLevel.gif

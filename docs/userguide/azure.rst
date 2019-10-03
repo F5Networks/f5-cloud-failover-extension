@@ -18,9 +18,10 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
 
 - 2 clustered BIG-IPs
    - Note: Here is an [example ARM Template](https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
-- An Azure system-assigned or user-managed identity with sufficient access
+- An Azure |managed-identity| with sufficient access
     - Using Standard roles
-        - Contributor access - Note: This should be limited to the appropriate resource groups
+    - Contributor access 
+      -Note: This should be limited to the appropriate resource groups
 - Storage account for Cloud Failover extension cluster-wide file(s)
     - Tagged with a key/value corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
     - Note: Ensure that the required storage accounts have no public access
@@ -30,6 +31,8 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
     - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
     - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
+
+
 
 
 .. _azure-example:
@@ -73,3 +76,8 @@ This example declaration shows the minimum information needed to update the clou
 .. |armtemplate| raw:: html
 
    <a href="https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">example ARM template</a>
+
+
+.. |managed-identity| raw:: html
+
+   <a href="https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview" target="_blank">system-assigned or user-managed identity</a>
