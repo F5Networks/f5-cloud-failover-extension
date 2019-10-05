@@ -1,7 +1,7 @@
 .. _gcp:
 
-Cloud Failover in Google Cloud
-==============================
+Google Cloud
+============
 
 
 
