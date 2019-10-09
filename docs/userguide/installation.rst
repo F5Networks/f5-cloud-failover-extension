@@ -5,24 +5,27 @@ Downloading and installing Cloud Failover
 
 The Cloud Failover package is an RPM file you download, and then upload to the BIG-IP system using the iControl/iApp LX framework. Alternatively, you can see our :doc:`quickstart`.
 
+
 Downloading the RPM file
 ------------------------
 The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file.
 
 .. NOTE:: During beta release the RPM is available on |artifactory|.
 
+
 Uploading and installing the Cloud Failover file on the BIG-IP
 --------------------------------------------------------------
-After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you would still have to use cURL command to install the package). Use only one of the following procedures.
+After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use cURL command to install the package). Use only one of the following procedures.
 
 .. _installgui-ref:
+
 
 Installing Cloud Failover using the BIG-IP Configuration utility
 ````````````````````````````````````````````````````````````````
 
 From the Configuration utility:
 
-1. If you are using a BIG-IP version prior to 14.0,  before you can use the Configuration utility, you must enable the framework using the BIG-IP command line. From the CLI, type the following command:  ``touch /var/config/rest/iapps/enable``.  You only need to run this command once (per BIG-IP system).
+1. If you are using a BIG-IP version prior to 14.0, before you can use the Configuration utility, you must enable the framework using the BIG-IP command line. From the CLI, type the following command:  ``touch /var/config/rest/iapps/enable``.  You only need to run this command once per BIG-IP system.
 
 2. Click **iApps > Package Management LX**.
 
@@ -84,6 +87,7 @@ If for any reason you want to revert to a previous version of Cloud Failover, yo
 |
 
 .. _hash-ref:
+
 
 Verifying the integrity of the Cloud Failover RPM package
 ---------------------------------------------------------

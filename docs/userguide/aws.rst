@@ -1,7 +1,7 @@
 .. _aws:
 
-Cloud Failover in AWS
-=====================
+AWS
+===
 
 Failover Event Diagram
 ----------------------
@@ -41,7 +41,6 @@ Example Declaration
 This example declaration shows the minimum information needed to update the cloud resources in AWS.
 
 .. code-block:: json
-    :linenos:
 
     {
         "class": "Cloud_Failover",

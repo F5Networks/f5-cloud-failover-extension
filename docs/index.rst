@@ -20,7 +20,7 @@ The diagram below shows a typical failover scenario for an active/standby pair o
 
 
 
-Each cloud provider has different requirements in terms of cloud resources. To see how Cloud Failover works for the different providers, see the sections for Azure, AWS, and Google.
+Each cloud provider has different requirements in terms of cloud resources. To see how Cloud Failover works for the different providers, see the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
 
 User Guide Index
 ----------------

@@ -1,13 +1,12 @@
 Troubleshooting
 ===============
-Use this section to read about known issues and for common troubleshooting steps.
+Use this section to read about known issues and for common troubleshooting steps. 
 
-Cloud Failover general troubleshooting tips
--------------------------------------------
 
-- Examine the restnoded failure log at /var/log/restnoded/restnoded.log (this is where Cloud Failover records error messages)
+Examine the restnoded failure log at /var/log/restnoded/restnoded.log. This is where Cloud Failover records error messages
 
-- Examine the REST response:
+
+Examine the REST response:
 
   - A 400-level response will carry an error message with it
   - If this message is missing, incorrect, or misleading, please let us know by filing an issue on Github.
