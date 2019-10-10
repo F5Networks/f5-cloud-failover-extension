@@ -114,7 +114,7 @@ paths:
         "202":
           description: Failover task is running
           content:
-            "application/json; charset=UTF-8":
+            "application/json":
               schema:
                 $ref: "#/components/schemas/TaskStateResponse"
               example:
@@ -124,8 +124,8 @@ paths:
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
                   "failoverOperations": {
-                    "routes": [],
-                    "addresses": []
+                    "routes": {},
+                    "addresses": {}
                   },
                   "code": 202
                 }
@@ -142,8 +142,8 @@ paths:
                   "timestamp": "2019-09-25T23:44:44.381Z",
                   "instance": "failover0.local",
                   "failoverOperations": {
-                    "routes": [],
-                    "addresses": []
+                    "routes": {},
+                    "addresses": {}
                   },
                   "code": 200
                 }
@@ -160,8 +160,8 @@ paths:
                   "timestamp": "2019-09-25T22:12:52.137Z",
                   "instance": "failover1.local",
                   "failoverOperations": {
-                    "routes": [],
-                    "addresses": []
+                    "routes": {},
+                    "addresses": {}
                   },
                   "code": 400
                 }
@@ -213,6 +213,8 @@ components:
               additionalProperties: true
             scopingAddressRanges:
               type: array
+              items:
+                type: string
     ConfigurationResponse:
       type: object
       properties:
@@ -220,7 +222,40 @@ components:
           type: string
         declaration:
           type: object
-          $ref: "#/components/schemas/Configuration"
+          properties:
+            class:
+              type: string
+              default: "Cloud_Failover"
+            environment:
+              type: string
+              enum:
+                - azure
+                - aws
+                - gcp
+            schemaVersion:
+              type: string
+            externalStorage:
+              type: object
+              properties:
+                scopingTags:
+                  type: object
+                  additionalProperties: true
+            failoverAddresses:
+              type: object
+              properties:
+                scopingTags:
+                  type: object
+                  additionalProperties: true
+            failoverRoutes:
+              type: object
+              properties:
+                scopingTags:
+                  type: object
+                  additionalProperties: true
+                scopingAddressRanges:
+                  type: array
+                  items:
+                    type: string
     TaskStateResponse:
       type: object
       properties:
@@ -238,9 +273,9 @@ components:
           type: object
           properties:
             routes:
-              type: array
+              type: object
             addresses:
-              type: array
+              type: object
         code:
           type: string
     Error:
