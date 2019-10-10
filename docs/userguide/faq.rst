@@ -1,3 +1,5 @@
+.. _faq:
+
 Frequently Asked Questions (FAQ)
 --------------------------------
 
@@ -41,6 +43,26 @@ Cloud Failover is available on |github| and is F5-supported.
 **Which TMOS versions does Cloud Failover support?**
 
 Cloud Failover supports TMOS 14.1.x and later.
+
+|
+
+
+**What information does Cloud Failover extension store?**
+
+Cloud Failover extension stores the BIG-IP failover IP address and routes in the cloud storage JSON file (example below). For this reason, make sure your cloud store does not have public access.
+
+.. code-block:: json
+
+    "taskState": "SUCCEEDED",
+    "message": "Failover Completed Successfully",
+    "timestamp": "2019-09-25T23:44:44.381Z",
+    "instance": "failover0.local",
+    "failoverOperations": {
+    "routes": {},
+    "addresses": {}
+    }
+
+
 
 |
 
