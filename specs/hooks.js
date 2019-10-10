@@ -8,6 +8,5 @@ hooks.before('/trigger > Running failover task state > 202 > application/json', 
 
 hooks.after('/trigger > Running failover task state > 400 > application/json; charset=UTF-8', (transaction, done) => {
     transaction.skip = true;
-    console.log('blah');
     done();
 });
