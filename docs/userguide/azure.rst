@@ -21,9 +21,8 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
 - An Azure |managed-identity| with sufficient access. This should be limited to the appropriate resource groups where it contains the BIG-IP VNet and route tables.
     - User Access Administrator
     - Contributor access 
-- Storage account for Cloud Failover extension cluster-wide file(s)
-    - Tagged with a key/value corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration
-    - Note: Ensure that the required storage accounts have no public access
+- A storage account for Cloud Failover extension cluster-wide file(s) that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
+    .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 - Network Interfaces should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
 - Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - Route(s) in a route table tagged with the following (optional):
