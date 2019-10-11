@@ -19,9 +19,9 @@ F5 Networks provides a checksum for each Cloud Failover release so you can confi
 
 You can get a checksum for a particular RPM by running one of the following commands, depending on your operating system:
 
-Linux: ``sha256sum <path_to_template>``
+Linux: ``sha256sum <path_to_rpm>``
 
-Windows using CertUtil: ``CertUtil –hashfile <path_to_template> SHA256``
+Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
 
 You can compare the checksum produced by that command against the **.sha256** file in the **dist** directory (https://github.com/F5Networks/f5-cloud-failover/tree/master/dist). 
 
