@@ -17,7 +17,11 @@
 'use strict';
 
 const hooks = require('hooks');
-
+/**
+ * To avoid testing workflows using Dredd we currently skip /trigger get endpoint testing since
+ * inorder to test the workflows we would have to mock most of the initial server configurations which defeats the purpose
+ * of testing with dredd.
+ */
 hooks.before('/trigger > Running failover task state > 202 > application/json', (transaction, done) => {
     transaction.skip = true;
     done();

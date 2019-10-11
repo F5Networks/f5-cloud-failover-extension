@@ -118,17 +118,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/TaskStateResponse"
               example:
-                {
-                  "taskState": "RUNNING",
-                  "message": "Failover running",
-                  "timestamp": "2019-09-25T22:12:52.137Z",
-                  "instance": "failover1.local",
-                  "failoverOperations": {
-                    "routes": {},
-                    "addresses": {}
-                  },
-                  "code": 202
-                }
+                  taskState: RUNNING
+                  message: Failover running
+                  timestamp: 2019-09-25T22:12:52.137Z
+                  instance: failover1.local
+                  failoverOperations:
+                    routes: {}
+                    addresses: {}
+                  code: 202
         "200":
           description: Failover task was successful
           content:
@@ -136,17 +133,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/TaskStateResponse"
               example:
-                {
-                  "taskState": "SUCCEEDED",
-                  "message": "Failover Completed Successfully",
-                  "timestamp": "2019-09-25T23:44:44.381Z",
-                  "instance": "failover0.local",
-                  "failoverOperations": {
-                    "routes": {},
-                    "addresses": {}
-                  },
-                  "code": 200
-                }
+                  taskState: SUCCEEDED
+                  message: Failover Completed Successfully
+                  timestamp: 2019-09-25T23:44:44.381Z
+                  instance: failover0.local
+                  failoverOperations:
+                    routes: {}
+                    addresses: {}
+                  code": 200
         "400":
           description: Failover task failed
           content:
@@ -154,17 +148,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/TaskStateResponse"
               example:
-                {
-                  "taskState": "FAILED",
-                  "message": "Failover failed because of x",
-                  "timestamp": "2019-09-25T22:12:52.137Z",
-                  "instance": "failover1.local",
-                  "failoverOperations": {
-                    "routes": {},
-                    "addresses": {}
-                  },
-                  "code": 400
-                }
+                  taskState: FAILED
+                  message: Failover failed because of x
+                  timestamp: 2019-09-25T22:12:52.137Z
+                  instance: failover1.local
+                  failoverOperations:
+                    routes: {}
+                    addresses: {}
+                  code: 400
         default:
           description: Unexpected Error
           content:
@@ -172,11 +163,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               example:
-                {
-                  "taskState": "FAILED",
-                  "message": "Failover Unexpected Error",
-                  "code": 400
-                }
+                  taskState: FAILED
+                  message: Failover Unexpected Error
+                  code: 400
 components:
   schemas:
     Configuration:
