@@ -93,7 +93,6 @@ describe('Provider: AWS', () => {
             delete require.cache[key];
         });
     });
-
     // local functions
     function getEc2Instances(tags) {
         const params = {

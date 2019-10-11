@@ -25,7 +25,8 @@ const PATHS = require('./constants.js').PATHS;
 const logger = new Logger(module);
 
 const DFL_CONFIG_IN_STATE = {
-    config: {}
+    config: {},
+    taskState: {}
 };
 
 class ConfigWorker {
@@ -78,7 +79,6 @@ class ConfigWorker {
      */
     setConfig(config) {
         this.state.config = config;
-
         // save to persistent storage
         return new Promise((resolve, reject) => {
             this._restWorker.saveState(null, this.state, (err) => {
@@ -90,6 +90,36 @@ class ConfigWorker {
         })
             .catch((err) => {
                 logger.error(`Could not set config: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Get task state
+     *
+     */
+    getTaskState() {
+        return Promise.resolve(this.state.taskState);
+    }
+
+    /**
+     * Set task state
+     *
+     * @param {Object} taskState
+     */
+    setTaskState(taskState) {
+        this.state.taskState = taskState || {};
+        // save to persistent storage
+        return new Promise((resolve, reject) => {
+            this._restWorker.saveState(null, this.state, (err) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve();
+            });
+        })
+            .catch((err) => {
+                logger.error(`Could not set task state: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
     }
@@ -131,7 +161,7 @@ class ConfigWorker {
         const auth = '-u admin:admin';
         const curlUrl = 'localhost:8100/mgmt/shared/cloud-failover/trigger';
         const checkExisting = `if [[ -z $(grep \"${staticComment}\" ${scriptPath}) ]]; then`;
-        const writeCommand = `echo \"\n${staticComment}\ncurl ${auth} ${curlUrl}\" >> ${scriptPath};`;
+        const writeCommand = `echo \"\n${staticComment}\ncurl -d {} ${auth} -X POST ${curlUrl}\" >> ${scriptPath};`;
         /* eslint-enable no-useless-escape */
         return `'${checkExisting} ${writeCommand} fi'`;
     }
