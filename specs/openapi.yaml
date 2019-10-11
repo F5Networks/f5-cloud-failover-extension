@@ -140,7 +140,7 @@ paths:
                   failoverOperations:
                     routes: {}
                     addresses: {}
-                  code": 200
+                  code: 200
         "400":
           description: Failover task failed
           content:
