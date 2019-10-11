@@ -43,7 +43,6 @@ User Guide Index
 
 
 
-
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">GitHub Issue</a>

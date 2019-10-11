@@ -13,6 +13,22 @@ The first task is to download the latest RPM file.  Go to the |github|, and down
 .. NOTE:: During beta release the RPM is available on |artifactory|.
 
 
+Verifying the integrity of the Cloud Failover RPM package
+`````````````````````````````````````````````````````````
+F5 Networks provides a checksum for each Cloud Failover release so you can confirm the integrity of the RPM package.
+
+You can get a checksum for a particular RPM by running one of the following commands, depending on your operating system:
+
+Linux: ``sha256sum <path_to_rpm>``
+
+Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
+
+You can compare the checksum produced by that command against the **.sha256** file in the **dist** directory (https://github.com/F5Networks/f5-cloud-failover/tree/master/dist). 
+
+.. WARNING:: Do not continue if the hash does not match.
+
+
+
 Uploading and installing the Cloud Failover file on the BIG-IP
 --------------------------------------------------------------
 After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use cURL command to install the package). Use only one of the following procedures.
@@ -89,17 +105,6 @@ If for any reason you want to revert to a previous version of Cloud Failover, yo
 .. _hash-ref:
 
 
-Verifying the integrity of the Cloud Failover RPM package
----------------------------------------------------------
-F5 Networks provides a checksum for each Cloud Failover release so you can confirm the integrity of the RPM package.
-
-You can get a checksum for a particular template by running one of the following commands, depending on your operating system:
-
-Linux: ``sha256sum <path_to_template>``
-
-Windows using CertUtil: ``CertUtil –hashfile <path_to_template> SHA256``
-
-You can compare the checksum produced by that command against the **.sha256** file in the **dist** directory (https://github.com/F5Networks/f5-cloud-failover/tree/master/dist).
 
 
 .. |github| raw:: html
