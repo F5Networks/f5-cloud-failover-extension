@@ -77,8 +77,11 @@ describe('Device', () => {
             assert.strictEqual(iControlOptions, undefined);
             assert.strictEqual(retries.maxRetries, 0);
             assert.strictEqual(retries.retryIntervalMs, 0);
+            return Promise.resolve({
+                commandResult: ''
+            });
         });
-        device.executeBigIpBashCmd(command);
+        return device.executeBigIpBashCmd(command);
     });
 
 

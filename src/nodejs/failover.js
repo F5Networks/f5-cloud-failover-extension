@@ -211,7 +211,6 @@ class FailoverClient {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
-
     }
 
     /**
