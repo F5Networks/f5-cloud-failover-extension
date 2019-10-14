@@ -16,7 +16,7 @@
 
 'use strict';
 
-const sinon = require('sinon');
+const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
 const assert = require('assert');
 const Device = require('../../src/nodejs/device');
 
