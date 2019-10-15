@@ -30,7 +30,7 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
     - Tagged with a special key call ``f5_self_ips`` containing a comma separated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 - Access to Azure's Instance Metadata Service, which is a REST Endpoint accessible to all IaaS VMs created within Azure. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM.
-    - Important Note: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
+    - .. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
     - Configuration Examples
       - Using TMSH
 
