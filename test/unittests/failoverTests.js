@@ -64,7 +64,7 @@ describe('Failover', () => {
         mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').resolves();
         mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
         sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
-        sinon.stub(Object.getPrototypeOf(config), 'updateTriggerScripts').resolves();
+        sinon.stub(device.prototype, 'executeBigIpBashCmd').resolves('');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),

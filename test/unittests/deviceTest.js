@@ -16,7 +16,7 @@
 
 'use strict';
 
-const sinon = require('sinon');
+const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
 const assert = require('assert');
 const Device = require('../../src/nodejs/device');
 
@@ -77,8 +77,11 @@ describe('Device', () => {
             assert.strictEqual(iControlOptions, undefined);
             assert.strictEqual(retries.maxRetries, 0);
             assert.strictEqual(retries.retryIntervalMs, 0);
+            return Promise.resolve({
+                commandResult: ''
+            });
         });
-        device.executeBigIpBashCmd(command);
+        return device.executeBigIpBashCmd(command);
     });
 
 
