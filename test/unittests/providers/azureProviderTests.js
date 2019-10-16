@@ -233,7 +233,10 @@ describe('Provider - Azure', () => {
                 location: 'location01',
                 enableIPForwarding: false,
                 networkSecurityGroup: 'nsgNic01',
-                tags: 'tagsNic01'
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic01',
+                    f5_cloud_failover_nic_map: 'external'
+                }
             },
             {
                 id: 'id_nic02',
@@ -243,11 +246,14 @@ describe('Provider - Azure', () => {
                         privateIPAddress: '2.2.2.2'
                     }
                 ],
-                name: 'nic02',
+                name: '02nic',
                 location: 'location02',
                 enableIPForwarding: false,
                 networkSecurityGroup: 'nsgNic02',
-                tags: 'tagsNic02'
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic02',
+                    f5_cloud_failover_nic_map: 'external'
+                }
             }
         ];
         sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
@@ -261,7 +267,7 @@ describe('Provider - Azure', () => {
                 assert.deepStrictEqual(disassociateArgs[2].ipConfigurations[0].privateIPAddress, '1.1.1.1');
 
                 const associateArgs = updateAddressesSpy.getCall(0).args[1][0];
-                assert.strictEqual(associateArgs[1], 'nic02');
+                assert.strictEqual(associateArgs[1], '02nic');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
             })
