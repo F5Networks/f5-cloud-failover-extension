@@ -339,7 +339,7 @@ resource "local_file" "do0" {
         external_self = "${azurerm_network_interface.external0.private_ip_address}/24",
         remote_host = "${azurerm_network_interface.mgmt0.private_ip_address}"
       }
-    )}"
+    )}" 
     filename = "${path.module}/temp_do0.json"
 }
 
