@@ -233,7 +233,10 @@ describe('Provider - Azure', () => {
                 location: 'location01',
                 enableIPForwarding: false,
                 networkSecurityGroup: 'nsgNic01',
-                tags: 'tagsNic01'
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic01',
+                    f5_cloud_failover_nic_map: 'external'
+                }
             },
             {
                 id: 'id_nic02',
@@ -247,7 +250,10 @@ describe('Provider - Azure', () => {
                 location: 'location02',
                 enableIPForwarding: false,
                 networkSecurityGroup: 'nsgNic02',
-                tags: 'tagsNic02'
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic02',
+                    f5_cloud_failover_nic_map: 'external'
+                }
             }
         ];
         sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
@@ -264,6 +270,62 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(associateArgs[1], 'nic02');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
+            })
+            .catch(err => Promise.reject(err));
+    });
+    it('should validate updateAddresses doen\'t perform discovery due to mismatched nic tags', () => {
+        const localAddresses = ['2.2.2.2'];
+        const failoverAddresses = ['10.10.10.10'];
+        const listNicsResponse = [
+            {
+                id: 'id_nic01',
+                provisioningState: 'Succeeded',
+                ipConfigurations: [
+                    {
+                        privateIPAddress: '1.1.1.1'
+                    },
+                    {
+                        privateIPAddress: '10.10.10.10'
+                    }
+                ],
+                name: 'nic01',
+                location: 'location01',
+                enableIPForwarding: false,
+                networkSecurityGroup: 'nsgNic01',
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic01',
+                    f5_cloud_failover_nic_map: 'external'
+                }
+            },
+            {
+                id: 'id_nic02',
+                provisioningState: 'Succeeded',
+                ipConfigurations: [
+                    {
+                        privateIPAddress: '2.2.2.2'
+                    }
+                ],
+                name: 'nic02',
+                location: 'location02',
+                enableIPForwarding: false,
+                networkSecurityGroup: 'nsgNic02',
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic02',
+                    f5_cloud_failover_nic_map: 'externalfoo'
+                }
+            }
+        ];
+        sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
+        const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
+
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(() => {
+                const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
+                assert.strictEqual(disassociateArgs, undefined);
+
+                const associateArgs = updateAddressesSpy.getCall(0).args[1][0];
+                assert.strictEqual(associateArgs, undefined);
             })
             .catch(err => Promise.reject(err));
     });

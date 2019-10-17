@@ -499,6 +499,7 @@ class Cloud extends AbstractCloud {
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
                 const myNics = parsedNics.myNics;
                 const theirNics = parsedNics.theirNics;
+                const failoverNicTag = constants.F5_CLOUD_FAILOVER_NIC_TAG;
 
                 if (!myNics || !theirNics) {
                     this.logger.error('Could not determine network interfaces.');
@@ -508,8 +509,10 @@ class Cloud extends AbstractCloud {
                 // to move ip configurations to 'my' nics, if any are required
                 for (let s = myNics.length - 1; s >= 0; s -= 1) {
                     for (let h = theirNics.length - 1; h >= 0; h -= 1) {
-                        if (theirNics[h].nic.name !== myNics[s].nic.name
-                            && theirNics[h].nic.name.slice(0, -1) === myNics[s].nic.name.slice(0, -1)) {
+                        if (theirNics[h].nic.tags[failoverNicTag] === undefined
+                            || myNics[s].nic.tags[failoverNicTag] === undefined) {
+                            this.logger.warning(`${failoverNicTag} tag values do not match or doesn't exist for a interface`);
+                        } else if (theirNics[h].nic.tags[failoverNicTag] === myNics[s].nic.tags[failoverNicTag]) {
                             const theirNic = theirNics[h].nic;
                             const myNic = myNics[s].nic;
                             const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
