@@ -511,7 +511,7 @@ class Cloud extends AbstractCloud {
                     for (let h = theirNics.length - 1; h >= 0; h -= 1) {
                         if (theirNics[h].nic.tags[failoverNicTag] === undefined
                             || myNics[s].nic.tags[failoverNicTag] === undefined) {
-                            this.logger.warning('f5_cloud_failover_nic tag values do not match or doesn\'t exist for a interface');
+                            this.logger.warning(`${failoverNicTag} tag values do not match or doesn't exist for a interface`);
                         } else if (theirNics[h].nic.tags[failoverNicTag] === myNics[s].nic.tags[failoverNicTag]) {
                             const theirNic = theirNics[h].nic;
                             const myNic = myNics[s].nic;
