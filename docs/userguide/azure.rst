@@ -23,7 +23,7 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
     - Contributor access 
 - A storage account for Cloud Failover extension cluster-wide file(s) that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
     .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-- Network Interfaces should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+- Network Interfaces should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the nics.
 - Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - Route(s) in a route table tagged with the following (optional):
     - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
