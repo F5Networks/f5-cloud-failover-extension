@@ -509,8 +509,10 @@ class Cloud extends AbstractCloud {
                 // to move ip configurations to 'my' nics, if any are required
                 for (let s = myNics.length - 1; s >= 0; s -= 1) {
                     for (let h = theirNics.length - 1; h >= 0; h -= 1) {
-                        if (theirNics[h].nic[failoverNicTag] !== myNics[s].nic.tags[failoverNicTag]
-                            && theirNics[h].nic.tags[failoverNicTag] === myNics[s].nic.tags[failoverNicTag]) {
+                        if (theirNics[h].nic.tags[failoverNicTag] === undefined
+                            || myNics[s].nic.tags[failoverNicTag] === undefined) {
+                            this.logger.warning('f5_cloud_failover_nic tag values do not match or doesn\'t exist for a interface');
+                        } else if (theirNics[h].nic.tags[failoverNicTag] === myNics[s].nic.tags[failoverNicTag]) {
                             const theirNic = theirNics[h].nic;
                             const myNic = myNics[s].nic;
                             const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
@@ -536,8 +538,6 @@ class Cloud extends AbstractCloud {
                             associate.push([this.resourceGroup, myNic.name, myNic,
                                 'Associate']);
                             break;
-                        } else {
-                            this.logger.debug('f5_cloud_failover_nic tag values do not match or doesn\'t exist for a interface');
                         }
                     }
                 }

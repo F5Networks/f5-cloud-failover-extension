@@ -144,13 +144,13 @@ resource "azurerm_network_interface" "internal0" {
 }
 
 resource "azurerm_network_interface" "internal1" {
-  name                      = "int1-${module.utils.env_prefix}"
+  name                      = "${module.utils.env_prefix}-int1"
   location                  = "${azurerm_resource_group.deployment.location}"
   resource_group_name       = "${azurerm_resource_group.deployment.name}"
   network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "int1-${module.utils.env_prefix}"
+    name                          = "${module.utils.env_prefix}-int1"
     subnet_id                     = "${azurerm_subnet.internal.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.1.5"
@@ -182,13 +182,13 @@ resource "azurerm_network_interface" "external0" {
 }
 
 resource "azurerm_network_interface" "external1" {
-  name                      = "ext1-${module.utils.env_prefix}"
+  name                      = "${module.utils.env_prefix}-ext1"
   location                  = "${azurerm_resource_group.deployment.location}"
   resource_group_name       = "${azurerm_resource_group.deployment.name}"
   network_security_group_id = "${azurerm_network_security_group.deployment.id}"
 
   ip_configuration {
-    name                          = "ext1-${module.utils.env_prefix}"
+    name                          = "${module.utils.env_prefix}-ext1"
     subnet_id                     = "${azurerm_subnet.external.id}"
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.5"
@@ -339,7 +339,7 @@ resource "local_file" "do0" {
         external_self = "${azurerm_network_interface.external0.private_ip_address}/24",
         remote_host = "${azurerm_network_interface.mgmt0.private_ip_address}"
       }
-    )}" 
+    )}"
     filename = "${path.module}/temp_do0.json"
 }
 
