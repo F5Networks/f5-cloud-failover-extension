@@ -138,7 +138,8 @@ resource "azurerm_network_interface" "internal0" {
   }
 
   tags = {
-    f5_cloud_failover_label = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}",
+    f5_cloud_failover_nic_map = "internal"
   }
 }
 
@@ -156,7 +157,8 @@ resource "azurerm_network_interface" "internal1" {
   }
 
   tags = {
-    f5_cloud_failover_label = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}",
+    f5_cloud_failover_nic_map = "internal"
   }
 }
 
@@ -174,7 +176,8 @@ resource "azurerm_network_interface" "external0" {
   }
 
   tags = {
-    f5_cloud_failover_label = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}",
+    f5_cloud_failover_nic_map = "external"
   }
 }
 
@@ -200,7 +203,8 @@ resource "azurerm_network_interface" "external1" {
   }
 
   tags = {
-    f5_cloud_failover_label = "${module.utils.env_prefix}"
+    f5_cloud_failover_label = "${module.utils.env_prefix}",
+    f5_cloud_failover_nic_map = "external"
   }
 }
 

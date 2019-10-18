@@ -19,8 +19,10 @@ const util = require('../util.js');
 const Logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
+const constants = require('../constants.js');
 
 const failover = new FailoverClient();
+const failoverStates = constants.FAILOVER_STATES;
 
 const logger = new Logger(module);
 
@@ -195,8 +197,35 @@ function processRequest(restOperation) {
         break;
     case 'trigger':
         // TODO: response should use an async task pattern - for now simply execute failover and respond
-        failover.execute();
-        util.restOperationResponder(restOperation, 200, { message: 'in_progress' });
+        switch (method) {
+        case 'POST':
+            failover.execute();
+            util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN });
+            break;
+        case 'GET':
+            configWorker.getTaskState()
+                .then((taskState) => {
+                    switch (taskState.taskState) {
+                    case failoverStates.RUN:
+                        taskState.code = 202;
+                        break;
+                    case failoverStates.PASS:
+                        taskState.code = 200;
+                        break;
+                    default:
+                        taskState.code = 400;
+                        break;
+                    }
+                    util.restOperationResponder(restOperation, taskState.code, taskState);
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+            break;
+        default:
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+            break;
+        }
         break;
     case 'info':
         util.restOperationResponder(restOperation, 200, { message: 'success' });

@@ -141,7 +141,9 @@ class Device {
             command: 'run',
             utilCmdArgs: `-c ${command}`
         };
-        return this.bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY);
+        return this.bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY)
+            .then(response => response.commandResult)
+            .catch(err => Promise.reject(err));
     }
 }
 

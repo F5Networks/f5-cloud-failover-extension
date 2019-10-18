@@ -64,7 +64,7 @@ describe('Failover', () => {
         mockBigIpInit = sinon.stub(f5CloudLibs.bigIp.prototype, 'init').resolves();
         mockBigIpList = sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
         sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
-        sinon.stub(Object.getPrototypeOf(config), 'updateTriggerScripts').resolves();
+        sinon.stub(device.prototype, 'executeBigIpBashCmd').resolves('');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
@@ -258,19 +258,21 @@ describe('Failover', () => {
 
     it('validate that it recovers from previous failover failure', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-
+        const setConfigSpy = sinon.stub(Object.getPrototypeOf(config), 'setConfig').resolves();
+        const setTaskStateSpy = sinon.stub(Object.getPrototypeOf(config), 'setTaskState').resolves();
         const uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
         const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.onCall(0).resolves({
             taskState: constants.FAILOVER_STATES.FAIL,
-            operations: {
+            failoverOperations: {
                 addresses: {
                     operation: 'addresses'
                 },
                 routes: {
                     operation: 'routes'
                 }
-            }
+            },
+            message: 'Failover failed because of x'
         });
 
         const spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
@@ -293,6 +295,8 @@ describe('Failover', () => {
                 // verify that the uploaded task state is running and then eventually succeeded
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
+                assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
+                assert.strictEqual(setTaskStateSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
             })
             .catch(err => Promise.reject(err));
     });
@@ -301,7 +305,6 @@ describe('Failover', () => {
         mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
         deviceGlobalSettingsMock.returns();
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
