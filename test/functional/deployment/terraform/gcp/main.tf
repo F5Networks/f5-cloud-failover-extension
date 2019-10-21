@@ -168,37 +168,36 @@ data "template_file" "vm01_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 
   vars = {
-    admin_username        = "${var.admin_username}"
-    admin_password        = "${random_string.admin_password.result}"
-    hostname              = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal"
-    ext_subnet_cidr_range =  "${var.ext-subnet-cidr-range}"
-    int_subnet_cidr_range =  "${var.int-subnet-cidr-range}"
-    mgmt_subnet_cidr_range =  "${var.mgmt-subnet-cidr-range}"
-    ext_subnet_gateway    = "${var.ext-subnet-getway}"
-    int_subnet_gateway    = "${var.int-subnet-getway}"
+    admin_username         = "${var.admin_username}"
+    admin_password         = "${random_string.admin_password.result}"
+    hostname               = "${google_compute_instance.vm01.name}"
+    ext_subnet_cidr_range  = "${var.ext-subnet-cidr-range}"
+    int_subnet_cidr_range  = "${var.int-subnet-cidr-range}"
+    mgmt_subnet_cidr_range = "${var.mgmt-subnet-cidr-range}"
+    ext_subnet_gateway     = "${var.ext-subnet-getway}"
+    int_subnet_gateway     = "${var.int-subnet-getway}"
     mgmt_subnet_gateway    = "${var.mgmt-subnet-getway}"
-    ext_private_ip        = "${var.vm01-ext-private-ip}"
-    int_private_ip        = "${var.vm01-int-private-ip}"
+    ext_private_ip         = "${var.vm01-ext-private-ip}"
+    int_private_ip         = "${var.vm01-int-private-ip}"
     mgmt_private_ip        = "${var.vm01-mgmt-private-ip}/24"
   }
 }
 
-# TODO: remove hardcoded dependency on project ***REMOVED***.internal
 data "template_file" "vm02_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 
   vars = {
-    admin_username        = "${var.admin_username}"
-    admin_password        = "${random_string.admin_password.result}"
-    hostname              = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"
-    ext_subnet_cidr_range =  "${var.ext-subnet-cidr-range}"
-    int_subnet_cidr_range =  "${var.int-subnet-cidr-range}"
-    mgmt_subnet_cidr_range =  "${var.mgmt-subnet-cidr-range}"
+    admin_username         = "${var.admin_username}"
+    admin_password         = "${random_string.admin_password.result}"
+    hostname               = "${google_compute_instance.vm02.name}"
+    ext_subnet_cidr_range  = "${var.ext-subnet-cidr-range}"
+    int_subnet_cidr_range  = "${var.int-subnet-cidr-range}"
+    mgmt_subnet_cidr_range = "${var.mgmt-subnet-cidr-range}"
     mgmt_subnet_gateway    = "${var.mgmt-subnet-getway}"
-    int_subnet_gateway    = "${var.int-subnet-getway}"
-    ext_subnet_gateway    = "${var.ext-subnet-getway}"
-    ext_private_ip        = "${var.vm02-ext-private-ip}"
-    int_private_ip        = "${var.vm02-int-private-ip}"
+    int_subnet_gateway     = "${var.int-subnet-getway}"
+    ext_subnet_gateway     = "${var.ext-subnet-getway}"
+    ext_private_ip         = "${var.vm02-ext-private-ip}"
+    int_private_ip         = "${var.vm02-int-private-ip}"
     mgmt_private_ip        = "${var.vm02-mgmt-private-ip}/24"
   }
 }
@@ -330,14 +329,14 @@ resource "google_compute_route" "ext-route" {
 // Onboarding
 
 resource "local_file" "do01" {
-  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm01.name}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "${google_compute_instance.vm01.name}", host02 = "${google_compute_instance.vm02.name}"})
 filename = "${path.module}/temp_do01.json"
 
   depends_on = [google_compute_instance.vm01]
 }
 
 resource "local_file" "do02" {
-  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "tf-func-test-vm01-${random_string.env_prefix.result}.c.***REMOVED***.internal", host02 = "tf-func-test-vm02-${random_string.env_prefix.result}.c.***REMOVED***.internal"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm02.name}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "${google_compute_instance.vm01.name}", host02 = "${google_compute_instance.vm02.name}"})
   filename = "${path.module}/temp_do02.json"
 
   depends_on = [google_compute_instance.vm02]
