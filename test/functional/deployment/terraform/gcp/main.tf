@@ -183,6 +183,7 @@ data "template_file" "vm01_cloud_init_script" {
   }
 }
 
+# TODO: remove hardcoded dependency on project ***REMOVED***.internal
 data "template_file" "vm02_cloud_init_script" {
   template = "${file("${path.module}/user_data.tpl")}"
 

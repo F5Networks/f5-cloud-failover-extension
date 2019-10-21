@@ -32,6 +32,10 @@ describe('Failover', () => {
     let deviceGetSelfAddressesMock;
     let deviceGetVirtualAddressesMock;
     let cloudProviderMock;
+    let downloadDataFromStorageMock;
+
+    let spyOnUpdateAddresses;
+    let spyOnUpdateRoutes;
 
     const globalSettingsMockResponse = {
         entries: {
@@ -73,6 +77,31 @@ describe('Failover', () => {
             downloadDataFromStorage: () => Promise.resolve({}),
             uploadDataToStorage: () => Promise.resolve({})
         };
+
+        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
+
+        downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
+        downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.PASS });
+
+        spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
+        spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
+
+        deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
+        deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
+
+        deviceGetSelfAddressesMock.returns([
+            {
+                name: 'some_trafficGroup',
+                address: '1.1.1.1',
+                trafficGroup: 'local_only'
+            }
+        ]);
+        deviceGetVirtualAddressesMock.returns([
+            {
+                address: '2.2.2.2',
+                trafficGroup: 'some_trafficGroup'
+            }
+        ]);
     });
     afterEach(() => {
         sinon.restore();
@@ -83,78 +112,50 @@ describe('Failover', () => {
         });
     });
 
-    it('validate that it performs failover', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
+    function validateFailover() {
+        // verify that cloudProvider.updateAddresses method gets called - discover
+        const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+        assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, ['1.1.1.1']);
+        assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, ['2.2.2.2']);
+        assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
 
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
+        // verify that cloudProvider.updateAddresses method gets called - update
+        const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
+        assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
+
+        // verify that cloudProvider.updateRoutes method gets called - discover
+        const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
+        assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, ['1.1.1.1']);
+        assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+
+        // verify that cloudProvider.updateRoutes method gets called - update
+        const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
+        assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+    }
+
+    it('validate that it performs failover', () => config.init(restWorker)
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover();
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate that it performs failover with retry', () => {
+        // ensure RUN then PASS results in successful failover operation
         downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUN });
         downloadDataFromStorageMock.onCall(1).resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
-        const spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
-        const spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
-
-        deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
-        deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
-        const getSelfAddressesResponse = [
-            {
-                name: 'some_trafficGroup',
-                address: '1.1.1.1',
-                trafficGroup: 'local_only'
-            }
-        ];
-        deviceGetSelfAddressesMock.returns(getSelfAddressesResponse);
-        const virtualAddressesValuesMock = [
-            {
-                address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup'
-            }
-        ];
-        deviceGetVirtualAddressesMock.returns(virtualAddressesValuesMock);
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
-                // verify that cloudProvider.updateAddresses method gets called - discover
-                const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
-                assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, ['1.1.1.1']);
-                assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, ['2.2.2.2']);
-                assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
-
-                // verify that cloudProvider.updateAddresses method gets called - update
-                const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
-                assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
-
-                // verify that cloudProvider.updateRoutes method gets called - discover
-                const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
-                assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, ['1.1.1.1']);
-                assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
-
-                // verify that cloudProvider.updateRoutes method gets called - update
-                const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
-                assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+                validateFailover();
             })
             .catch(err => Promise.reject(err));
     });
 
     it('validate case when no virtualAddresses available', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-        downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
-        const spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
-
-        deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
-        deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
-        const getSelfAddressesResponse = [
-            {
-                name: 'some_trafficGroup',
-                address: '1.1.1.1',
-                trafficGroup: 'local_only'
-            }
-        ];
-        deviceGetSelfAddressesMock.returns(getSelfAddressesResponse);
         deviceGetVirtualAddressesMock.returns([]);
 
         return config.init(restWorker)
@@ -166,14 +167,8 @@ describe('Failover', () => {
             });
     });
 
-
     it('validate case when no trafficGroupMatch available', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-        downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
-        deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
-        const globalSettingsValuesMock = {
+        deviceGetTrafficGroupsMock.returns({
             entries: {
                 key01: {
                     nestedStats: {
@@ -185,28 +180,13 @@ describe('Failover', () => {
                     }
                 }
             }
-        };
-        deviceGetTrafficGroupsMock.returns(globalSettingsValuesMock);
-        const trafficGroupsValuesMock = [
-            {
-                name: 'some_trafficGroup',
-                address: '1.1.1.1/24',
-                trafficGroup: 'some_trafficGroup'
-            }
-        ];
-        deviceGetSelfAddressesMock.returns(trafficGroupsValuesMock);
-        const virtualAddressesValuesMock = [
-            {
-                address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup'
-            }
-        ];
-        deviceGetVirtualAddressesMock.returns(virtualAddressesValuesMock);
+        });
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
+                // TODO: this unit test should test something besides .called
                 assert.strictEqual(mockCloudFactory.called, true);
                 assert.strictEqual(mockBigIpInit.called, true);
                 assert.strictEqual(mockBigIpList.called, true);
@@ -219,32 +199,13 @@ describe('Failover', () => {
     });
 
     it('validate case when device is not local', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-        downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
         deviceGlobalSettingsMock.returns({ hostname: 'some_other_hostname' });
-        deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
-        const trafficGroupsValuesMock = [
-            {
-                name: 'some_trafficGroup',
-                address: '1.1.1.1/24',
-                trafficGroup: 'some_trafficGroup'
-            }
-        ];
-        deviceGetSelfAddressesMock.returns(trafficGroupsValuesMock);
-        const virtualAddressesValuesMock = [
-            {
-                address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup'
-            }
-        ];
-        deviceGetVirtualAddressesMock.returns(virtualAddressesValuesMock);
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
+                // TODO: this unit test should test something besides .called
                 assert.strictEqual(mockCloudFactory.called, true);
                 assert.strictEqual(mockBigIpInit.called, true);
                 assert.strictEqual(mockBigIpList.called, true);
@@ -257,11 +218,10 @@ describe('Failover', () => {
     });
 
     it('validate that it recovers from previous failover failure', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         const setConfigSpy = sinon.stub(Object.getPrototypeOf(config), 'setConfig').resolves();
         const setTaskStateSpy = sinon.stub(Object.getPrototypeOf(config), 'setTaskState').resolves();
         const uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
+
         downloadDataFromStorageMock.onCall(0).resolves({
             taskState: constants.FAILOVER_STATES.FAIL,
             failoverOperations: {
@@ -274,11 +234,6 @@ describe('Failover', () => {
             },
             message: 'Failover failed because of x'
         });
-
-        const spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
-        const spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
-
-        deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
@@ -302,10 +257,8 @@ describe('Failover', () => {
     });
 
     it('validate error case for failover execute', () => {
-        mockCloudFactory = sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-        const downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-        downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.PASS });
         deviceGlobalSettingsMock.returns();
+
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
@@ -320,6 +273,7 @@ describe('Failover', () => {
 
     it('validate case when enviroment is not provided for failover execute', () => {
         sinon.stub(Object.getPrototypeOf(config), 'getConfig').resolves({});
+
         return failover.execute()
             .then(() => {
                 assert.fail();

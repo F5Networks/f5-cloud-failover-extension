@@ -499,7 +499,7 @@ class Cloud extends AbstractCloud {
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
                 const myNics = parsedNics.myNics;
                 const theirNics = parsedNics.theirNics;
-                const failoverNicTag = constants.F5_CLOUD_FAILOVER_NIC_TAG;
+                const failoverNicTag = constants.NIC_TAG;
 
                 if (!myNics || !theirNics) {
                     this.logger.error('Could not determine network interfaces.');
