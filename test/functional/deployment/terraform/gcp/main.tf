@@ -327,14 +327,14 @@ resource "google_compute_route" "ext-route" {
 // Onboarding
 
 resource "local_file" "do01" {
-  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm01.hostname}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "${google_compute_instance.vm01.hostname}", host02 = "${google_compute_instance.vm02.hostname}"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm01.name}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm01.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}" , host01 = "${google_compute_instance.vm01.name}", host02 = "${google_compute_instance.vm02.name}"})
 filename = "${path.module}/temp_do01.json"
 
   depends_on = [google_compute_instance.vm01]
 }
 
 resource "local_file" "do02" {
-  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm02.hostname}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "${google_compute_instance.vm01.hostname}", host02 = "${google_compute_instance.vm02.hostname}"})
+  content  = templatefile("${path.module}/../../declarations/do/gcp_do_template.json", { hostname = "${google_compute_instance.vm02.name}", admin_username = "${var.admin_username}", admin_password = "${random_string.admin_password.result}", internal_self_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}", remote_mgmt_private_ip="${google_compute_instance.vm01.network_interface.1.network_ip}", host01 = "${google_compute_instance.vm01.name}", host02 = "${google_compute_instance.vm02.name}"})
   filename = "${path.module}/temp_do02.json"
 
   depends_on = [google_compute_instance.vm02]
@@ -428,7 +428,7 @@ output "deployment_info" {
         admin_password = random_string.admin_password.result,
         mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm01.hostname
+        hostname = google_compute_instance.vm01.name
         primary = false
       },
       {
@@ -436,7 +436,7 @@ output "deployment_info" {
         admin_password = random_string.admin_password.result,
         mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm02.hostname
+        hostname = google_compute_instance.vm02.name
         primary = true
       }
     ],
