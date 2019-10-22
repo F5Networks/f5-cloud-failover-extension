@@ -1,11 +1,11 @@
 {
     "item": [
         {
-            "id": "c9964da8-3d6c-4534-91ba-b2274ceb3aac",
+            "id": "d7372587-9ecd-4257-9523-6fac7003bde2",
             "name": "declare",
             "item": [
                 {
-                    "id": "9565bbbd-cceb-4edc-aa13-994ed7bcfc3b",
+                    "id": "adebf804-2727-45d4-894e-32a40497fc25",
                     "name": "List configuration",
                     "request": {
                         "name": "List configuration",
@@ -27,7 +27,7 @@
                     },
                     "response": [
                         {
-                            "id": "45b9447c-6c40-43ed-b109-cb7999d57e15",
+                            "id": "67dc0b63-cc90-4335-bbb5-9ba023aa7a4c",
                             "name": "Configuration Response",
                             "originalRequest": {
                                 "url": {
@@ -56,7 +56,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "6b5ed39f-3306-4385-914b-498c9750505d",
+                            "id": "e5aae82f-3ede-4705-8e11-ba083fbd421e",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -88,7 +88,7 @@
                     "event": []
                 },
                 {
-                    "id": "ce7de2e3-0a69-49f9-a4eb-f05ce4788a80",
+                    "id": "4b8130d6-e86a-4eec-a59f-a4fa737d0bd8",
                     "name": "Update configuration",
                     "request": {
                         "name": "Update configuration",
@@ -120,7 +120,7 @@
                     },
                     "response": [
                         {
-                            "id": "927e16f8-bba6-4343-b52a-b0ee2defcf71",
+                            "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -158,7 +158,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "2a825548-5cfe-4b7f-883f-0a039c0cdc95",
+                            "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -199,11 +199,11 @@
                     "event": []
                 },
                 {
-                    "id": "5465682f-54d3-4cc3-b30a-00ea9dad0098",
+                    "id": "0ce37560-9e56-42c3-ac7d-c8d1a116a3eb",
                     "name": "examples",
                     "item": [
                         {
-                            "id": "797042ee-3e4a-4d67-b5d7-174fbb5c1344",
+                            "id": "f71861fc-3ae6-4ce6-9a8c-529c3a46eb97",
                             "name": "(AWS) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -235,7 +235,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "927e16f8-bba6-4343-b52a-b0ee2defcf71",
+                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -273,7 +273,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "2a825548-5cfe-4b7f-883f-0a039c0cdc95",
+                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -314,7 +314,7 @@
                             "event": []
                         },
                         {
-                            "id": "40839e07-1224-442e-b7fd-8ba0601630d4",
+                            "id": "d8198ded-332f-4985-835d-d61082045221",
                             "name": "(AZURE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -346,7 +346,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "927e16f8-bba6-4343-b52a-b0ee2defcf71",
+                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -384,7 +384,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "2a825548-5cfe-4b7f-883f-0a039c0cdc95",
+                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -425,7 +425,7 @@
                             "event": []
                         },
                         {
-                            "id": "ab4d7c83-7981-4b99-8aac-20c4e6868a1c",
+                            "id": "340ddc2a-4d06-4a3d-84d5-a9f9e7fe716d",
                             "name": "(GCE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -457,7 +457,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "927e16f8-bba6-4343-b52a-b0ee2defcf71",
+                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -495,7 +495,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "2a825548-5cfe-4b7f-883f-0a039c0cdc95",
+                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -542,41 +542,15 @@
             "event": []
         },
         {
-            "id": "bb8c0ee1-c88f-4fda-a33b-4e5fffbdce05",
-            "name": "Trigger failover",
-            "request": {
-                "name": "Trigger failover",
-                "description": {},
-                "url": {
-                    "path": [
-                        "trigger"
-                    ],
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "query": [],
-                    "variable": []
-                },
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ],
-                "method": "POST",
-                "auth": {
-                    "type": "basic"
-                },
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"action\": \"execute\"\n}"
-                }
-            },
-            "response": [
+            "id": "027cd096-54d7-42ff-8769-4b2991e513ce",
+            "name": "trigger",
+            "item": [
                 {
-                    "id": "4695394d-16c0-4b9c-98da-38d5a09477b6",
-                    "name": "Configuration response",
-                    "originalRequest": {
+                    "id": "3da1942d-69c2-431f-8dff-230defa402bb",
+                    "name": "Trigger failover",
+                    "request": {
+                        "name": "Trigger failover",
+                        "description": {},
                         "url": {
                             "path": [
                                 "trigger"
@@ -594,27 +568,62 @@
                             }
                         ],
                         "method": "POST",
+                        "auth": {
+                            "type": "basic"
+                        },
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"action\": \"execute\"\n}"
                         }
                     },
-                    "status": "OK",
-                    "code": 200,
-                    "header": [
+                    "response": [
                         {
-                            "key": "Content-Type",
-                            "value": "application/json; charset=UTF-8"
+                            "id": "aac0887c-8d06-46a5-8fbd-f3249614e2fc",
+                            "name": "Configuration response",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"execute\"\n}"
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
                         }
                     ],
-                    "body": "",
-                    "cookie": [],
-                    "_postman_previewlanguage": "text"
+                    "event": []
                 },
                 {
-                    "id": "f444632d-f431-4316-a6ed-ddf3c5b6b21c",
-                    "name": "Unexpected Error",
-                    "originalRequest": {
+                    "id": "e8cab8a3-5a47-4e68-b680-9530f373530b",
+                    "name": "Running failover task state",
+                    "request": {
+                        "name": "Running failover task state",
+                        "description": {},
                         "url": {
                             "path": [
                                 "trigger"
@@ -625,29 +634,130 @@
                             "query": [],
                             "variable": []
                         },
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "method": "POST",
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"action\": \"execute\"\n}"
+                        "method": "GET",
+                        "auth": {
+                            "type": "basic"
                         }
                     },
-                    "status": "Internal Server Error",
-                    "code": 500,
-                    "header": [
+                    "response": [
                         {
-                            "key": "Content-Type",
-                            "value": "application/json"
+                            "id": "f2ce7477-2ce3-4971-9a34-e8191a1ded06",
+                            "name": "Failover task was successful",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "e4290a80-cfaf-4ad0-8639-f29467ae496c",
+                            "name": "Failover task is running",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Accepted",
+                            "code": 202,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n \"taskState\": \"RUNNING\",\n \"message\": \"Failover running\",\n \"timestamp\": \"2019-09-25T22:12:52.137Z\",\n \"instance\": \"failover1.local\",\n \"failoverOperations\": {\n  \"routes\": {},\n  \"addresses\": {}\n },\n \"code\": 202\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
+                        },
+                        {
+                            "id": "e67dd8f4-7049-4dae-95ed-042ef0aabedb",
+                            "name": "Failover task failed",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Bad Request",
+                            "code": 400,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "e6841260-c78b-41d9-a6d5-dd7c1a8eac31",
+                            "name": "Unexpected Error",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "method": "GET",
+                                "body": {}
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n \"taskState\": \"FAILED\",\n \"message\": \"Failover Unexpected Error\",\n \"code\": 400\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
                         }
                     ],
-                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
-                    "cookie": [],
-                    "_postman_previewlanguage": "json"
+                    "event": []
                 }
             ],
             "event": []
@@ -662,7 +772,7 @@
         }
     ],
     "info": {
-        "_postman_id": "dbff9726-5082-4dab-998f-b3fabe80416f",
+        "_postman_id": "52c04d68-4f11-485e-b0c4-7750840af12e",
         "name": "Cloud Failover (CF) Extension",
         "version": {
             "raw": "0.9.0",

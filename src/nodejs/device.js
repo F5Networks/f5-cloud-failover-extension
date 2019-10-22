@@ -39,7 +39,7 @@ class Device {
         this.hostname = options.hostname || 'localhost';
         this.username = options.username || 'admin';
         this.password = options.password || 'admin';
-        this.mgmtPort = options.mgmtPort || '443';
+        this.mgmtPort = options.mgmtPort || '8100';
         this.product = options.product || 'BIG-IP';
 
         this.bigip = new BigIp({ logger });

@@ -27,10 +27,6 @@ cat << 'EOF' > /config/post-nic-swap.sh
       tmsh modify sys db failover.selinuxallowscripts value enable
 
       tmsh save /sys config
-
-      #bigstart restart restjavad
-      #bigstart restart restnoded
-
 EOF
 
 cat << 'EOF' > /config/first-run.sh
@@ -49,8 +45,7 @@ cat << 'EOF' > /config/first-run.sh
         tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
         tmsh save /sys config
 
-        hostname=$(curl -s -f --retry 5 'http://metadata.google.internal/computeMetadata/v1/instance/name' -H 'Metadata-Flavor: Google')
-        echo ${hostname} > /config/hostname.txt
+        echo "$(curl -s -f --retry 5 'http://metadata.google.internal/computeMetadata/v1/instance/name' -H 'Metadata-Flavor: Google').internal" > /config/hostname.txt
         echo ${ext_private_ip} > /config/ext_private_ip.txt
         echo ${int_private_ip} > /config/int_private_ip.txt
         echo ${mgmt_private_ip} > /config/mgmt_private_ip.txt

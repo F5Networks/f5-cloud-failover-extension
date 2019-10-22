@@ -2,6 +2,8 @@
 # helper script to deploy infrastructure based on environment
 # usage: ./deploy.sh azure create
 
+# note: running on linux/unix may require sudo (?)
+
 set -e
 
 environment=${1}
