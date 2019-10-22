@@ -195,7 +195,6 @@ data "template_file" "vm02_cloud_init_script" {
 }
 
 // Creating GCP resources for First BIGIP Instance
-
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${module.utils.env_prefix}"
   machine_type = "${var.instance-type}"
