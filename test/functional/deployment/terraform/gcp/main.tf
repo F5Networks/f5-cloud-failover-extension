@@ -170,7 +170,6 @@ data "template_file" "vm01_cloud_init_script" {
   vars = {
     admin_username         = "${var.admin_username}"
     admin_password         = "${random_string.admin_password.result}"
-    hostname               = "${google_compute_instance.vm01.name}"
     ext_subnet_cidr_range  = "${var.ext-subnet-cidr-range}"
     int_subnet_cidr_range  = "${var.int-subnet-cidr-range}"
     mgmt_subnet_cidr_range = "${var.mgmt-subnet-cidr-range}"
@@ -189,7 +188,6 @@ data "template_file" "vm02_cloud_init_script" {
   vars = {
     admin_username         = "${var.admin_username}"
     admin_password         = "${random_string.admin_password.result}"
-    hostname               = "${google_compute_instance.vm02.name}"
     ext_subnet_cidr_range  = "${var.ext-subnet-cidr-range}"
     int_subnet_cidr_range  = "${var.int-subnet-cidr-range}"
     mgmt_subnet_cidr_range = "${var.mgmt-subnet-cidr-range}"

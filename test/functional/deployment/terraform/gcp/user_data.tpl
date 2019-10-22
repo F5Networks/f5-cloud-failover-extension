@@ -23,7 +23,6 @@ cat << 'EOF' > /config/post-nic-swap.sh
       tmsh create net self $(cat /config/int_private_ip.txt)/32 vlan internal allow-service add { tcp:4353 udp:1026 }
       tmsh create net route int_gw_int network $(cat /config/int_subnet_gateway.txt)/32 interface internal
       tmsh create net route int_rt network $(cat /config/int_subnet_cidr_range.txt) gw $(cat /config/int_subnet_gateway.txt)
-      tmsh modify cm device $(cat /config/hostname.txt) unicast-address { { effective-ip $(cat /config/int_private_ip.txt) effective-port 1026 ip $(cat /config/int_private_ip.txt) } }
       tmsh modify sys db failover.selinuxallowscripts value enable
 
       tmsh save /sys config
@@ -49,7 +48,6 @@ cat << 'EOF' > /config/first-run.sh
         tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
         tmsh save /sys config
 
-        echo ${hostname} > /config/hostname.txt
         echo ${ext_private_ip} > /config/ext_private_ip.txt
         echo ${int_private_ip} > /config/int_private_ip.txt
         echo ${mgmt_private_ip} > /config/mgmt_private_ip.txt
