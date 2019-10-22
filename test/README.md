@@ -18,7 +18,13 @@ Best practices:
 
 ## Functional
 
-All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.  Terraform 0.12+, A Python 3.7+ virtual environment, and the f5-cloud-cli are required.
+All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.
+
+Prereqs:
+
+- Terraform 0.12+,
+- Python 3.7+ (will creeate a virtual environment)
+    - f5-cloud-cli package
 
 Best Practices:
 
@@ -29,4 +35,19 @@ Best Practices:
 
 It is somewhat implied that running the functional tests requires a runtime (BIG-IP, container, etc.) to deploy the iLX extension, consumers, etc.  The current methodology is to deploy and subsequently teardown the runtime every time functional tests are run, with the understanding that functional tests will be run less frequently than unit tests.
 
-# TODO: describe functional tests environment setup/teardown, including developer local client use case
+#### Manual Environment Setup
+
+Creating an environment manually using the same methodology as automated tests is entirely acceptable, in fact it is anticipated for development.  Below describes the commands to setup/teardown an environment.
+
+Prereq:
+
+- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication)
+- Pick which cloud provider the environment should be created in: `export CF_ENV_CLOUD=azure`
+
+Create:
+
+- `npm run deployment-create`
+
+Delete:
+
+- `npm run deployment-delete`
