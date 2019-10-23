@@ -421,7 +421,7 @@ output "deployment_info" {
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = "${google_compute_instance.vm01.name}.${local.hostname_suffix}"
+        hostname = google_compute_instance.vm01.name
         primary = false
       },
       {
@@ -429,7 +429,7 @@ output "deployment_info" {
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = "${google_compute_instance.vm02.name}.${local.hostname_suffix}"
+        hostname = google_compute_instance.vm02.name
         primary = true
       }
     ],
