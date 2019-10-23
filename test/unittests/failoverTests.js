@@ -60,6 +60,7 @@ describe('Failover', () => {
         const FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
         failover = new FailoverClient();
 
+        sinon.stub(device.prototype, 'discoverMgmtPort').resolves(443);
         deviceGlobalSettingsMock = sinon.stub(device.prototype, 'getGlobalSettings');
         deviceGetTrafficGroupsMock = sinon.stub(device.prototype, 'getTrafficGroupsStats');
         deviceGetSelfAddressesMock = sinon.stub(device.prototype, 'getSelfAddresses');
