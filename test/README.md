@@ -18,7 +18,13 @@ Best practices:
 
 ## Functional
 
-All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.  Terraform 0.12+, A Python 3.7+ virtual environment, and the f5-cloud-cli are required.
+All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.
+
+Prereqs:
+
+- Terraform 0.12+,
+- Python 3.7+ (will creeate a virtual environment)
+    - f5-cloud-cli package
 
 Best Practices:
 
@@ -29,13 +35,19 @@ Best Practices:
 
 It is somewhat implied that running the functional tests requires a runtime (BIG-IP, container, etc.) to deploy the iLX extension, consumers, etc.  The current methodology is to deploy and subsequently teardown the runtime every time functional tests are run, with the understanding that functional tests will be run less frequently than unit tests.
 
-The deploy/teardown environment steps are handled using an internal tool (cicd-bigip-deploy) initially created for an unrelated project by one of the developers of this project, see the **deploy_env** job in the ```.gitlab-ci.yml``` file for additional comments.  Essentially the flow looks like the following in the pipeline:
+#### Manual Environment Setup
 
-1. Pipeline triggered - with `REQ_DEVICE_PIPELINE` and `RUN_FUNCTIONAL_TESTS` set to true
-2. **deploy_env/teardown_env** steps will run, ***only*** if the variable `REQ_DEVICE_PIPELINE` is set to true
-3. The **functional test** step will run, ***only*** if the variable `RUN_FUNCTIONAL_TESTS` is set to true
+Creating an environment manually using the same methodology as automated tests is entirely acceptable, in fact it is anticipated for development.  Below describes the commands to setup/teardown an environment.
 
-Internal tool notes:
+Prereq:
 
-- It is packaged as a container made available via an internal docker repository, a project variable contains the url for the container.
-- It uses VIO as the runtime for instance creation/deletion, project variables contain the name of the VIO project, VIO credentials, etc.
+- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication)
+- Pick which cloud provider the environment should be created in: `export CF_ENV_CLOUD=azure`
+
+Create:
+
+- `npm run deployment-create`
+
+Delete:
+
+- `npm run deployment-delete`

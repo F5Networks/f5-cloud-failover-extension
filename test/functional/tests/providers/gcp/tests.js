@@ -97,11 +97,11 @@ function checkForwardingRules(hostname) {
         });
     })
         .then((data) => {
-            const instances = data.data.items || [];
+            const fwdRules = data.data.items || [];
             let testFwdRuleFlag = false;
 
-            if (instances) {
-                instances.forEach((fwdRule) => {
+            if (fwdRules) {
+                fwdRules.forEach((fwdRule) => {
                     if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
                         testFwdRuleFlag = fwdRule.target.indexOf(
                             `${hostname.split('-')[3]}-${hostname.split('-')[4]}`

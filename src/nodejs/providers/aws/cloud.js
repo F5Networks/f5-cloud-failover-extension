@@ -498,10 +498,8 @@ class Cloud extends AbstractCloud {
      */
     _generateEIPConfigs(eips, privateInstanceIPs) {
         const updatedState = {};
-        // TODO: 'VIPS' should be a constant. Question: Should it be defined in the POST payload?
-        const vipTagKey = 'VIPS';
         eips.forEach((eip) => {
-            const targetAddresses = eip.Tags.find(tag => tag.Key === vipTagKey).Value.split(',');
+            const targetAddresses = eip.Tags.find(tag => tag.Key === constants.AWS_VIPS_TAG).Value.split(',');
             targetAddresses.forEach((targetAddress) => {
                 // Check if the target address is present on local BIG-IP, and if the EIP isn't already associated
                 if (targetAddress in privateInstanceIPs && targetAddress !== eip.PrivateIpAddress) {

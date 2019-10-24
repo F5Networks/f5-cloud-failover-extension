@@ -16,8 +16,11 @@
 
 'use strict';
 
+const net = require('net');
+
 const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
+const constants = require('./constants.js');
 const Logger = require('./logger.js');
 
 const logger = new Logger(module);
@@ -25,6 +28,7 @@ const logger = new Logger(module);
 const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
 
+const mgmtPortDiscovery = 'discover';
 
 /**
  * @class Device
@@ -39,7 +43,7 @@ class Device {
         this.hostname = options.hostname || 'localhost';
         this.username = options.username || 'admin';
         this.password = options.password || 'admin';
-        this.mgmtPort = options.mgmtPort || '443';
+        this.mgmtPort = options.mgmtPort || mgmtPortDiscovery;
         this.product = options.product || 'BIG-IP';
 
         this.bigip = new BigIp({ logger });
@@ -52,15 +56,23 @@ class Device {
     * @returns {Promise}
     */
     init() {
-        return this.bigip.init(
-            this.hostname,
-            this.username,
-            this.password,
-            {
-                port: this.mgmtPort,
-                product: this.product
-            }
-        )
+        let portPromise;
+        if (this.mgmtPort === mgmtPortDiscovery) {
+            portPromise = this.discoverMgmtPort();
+        } else {
+            portPromise = Promise.resolve();
+        }
+
+        return portPromise
+            .then(() => this.bigip.init(
+                this.hostname,
+                this.username,
+                this.password,
+                {
+                    port: this.mgmtPort,
+                    product: this.product
+                }
+            ))
             .then(() => this.getConfig([
                 '/tm/sys/global-settings',
                 '/tm/cm/traffic-group/stats',
@@ -73,6 +85,59 @@ class Device {
                 this.selfAddresses = results[2];
                 this.virtualAddresses = results[3];
             })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Discover the management address port - the first port
+     * (in the defined order) to connect successfully should be returned
+     *
+     * @returns {Promise} resolved port
+     */
+    discoverMgmtPort() {
+        const portPromises = [];
+        constants.MGMT_PORTS.forEach((port) => {
+            portPromises.push(this._connectAddress(this.hostname, port));
+        });
+
+        return Promise.all(portPromises)
+            .then((results) => {
+                let port;
+                results.reverse().forEach((result) => {
+                    if (result.connected === true) {
+                        port = result.port;
+                    }
+                });
+                if (port) {
+                    return Promise.resolve(port);
+                }
+
+                return Promise.reject(new Error('Port discovery failed!'));
+            })
+            .then((port) => {
+                this.mgmtPort = port;
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Attempt connection to an address:port
+     *
+     * @returns {Promise} { 'connected': true, 'port': 443 }
+     */
+    _connectAddress(host, port) {
+        const socket = net.createConnection({ host, port });
+
+        return new Promise((resolve) => {
+            socket.on('connect', () => {
+                socket.end();
+                resolve({ connected: true, port });
+            });
+            socket.on('error', () => {
+                socket.destroy();
+                resolve({ connected: false, port });
+            });
+        })
             .catch(err => Promise.reject(err));
     }
 

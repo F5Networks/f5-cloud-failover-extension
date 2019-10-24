@@ -24,13 +24,10 @@ cat << 'EOF' > /config/post-nic-swap.sh
       tmsh create net route int_gw_int network $(cat /config/int_subnet_gateway.txt)/32 interface internal
       tmsh create net route int_rt network $(cat /config/int_subnet_cidr_range.txt) gw $(cat /config/int_subnet_gateway.txt)
       tmsh modify cm device $(cat /config/hostname.txt) unicast-address { { effective-ip $(cat /config/int_private_ip.txt) effective-port 1026 ip $(cat /config/int_private_ip.txt) } }
+      tmsh modify sys global-settings hostname $(cat /config/hostname.txt)
       tmsh modify sys db failover.selinuxallowscripts value enable
 
       tmsh save /sys config
-
-      #bigstart restart restjavad
-      #bigstart restart restnoded
-
 EOF
 
 cat << 'EOF' > /config/first-run.sh
@@ -42,14 +39,14 @@ cat << 'EOF' > /config/first-run.sh
     if [ ! -f /config/first_run_flag ]; then
 
         touch /config/first_run_flag
+        sleep 15
 
         adminUsername='${admin_username}'
         adminPassword='${admin_password}'
-        sleep 15
         tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
         tmsh save /sys config
 
-        echo ${hostname} > /config/hostname.txt
+        echo "$(curl -s -f --retry 5 'http://metadata.google.internal/computeMetadata/v1/instance/name' -H 'Metadata-Flavor: Google').${hostname_suffix}" > /config/hostname.txt
         echo ${ext_private_ip} > /config/ext_private_ip.txt
         echo ${int_private_ip} > /config/int_private_ip.txt
         echo ${mgmt_private_ip} > /config/mgmt_private_ip.txt

@@ -691,7 +691,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { operations: [] }
     */
     _discoverRouteOperations(localAddresses) {
-        return this._getRoutes({ tags: this.tags })
+        return this._getRoutes({ tags: this.routeTags })
             .then((routes) => {
                 this.logger.silly('Routes: ', routes);
 

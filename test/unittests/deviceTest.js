@@ -29,10 +29,19 @@ const mockResults = [
 
 describe('Device', () => {
     let device;
+    let deviceGetConfig;
+
+    let connectAddressMock;
 
     beforeEach(() => {
         device = new Device();
+        deviceGetConfig = device.getConfig;
+
         device.bigip.init = sinon.stub().resolves();
+        device.getConfig = sinon.stub().resolves(mockResults);
+
+        connectAddressMock = sinon.stub(Device.prototype, '_connectAddress')
+            .resolves({ connected: true, port: 443 });
     });
     afterEach(() => {
         sinon.restore();
@@ -48,18 +57,33 @@ describe('Device', () => {
         assert.ok(new Device());
     });
 
+    it('validate initialize', () => device.init()
+        .then(() => {
+            assert.ok(true);
+        })
+        .catch(err => Promise.reject(err)));
 
-    it('validate initialize', () => {
-        device.getConfig = sinon.stub().resolves(mockResults);
+    it('validate initialize using discover mgmt port', () => device.init()
+        .then(() => {
+            assert.strictEqual(device.mgmtPort, 443);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate initialize using discover mgmt port discovers 8443', () => {
+        connectAddressMock.onCall(0).resolves({ connected: false, port: 443 });
+        connectAddressMock.onCall(1).resolves({ connected: true, port: 8443 });
+
         return device.init()
             .then(() => {
-                assert.ok(true);
+                assert.strictEqual(device.mgmtPort, 8443);
             })
             .catch(err => Promise.reject(err));
     });
 
     it('validate getConfig', () => {
+        device.getConfig = deviceGetConfig;
         device.bigip.list = sinon.stub().resolves('foo');
+
         return device.getConfig(['/foo'])
             .then((data) => {
                 assert.deepStrictEqual('foo', data[0]);
@@ -85,39 +109,27 @@ describe('Device', () => {
     });
 
 
-    it('validate getGlobalSettings', () => {
-        device.getConfig = sinon.stub().resolves(mockResults);
-        return device.init()
-            .then(() => {
-                assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('validate getGlobalSettings', () => device.init()
+        .then(() => {
+            assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
+        })
+        .catch(err => Promise.reject(err)));
 
-    it('validate getTrafficGroupsStats', () => {
-        device.getConfig = sinon.stub().resolves(mockResults);
-        return device.init()
-            .then(() => {
-                assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('validate getTrafficGroupsStats', () => device.init()
+        .then(() => {
+            assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
+        })
+        .catch(err => Promise.reject(err)));
 
-    it('validate getSelfAddresses', () => {
-        device.getConfig = sinon.stub().resolves(mockResults);
-        return device.init()
-            .then(() => {
-                assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('validate getSelfAddresses', () => device.init()
+        .then(() => {
+            assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
+        })
+        .catch(err => Promise.reject(err)));
 
-    it('validate getVirtualAddresses', () => {
-        device.getConfig = sinon.stub().resolves(mockResults);
-        return device.init()
-            .then(() => {
-                assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    it('validate getVirtualAddresses', () => device.init()
+        .then(() => {
+            assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
+        })
+        .catch(err => Promise.reject(err)));
 });

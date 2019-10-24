@@ -68,7 +68,7 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: 'f5_self_ips',
+                    routeSelfIpsTag: constants.SELF_IPS_TAG,
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
