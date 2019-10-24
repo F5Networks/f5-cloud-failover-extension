@@ -20,6 +20,7 @@ const net = require('net');
 
 const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
+const constants = require('./constants.js');
 const Logger = require('./logger.js');
 
 const logger = new Logger(module);
@@ -28,7 +29,6 @@ const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
 
 const mgmtPortDiscovery = 'discover';
-
 
 /**
  * @class Device
@@ -96,7 +96,7 @@ class Device {
      */
     discoverMgmtPort() {
         const portPromises = [];
-        [443, 8443].forEach((port) => {
+        constants.MGMT_PORTS.forEach((port) => {
             portPromises.push(this._connectAddress(this.hostname, port));
         });
 

@@ -26,6 +26,10 @@ const VERSION = '1.0.0';
 module.exports = {
     VERSION,
     BASE_URL: 'https://localhost/mgmt/shared/cloud-failover',
+    MGMT_PORTS: [
+        443,
+        8443
+    ],
     CONTROLS_CLASS_NAME: 'Controls',
     CLOUD_PROVIDERS: {
         AWS: 'aws',
