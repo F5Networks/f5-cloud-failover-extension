@@ -22,9 +22,7 @@ All functional tests reside inside the ```functional``` folder and are run using
 
 Prereqs:
 
-- Terraform 0.12+,
-- Python 3.7+ (will creeate a virtual environment)
-    - f5-cloud-cli package
+- `npm install`
 
 Best Practices:
 
@@ -41,8 +39,14 @@ Creating an environment manually using the same methodology as automated tests i
 
 Prereq:
 
-- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication)
-- Pick which cloud provider the environment should be created in: `export CF_ENV_CLOUD=azure`
+- Terraform 0.12+
+- Python 3.7+ (will create a virtual environment)
+    - f5-cloud-cli package`
+- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication), az login, aws configure, etc.
+
+Select Environment: 
+
+- `export CF_ENV_CLOUD=azure` (azure, aws, gcp)
 
 Create:
 
@@ -51,3 +55,7 @@ Create:
 Delete:
 
 - `npm run deployment-delete`
+
+## Misc Notes
+
+- Deploy source code on to the environment BIG-IP(s) using scp: `bash scripts/deploy_source.sh`
