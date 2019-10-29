@@ -15,7 +15,7 @@ F5 Cloud Failover (CF) is a solution for those who want L3 failover functionalit
 The diagram below shows a typical failover scenario for an active/standby pair of BIG-IP systems in an Azure cloud environment.
 
 
-.. image:: ../contributing/images/AzureFailoverExtensionHighLevel.gif
+.. image:: images/azure/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
 
