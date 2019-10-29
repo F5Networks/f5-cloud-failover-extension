@@ -24,7 +24,7 @@ if [[ ${USE_SUDO} == "true" ]]; then
     echo "Using sudo, expect a password prompt."
   tf_command+="sudo "
 fi
-tf_command+="terraform"
+tf_command+="/Users/gasingh/dev-libraries/terraform"
 
 # support create|delete|show
 if [[ ${action} == "create" ]]; then
@@ -45,3 +45,5 @@ fi
 
 # perform any cleanup necessary
 deactivate && rm -rf venv
+
+

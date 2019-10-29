@@ -171,6 +171,43 @@ class FailoverClient {
     }
 
     /**
+     * Rest Failover State (delete data in cloud storage)
+     */
+    resetFailoverStateFile() {
+        // reset State file contents
+        this.recoverPreviousTask = false;
+
+        return configWorker.getConfig()
+            .then((data) => {
+                this.config = data;
+                if (!this.config.environment) {
+                    return Promise.reject(new Error('Environment not provided'));
+                }
+
+                this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
+                return this.cloudProvider.init({
+                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
+                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
+                    routeSelfIpsTag: 'f5_self_ips',
+                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
+                });
+            })
+            .then(() => this._createAndUpdateStateObject({
+                taskState: failoverStates.PASS,
+                message: 'Failover state was reset',
+                failoverOperations: {}
+            }))
+            .then(() => {
+                logger.info('Failover state reset complete');
+            })
+            .catch((err) => {
+                const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+            });
+    }
+
+    /**
      * Create state object
      *
      * @param {Object} [options]            - function options
