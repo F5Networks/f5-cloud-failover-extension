@@ -304,4 +304,22 @@ describe('Failover', () => {
                 assert.ok(true);
             });
     });
+
+    it('should reset state file when reset state file function is called after config declaration has occurred', () => config.init(restWorker)
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.resetFailoverStateFile())
+        .then(() => {
+            assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
+            assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].message, constants.STATE_FILE_RESET_MESSAGE);
+            assert.deepStrictEqual(uploadDataToStorageSpy.lastCall.args[1].failoverOperations, {});
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should reset state file when reset state file function is called before declaration', () => failover.resetFailoverStateFile()
+        .then(() => {
+            assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
+            assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].message, constants.STATE_FILE_RESET_MESSAGE);
+            assert.deepStrictEqual(uploadDataToStorageSpy.lastCall.args[1].failoverOperations, {});
+        })
+        .catch(err => Promise.reject(err)));
 });

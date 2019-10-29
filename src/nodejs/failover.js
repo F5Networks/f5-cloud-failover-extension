@@ -163,7 +163,7 @@ class FailoverClient {
         return this._getConfigAndInitializeCloudProvider()
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
-                message: 'Failover state was reset',
+                message: constants.STATE_FILE_RESET_MESSAGE,
                 failoverOperations: {}
             }))
             .then(() => {
