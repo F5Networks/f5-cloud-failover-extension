@@ -358,12 +358,10 @@ Additional information about the testing methodology can be found in the [test r
 ---
 ### Release methodology
 
-Build/publish makes heavy use of GitLab and [.gitlab-ci.yml](../.gitlab-ci.yml).  Check out CI file and GitLab documentation for more details.
+Build/publish makes use of GitLab and [.gitlab-ci.yml](../.gitlab-ci.yml) for automation.  Check out CI file and GitLab documentation for more details.
 
-- Add *new* RPM to `dist/` directory (from build artifact on mainline developement branch)
-- Publish to artifactory (automated on new tags)
-- Push to GitLab (mainline release branch)
-- Push to GitHub (mainline release branch)
+- Publish to artifactory (automated on new tags as well as develop branch for *development* artifact)
+- Add as artifact(s) to tagged release on GitHub
 
 *Local development build process*: Various strategies exist here, see the following for an inexhaustive list.
 
@@ -377,10 +375,6 @@ Note: See Release Checklist on Confluence for complete details.
 ---
 ### Public documentation methodology
 
-In general, see the documentation team for more details... however there is a process.
-
-The current process involves adding a `doc` label to an issue to note it requires public documentation.  This will cause the issue to show up in a documentation board in GitLab, the developer responsible for the feature is also responsible for generating the artifacts required by the documentation team member.
+In general, see the documentation team for more details... that being said public documentation is available on clouddocs.  (See the main README for the link)
 
 See the [examples](../examples) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
-
-See the [INTERNAL_README.md](../INTERNAL_README.md) for an internal explanation of most features.
