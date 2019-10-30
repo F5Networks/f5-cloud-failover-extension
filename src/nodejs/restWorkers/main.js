@@ -229,9 +229,9 @@ function processRequest(restOperation) {
         break;
     case 'reset':
         if (method === 'POST') {
-            failover.resetFailoverStateFile()
+            failover.resetFailoverState(body)
                 .then(() => {
-                    util.restOperationResponder(restOperation, 200, { message: 'failover state reset' });
+                    util.restOperationResponder(restOperation, 200, { message: constants.STATE_FILE_RESET_MESSAGE });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });

@@ -158,21 +158,26 @@ class FailoverClient {
     /**
      * Reset Failover State (delete data in cloud storage)
      */
-    resetFailoverStateFile() {
-        // reset State file contents
-        return this._getConfigAndInitializeCloudProvider()
-            .then(() => this._createAndUpdateStateObject({
-                taskState: failoverStates.PASS,
-                message: constants.STATE_FILE_RESET_MESSAGE,
-                failoverOperations: {}
-            }))
-            .then(() => {
-                logger.info('Failover state reset complete');
-            })
-            .catch((err) => {
-                const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                logger.error(errorMessage);
-            });
+    resetFailoverState(body) {
+        const stateComponents = Object.assign({}, body);
+        if (stateComponents.resetStateFile) {
+            // reset State file contents
+            return this._getConfigAndInitializeCloudProvider()
+                .then(() => this._createAndUpdateStateObject({
+                    taskState: failoverStates.PASS,
+                    message: constants.STATE_FILE_RESET_MESSAGE,
+                    failoverOperations: {}
+                }))
+                .then(() => {
+                    logger.info('Failover state file reset complete');
+                })
+                .catch((err) => {
+                    const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                    logger.error(errorMessage);
+                });
+        }
+        logger.info('Failover state file was not reset');
+        return Promise.resolve();
     }
 
     /**

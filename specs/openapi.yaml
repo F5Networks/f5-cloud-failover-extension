@@ -168,7 +168,7 @@ paths:
                   code: 400
   /reset:
     post:
-      summary: Reset Failover State file
+      summary: Reset failover state file
       tags:
         - Reset
       requestBody:
