@@ -166,6 +166,34 @@ paths:
                   taskState: FAILED
                   message: Failover Unexpected Error
                   code: 400
+  /reset:
+    post:
+      summary: Reset Failover State file
+      tags:
+        - Reset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resetStateFile:
+                  type: boolean
+            example:
+              stateFile: true
+      responses:
+        "200":
+          description: Reset State Response
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/ResetStateResponse"
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     Configuration:
@@ -274,6 +302,11 @@ components:
       properties:
         code:
           type: integer
+        message:
+          type: string
+    ResetStateResponse:
+      type: object
+      properties:
         message:
           type: string
   securitySchemes:
