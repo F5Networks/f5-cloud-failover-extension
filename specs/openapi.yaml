@@ -180,7 +180,7 @@ paths:
                 resetStateFile:
                   type: boolean
             example:
-              stateFile: true
+              resetStateFile: true
       responses:
         "200":
           description: Reset State Response

@@ -197,9 +197,13 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: 'f5_self_ips',
+                    routeSelfIpsTag: constants.SELF_IPS_TAG,
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
+            })
+            .catch((err) => {
+                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
             });
     }
 
