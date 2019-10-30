@@ -203,7 +203,7 @@ class FailoverClient {
             })
             .catch((err) => {
                 const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                logger.error(errorMessage);
+                return Promise.reject(new Error(errorMessage));
             });
     }
 
