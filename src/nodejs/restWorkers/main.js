@@ -229,7 +229,7 @@ function processRequest(restOperation) {
         break;
     case 'reset':
         if (method === 'POST') {
-            failover.resetFailoverStateFile()
+            failover.resetFailoverStateFile(body)
                 .then(() => {
                     util.restOperationResponder(restOperation, 200, { message: 'failover state reset' });
                 })
