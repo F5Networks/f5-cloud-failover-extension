@@ -56,22 +56,7 @@ class FailoverClient {
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
 
-        return configWorker.getConfig()
-            .then((data) => {
-                this.config = data;
-                if (!this.config.environment) {
-                    return Promise.reject(new Error('Environment not provided'));
-                }
-
-                this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                return this.cloudProvider.init({
-                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
-                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
-                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: constants.SELF_IPS_TAG,
-                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
-                });
-            })
+        return this._getConfigAndInitializeCloudProvider()
             .then(() => this.device.init())
             .then(() => {
                 this.hostname = this.device.getGlobalSettings().hostname;
@@ -167,6 +152,58 @@ class FailoverClient {
                 })
                     .then(() => Promise.reject(err))
                     .catch(() => Promise.reject(err));
+            });
+    }
+
+    /**
+     * Reset Failover State (delete data in cloud storage)
+     */
+    resetFailoverState(body) {
+        const stateComponents = Object.assign({}, body);
+        if (stateComponents.resetStateFile) {
+            // reset State file contents
+            return this._getConfigAndInitializeCloudProvider()
+                .then(() => this._createAndUpdateStateObject({
+                    taskState: failoverStates.PASS,
+                    message: constants.STATE_FILE_RESET_MESSAGE,
+                    failoverOperations: {}
+                }))
+                .then(() => {
+                    logger.info('Failover state file reset complete');
+                })
+                .catch((err) => {
+                    const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                    logger.error(errorMessage);
+                });
+        }
+        logger.info('Failover state file was not reset');
+        return Promise.resolve();
+    }
+
+    /**
+     * Get Config from configWorker and initialize this.cloudProvider using the config
+     */
+
+    _getConfigAndInitializeCloudProvider() {
+        return configWorker.getConfig()
+            .then((data) => {
+                this.config = data;
+                if (!this.config.environment) {
+                    return Promise.reject(new Error('Environment not provided'));
+                }
+
+                this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
+                return this.cloudProvider.init({
+                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
+                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
+                    routeSelfIpsTag: constants.SELF_IPS_TAG,
+                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
+                });
+            })
+            .catch((err) => {
+                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                return Promise.reject(new Error(errorMessage));
             });
     }
 
