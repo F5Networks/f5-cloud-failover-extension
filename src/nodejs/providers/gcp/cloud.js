@@ -549,7 +549,7 @@ class Cloud extends AbstractCloud {
         const associate = [];
 
         // There should be at least one item in trafficGroupIpArr
-        if (!failoverAddresses.length) {
+        if (failoverAddresses == null || !failoverAddresses.length) {
             this.logger.warn('No traffic group address(es) exist, skipping');
             return Promise.reject();
         }
