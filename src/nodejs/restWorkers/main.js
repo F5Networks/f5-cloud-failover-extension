@@ -198,49 +198,26 @@ function processRequest(restOperation) {
     case 'trigger':
         // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
-            case 'POST':
-            // failover.execute();
-            configWorker.getTaskState()
+        case 'POST':
+            failover._getTaskStateFile()
                 .then((taskState) => {
-                    logger.info(`taskState: ${JSON.stringify(taskState)}`)
+                    logger.info(`taskState: ${JSON.stringify(taskState)}`);
                     if (taskState.taskState === failoverStates.RUN) {
-                        taskState.code = 202;
-                        return taskState;
+                        return Promise.resolve();
                     }
-                    failover.execute();
-                    return configWorker.getTaskState();
+                    return failover.execute();
                 })
+                .then(() => failover._getTaskStateFile())
                 .then((taskState) => {
                     logger.info(`POST taskState: ${JSON.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
-                //
-                //     switch (taskState.taskState) {
-                //     case failoverStates.RUN:
-                //         case failoverStates.RUN:
-                //         taskState.code = 202;
-                //         break;
-                //     default:
-                //         // Triggered from standby BigIP.
-                //         // util.restOperationResponder(restOperation, 307, { message: 'NOT MODIFIED' });
-                //         logger.info(`Executing failover`)
-                //         failover.execute()
-                //             .then((state) => {
-                //                 taskState = state;
-                //                 logger.info(`Setting taskState: ${taskState}`)
-                //             })
-                //         break;
-                //     }
-                //     return taskState;
-                //     // util.restOperationResponder(restOperation, taskState.code, taskState);
-                // })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
                 });
             break;
-            // util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN });
         case 'GET':
-            configWorker.getTaskState()
+            failover._getTaskStateFile()
                 .then((taskState) => {
                     switch (taskState.taskState) {
                     case failoverStates.RUN:

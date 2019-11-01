@@ -49,13 +49,7 @@ class FailoverClient {
         this.recoveryOperations = null;
     }
 
-    /**
-     * Execute (primary function)
-     */
-    execute() {
-        // reset certain properties on every execute invocation
-        this.recoverPreviousTask = false;
-
+    init() {
         return configWorker.getConfig()
             .then((data) => {
                 this.config = data;
@@ -71,7 +65,74 @@ class FailoverClient {
                     routeSelfIpsTag: constants.SELF_IPS_TAG,
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
+            });
+    }
+
+    executeFailoverDiscovery(trafficGroups) {
+        logger.info('Performing Failover - discovery');
+        const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
+        const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
+        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+
+        this.localAddresses = addresses.localAddresses;
+        this.failoverAddresses = addresses.failoverAddresses;
+
+        const discoverActions = [
+            this.cloudProvider.updateAddresses({
+                localAddresses: this.localAddresses,
+                failoverAddresses: this.failoverAddresses,
+                discoverOnly: true
+            }),
+            this.cloudProvider.updateRoutes({
+                localAddresses: this.localAddresses,
+                discoverOnly: true
             })
+        ];
+        return Promise.all(discoverActions)
+            .then((discovery) => {
+                this.addressDiscovery = discovery[0];
+                this.routeDiscovery = discovery[1];
+
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.RUN,
+                    message: 'Failover running',
+                    failoverOperations: {
+                        addresses: this.addressDiscovery,
+                        routes: this.routeDiscovery
+                    }
+                });
+            })
+            .then(() => {
+                logger.info('Performing Failover - update');
+                const updateActions = [
+                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                ];
+                return Promise.all(updateActions);
+            })
+
+            .catch((err) => {
+                // logger.error('entering catch block');
+                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.FAIL,
+                    message: 'Failover failed because of '.concat(errorMessage),
+                    failoverOperations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                })
+                    .then(() => Promise.reject(err))
+                    .catch(() => Promise.reject(err));
+            });
+    }
+
+    /**
+     * Execute (primary function)
+     */
+    execute() {
+        // reset certain properties on every execute invocation
+        this.recoverPreviousTask = false;
+
+        return this.init()
             .then(() => this.device.init())
             .then(() => {
                 this.hostname = this.device.getGlobalSettings().hostname;
@@ -101,50 +162,10 @@ class FailoverClient {
                         this.recoveryOperations.routes
                     ]);
                 }
-
-                logger.info('Performing Failover - discovery');
-
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-                const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
-                const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
-                const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
-
-                this.localAddresses = addresses.localAddresses;
-                this.failoverAddresses = addresses.failoverAddresses;
-
-                const discoverActions = [
-                    this.cloudProvider.updateAddresses({
-                        localAddresses: this.localAddresses,
-                        failoverAddresses: this.failoverAddresses,
-                        discoverOnly: true
-                    }),
-                    this.cloudProvider.updateRoutes({
-                        localAddresses: this.localAddresses,
-                        discoverOnly: true
-                    })
-                ];
-                return Promise.all(discoverActions);
-            })
-            .then((discovery) => {
-                this.addressDiscovery = discovery[0];
-                this.routeDiscovery = discovery[1];
-
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.RUN,
-                    message: 'Failover running',
-                    failoverOperations: {
-                        addresses: this.addressDiscovery,
-                        routes: this.routeDiscovery
-                    }
-                });
-            })
-            .then(() => {
-                logger.info('Performing Failover - update');
-                const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                ];
-                return Promise.all(updateActions);
+                if (trafficGroups != null && trafficGroups.length > 0) {
+                    return this.executeFailoverDiscovery(trafficGroups);
+                }
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
@@ -156,17 +177,6 @@ class FailoverClient {
             }))
             .then(() => {
                 logger.info('Failover complete');
-            })
-            .catch((err) => {
-                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                logger.error(errorMessage);
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.FAIL,
-                    message: 'Failover failed because of '.concat(errorMessage),
-                    failoverOperations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
-                })
-                    .then(() => Promise.reject(err))
-                    .catch(() => Promise.reject(err));
             });
     }
 
@@ -210,6 +220,23 @@ class FailoverClient {
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Get task state file
+     *
+     * @returns {Promise}
+     */
+    _getTaskStateFile() {
+        return this.init()
+            .then(() => {
+                logger.info(`stateFileName: ${stateFileName}`);
+                return this.cloudProvider.downloadDataFromStorage(stateFileName);
+            })
+            .then((data) => {
+                logger.info(`Download stateFile: ${JSON.stringify(data)}`);
+                return Promise.resolve(data);
             });
     }
 
