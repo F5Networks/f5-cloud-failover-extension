@@ -158,13 +158,6 @@ function processRequest(restOperation) {
     let body = restOperation.getBody();
     const vinfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json')), 'utf8');
     const baseSchema = JSON.parse(fs.readFileSync(path.join(__dirname, '../schema/base_schema.json')), 'utf8');
-    const versionInfo = {
-        name: vinfo.name,
-        version: vinfo.version,
-        release: vinfo.version.split('.').reverse()[0],
-        schemaCurrent: baseSchema.properties.schemaVersion.enum[0],
-        schemaMinimum: baseSchema.properties.schemaVersion.enum.reverse()[0]
-    };
 
     // validate content type, attempt to process regardless
     if (contentType !== 'application/json') {
@@ -252,7 +245,12 @@ function processRequest(restOperation) {
         }
         break;
     case 'info':
-        util.restOperationResponder(restOperation, 200, { message: 'success', info: versionInfo });
+        util.restOperationResponder(restOperation, 200, {
+            version: vinfo.version,
+            release: vinfo.version.split('.').reverse()[0],
+            schemaCurrent: baseSchema.properties.schemaVersion.enum[0],
+            schemaMinimum: baseSchema.properties.schemaVersion.enum.reverse()[0]
+        });
         break;
     default:
         util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });

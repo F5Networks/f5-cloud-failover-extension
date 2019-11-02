@@ -111,11 +111,10 @@ const packagePath = packageDetails.path;
             const uri = constants.INFO_ENDPOINT;
 
             options.method = 'GET';
-            options.body = funcUtils.getDeploymentDeclaration();
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
-                    assert.strictEqual(data.info.version, version);
+                    assert.strictEqual(data.version, version);
                 })
                 .catch(err => Promise.reject(err));
         });
