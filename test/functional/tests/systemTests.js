@@ -76,7 +76,19 @@ const packagePath = packageDetails.path;
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
-                    assert.strictEqual(data.message, 'success');
+                    assert.strictEqual(data.version, version);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should get version info', () => {
+            const uri = constants.INFO_ENDPOINT;
+
+            options.method = 'GET';
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.version, version);
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -103,18 +115,6 @@ const packagePath = packageDetails.path;
                 .then((data) => {
                     data = data || {};
                     assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
-                })
-                .catch(err => Promise.reject(err));
-        });
-
-        it('should get version info', () => {
-            const uri = constants.INFO_ENDPOINT;
-
-            options.method = 'GET';
-            return utils.makeRequest(dutHost, uri, options)
-                .then((data) => {
-                    data = data || {};
-                    assert.strictEqual(data.version, version);
                 })
                 .catch(err => Promise.reject(err));
         });
