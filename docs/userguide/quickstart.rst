@@ -14,12 +14,13 @@ up and running with Cloud Failover.
 #. Download the latest RPM package from |github| in the **dist** directory.
 #. Upload and install the RPM package on the using the BIG-IP GUI:
 
-   - :guilabel:`Main tab > iApps > Package Management LX > Import`
-    .. image:: ../images/cloud-failover-import.png
-        :width: 800
-   - Select the downloaded file and click :guilabel:`Upload`
-   - For complete instructions see :ref:`installgui-ref` or
-     :ref:`installcurl-ref`.
+  - :guilabel:`Main tab > iApps > Package Management LX > Import`
+    
+.. image:: ../images/cloud-failover-import.png
+  :width: 800
+   
+  - Select the downloaded file and click :guilabel:`Upload`
+  - For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`.
 
 
 #. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover.

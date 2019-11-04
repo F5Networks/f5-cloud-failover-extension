@@ -26,9 +26,9 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
 - Route(s) in a route table tagged with:
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-  - a special key call ``f5_self_ips`` containing a comma separated list of addresses mapping to a self IP address on each instance in the cluster. Example: `10.0.0.10,10.0.0.11`
+  - a special key call ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. Example: `10.0.0.10,10.0.0.11`
 
-  Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
+  Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update
 
 - Access to Azure's Instance Metadata Service, which is a REST Endpoint accessible to all IaaS VMs created within Azure. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM.
     - .. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
@@ -63,15 +63,18 @@ Creating and assinging an MSI
 `````````````````````````````
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI.
 
-1. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
+#. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
+
+For example:
 
 .. image:: ../images/azure/AzureMSIVMIdentity.png
   :width: 1000
 
-2. To assign permissions to each MSI, go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
+#. To assign permissions to each MSI, go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
   - Role: Contributor
-  - Assign access to: System assigned managed identity -> Virtual Machine
-    
+  - Assign access to: **System assigned managed identity > Virtual Machine**
+
+For example: 
 .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
   :width: 1000
 

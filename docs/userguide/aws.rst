@@ -15,7 +15,7 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in AWS:
 
-- **2 clustered BIG-IPs**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
 - **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for creating and assigning an IAM role.
 - **An S3 bucket for Cloud Failover extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
 
@@ -23,19 +23,20 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - Elastic IP addresses tagged with:
     - a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
-    - a special key called `VIPS` containing a comma seperated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. Example: `10.0.0.10,10.0.0.11`
+    - a special key called `VIPS` containing a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: `10.0.0.10,10.0.0.11`
 
 - Route(s) in a route table tagged with:
     - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - a special key call `f5_self_ips` containing a comma seperated list of addresses that map to a self IP address on each instance in the cluster. Example: `10.0.0.10,10.0.0.11`
-  Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update.
+    - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. Example: `10.0.0.10,10.0.0.11`
+  
+  Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
 
-Creating and assigning IAM Role
-```````````````````````````````
+Creating and assigning an IAM Role
+``````````````````````````````````
 To create and assign an IAM role you must have a user role of `iam:CreateUser`.
 
-1. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
+#. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
 - EC2 Read/Write
 - S3 Read/Write
@@ -48,7 +49,7 @@ For example:
   :width: 1000
     
 
-2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
+#. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
 
 For example:
 
