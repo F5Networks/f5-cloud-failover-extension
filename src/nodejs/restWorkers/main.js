@@ -199,7 +199,7 @@ function processRequest(restOperation) {
         // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
         case 'POST':
-            failover._getTaskStateFile()
+            failover.getTaskStateFile()
                 .then((taskState) => {
                     logger.info(`taskState: ${JSON.stringify(taskState)}`);
                     if (taskState.taskState === failoverStates.RUN) {
@@ -207,7 +207,7 @@ function processRequest(restOperation) {
                     }
                     return failover.execute();
                 })
-                .then(() => failover._getTaskStateFile())
+                .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
                     logger.info(`POST taskState: ${JSON.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
@@ -217,7 +217,7 @@ function processRequest(restOperation) {
                 });
             break;
         case 'GET':
-            failover._getTaskStateFile()
+            failover.getTaskStateFile()
                 .then((taskState) => {
                     switch (taskState.taskState) {
                     case failoverStates.RUN:
