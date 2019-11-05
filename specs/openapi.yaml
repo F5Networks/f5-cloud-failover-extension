@@ -90,10 +90,10 @@ paths:
             schema:
               type: object
               properties:
-                action:
+                taskState:
                   type: string
             example:
-              action: execute
+              taskState: SUCCEEDED
       responses:
         "200":
           description: Configuration response
