@@ -8,19 +8,27 @@ Failover Event Diagram
 
 This diagram shows a failover event with Cloud Failover implemented in AWS. You can see Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/AWSFailoverExtensionHighLevel.gif
+.. image:: ../images/aws/AWSFailoverExtensionHighLevel.gif
   :width: 800
 
 Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in AWS:
 
-- 2 clustered BIG-IPs
-   - Note: Here is an [example AWS CloudFormation template](https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
-- An AWS IAM role with sufficient access
-    - Using Standard roles
-        - EC2 Full Access
-        - S3 Full Access - Note: This should be limited to necessary buckets
+- 2 clustered BIG-IPs. You can find an example AWS Cloudformation template |armtemplate|. Any configuration tool can be used to provision the resources.
+- An AWS Identity and Access Management (IAM) role with sufficient access
+  - .. IMPORTANT:: To create and assign an IAM role the following roles are required.
+    - iam:CreateUser
+  - Created and assigned IAM role
+    - Create IAM role by navigating to *IAM -> Roles* and creating a policy with the following permissions:
+      - EC2 Read/Write
+      - S3 Read/Write
+      - STS Assume Role
+      .. image:: ../images/aws/AWSIAMRoleSummary.png
+        :width: 800
+    - Assign IAM role to each instance by navigating to *EC2 -> Instances -> Instance -> Actions -> Instance Settings -> Attach/Replace IAM Role*
+      .. image:: ../images/aws/AWSIAMRoleAssignedToInstance.png
+        :width: 800
 - An S3 bucket for Cloud Failover extension cluster-wide file(s). This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
        .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 - Elastic IP addresses tagged with the following (optional):
@@ -71,4 +79,4 @@ This example declaration shows the minimum information needed to update the clou
 
 .. |cloudformation| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">example Cloudformation template</a>
+   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">here</a>

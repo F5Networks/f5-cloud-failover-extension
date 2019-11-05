@@ -241,6 +241,19 @@ function processRequest(restOperation) {
             break;
         }
         break;
+    case 'reset':
+        if (method === 'POST') {
+            failover.resetFailoverState(body)
+                .then(() => {
+                    util.restOperationResponder(restOperation, 200, { message: constants.STATE_FILE_RESET_MESSAGE });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+        } else {
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+        }
+        break;
     case 'info':
         util.restOperationResponder(restOperation, 200, { message: 'success' });
         break;

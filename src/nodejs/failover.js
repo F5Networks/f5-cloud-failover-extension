@@ -49,7 +49,91 @@ class FailoverClient {
         this.recoveryOperations = null;
     }
 
-    init() {
+
+    /**
+     * Execute (primary function)
+     */
+    execute() {
+        // reset certain properties on every execute invocation
+        this.recoverPreviousTask = false;
+
+        return this._getConfigAndInitializeCloudProvider()
+            .then(() => this.device.init())
+            .then(() => {
+                this.hostname = this.device.getGlobalSettings().hostname;
+
+                // wait for task - handles all possible states
+                return this._waitForTask();
+            })
+            .then((taskResponse) => {
+                logger.debug('Task response: ', taskResponse);
+
+                // check if we are recovering from a previous task
+                if (taskResponse.recoverPreviousTask === true) {
+                    this.recoverPreviousTask = true;
+                    this.recoveryOperations = taskResponse.state.failoverOperations;
+                }
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.RUN,
+                    message: 'Failover running'
+                });
+            })
+            .then(() => {
+                // recovering previous task - skip discovery
+                if (this.recoverPreviousTask === true) {
+                    logger.warn('Recovering previous task: ', this.recoveryOperations);
+                    return Promise.resolve([
+                        this.recoveryOperations.addresses,
+                        this.recoveryOperations.routes
+                    ]);
+                }
+                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
+                if (trafficGroups != null && trafficGroups.length > 0) {
+                    return this._executeFailoverDiscovery(trafficGroups);
+                }
+            })
+            .then(() => this._createAndUpdateStateObject({
+                taskState: failoverStates.PASS,
+                message: 'Failover Completed Successfully',
+                failoverOperations: {
+                    addresses: this.addressDiscovery,
+                    routes: this.routeDiscovery
+                }
+            }))
+            .then(() => {
+                logger.info('Failover complete');
+            });
+    }
+
+    /**
+     * Reset Failover State (delete data in cloud storage)
+     */
+    resetFailoverState(body) {
+        const stateComponents = Object.assign({}, body);
+        if (stateComponents.resetStateFile) {
+            // reset State file contents
+            return this._getConfigAndInitializeCloudProvider()
+                .then(() => this._createAndUpdateStateObject({
+                    taskState: failoverStates.PASS,
+                    message: constants.STATE_FILE_RESET_MESSAGE,
+                    failoverOperations: {}
+                }))
+                .then(() => {
+                    logger.info('Failover state file reset complete');
+                })
+                .catch((err) => {
+                    const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                    logger.error(errorMessage);
+                });
+        }
+        logger.info('Failover state file was not reset');
+        return Promise.resolve();
+    }
+
+    /**
+     * Get Config from configWorker and initialize this.cloudProvider using the config
+     */
+    _getConfigAndInitializeCloudProvider() {
         return configWorker.getConfig()
             .then((data) => {
                 this.config = data;
@@ -65,10 +149,20 @@ class FailoverClient {
                     routeSelfIpsTag: constants.SELF_IPS_TAG,
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
+            })
+            .catch((err) => {
+                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                return Promise.reject(new Error(errorMessage));
             });
     }
 
-    executeFailoverDiscovery(trafficGroups) {
+    /**
+     *
+     * @param {Object} trafficGroups - The traffic groups to discover local and failover addresses
+     *
+     * @returns {Promise}
+     */
+    _executeFailoverDiscovery(trafficGroups) {
         logger.info('Performing Failover - discovery');
         const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
         const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
@@ -125,60 +219,6 @@ class FailoverClient {
             });
     }
 
-    /**
-     * Execute (primary function)
-     */
-    execute() {
-        // reset certain properties on every execute invocation
-        this.recoverPreviousTask = false;
-
-        return this.init()
-            .then(() => this.device.init())
-            .then(() => {
-                this.hostname = this.device.getGlobalSettings().hostname;
-
-                // wait for task - handles all possible states
-                return this._waitForTask();
-            })
-            .then((taskResponse) => {
-                logger.debug('Task response: ', taskResponse);
-
-                // check if we are recovering from a previous task
-                if (taskResponse.recoverPreviousTask === true) {
-                    this.recoverPreviousTask = true;
-                    this.recoveryOperations = taskResponse.state.failoverOperations;
-                }
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.RUN,
-                    message: 'Failover running'
-                });
-            })
-            .then(() => {
-                // recovering previous task - skip discovery
-                if (this.recoverPreviousTask === true) {
-                    logger.warn('Recovering previous task: ', this.recoveryOperations);
-                    return Promise.resolve([
-                        this.recoveryOperations.addresses,
-                        this.recoveryOperations.routes
-                    ]);
-                }
-                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-                if (trafficGroups != null && trafficGroups.length > 0) {
-                    return this.executeFailoverDiscovery(trafficGroups);
-                }
-            })
-            .then(() => this._createAndUpdateStateObject({
-                taskState: failoverStates.PASS,
-                message: 'Failover Completed Successfully',
-                failoverOperations: {
-                    addresses: this.addressDiscovery,
-                    routes: this.routeDiscovery
-                }
-            }))
-            .then(() => {
-                logger.info('Failover complete');
-            });
-    }
 
     /**
      * Create state object
@@ -228,8 +268,8 @@ class FailoverClient {
      *
      * @returns {Promise}
      */
-    _getTaskStateFile() {
-        return this.init()
+    getTaskStateFile() {
+        return this._getConfigAndInitializeCloudProvider()
             .then(() => {
                 logger.info(`stateFileName: ${stateFileName}`);
                 return this.cloudProvider.downloadDataFromStorage(stateFileName);

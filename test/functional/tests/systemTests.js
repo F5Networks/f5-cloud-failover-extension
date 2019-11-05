@@ -92,5 +92,18 @@ const packagePath = packageDetails.path;
                 })
                 .catch(err => Promise.reject(err));
         });
+
+        it('should reset failover state file', () => {
+            const uri = constants.RESET_ENDPOINT;
+
+            options.method = 'POST';
+            options.body = { resetStateFile: true };
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 });

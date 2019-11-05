@@ -9,21 +9,30 @@ Failover Event Diagram
 
 This diagram shows a failover event with Cloud Failover implemented in Microsoft Azure. IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s). User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self-IP address of the active BIG-IP.
 
-.. image:: ../images/AzureFailoverExtensionHighLevel.gif
+.. image:: ../images/azure/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
 Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in Microsoft Azure:
 
-- 2 clustered BIG-IPs
-   - Note: Here is an |armtemplate|, although it is not required. Any configuration tool can be used to provision the resources.
-- An Azure |managed-identity| with sufficient access. This should be limited to the appropriate resource groups where it contains the BIG-IP VNet and route tables.
+- 2 BIG-IPs in Active/Standby configuration. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
+- An Azure |managed-identity| with sufficient access. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated.
+  - .. IMPORTANT:: To create and assign a Managed Service Identity (MSI) the following roles are required.
     - User Access Administrator
     - Contributor access 
+  - You will also need to have a created and assigned MSI (using system assigned in this example)
+    - To enable MSI for each VM, go to *Virtual Machine -> Identity -> System assigned* and set the status to *On*
+    .. image:: ../images/azure/AzureMSIVMIdentity.png
+        :width: 800
+    - To assign permissions to each MSI, go to *Resource Group -> Access control (IAM) -> Role assignments -> Add*, make the changes listed below, and then add the MSI.
+      - Role: Contributor
+      - Assign access to: System assigned managed identity -> Virtual Machine
+      .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
+        :width: 800
 - A storage account for Cloud Failover extension cluster-wide file(s) that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
     .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-- Network Interfaces should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the nics.
+- Network Interfaces that are tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the nics.
 - Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - Route(s) in a route table tagged with the following (optional):
     - Tagged with a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
@@ -95,7 +104,7 @@ This example declaration shows the minimum information needed to update the clou
 
 .. |armtemplate| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">example ARM template</a>
+   <a href="https://github.com/F5Networks/f5-azure-arm-templates/blob/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">here</a>
 
 
 .. |managed-identity| raw:: html
