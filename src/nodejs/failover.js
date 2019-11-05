@@ -89,7 +89,7 @@ class FailoverClient {
                 }
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
                 if (trafficGroups != null && trafficGroups.length > 0) {
-                    return this._executeFailoverDiscovery(trafficGroups);
+                    return this._getFailoverDiscovery(trafficGroups);
                 }
             })
             .then(() => this._createAndUpdateStateObject({
@@ -157,12 +157,13 @@ class FailoverClient {
     }
 
     /**
+     * Get failover discovery (update cloud provider addresses and routes)
      *
      * @param {Object} trafficGroups - The traffic groups to discover local and failover addresses
      *
      * @returns {Promise}
      */
-    _executeFailoverDiscovery(trafficGroups) {
+    _getFailoverDiscovery(trafficGroups) {
         logger.info('Performing Failover - discovery');
         const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
         const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
@@ -206,7 +207,6 @@ class FailoverClient {
             })
 
             .catch((err) => {
-                // logger.error('entering catch block');
                 const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                 logger.error(errorMessage);
                 return this._createAndUpdateStateObject({

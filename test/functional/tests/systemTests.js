@@ -105,5 +105,18 @@ const packagePath = packageDetails.path;
                 })
                 .catch(err => Promise.reject(err));
         });
+
+        it('should POST trigger to a standby BigIP', () => {
+            const uri = constants.TRIGGER_ENDPOINT;
+
+            options.method = 'POST';
+            options.body = {};
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.taskState, 'SUCCEEDED');
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 });
