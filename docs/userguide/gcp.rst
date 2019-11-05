@@ -23,14 +23,15 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
 - **A GCP Identity and Access Management (IAM) service account with sufficient access**. See the instructions below for creating and assigning an IAM role.
 - **A storage bucket for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
 
-.. IMPORTANT:: Ensure the required storage accounts do not have public access.
+  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - **Instances tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration**.
 - **Virtual addresses created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic**.
 - **Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic**. 
-- Route(s) in a route table tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - a special key call `f5_self_ips` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
+- **Route(s) in a route table tagged with**:
+
+  - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+  - a special key call `f5_self_ips` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
   
   Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
@@ -40,10 +41,10 @@ Creating and assigning an IAM Role
 ``````````````````````````````````
 To create and assign an IAM role you must have a user role of `Editor`.
 
-#. In GCP, go to **IAM > Roles** and create the member with the following scopes:
-    - compute-rw
-    - storage-rw
-    - cloud-platform
+1. In GCP, go to **IAM > Roles** and create the member with the following scopes:
+- compute-rw
+- storage-rw
+- cloud-platform
 
 For example:
 
@@ -51,7 +52,7 @@ For example:
   :width: 800
 
 
-#. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select Edit, and then update the Service Account.
+2. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select Edit, and then update the Service Account.
 
 For example:
 
@@ -63,7 +64,7 @@ For example:
 
 Example Declaration
 -------------------
-This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.
+This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.  See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. code-block:: json
     :linenos:

@@ -19,64 +19,71 @@ These are the minimum requirements for setting up Cloud Failover in Microsoft Az
 - **An Azure |managed-identity| with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for creating and assigning an MSI.
 - **A storage account for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
   
-    .. IMPORTANT:: Ensure the required storage accounts do not have public access.
+  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - **Network Interfaces** that are tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the nics.
 - **Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic**
-- Route(s) in a route table tagged with:
+- **Route(s) in a route table tagged with:**
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
   - a special key call ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. Example: `10.0.0.10,10.0.0.11`
 
   Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update
 
-- Access to Azure's Instance Metadata Service, which is a REST Endpoint accessible to all IaaS VMs created within Azure. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM.
-    - .. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
-    - Configuration Examples
-      - Using TMSH
+- **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created within Azure. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM.
+  
+  .. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
 
-        .. code-block:: bash
+  To configure the route on BIG-IP to talk to Azure's Instance Metadata Services, use either of the following commands:
 
-          tmsh modify sys db config.allow.rfc3927 value enable
-          tmsh create sys management-route metadata-route network 169.254.169.254/32 gateway 192.0.2.1
-          tmsh save sys config
+  - Using TMSH
 
-      - Using Declarative Onboarding
+    .. code-block:: bash
+
+      tmsh modify sys db config.allow.rfc3927 value enable
+      tmsh create sys management-route metadata-route network 169.254.169.254/32 gateway 192.0.2.1
+      tmsh save sys config
+
+  - Using Declarative Onboarding
         
-        .. code-block:: json
+    .. code-block:: json
 
-          {
-            "managementRoute": {
-              "class": "ManagementRoute",
-              "gw": "192.0.2.1",
-              "network": "169.254.169.254",
-              "mtu": 1500
-            },
-            "dbVars": {
-              "class": "DbVariables",
-              "config.allow.rfc3927": "enable"
-            }
-          }
+      {
+        "managementRoute": {
+          "class": "ManagementRoute",
+          "gw": "192.0.2.1",
+          "network": "169.254.169.254",
+          "mtu": 1500
+        },
+        "dbVars": {
+          "class": "DbVariables",
+          "config.allow.rfc3927": "enable"
+        }
+      }
 
 
-Creating and assinging an MSI
+Creating and assigning an MSI
 `````````````````````````````
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI.
 
-#. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
+1. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
 For example:
 
 .. image:: ../images/azure/AzureMSIVMIdentity.png
   :width: 1000
 
-#. To assign permissions to each MSI, go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
-  - Role: Contributor
-  - Assign access to: **System assigned managed identity > Virtual Machine**
+2. To assign permissions to each MSI, go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
+
+- Role: Contributor
+- Assign access to: **System assigned managed identity > Virtual Machine**
 
 For example: 
+
 .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
   :width: 1000
+
+
 
 
 
@@ -84,7 +91,7 @@ For example:
 
 Example Declaration
 -------------------
-This example declaration shows the minimum information needed to update the cloud resources in Azure.
+This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. code-block:: json
 

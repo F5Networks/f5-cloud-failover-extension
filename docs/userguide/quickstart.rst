@@ -11,26 +11,27 @@ up and running with Cloud Failover.
 
    Cloud Failover extension supports BIG-IP version 14.1.X and later.
 
-#. Download the latest RPM package from |github| in the **dist** directory.
-#. Upload and install the RPM package on the using the BIG-IP GUI:
+1. Download the latest RPM package from |github| in the **dist** directory.
 
-  - :guilabel:`Main tab > iApps > Package Management LX > Import`
-    
+2. Upload and install the RPM package on the using the BIG-IP GUI:
+
+- :guilabel:`Main tab > iApps > Package Management LX > Import`
+
 .. image:: ../images/cloud-failover-import.png
-  :width: 800
-   
-  - Select the downloaded file and click :guilabel:`Upload`
-  - For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`.
+  :width: 1000 
 
+- Select the downloaded file and click :guilabel:`Upload`
+- For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`
+    
 
-#. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover.
+3. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover.
 
-#. Provide authorization (basic auth) to the BIG-IP system:  
+4. Provide authorization (basic auth) to the BIG-IP system:  
 
    - If using a RESTful API client like Postman, in the :guilabel:`Authorization` tab, type the user name and password for a BIG-IP user account with Administrator permissions.
    - If using cURL, see :ref:`installcurl-ref`.
 
-#. Using a RESTful API client like Postman, send a GET request to the URI
+5. Using a RESTful API client like Postman, send a GET request to the URI
    ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover is running
    properly. You should receive an expect response of Success after you have posted this declaration. For example:
 
@@ -41,11 +42,11 @@ up and running with Cloud Failover.
     }
 
 
-#. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
+6. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
 
-#. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to your infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it meets what is in the configuration. 
+7. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to your infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it meets what is in the configuration. 
 
-#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
+8. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
 
 Quick Start Example
 -------------------
@@ -79,7 +80,7 @@ Here is an example declaration for Microsoft Azure.
     }
 
 
-You should receive a response back from Postman that will look like the following example:
+You will receive a response from Postman that looks like this example:
 
 .. code-block:: json
 
@@ -97,6 +98,4 @@ You should receive a response back from Postman that will look like the followin
 .. |known-issues| raw:: html
 
    <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">Known Issues on GitHub</a>
-
-    
 

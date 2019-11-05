@@ -36,7 +36,7 @@ Creating and assigning an IAM Role
 ``````````````````````````````````
 To create and assign an IAM role you must have a user role of `iam:CreateUser`.
 
-#. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
+1. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
 - EC2 Read/Write
 - S3 Read/Write
@@ -49,7 +49,7 @@ For example:
   :width: 1000
     
 
-#. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
 
 For example:
 
@@ -63,7 +63,7 @@ For example:
 
 Example Declaration
 -------------------
-This example declaration shows the minimum information needed to update the cloud resources in AWS.
+This example declaration shows the minimum information needed to update the cloud resources in AWS.  See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. code-block:: json
 
