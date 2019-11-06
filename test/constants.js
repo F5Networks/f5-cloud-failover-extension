@@ -54,7 +54,7 @@ module.exports = {
     DEPLOYMENT_FILE: 'deployment_info.json',
     FAILOVER_STATES: constants.FAILOVER_STATES,
     RETRIES: {
-        LONG: 1000,
+        LONG: 3000,
         MEDIUM: 100,
         SHORT: 10
     },
