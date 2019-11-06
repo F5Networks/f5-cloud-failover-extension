@@ -15,6 +15,8 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const util = require('../util.js');
 const Logger = require('../logger.js');
 const configWorker = require('../config.js');
@@ -154,6 +156,8 @@ function processRequest(restOperation) {
     const pathName = restOperation.getUri().pathname.split('/')[3];
     const contentType = restOperation.getContentType().toLowerCase() || '';
     let body = restOperation.getBody();
+    const vinfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json')), 'utf8');
+    const baseSchema = JSON.parse(fs.readFileSync(path.join(__dirname, '../schema/base_schema.json')), 'utf8');
 
     // validate content type, attempt to process regardless
     if (contentType !== 'application/json') {
@@ -227,8 +231,26 @@ function processRequest(restOperation) {
             break;
         }
         break;
+    case 'reset':
+        if (method === 'POST') {
+            failover.resetFailoverState(body)
+                .then(() => {
+                    util.restOperationResponder(restOperation, 200, { message: constants.STATE_FILE_RESET_MESSAGE });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+        } else {
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+        }
+        break;
     case 'info':
-        util.restOperationResponder(restOperation, 200, { message: 'success' });
+        util.restOperationResponder(restOperation, 200, {
+            version: vinfo.version,
+            release: vinfo.version.split('.').reverse()[0],
+            schemaCurrent: baseSchema.properties.schemaVersion.enum[0],
+            schemaMinimum: baseSchema.properties.schemaVersion.enum.reverse()[0]
+        });
         break;
     default:
         util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });

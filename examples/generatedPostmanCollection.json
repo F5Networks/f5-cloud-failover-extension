@@ -1,11 +1,11 @@
 {
     "item": [
         {
-            "id": "d7372587-9ecd-4257-9523-6fac7003bde2",
+            "id": "07637d6a-7500-4f1e-b26a-bb8b935a8aeb",
             "name": "declare",
             "item": [
                 {
-                    "id": "adebf804-2727-45d4-894e-32a40497fc25",
+                    "id": "30c61df5-94b1-4d5c-9b69-0c386f86c1a5",
                     "name": "List configuration",
                     "request": {
                         "name": "List configuration",
@@ -27,7 +27,7 @@
                     },
                     "response": [
                         {
-                            "id": "67dc0b63-cc90-4335-bbb5-9ba023aa7a4c",
+                            "id": "bb33a1b9-4af7-46ce-bf4f-54920a9320fc",
                             "name": "Configuration Response",
                             "originalRequest": {
                                 "url": {
@@ -56,7 +56,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "e5aae82f-3ede-4705-8e11-ba083fbd421e",
+                            "id": "9ea60510-35b8-4c16-b122-4b7a388145c4",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -88,7 +88,7 @@
                     "event": []
                 },
                 {
-                    "id": "4b8130d6-e86a-4eec-a59f-a4fa737d0bd8",
+                    "id": "06063e07-0899-47d7-b24c-e8c7ffaecae1",
                     "name": "Update configuration",
                     "request": {
                         "name": "Update configuration",
@@ -120,7 +120,7 @@
                     },
                     "response": [
                         {
-                            "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
+                            "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -158,7 +158,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
+                            "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -199,11 +199,11 @@
                     "event": []
                 },
                 {
-                    "id": "0ce37560-9e56-42c3-ac7d-c8d1a116a3eb",
+                    "id": "9e45f694-9bb2-4ebb-962c-3c2a3f3bcb6e",
                     "name": "examples",
                     "item": [
                         {
-                            "id": "f71861fc-3ae6-4ce6-9a8c-529c3a46eb97",
+                            "id": "94ded7e2-dc48-4ea9-9632-c038fb704731",
                             "name": "(AWS) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -235,7 +235,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
+                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -273,7 +273,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
+                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -314,7 +314,7 @@
                             "event": []
                         },
                         {
-                            "id": "d8198ded-332f-4985-835d-d61082045221",
+                            "id": "25ffc414-117b-4cba-81e8-a84f7e4c9dc7",
                             "name": "(AZURE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -346,7 +346,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
+                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -384,7 +384,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
+                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -425,7 +425,7 @@
                             "event": []
                         },
                         {
-                            "id": "340ddc2a-4d06-4a3d-84d5-a9f9e7fe716d",
+                            "id": "6faa840f-d44a-4255-943c-3f8c694e7a43",
                             "name": "(GCE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -457,7 +457,7 @@
                             },
                             "response": [
                                 {
-                                    "id": "b1dbe07b-9cdb-4e90-b0d6-0a7bda4edf5c",
+                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -495,7 +495,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "893c8f54-7107-45ee-8451-ce18ec9b8895",
+                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -542,11 +542,11 @@
             "event": []
         },
         {
-            "id": "027cd096-54d7-42ff-8769-4b2991e513ce",
+            "id": "32559f77-1cbd-4c7a-9c1b-ce49c4290dd4",
             "name": "trigger",
             "item": [
                 {
-                    "id": "3da1942d-69c2-431f-8dff-230defa402bb",
+                    "id": "06e359b6-18ba-4a7e-8c2e-1c5d2075ff85",
                     "name": "Trigger failover",
                     "request": {
                         "name": "Trigger failover",
@@ -578,7 +578,7 @@
                     },
                     "response": [
                         {
-                            "id": "aac0887c-8d06-46a5-8fbd-f3249614e2fc",
+                            "id": "c6808a40-ef8e-4d82-9833-ced1d2e0c08f",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -619,7 +619,7 @@
                     "event": []
                 },
                 {
-                    "id": "e8cab8a3-5a47-4e68-b680-9530f373530b",
+                    "id": "57ee401b-a62b-4117-a4ac-6e31c0f807e1",
                     "name": "Running failover task state",
                     "request": {
                         "name": "Running failover task state",
@@ -641,7 +641,7 @@
                     },
                     "response": [
                         {
-                            "id": "f2ce7477-2ce3-4971-9a34-e8191a1ded06",
+                            "id": "3f27fd84-be28-446d-9505-919f72de5864",
                             "name": "Failover task was successful",
                             "originalRequest": {
                                 "url": {
@@ -670,7 +670,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "e4290a80-cfaf-4ad0-8639-f29467ae496c",
+                            "id": "77200863-70c0-44e8-b39d-d16beae72bc3",
                             "name": "Failover task is running",
                             "originalRequest": {
                                 "url": {
@@ -699,7 +699,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "e67dd8f4-7049-4dae-95ed-042ef0aabedb",
+                            "id": "3ad65885-baf4-454e-a0ab-41641d68a5fb",
                             "name": "Failover task failed",
                             "originalRequest": {
                                 "url": {
@@ -728,7 +728,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "e6841260-c78b-41d9-a6d5-dd7c1a8eac31",
+                            "id": "0ebabe47-10f1-4a23-a710-b9f6ba193ea7",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -761,6 +761,117 @@
                 }
             ],
             "event": []
+        },
+        {
+            "id": "44ccb5e0-3e86-4f10-8ab9-24c59aa8de69",
+            "name": "Reset failover state file",
+            "request": {
+                "name": "Reset failover state file",
+                "description": {},
+                "url": {
+                    "path": [
+                        "reset"
+                    ],
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "query": [],
+                    "variable": []
+                },
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "method": "POST",
+                "auth": {
+                    "type": "basic"
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"resetStateFile\": true\n}"
+                }
+            },
+            "response": [
+                {
+                    "id": "44f06770-1d2e-4aa4-92b8-9ad6adf080c9",
+                    "name": "Reset State Response",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "reset"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"resetStateFile\": true\n}"
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json; charset=UTF-8"
+                        }
+                    ],
+                    "body": "",
+                    "cookie": [],
+                    "_postman_previewlanguage": "text"
+                },
+                {
+                    "id": "cfa75f1d-b6da-44ee-bc99-2339f1c330ab",
+                    "name": "Unexpected Error",
+                    "originalRequest": {
+                        "url": {
+                            "path": [
+                                "reset"
+                            ],
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "query": [],
+                            "variable": []
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"resetStateFile\": true\n}"
+                        }
+                    },
+                    "status": "Internal Server Error",
+                    "code": 500,
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "body": "{\n \"code\": \"<integer>\",\n \"message\": \"<string>\"\n}",
+                    "cookie": [],
+                    "_postman_previewlanguage": "json"
+                }
+            ],
+            "event": []
         }
     ],
     "event": [],
@@ -772,7 +883,7 @@
         }
     ],
     "info": {
-        "_postman_id": "52c04d68-4f11-485e-b0c4-7750840af12e",
+        "_postman_id": "66211790-0b32-4ff4-8508-c0c8b67a432d",
         "name": "Cloud Failover (CF) Extension",
         "version": {
             "raw": "0.9.0",

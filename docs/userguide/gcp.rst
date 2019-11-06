@@ -10,7 +10,7 @@ Failover Event Diagram
 
 This diagram shows a failover event with Cloud Failover implemented in GCP. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/GCPFailoverExtensionHighLevel.gif
+.. image:: ../images/gcp/GCPFailoverExtensionHighLevel.gif
   :width: 800
 
 
@@ -19,13 +19,20 @@ Prerequisites
 -------------
 These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
 
-- 2 clustered BIG-IPs
-   - Note: Here is an [example GDM Template](https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg), although this is not required.  Any configuration tool can be used to provision the resources.
-- A Google service account with sufficent access
-    - Using Standard scopes
+- 2 clustered BIG-IPs. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
+- A GCP Identity and Access Management (IAM) service account with sufficient access
+  - .. IMPORTANT:: To create and assign an IAM service account the following roles are required.
+    - roles/editor
+  - Created and assigned IAM member
+    - To create an IAM member, go to *IAM -> Roles* and create the member with the following scopes:
         - compute-rw
         - storage-rw
         - cloud-platform
+      .. image:: ../images/gcp/GCPIAMRoleSummary.png
+        :width: 800
+    - Assign IAM member to each instance by navigating to *Compute Engine -> VM Instances -> Instance*, select Edit, and then update the Service Account.
+      .. image:: ../images/gcp/GCPIAMRoleAssignedToInstance.png
+         :width: 800
 - A storage bucket for Cloud Failover extension cluster-wide file(s) that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
     .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 - Instances should be tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
@@ -79,4 +86,4 @@ This example declaration shows the minimum information needed to update the clou
 
 .. |gdmtemplate| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">example GDM Template</a>
+   <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>

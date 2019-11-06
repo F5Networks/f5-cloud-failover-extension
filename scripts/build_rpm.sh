@@ -12,8 +12,8 @@ npm run install-production --prefix ${MAINDIR}
 
 FINALBUILDDIR=${MAINDIR}/dist/new_build
 mkdir -p ${FINALBUILDDIR}
-RELEASE='1'
 VERSION=$(cat ${MAINDIR}/package.json | jq .version -r)
+RELEASE=${VERSION##*.}
 PKG_NAME=$(cat ${MAINDIR}/package.json | jq .name -r)
 cd ${MAINDIR}
 rpmbuild -bb \
