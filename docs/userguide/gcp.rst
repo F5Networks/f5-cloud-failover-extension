@@ -8,7 +8,7 @@ Google Cloud
 Failover Event Diagram
 ----------------------
 
-This diagram shows a failover event with Cloud Failover implemented in GCP. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
+This diagram shows a failover event with Cloud Failover implemented in Google Cloud. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
 
 .. image:: ../images/gcp/GCPFailoverExtensionHighLevel.gif
   :width: 800
@@ -42,6 +42,7 @@ Creating and assigning an IAM Role
 To create and assign an IAM role you must have a user role of `Editor`.
 
 1. In GCP, go to **IAM > Roles** and create the member with the following scopes:
+
 - compute-rw
 - storage-rw
 - cloud-platform

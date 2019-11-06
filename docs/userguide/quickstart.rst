@@ -44,7 +44,7 @@ up and running with Cloud Failover.
 
 6. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
 
-7. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to your infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it meets what is in the configuration. 
+7. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to your infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. 
 
 8. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
 

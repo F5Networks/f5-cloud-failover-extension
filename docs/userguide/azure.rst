@@ -16,7 +16,7 @@ Prerequisites
 These are the minimum requirements for setting up Cloud Failover in Microsoft Azure:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
-- **An Azure |managed-identity| with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for creating and assigning an MSI.
+- **An Azure system-assigned or user-managed identity with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for creating and assigning an MSI. Read more about managed identities |managed-identity|.
 - **A storage account for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
   
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
@@ -130,4 +130,4 @@ This example declaration shows the minimum information needed to update the clou
 
 .. |managed-identity| raw:: html
 
-   <a href="https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview" target="_blank">system-assigned or user-managed identity</a>
+   <a href="https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview" target="_blank">here</a>
