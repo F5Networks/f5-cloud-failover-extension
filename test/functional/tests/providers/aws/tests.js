@@ -287,5 +287,4 @@ describe('Provider: AWS', () => {
         return checkRouteTable(dutPrimary)
             .catch(err => Promise.reject(err));
     });
-
 });
