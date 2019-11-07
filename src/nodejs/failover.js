@@ -83,7 +83,29 @@ class FailoverClient {
                 if (this.recoverPreviousTask !== true) {
                     return this._getFailoverDiscovery();
                 }
-                return Promise.resolve();
+                return Promise.resolve({});
+            })
+            .then((discovery) => {
+                if (discovery !== {}) {
+                    this.addressDiscovery = discovery[0];
+                    this.routeDiscovery = discovery[1];
+                }
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.RUN,
+                    message: 'Failover running',
+                    failoverOperations: {
+                        addresses: this.addressDiscovery,
+                        routes: this.routeDiscovery
+                    }
+                });
+            })
+            .then(() => {
+                logger.info('Performing Failover - update');
+                const updateActions = [
+                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                ];
+                return Promise.all(updateActions);
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
@@ -189,29 +211,9 @@ class FailoverClient {
                     discoverOnly: true
                 })
             ];
-            return Promise.all(discoverActions)
-                .then((discovery) => {
-                    this.addressDiscovery = discovery[0];
-                    this.routeDiscovery = discovery[1];
-
-                    return this._createAndUpdateStateObject({
-                        taskState: failoverStates.RUN,
-                        message: 'Failover running',
-                        failoverOperations: {
-                            addresses: this.addressDiscovery,
-                            routes: this.routeDiscovery
-                        }
-                    });
-                })
-                .then(() => {
-                    logger.info('Performing Failover - update');
-                    const updateActions = [
-                        this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                        this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                    ];
-                    return Promise.all(updateActions);
-                });
+            return Promise.all(discoverActions);
         }
+        return Promise.resolve({});
     }
 
 
