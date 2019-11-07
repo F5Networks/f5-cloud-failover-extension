@@ -67,30 +67,23 @@ class FailoverClient {
             })
             .then((taskResponse) => {
                 logger.debug('Task response: ', taskResponse);
-
+                const recoveryOptions = {};
                 // check if we are recovering from a previous task
                 if (taskResponse.recoverPreviousTask === true) {
                     this.recoverPreviousTask = true;
-                    this.recoveryOperations = taskResponse.state.failoverOperations;
+                    recoveryOptions.failoverOperations = taskResponse.state.failoverOperations;
                 }
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.RUN,
-                    message: 'Failover running'
-                });
+                logger.warn('Recovering previous task: ', this.recoveryOperations);
+                recoveryOptions.taskState = failoverStates.RUN;
+                recoveryOptions.message = 'Failover running';
+                return this._createAndUpdateStateObject(recoveryOptions);
             })
             .then(() => {
                 // recovering previous task - skip discovery
-                if (this.recoverPreviousTask === true) {
-                    logger.warn('Recovering previous task: ', this.recoveryOperations);
-                    return Promise.resolve([
-                        this.recoveryOperations.addresses,
-                        this.recoveryOperations.routes
-                    ]);
+                if (this.recoverPreviousTask !== true) {
+                    return this._getFailoverDiscovery();
                 }
-                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-                if (trafficGroups != null && trafficGroups.length > 0) {
-                    return this._getFailoverDiscovery(trafficGroups);
-                }
+                return Promise.resolve();
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
@@ -174,48 +167,51 @@ class FailoverClient {
      *
      * @returns {Promise}
      */
-    _getFailoverDiscovery(trafficGroups) {
-        logger.info('Performing Failover - discovery');
-        const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
-        const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
-        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+    _getFailoverDiscovery() {
+        const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
+        if (trafficGroups != null && trafficGroups.length > 0) {
+            logger.info('Performing Failover - discovery');
+            const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
+            const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
+            const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
 
-        this.localAddresses = addresses.localAddresses;
-        this.failoverAddresses = addresses.failoverAddresses;
+            this.localAddresses = addresses.localAddresses;
+            this.failoverAddresses = addresses.failoverAddresses;
 
-        const discoverActions = [
-            this.cloudProvider.updateAddresses({
-                localAddresses: this.localAddresses,
-                failoverAddresses: this.failoverAddresses,
-                discoverOnly: true
-            }),
-            this.cloudProvider.updateRoutes({
-                localAddresses: this.localAddresses,
-                discoverOnly: true
-            })
-        ];
-        return Promise.all(discoverActions)
-            .then((discovery) => {
-                this.addressDiscovery = discovery[0];
-                this.routeDiscovery = discovery[1];
+            const discoverActions = [
+                this.cloudProvider.updateAddresses({
+                    localAddresses: this.localAddresses,
+                    failoverAddresses: this.failoverAddresses,
+                    discoverOnly: true
+                }),
+                this.cloudProvider.updateRoutes({
+                    localAddresses: this.localAddresses,
+                    discoverOnly: true
+                })
+            ];
+            return Promise.all(discoverActions)
+                .then((discovery) => {
+                    this.addressDiscovery = discovery[0];
+                    this.routeDiscovery = discovery[1];
 
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.RUN,
-                    message: 'Failover running',
-                    failoverOperations: {
-                        addresses: this.addressDiscovery,
-                        routes: this.routeDiscovery
-                    }
+                    return this._createAndUpdateStateObject({
+                        taskState: failoverStates.RUN,
+                        message: 'Failover running',
+                        failoverOperations: {
+                            addresses: this.addressDiscovery,
+                            routes: this.routeDiscovery
+                        }
+                    });
+                })
+                .then(() => {
+                    logger.info('Performing Failover - update');
+                    const updateActions = [
+                        this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                        this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                    ];
+                    return Promise.all(updateActions);
                 });
-            })
-            .then(() => {
-                logger.info('Performing Failover - update');
-                const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                ];
-                return Promise.all(updateActions);
-            });
+        }
     }
 
 
