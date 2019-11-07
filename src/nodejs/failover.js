@@ -102,6 +102,17 @@ class FailoverClient {
             }))
             .then(() => {
                 logger.info('Failover complete');
+            })
+            .catch((err) => {
+                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+                return this._createAndUpdateStateObject({
+                    taskState: failoverStates.FAIL,
+                    message: 'Failover failed because of '.concat(errorMessage),
+                    failoverOperations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                })
+                    .then(() => Promise.reject(err))
+                    .catch(() => Promise.reject(err));
             });
     }
 
@@ -204,18 +215,6 @@ class FailoverClient {
                     this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
                 ];
                 return Promise.all(updateActions);
-            })
-
-            .catch((err) => {
-                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                logger.error(errorMessage);
-                return this._createAndUpdateStateObject({
-                    taskState: failoverStates.FAIL,
-                    message: 'Failover failed because of '.concat(errorMessage),
-                    failoverOperations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
-                })
-                    .then(() => Promise.reject(err))
-                    .catch(() => Promise.reject(err));
             });
     }
 
