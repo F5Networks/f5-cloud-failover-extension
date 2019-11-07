@@ -276,7 +276,8 @@ class FailoverClient {
             .then((data) => {
                 logger.info(`Download stateFile: ${JSON.stringify(data)}`);
                 return Promise.resolve(data);
-            });
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
