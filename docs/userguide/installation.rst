@@ -19,9 +19,9 @@ F5 Networks provides a checksum for each Cloud Failover release so you can confi
 
 You can get a checksum for a particular RPM by running one of the following commands, depending on your operating system:
 
-Linux: ``sha256sum <path_to_rpm>``
+- Linux: ``sha256sum <path_to_rpm>``
 
-Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
+- Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
 
 You can compare the checksum produced by that command against the **.sha256** file in the **dist** directory (https://github.com/F5Networks/f5-cloud-failover/tree/master/dist). 
 
@@ -31,7 +31,7 @@ You can compare the checksum produced by that command against the **.sha256** fi
 
 Uploading and installing the Cloud Failover file on the BIG-IP
 --------------------------------------------------------------
-After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (you can alternatively use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use cURL command to install the package). Use only one of the following procedures.
+After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
 
 .. _installgui-ref:
 
@@ -97,7 +97,11 @@ When F5 releases a new version of Cloud Failover, use the same procedure you use
 
 Reverting to a previous version of Cloud Failover
 -------------------------------------------------
-If for any reason you want to revert to a previous version of Cloud Failover, you must first remove the version of Cloud Failover on your BIG-IP system (:guilabel:`iApps > Package Management LX > f5-cloud-failover > Uninstall`).  After you uninstall, you can import the RPM for the version of Cloud Failover you want to use.
+If you need to revert to a previous version of Cloud Failover, you must first remove the version of Cloud Failover on your BIG-IP system:
+
+On the BIG-IP user interface, click :guilabel:`iApps > Package Management LX > f5-cloud-failover > Uninstall`  
+
+After you uninstall, you can import the RPM for the version of Cloud Failover you want to use.
 
 
 |
