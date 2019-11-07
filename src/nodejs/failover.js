@@ -47,6 +47,7 @@ class FailoverClient {
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
+        this.failoverDiscovered = false;
     }
 
 
@@ -100,12 +101,15 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                logger.info('Performing Failover - update');
-                const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                ];
-                return Promise.all(updateActions);
+                if (this.recoverPreviousTask === true || this.failoverDiscovered === true) {
+                    logger.info('Performing Failover - update');
+                    const updateActions = [
+                        this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                        this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                    ];
+                    return Promise.all(updateActions);
+                }
+                return Promise.resolve({});
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
@@ -211,6 +215,7 @@ class FailoverClient {
                     discoverOnly: true
                 })
             ];
+            this.failoverDiscovered = true;
             return Promise.all(discoverActions);
         }
         return Promise.resolve({});
