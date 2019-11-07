@@ -335,16 +335,16 @@ describe('Provider: GCP', () => {
 
     // ideally this would be replaced by a check for previous failover task success completion
     // GCP: long wait time to avoid long-running failover race conditions
-    it('Flapping scenario: should wait 30 seconds', () => new Promise(
-        resolve => setTimeout(resolve, 30000)
+    it('Flapping scenario: should wait 60 seconds', () => new Promise(
+        resolve => setTimeout(resolve, 60000)
     ));
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait 30 seconds', () => new Promise(
-        resolve => setTimeout(resolve, 30000)
+    it('Flapping scenario: should wait 60 seconds', () => new Promise(
+        resolve => setTimeout(resolve, 60000)
     ));
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(

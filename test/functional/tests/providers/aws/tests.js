@@ -219,6 +219,10 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should wait 30 seconds before force standby', () => new Promise(
+        resolve => setTimeout(resolve, 30000)
+    ));
+
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
@@ -236,6 +240,10 @@ describe('Provider: AWS', () => {
         return checkRouteTable(dutSecondary)
             .catch(err => Promise.reject(err));
     });
+
+    it('should wait 30 seconds before force standby', () => new Promise(
+        resolve => setTimeout(resolve, 30000)
+    ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
