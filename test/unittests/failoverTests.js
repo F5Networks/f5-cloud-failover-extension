@@ -149,16 +149,13 @@ describe('Failover', () => {
             // verify that cloudProvider.updateRoutes method gets called - update
             const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
             assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
-        } else {
+        } else if (spyOnUpdateAddresses.calledOnce) {
             // verify that cloudProvider.updateAddresses method gets called - update
             const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(0).args[0];
+            assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
             // verify that cloudProvider.updateRoutes method gets called - update
             const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
-            if (updateAddressesUpdateCall.updateOperations !== undefined
-                && updateRoutesUpdateCall.updateOperations !== undefined) {
-                assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
-                assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
-            }
+            assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
         }
     }
 
@@ -225,7 +222,7 @@ describe('Failover', () => {
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
-                validateFailover({ failoverAddresses: [] });
+                assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
             });
     });
 
