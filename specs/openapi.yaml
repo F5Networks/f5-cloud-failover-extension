@@ -92,20 +92,40 @@ paths:
               properties:
                 action:
                   type: string
-            example:
-              action: execute
+              example:
+                action: execute
       responses:
         "200":
           description: Configuration response
           content:
             "application/json; charset=UTF-8":
               schema:
-                type: object
-                properties:
-                  taskState:
-                    type: string
+                $ref: "#/components/schemas/TaskStateResponse"
+        "500":
+          description: Failover task failed
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/TaskStateResponse"
               example:
-                taskState: "Running"
+                taskState: FAILED
+                message: Failover failed because of x
+                timestamp: 2019-09-25T22:12:52.137Z
+                instance: failover1.local
+                failoverOperations:
+                  routes: {}
+                  addresses: {}
+                code: 500
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                  taskState: FAILED
+                  message: Failover Unexpected Error
+                  code: 400
     get:
       summary: Running failover task state
       tags:
@@ -309,6 +329,11 @@ components:
       properties:
         message:
           type: string
+    TriggerStateResponse:
+      type: object
+      properties:
+        message:
+          type: object
   securitySchemes:
     BasicAuth:
       type: http

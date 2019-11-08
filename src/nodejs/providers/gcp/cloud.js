@@ -549,9 +549,9 @@ class Cloud extends AbstractCloud {
         const associate = [];
 
         // There should be at least one item in trafficGroupIpArr
-        if (!failoverAddresses.length) {
-            this.logger.warn('No traffic group address(es) exist, skipping');
-            return Promise.reject();
+        if (failoverAddresses == null || !failoverAddresses.length) {
+            this.logger.silly('No traffic group address(es) exist, skipping');
+            return Promise.resolve({ disassociate, associate });
         }
 
         // Look through each VM and seperate us vs. them

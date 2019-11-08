@@ -298,10 +298,17 @@ describe('Provider: GCP', () => {
         return checkRoutes(secondarySelfIps)
             .catch(err => Promise.reject(err));
     });
+    it('should wait 30 seconds before force standby', () => new Promise(
+        resolve => setTimeout(resolve, 30000)
+    ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
+
+    // it('should wait 30 seconds after force standby', () => new Promise(
+    //     resolve => setTimeout(resolve, 30000)
+    // ));
 
     it('should check network interface alias IP(s) contains virtual addresses (primary)', function () {
         this.retries(RETRIES.LONG);
@@ -336,8 +343,8 @@ describe('Provider: GCP', () => {
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
+    it('Flapping scenario: should wait 60 seconds', () => new Promise(
+        resolve => setTimeout(resolve, 60000)
     ));
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(

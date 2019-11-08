@@ -207,6 +207,10 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should wait 30 seconds before force standby', () => new Promise(
+        resolve => setTimeout(resolve, 30000)
+    ));
+
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
@@ -228,16 +232,16 @@ describe('Provider: Azure', () => {
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
     // ideally this would be replaced by a check for previous failover task success completion
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
+    it('Flapping scenario: should wait 3 minutes', () => new Promise(
+        resolve => setTimeout(resolve, 180000)
     ));
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
+    it('Flapping scenario: should wait 3 minutes', () => new Promise(
+        resolve => setTimeout(resolve, 180000)
     ));
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(

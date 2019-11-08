@@ -203,11 +203,25 @@ function processRequest(restOperation) {
         // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
         case 'POST':
-            failover.execute();
-            util.restOperationResponder(restOperation, 200, { taskState: failoverStates.RUN });
+            failover.getTaskStateFile()
+                .then((taskState) => {
+                    logger.info(`taskState: ${JSON.stringify(taskState)}`);
+                    if (taskState.taskState === failoverStates.RUN) {
+                        return Promise.resolve();
+                    }
+                    return failover.execute();
+                })
+                .then(() => failover.getTaskStateFile())
+                .then((taskState) => {
+                    logger.info(`POST taskState: ${JSON.stringify(taskState)}`);
+                    util.restOperationResponder(restOperation, taskState.code, taskState);
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
             break;
         case 'GET':
-            configWorker.getTaskState()
+            failover.getTaskStateFile()
                 .then((taskState) => {
                     switch (taskState.taskState) {
                     case failoverStates.RUN:

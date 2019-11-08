@@ -27,6 +27,30 @@ hooks.before('/trigger > Running failover task state > 202 > application/json', 
     done();
 });
 
+// hooks.beforeEach(() => Promise(
+//     resolve => setTimeout(resolve, 100)
+// ));
+
+// hooks.beforeEach((transaction, done) => {
+//     console.log(new Date());
+//
+//     setTimeout(() => {
+//         console.log(new Date());
+//         console.log(transaction.request.method);
+//         done();
+//     }, 5000);
+// });
+
+hooks.after('/trigger > Trigger failover > 200 > application/json; charset=UTF-8', (transaction, done) => {
+    transaction.skip = true;
+    done();
+});
+
+hooks.after('/trigger > Trigger failover > 500 > application/json; charset=UTF-8', (transaction, done) => {
+    transaction.skip = true;
+    done();
+});
+
 hooks.after('/trigger > Running failover task state > 200 > application/json; charset=UTF-8', (transaction, done) => {
     transaction.skip = true;
     done();
