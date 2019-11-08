@@ -2,18 +2,19 @@ Troubleshooting
 ===============
 Use this section to read about known issues and for common troubleshooting steps. 
 
+Cloud Failover general troubleshooting tips
+-------------------------------------------
 
-Examine the restnoded failure log at /var/log/restnoded/restnoded.log. This is where Cloud Failover records error messages
+- Examine the restnoded failure log at ``/var/log/restnoded/restnoded.log``. This is where Cloud Failover records error messages.
+- Examine the REST response:
+
+  - A 400-level response will carry an error message.
+  - If this message is missing, incorrect, or misleading, please let us know by filing a |github|.
 
 
-Examine the REST response:
-
-  - A 400-level response will carry an error message with it
-  - If this message is missing, incorrect, or misleading, please let us know by filing an issue on Github.
-
-
-Troubleshooting
----------------
+Troubleshooting Index
+---------------------
+Use this section for specific troubleshooting help.
 
 **I'm receiving a path not registered error when I try to post a declaration**  
 
@@ -32,3 +33,6 @@ If you receive this error, see :doc:`installation` to install or re-install Clou
 
 |
 
+.. |github| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">GitHub Issue</a>

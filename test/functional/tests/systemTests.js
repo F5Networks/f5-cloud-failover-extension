@@ -15,6 +15,7 @@ const assert = require('assert');
 const constants = require('../../constants.js');
 const utils = require('../../shared/util.js');
 const funcUtils = require('./shared/util.js');
+const version = require('../../../package.json').version;
 
 const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
@@ -75,7 +76,19 @@ const packagePath = packageDetails.path;
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
-                    assert.strictEqual(data.message, 'success');
+                    assert.strictEqual(data.version, version);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should get version info', () => {
+            const uri = constants.INFO_ENDPOINT;
+
+            options.method = 'GET';
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.version, version);
                 })
                 .catch(err => Promise.reject(err));
         });
