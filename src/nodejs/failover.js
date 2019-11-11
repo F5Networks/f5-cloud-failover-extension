@@ -68,11 +68,11 @@ class FailoverClient {
             .then((taskResponse) => {
                 logger.debug('Task response: ', taskResponse);
 
-                // return failover recovery if taskReponse is set to recoverPreviousTask
+                // return failover recovery if taskReponse is set to recoverPreviousTask for flapping scenario
                 if (taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
-                // return failover discovery if there are trafficGroups (this imply the BigIP is active)
+                // return failover discovery if there are trafficGroups (trigger request from active BigIP)
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
                 if (trafficGroups != null && trafficGroups.length > 0) {
                     return this._getFailoverDiscovery(trafficGroups);
@@ -80,10 +80,10 @@ class FailoverClient {
                 // if neither failover recovery or discovery is needed, then the BigIP is in standby
                 return Promise.resolve({});
             })
-            .then((discovery) => {
-                if (discovery !== {}) {
-                    this.addressDiscovery = discovery[0];
-                    this.routeDiscovery = discovery[1];
+            .then((updates) => {
+                if (updates !== {}) {
+                    this.addressDiscovery = updates[0];
+                    this.routeDiscovery = updates[1];
                 }
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
@@ -213,6 +213,13 @@ class FailoverClient {
         return Promise.all(discoverActions);
     }
 
+    /**
+     * Get failover recovery
+     *
+     * @param {Object} taskResponse - taskResponse with state of the recovery failover operations
+     *
+     * @returns {Promise}
+     */
     _getFailoverRecovery(taskResponse) {
         const recoveryOptions = {};
         this.recoverPreviousTask = true;
