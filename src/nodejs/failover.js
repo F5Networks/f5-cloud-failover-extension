@@ -47,7 +47,6 @@ class FailoverClient {
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
-        this.failoverDiscovered = false;
     }
 
 
@@ -68,22 +67,17 @@ class FailoverClient {
             })
             .then((taskResponse) => {
                 logger.debug('Task response: ', taskResponse);
-                const recoveryOptions = {};
-                // check if we are recovering from a previous task
+
+                // return failover recovery if taskReponse is set to recoverPreviousTask
                 if (taskResponse.recoverPreviousTask === true) {
-                    this.recoverPreviousTask = true;
-                    recoveryOptions.failoverOperations = taskResponse.state.failoverOperations;
+                    return this._getFailoverRecovery(taskResponse);
                 }
-                logger.warn('Recovering previous task: ', this.recoveryOperations);
-                recoveryOptions.taskState = failoverStates.RUN;
-                recoveryOptions.message = 'Failover running';
-                return this._createAndUpdateStateObject(recoveryOptions);
-            })
-            .then(() => {
-                // recovering previous task - skip discovery
-                if (this.recoverPreviousTask !== true) {
-                    return this._getFailoverDiscovery();
+                // return failover discovery if there are trafficGroups (this imply the BigIP is active)
+                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
+                if (trafficGroups != null && trafficGroups.length > 0) {
+                    return this._getFailoverDiscovery(trafficGroups);
                 }
+                // if neither failover recovery or discovery is needed, then the BigIP is in standby
                 return Promise.resolve({});
             })
             .then((discovery) => {
@@ -101,8 +95,11 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                if (this.recoverPreviousTask === true || this.failoverDiscovered === true) {
+                if (this.addressDiscovery && this.routeDiscovery) {
                     logger.info('Performing Failover - update');
+                    logger.debug(`recoverPreviousTask: ${JSON.stringify(this.recoverPreviousTask)}`);
+                    logger.debug(`addressDiscovery: ${JSON.stringify(this.addressDiscovery)}`);
+                    logger.debug(`routeDiscovery: ${JSON.stringify(this.routeDiscovery)}`);
                     const updateActions = [
                         this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
                         this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
@@ -193,32 +190,37 @@ class FailoverClient {
      *
      * @returns {Promise}
      */
-    _getFailoverDiscovery() {
-        const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-        if (trafficGroups != null && trafficGroups.length > 0) {
-            logger.info('Performing Failover - discovery');
-            const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
-            const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
-            const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+    _getFailoverDiscovery(trafficGroups) {
+        logger.info('Performing Failover - discovery');
+        const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
+        const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
+        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
 
-            this.localAddresses = addresses.localAddresses;
-            this.failoverAddresses = addresses.failoverAddresses;
+        this.localAddresses = addresses.localAddresses;
+        this.failoverAddresses = addresses.failoverAddresses;
 
-            const discoverActions = [
-                this.cloudProvider.updateAddresses({
-                    localAddresses: this.localAddresses,
-                    failoverAddresses: this.failoverAddresses,
-                    discoverOnly: true
-                }),
-                this.cloudProvider.updateRoutes({
-                    localAddresses: this.localAddresses,
-                    discoverOnly: true
-                })
-            ];
-            this.failoverDiscovered = true;
-            return Promise.all(discoverActions);
-        }
-        return Promise.resolve({});
+        const discoverActions = [
+            this.cloudProvider.updateAddresses({
+                localAddresses: this.localAddresses,
+                failoverAddresses: this.failoverAddresses,
+                discoverOnly: true
+            }),
+            this.cloudProvider.updateRoutes({
+                localAddresses: this.localAddresses,
+                discoverOnly: true
+            })
+        ];
+        return Promise.all(discoverActions);
+    }
+
+    _getFailoverRecovery(taskResponse) {
+        const recoveryOptions = {};
+        this.recoverPreviousTask = true;
+        recoveryOptions.failoverOperations = taskResponse.state.failoverOperations;
+        logger.warn('Recovering previous task: ', this.recoveryOperations);
+        recoveryOptions.taskState = failoverStates.RUN;
+        recoveryOptions.message = 'Failover running';
+        return this._createAndUpdateStateObject(recoveryOptions);
     }
 
 
