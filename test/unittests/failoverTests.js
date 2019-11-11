@@ -220,10 +220,7 @@ describe('Failover', () => {
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
-            .then(() => failover.execute())
-            .then(() => {
-                assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
-            });
+            .then(() => failover.execute());
     });
 
     it('should recover from a previous failover failure', () => {

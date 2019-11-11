@@ -119,7 +119,7 @@ const packagePath = packageDetails.path;
                 .catch(err => Promise.reject(err));
         });
 
-        it('should POST trigger', () => {
+        it('should post trigger', () => {
             const uri = constants.TRIGGER_ENDPOINT;
 
             options.method = 'POST';
