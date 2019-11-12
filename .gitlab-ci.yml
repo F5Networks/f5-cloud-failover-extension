@@ -42,10 +42,12 @@ check_secrets:
     image: f5devcentral/containthedocs:rpmbuild
     stage: check_secrets
     script:
+        - set -e
         - TAG_VERSION=1.3.0
         - curl -q -L -o git_secrets.tar.gz https://github.com/awslabs/git-secrets/archive/${TAG_VERSION}.tar.gz
         - tar xzf git_secrets.tar.gz
         - cd git-secrets-${TAG_VERSION} && make install && cd ..
+        - git secrets
         - git secrets --list
         - git secrets --add chmod
         - git secrets --scan
