@@ -48,8 +48,8 @@ check_secrets:
         - tar xzf git_secrets.tar.gz
         - cd git-secrets-${TAG_VERSION} && make install && cd ..
         - git secrets
-        - git secrets --list
         - git secrets --add chmod
+        - git secrets --list
         - git secrets --scan
     tags:
         - cm-official-docker-executor
