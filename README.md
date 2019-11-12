@@ -1,7 +1,7 @@
 # f5-cloud-failover
 
-[![pipeline status](https://***REMOVED***/cloudsolutions/f5-cloud-failover/badges/develop/pipeline.svg)](https://***REMOVED***/cloudsolutions/f5-cloud-failover/commits/develop)
-[![coverage report](https://***REMOVED***/cloudsolutions/f5-cloud-failover/badges/develop/coverage.svg)](https://***REMOVED***/cloudsolutions/f5-cloud-failover/commits/develop)
+[![pipeline status](https://github.com/f5networks/f5-cloud-failover/badges/develop/pipeline.svg)](https://github.com/f5networks/f5-cloud-failover/commits/develop)
+[![coverage report](https://github.com/f5networks/f5-cloud-failover/badges/develop/coverage.svg)](https://github.com/f5networks/f5-cloud-failover/commits/develop)
 
 ## Introduction
 
