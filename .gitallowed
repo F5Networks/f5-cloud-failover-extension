@@ -3,3 +3,7 @@
 # public sites
 .*f5\.com
 .*f5networks\.com
+.*github.com/f5networks
+
+# don't match the regex itself
+\.\*f5
