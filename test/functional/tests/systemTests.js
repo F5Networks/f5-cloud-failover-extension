@@ -119,6 +119,10 @@ const packagePath = packageDetails.path;
                 .catch(err => Promise.reject(err));
         });
 
+        it('should wait 3 seconds before post trigger', () => new Promise(
+            resolve => setTimeout(resolve, 3000)
+        ));
+
         it('should post trigger', () => {
             const uri = constants.TRIGGER_ENDPOINT;
 

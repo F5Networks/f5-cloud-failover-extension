@@ -549,7 +549,7 @@ class Cloud extends AbstractCloud {
         const associate = [];
 
         // There should be at least one item in trafficGroupIpArr
-        if (failoverAddresses == null || !failoverAddresses.length) {
+        if (!failoverAddresses || !failoverAddresses.length) {
             this.logger.silly('No traffic group address(es) exist, skipping');
             return Promise.resolve({ disassociate, associate });
         }
@@ -729,6 +729,11 @@ class Cloud extends AbstractCloud {
         const nicOperations = options.nics;
         const fwdRuleOperations = options.fwdRules;
 
+        if (!options || Object.keys(options).length === 0) {
+            this.logger.info('No route operations to run');
+            return Promise.resolve();
+        }
+
         return Promise.all([
             this._updateNics(nicOperations.disassociate, nicOperations.associate),
             this._updateFwdRules(fwdRuleOperations.operations)
@@ -803,7 +808,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations) {
+        if (!operations || Object.keys(operations).length === 0) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }

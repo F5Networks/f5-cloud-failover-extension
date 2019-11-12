@@ -125,7 +125,7 @@ class Cloud extends AbstractCloud {
         const localAddresses = options.localAddresses;
         const failoverAddresses = options.failoverAddresses;
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         this.logger.silly('updateAddresses: ', options);
 
@@ -558,7 +558,8 @@ class Cloud extends AbstractCloud {
         this.logger.debug('updateAddresses disassociate operations: ', disassociate);
         this.logger.debug('updateAddresses associate operations: ', associate);
 
-        if (!disassociate || !associate) {
+        if (!disassociate || Object.keys(disassociate).length === 0
+            || !associate || Object.keys(associate).length === 0) {
             this.logger.info('No associations to update.');
             return Promise.resolve();
         }
@@ -664,7 +665,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations) {
+        if (!operations || Object.keys(operations).length === 0) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }
