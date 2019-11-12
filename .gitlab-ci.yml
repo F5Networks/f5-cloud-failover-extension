@@ -22,7 +22,7 @@ before_script:
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
     GIT_SECRETS_VERSION: '1.3.0'
-    GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${TAG_VERSION}.tar.gz"
+    GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
     ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
     # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
