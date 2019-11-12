@@ -1,0 +1,5 @@
+# This file contains the allowed git-secret patterns
+
+# public sites
+.*f5\.com
+.*f5networks\.com
