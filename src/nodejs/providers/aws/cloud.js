@@ -185,7 +185,7 @@ class Cloud extends AbstractCloud {
     */
     _updateAddresses(operations) {
         if (!operations || Object.keys(operations).length === 0) {
-            this.logger.info('No associate addresses to update.');
+            this.logger.info('No reassociated addresses to update.');
             return Promise.resolve();
         }
         return this._reassociateEIPs(operations)

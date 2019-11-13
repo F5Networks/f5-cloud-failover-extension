@@ -491,6 +491,11 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { associate: {}, disassociate: {} }
     */
     _discoverAddressOperations(localAddresses, failoverAddresses) {
+        if (!localAddresses || Object.keys(localAddresses).length === 0
+            || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
+            this.logger.info('No localAddresses/failoverAddresses to discover');
+            return Promise.resolve();
+        }
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];
@@ -560,7 +565,7 @@ class Cloud extends AbstractCloud {
 
         if (!disassociate || Object.keys(disassociate).length === 0
             || !associate || Object.keys(associate).length === 0) {
-            this.logger.info('No associations to update.');
+            this.logger.info('No associate/disassociate operations to update.');
             return Promise.resolve();
         }
         const disassociatePromises = [];

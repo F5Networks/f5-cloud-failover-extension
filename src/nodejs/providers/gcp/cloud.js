@@ -525,6 +525,11 @@ class Cloud extends AbstractCloud {
      *
      */
     _discoverAddressOperations(failoverAddresses) {
+        if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
+            this.logger.info('No failoverAddresses to discover');
+            return Promise.resolve();
+        }
+
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
             this._discoverFwdRuleOperations(failoverAddresses)

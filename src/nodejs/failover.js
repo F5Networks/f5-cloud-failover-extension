@@ -47,6 +47,7 @@ class FailoverClient {
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
+        this.standbyFlag = null;
     }
 
 
@@ -56,6 +57,7 @@ class FailoverClient {
     execute() {
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
+        this.standbyFlag = false;
 
         return this._getConfigAndInitializeCloudProvider()
             .then(() => this.device.init())
@@ -72,13 +74,14 @@ class FailoverClient {
                 if (taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
-                // return failover discovery if there are trafficGroups (trigger request from active BigIP)
                 const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-                if (trafficGroups != null && trafficGroups.length > 0) {
-                    return this._getFailoverDiscovery(trafficGroups);
+                // if no trafficGroups, then the BigIP is in standby
+                if (trafficGroups === null || trafficGroups.length === 0) {
+                    this.standbyFlag = true;
+                    return Promise.resolve([{}, {}]);
                 }
-                // if neither failover recovery or discovery is needed, then the BigIP is in standby
-                return Promise.resolve([{}, {}]);
+                // return failover discovery if there are trafficGroups (trigger request from active BigIP)
+                return this._getFailoverDiscovery(trafficGroups);
             })
             .then((updates) => {
                 this.addressDiscovery = updates[0];
@@ -93,7 +96,7 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                if (this.addressDiscovery && this.routeDiscovery) {
+                if (!this.standbyFlag) {
                     logger.info('Performing Failover - update');
                     logger.debug(`recoverPreviousTask: ${JSON.stringify(this.recoverPreviousTask)}`);
                     logger.debug(`addressDiscovery: ${JSON.stringify(this.addressDiscovery)}`);
@@ -219,6 +222,7 @@ class FailoverClient {
      * @returns {Promise}
      */
     _getFailoverRecovery(taskResponse) {
+        logger.info('Performing Failover - recovery');
         const recoveryOptions = {};
         this.recoverPreviousTask = true;
         this.recoveryOperations = taskResponse.state.failoverOperations;
