@@ -8,10 +8,18 @@ environment=${1}
 action=${2:-create}
 script_location=$(dirname "$0")
 
-# validate input
+# validate input(s)
 if [[ -z "$environment" ]]; then
-  echo "Environment must be provided!"
+  echo "Positional parameter 'environment' must be provided"
   exit 1
+fi
+if [[ ${environment} == "gcp" ]]; then
+    # check for required GCP project ID environment variable
+    if [[ -z "$GOOGLE_PROJECT_ID" ]]; then
+        echo "Environment variable 'GOOGLE_PROJECT_ID' must be provided"
+        exit 1
+    fi
+    echo "project_id = \"${GOOGLE_PROJECT_ID}\"" > terraform.tfvars
 fi
 
 # install python dependencies

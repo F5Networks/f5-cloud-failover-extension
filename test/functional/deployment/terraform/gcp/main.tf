@@ -12,11 +12,11 @@ resource "random_integer" "ip_alias_4octet_vm02" {
 }
 
 locals {
-  hostname_suffix = "c.${var.projectId}.internal"
+  hostname_suffix = "c.${var.project_id}.internal"
 }
 
 provider "google" {
-  project = "${var.projectId}"
+  project = "${var.project_id}"
   region  = "${var.region}"
   zone    = "${var.zone}"
 }
