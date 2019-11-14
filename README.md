@@ -1,8 +1,5 @@
 # f5-cloud-failover
 
-[![pipeline status](https://github.com/f5networks/f5-cloud-failover/badges/develop/pipeline.svg)](https://github.com/f5networks/f5-cloud-failover/commits/develop)
-[![coverage report](https://github.com/f5networks/f5-cloud-failover/badges/develop/coverage.svg)](https://github.com/f5networks/f5-cloud-failover/commits/develop)
-
 ## Introduction
 
 F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CF Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON document to CF’s declarative REST API endpoint.

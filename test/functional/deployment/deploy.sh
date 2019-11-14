@@ -13,6 +13,8 @@ if [[ -z "$environment" ]]; then
   echo "Positional parameter 'environment' must be provided"
   exit 1
 fi
+
+# validate environment variable(s)
 if [[ ${environment} == "gcp" ]]; then
     # check for required GCP project ID environment variable
     if [[ -z "$GOOGLE_PROJECT_ID" ]]; then
@@ -20,6 +22,10 @@ if [[ ${environment} == "gcp" ]]; then
         exit 1
     fi
     echo "project_id = \"${GOOGLE_PROJECT_ID}\"" > terraform.tfvars
+fi
+if [[ -z "$ARTIFACTORY_SERVER" ]]; then
+    echo "Environment variable 'ARTIFACTORY_SERVER' must be provided"
+    exit 1
 fi
 
 # install python dependencies
