@@ -118,4 +118,4 @@ After you uninstall, you can import the RPM for the version of Cloud Failover yo
 
 .. |artifactory| raw:: html
 
-   <a href="https://***REMOVED***/artifactory/list/ecosystems-f5-cloud-failover-rpm/" target="_blank">Artifactory</a>
+   <a href="https://artifactory.f5.com/artifactory/list/ecosystems-f5-cloud-failover-rpm/" target="_blank">Artifactory</a>

@@ -1,6 +1,7 @@
 image: node:8
 
 stages:
+    - check_content
     - build_package
     - test
     - test_functional_init
@@ -20,6 +21,9 @@ before_script:
 
 variables:
     TERRAFORM_PKG_URL: 'https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_386.zip'
+    GIT_SECRETS_VERSION: '1.3.0'
+    GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
+    ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
     # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
     AZURE_SECRET: "$AZURE_CLIENT_SECRET"
@@ -33,9 +37,28 @@ variables:
     AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
     # gcp vars
     GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
+    GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
+
+# check for disallowed content within any file in source control, this
+# supplements the native pre-receive push rules built into GitLab for secrets
+# note: .gitallowed is used for exceptions
+check_content:
+    image: f5devcentral/containthedocs:rpmbuild
+    stage: check_content
+    script:
+        # install git-secrets
+        - curl -q -L -o git_secrets.tar.gz ${GIT_SECRETS_PKG_URL}
+        - tar xzf git_secrets.tar.gz
+        - cd git-secrets-${GIT_SECRETS_VERSION} && make install && cd ..
+        # now, add any patterns to disallow
+        - git secrets --add '.*f5.*\.com'
+        # scan
+        - git secrets --scan
+    tags:
+        - cm-official-docker-executor
 
 build_package:
     image: f5devcentral/containthedocs:rpmbuild

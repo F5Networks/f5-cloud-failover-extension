@@ -12,11 +12,11 @@ resource "random_integer" "ip_alias_4octet_vm02" {
 }
 
 locals {
-  hostname_suffix = "c.${var.projectId}.internal"
+  hostname_suffix = "c.${var.project_id}.internal"
 }
 
 provider "google" {
-  project = "${var.projectId}"
+  project = "${var.project_id}"
   region  = "${var.region}"
   zone    = "${var.zone}"
 }
@@ -68,8 +68,8 @@ resource "google_compute_subnetwork" "int_subnetwork" {
   description   = "${var.reaper_tag}"
 }
 
-resource "google_compute_forwarding_rule" "vm02-forwarding-rule" {
-  name = "tf-func-test-forwarding-rule-vm02-us-west1-${module.utils.env_prefix}"
+resource "google_compute_forwarding_rule" "forwarding-rule" {
+  name = "tf-func-test-forwarding-rule-us-west1-${module.utils.env_prefix}"
   ip_protocol = "TCP"
   load_balancing_scheme = "EXTERNAL"
   target = "${google_compute_target_instance.vm02.self_link}"
@@ -405,7 +405,7 @@ resource "null_resource" "create_virtual01" {
 
 resource "null_resource" "create_virtual02" {
   provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual -d '{\"name\":\"external-pool\",\"destination\":\"${google_compute_forwarding_rule.vm02-forwarding-rule.ip_address}:80\"}'"
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip}/mgmt/tm/ltm/virtual -d '{\"name\":\"external-pool\",\"destination\":\"${google_compute_forwarding_rule.forwarding-rule.ip_address}:80\"}'"
   }
   triggers = {
     always_run = timestamp()

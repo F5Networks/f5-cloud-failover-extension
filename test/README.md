@@ -42,11 +42,12 @@ Prereq:
 - Terraform 0.12+
 - Python 3.7+ (will create a virtual environment)
     - f5-cloud-cli package`
-- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication), az login, aws configure, etc.
+- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication) - `az login`, `aws configure`, `gcloud auth application-default login`
 
 Select Environment: 
 
 - `export CF_ENV_CLOUD=azure` (azure, aws, gcp)
+    - Note: If deploying into GCP the following environment variable needs to also be set - `export GOOGLE_PROJECT_ID=my_project_id`
 
 Create:
 
@@ -55,6 +56,8 @@ Create:
 Delete:
 
 - `npm run deployment-delete`
+
+Note: Running terraform commands may require sudo in certain environments, set the following environment variable if necessary - `export USE_SUDO=true`
 
 ## Misc Notes
 
