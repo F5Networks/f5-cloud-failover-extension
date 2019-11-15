@@ -90,6 +90,17 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     // init config worker - makes functions from restWorker available, etc.
     configWorker.init(this)
         .then(() => {
+            return configWorker.getConfig();
+        })
+        .then((config) => {
+            // initialize failover
+            if (config) {
+                logger.info('calling failover init');
+                return failover.init();
+            }
+            return Promise.resolve();
+        })
+        .then(() => {
             success();
         })
         .catch(() => {
@@ -173,12 +184,17 @@ function processRequest(restOperation) {
 
     logger.debug(`HTTP Request - ${method} /${pathName}`);
 
+    let config = null;
     switch (pathName) {
     case 'declare':
         switch (method) {
         case 'POST':
             configWorker.processConfigRequest(body)
-                .then((config) => {
+                .then((configData) => {
+                    config = configData;
+                    return failover.init();
+                })
+                .then(() => {
                     util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
                 })
                 .catch((err) => {
@@ -187,7 +203,7 @@ function processRequest(restOperation) {
             break;
         case 'GET':
             configWorker.getConfig()
-                .then((config) => {
+                .then(() => {
                     util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
                 })
                 .catch((err) => {
