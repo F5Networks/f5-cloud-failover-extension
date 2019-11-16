@@ -94,7 +94,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
         })
         .then((config) => {
             // initialize failover
-            if (config) {
+            if (config && config.environment) {
                 logger.info('calling failover init');
                 return failover.init();
             }
@@ -103,8 +103,8 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
         .then(() => {
             success();
         })
-        .catch(() => {
-            error();
+        .catch((err) => {
+            error(err);
         });
 };
 

@@ -54,14 +54,18 @@ class FailoverClient {
      * Get Config from configWorker and initialize this.cloudProvider using the config
      */
     init() {
+        logger.info('Performing failover - init');
         return configWorker.getConfig()
             .then((data) => {
+                logger.debug(`config: ${JSON.stringify(data)}`);
                 this.config = data;
-                if (!this.config.environment) {
+                if (!this.config) {
+                    logger.debug('can\'t find config.environment');
                     return Promise.reject(new Error('Environment not provided'));
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
+                logger.debug(`cloudProvider: ${JSON.stringify(this.cloudProvider)}`);
                 return this.cloudProvider.init({
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
@@ -81,14 +85,22 @@ class FailoverClient {
      * Execute (primary function)
      */
     execute() {
+        logger.info('Performing failover - execute');
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
         this.standbyFlag = false;
 
-        return configWorker.getConfig()
-            .then(() => {
-                this.hostname = this.device.getGlobalSettings().hostname;
-
+        return Promise.all([
+            this.device.getGlobalSettings(),
+            this.device.getTrafficGroupsStats(),
+            this.device.getSelfAddresses(),
+            this.device.getVirtualAddresses()
+        ])
+            .then((results) => {
+                this.hostname = results[0].hostname;
+                this.trafficGroupStats = results[1];
+                this.selfAddresses = results[2];
+                this.virtualAddresses = results[3];
                 // wait for task - handles all possible states
                 return this._waitForTask();
             })
@@ -106,7 +118,7 @@ class FailoverClient {
                 if (taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
-                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
+                const trafficGroups = this._getTrafficGroups(this.trafficGroupStats, this.hostname);
                 // if no trafficGroups, then the BigIP is in standby
                 if (trafficGroups === null || trafficGroups.length === 0) {
                     this.standbyFlag = true;
@@ -172,12 +184,11 @@ class FailoverClient {
         const stateComponents = Object.assign({}, body);
         if (stateComponents.resetStateFile) {
             // reset State file contents
-            return configWorker.getConfig()
-                .then(() => this._createAndUpdateStateObject({
-                    taskState: failoverStates.PASS,
-                    message: constants.STATE_FILE_RESET_MESSAGE,
-                    failoverOperations: {}
-                }))
+            return this._createAndUpdateStateObject({
+                taskState: failoverStates.PASS,
+                message: constants.STATE_FILE_RESET_MESSAGE,
+                failoverOperations: {}
+            })
                 .then(() => {
                     logger.info('Failover state file reset complete');
                 })
@@ -200,8 +211,8 @@ class FailoverClient {
      */
     _getFailoverDiscovery(trafficGroups) {
         logger.info('Performing Failover - discovery');
-        const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
-        const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
+        const selfAddresses = this._getSelfAddresses(this.selfAddresses, trafficGroups);
+        const virtualAddresses = this._getVirtualAddresses(this.virtualAddresses, trafficGroups);
         const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
 
         this.localAddresses = addresses.localAddresses;

@@ -673,6 +673,7 @@ class Cloud extends AbstractCloud {
 
                 this.fwdRules.forEach((rule) => {
                     const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    this.logger.debug(`rule.IPAddress: ${JSON.stringify(rule.IPAddress)}, match: ${JSON.stringify(match)}, ourTargetInstance: ${JSON.stringify(ourTargetInstance)}, rule.target: ${JSON.stringify(rule.target)}`);
                     if (match.length) {
                         this.logger.silly('updateFwdRules matched rule:', rule);
 
