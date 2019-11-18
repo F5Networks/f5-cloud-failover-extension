@@ -424,6 +424,7 @@ output "deployment_info" {
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
         mgmt_port = 443,
+        hostname = "failover0.local",
         primary = false
       },
       {
@@ -431,6 +432,7 @@ output "deployment_info" {
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
         mgmt_port = 443,
+        hostname = "failover1.local",
         primary = true
       }
     ],

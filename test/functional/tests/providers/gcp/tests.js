@@ -362,7 +362,7 @@ describe('Provider: GCP', () => {
     it('wait until taskState is running on standby BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            resolve => setTimeout(resolve, 1000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {

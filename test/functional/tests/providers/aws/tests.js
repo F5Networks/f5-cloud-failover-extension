@@ -13,6 +13,7 @@ const assert = require('assert');
 const AWS = require('aws-sdk');
 
 const constants = require('../../../../constants.js');
+const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
 
 const RETRIES = constants.RETRIES;
@@ -85,6 +86,16 @@ describe('Provider: AWS', () => {
                         NetworkInterfaces: data[key].NetworkInterfaces
                     };
                 });
+            })
+            .then(() => {
+                return Promise.all([
+                    utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
+                    utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+                ]);
+            })
+            .then((results) => {
+                dutPrimary.authData = results[0];
+                dutSecondary.authData = results[1];
             })
             .catch(err => Promise.reject(err));
     });
@@ -265,22 +276,65 @@ describe('Provider: AWS', () => {
 
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
-    // ideally this would be replaced by a check for previous failover task success completion
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
-    ));
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
-    ));
+    it('wait until taskState is running on standby BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 1000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    authToken: dutSecondary.authData.token,
+                    hostname: dutSecondary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
+
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should check that Elastic IP is mapped to primary (vm0)', function () {
         this.retries(RETRIES.LONG);

@@ -69,6 +69,10 @@ const packagePath = packageDetails.path;
                 .catch(err => Promise.reject(err));
         });
 
+        it('should wait 5 seconds before verify installation', () => new Promise(
+            resolve => setTimeout(resolve, 5000)
+        ));
+
         it('should verify installation', function () {
             this.retries(10);
             const uri = constants.INFO_ENDPOINT;

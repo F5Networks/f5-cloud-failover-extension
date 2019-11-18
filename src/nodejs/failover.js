@@ -105,7 +105,7 @@ class FailoverClient {
                 return this._waitForTask();
             })
             .then((taskResponse) => {
-                if (taskResponse.recoverPreviousTask === true) {
+                if (taskResponse && taskResponse.recoverPreviousTask === true) {
                     return Promise.resolve(taskResponse);
                 }
                 return this._createAndUpdateStateObject({
@@ -115,7 +115,7 @@ class FailoverClient {
             })
             .then((taskResponse) => {
                 // return failover recovery if taskResponse is set to recoverPreviousTask for flapping scenario
-                if (taskResponse.recoverPreviousTask === true) {
+                if (taskResponse && taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
                 const trafficGroups = this._getTrafficGroups(this.trafficGroupStats, this.hostname);
@@ -311,8 +311,7 @@ class FailoverClient {
     getTaskStateFile() {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
-                // TODO: set log back when ready
-                // logger.silly(`Download stateFile: ${JSON.stringify(data)}`);
+                logger.silly(`Download stateFile: ${JSON.stringify(data)}`);
                 return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
