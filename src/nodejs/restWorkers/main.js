@@ -22,8 +22,11 @@ const Logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
+const Device = require('../device.js');
+
 
 const failover = new FailoverClient();
+const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
 
 const logger = new Logger(module);
@@ -89,9 +92,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
 
     // init config worker - makes functions from restWorker available, etc.
     configWorker.init(this)
-        .then(() => {
-            return configWorker.getConfig();
-        })
+        .then(() => configWorker.getConfig())
         .then((config) => {
             // initialize failover
             if (config && config.environment) {
@@ -100,6 +101,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
             }
             return Promise.resolve();
         })
+        .then(() => device.init())
         .then(() => {
             success();
         })
@@ -219,10 +221,14 @@ function processRequest(restOperation) {
         // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
         case 'POST':
-            failover.getTaskStateFile()
-                .then((taskState) => {
-                    logger.info(`taskState: ${JSON.stringify(taskState)}`);
-                    if (taskState.taskState === failoverStates.RUN) {
+            Promise.all([
+                failover.getTaskStateFile(),
+                device.getGlobalSettings()
+            ])
+                .then((result) => {
+                    logger.info(`taskState: ${JSON.stringify(result[0])}`);
+                    if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
+                        logger.silly('Failover is already executing');
                         return Promise.resolve();
                     }
                     return failover.execute();

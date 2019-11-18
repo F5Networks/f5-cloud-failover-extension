@@ -339,13 +339,16 @@ describe('Provider: GCP', () => {
     //     resolve => setTimeout(resolve, 60000)
     // ));
     it('wait until taskState is success on primary BIG-IP', function () {
-        this.retries(RETRIES.LONG);
-        return funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-            {
-                taskState: constants.FAILOVER_STATES.PASS,
-                authToken: dutPrimary.authData.token,
-                hostname: dutPrimary.hostname
-            })
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
             .then((bool) => {
                 assert(bool);
             })
@@ -358,12 +361,15 @@ describe('Provider: GCP', () => {
 
     it('wait until taskState is running on standby BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
-        return funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-            {
-                taskState: constants.FAILOVER_STATES.RUN,
-                authToken: dutSecondary.authData.token,
-                hostname: dutSecondary.hostname
-            })
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    authToken: dutSecondary.authData.token,
+                    hostname: dutSecondary.hostname
+                }))
             .then((bool) => {
                 assert(bool);
             })
@@ -376,12 +382,15 @@ describe('Provider: GCP', () => {
 
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
-        return funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-            {
-                taskState: constants.FAILOVER_STATES.PASS,
-                authToken: dutPrimary.authData.token,
-                hostname: dutPrimary.hostname
-            })
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
             .then((bool) => {
                 assert(bool);
             })

@@ -311,7 +311,8 @@ class FailoverClient {
     getTaskStateFile() {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
-                logger.info(`Download stateFile: ${JSON.stringify(data)}`);
+                // TODO: set log back when ready
+                // logger.silly(`Download stateFile: ${JSON.stringify(data)}`);
                 return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
