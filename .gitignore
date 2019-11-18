@@ -1,14 +1,18 @@
 # node modules
 node_modules/
+
 # rpm build
 rpmbuild/
 dist/new_build/
+
 # docs build
 _build/
 redoc-static.html
+
 # coverage
 coverage/
 .nyc_output/
+
 # local test directory/files
 test/functional/logs/
 test/functional/*_harness_file.json
@@ -16,10 +20,14 @@ test/functional/*_harness_file.json
 *.tfstate*
 terraform
 terraform.zip
+terraform.tfvars
+
 # virtual envs
 venv/
+
 # deployment info
 deployment_info.json
+
 # misc
 .vscode/
 **/.DS_Store

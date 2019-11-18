@@ -1,3 +1,6 @@
+# Note: project_id is set via environment variable
+# export TF_VAR_project_id='my_project_id'
+
 variable "region" {
   description = "The GCP Region in which the resources in this example should exist"
   default     = "us-west1"
@@ -17,9 +20,8 @@ variable "publisher" {
   default = "f5-networks"
 }
 
-variable "projectId" {
-  default = "***REMOVED***"
-  description = "GCP project where resources will be created"
+variable "project_id" {
+  description = "GCP project where resources will be created (Note: This should be configured using environment variable GOOGLE_PROJECT_ID)"
 }
 
 variable "imageProjectId" {
