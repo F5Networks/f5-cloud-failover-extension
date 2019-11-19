@@ -131,7 +131,6 @@ describe('Failover', () => {
         const localAddresses = options.localAddresses || ['1.1.1.1'];
         const failoverAddresses = options.failoverAddresses || ['2.2.2.2'];
         // the updateAddresses function will only be invoked if there are traffic groups in the hostname
-        // if (spyOnUpdateAddresses.calledTwice) {
         // verify that cloudProvider.updateAddresses method gets called - discover
         const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
         assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
@@ -150,16 +149,6 @@ describe('Failover', () => {
         // verify that cloudProvider.updateRoutes method gets called - update
         const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
         assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
-        // }
-        // if (spyOnUpdateAddresses.calledOnce) {
-        //     console.log('called once');
-        //     // verify that cloudProvider.updateAddresses method gets called - update
-        //     const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(0).args[0];
-        //     assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
-        //     // verify that cloudProvider.updateRoutes method gets called - update
-        //     const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
-        //     assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
-        // }
     }
 
     it('should execute failover', () => config.init(restWorker)
@@ -329,6 +318,25 @@ describe('Failover', () => {
         .then(() => failover.resetFailoverState({ resetStateFile: false }))
         .then(() => {
             assert(uploadDataToStorageSpy.notCalled);
+        })
+        .catch(err => Promise.reject(err)));
+
+    // it('should retrieve the taskstate file', () => {
+    //     // downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
+    //     // const downloadDataFromStorageSpy = sinon.stub(cloudProviderMock, 'downloadDataFromStorage').resolves({});
+    //
+    //     // downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUN });
+    //     failover.getTaskStateFile()
+    //         .then((result) => {
+    //             assert(result);
+    //         });
+    // });
+
+    it('should retrieve the taskstate file', () => config.init(restWorker)
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.getTaskStateFile())
+        .then((result) => {
+            assert(result);
         })
         .catch(err => Promise.reject(err)));
 
