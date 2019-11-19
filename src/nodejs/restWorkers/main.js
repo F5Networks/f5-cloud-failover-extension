@@ -173,15 +173,19 @@ function processRequest(restOperation) {
 
     logger.debug(`HTTP Request - ${method} /${pathName}`);
 
+    let thisConfig;
     switch (pathName) {
     case 'declare':
         switch (method) {
         case 'POST':
             configWorker.processConfigRequest(body)
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                    thisConfig = config;
 
-                    return telemetry.send(config);
+                    return telemetry.send(thisConfig);
+                })
+                .then(() => {
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: thisConfig });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
