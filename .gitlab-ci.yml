@@ -97,6 +97,8 @@ test_package:
     stage: test
     script:
         - apt-get update && apt-get install -y jq && npm install
+        # linter
+        - npm run lint
         # unit tests
         - npm run test
     tags:

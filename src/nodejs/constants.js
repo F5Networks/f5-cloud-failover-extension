@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 F5 Networks, Inc.
+ * Copyright 2019 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,19 @@
 
 'use strict';
 
-const VERSION = '1.0.0';
+// the location of package.json changes when going from source control to the
+// packaged iLX expected folder structure in the RPM - account for that here
+let packageInfo;
+try {
+    /* eslint-disable global-require */
+    /* eslint-disable import/no-unresolved */
+    packageInfo = require('../package.json');
+} catch (err) {
+    packageInfo = require('../../package.json');
+}
+
+const PACKAGE_NAME = packageInfo.name;
+const PACKAGE_VERSION = packageInfo.version;
 
 /**
  * Constants used across two or more files
@@ -24,7 +36,8 @@ const VERSION = '1.0.0';
  * @module
  */
 module.exports = {
-    VERSION,
+    NAME: PACKAGE_NAME,
+    VERSION: PACKAGE_VERSION,
     BASE_URL: 'https://localhost/mgmt/shared/cloud-failover',
     MGMT_PORTS: [
         443,
@@ -43,7 +56,11 @@ module.exports = {
         TASK: 'task'
     },
     FAILOVER_CLASS_NAME: 'Failover',
-    INITIALIZE_CLASS_NAME: 'Initialize',
+    FEATURE_FLAG_KEY_NAMES: {
+        IP_FAILOVER: 'failoverAddresses',
+        ROUTE_FAILOVER: 'failoverRoutes'
+    },
+    ENVIRONMENT_KEY_NAME: 'environment',
     LOCAL_HOST: 'localhost',
     MASK_REGEX: new RegExp('pass(word|phrase)', 'i'),
     PATHS: {
@@ -56,6 +73,8 @@ module.exports = {
         STATUS_ROLLING_BACK: 'ROLLING_BACK',
         STATUS_RUNNING: 'RUNNING'
     },
+    TELEMETRY_TYPE: `${PACKAGE_NAME}-data`,
+    TELEMETRY_TYPE_VERSION: '1',
     NAMELESS_CLASSES: [
     ],
     STORAGE_FOLDER_NAME: 'f5cloudfailover',
