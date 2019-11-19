@@ -41,7 +41,10 @@ class TelemetryClient {
 
         // send telemetry - this can be disabled using the phone home setting
         return teemClient.report(this.telemetryType, this.telemetryTypeVersion, configuration, extraFields)
-            .then(() => Promise.resolve({ sent: true }))
+            .then(() => {
+                logger.silly('Telemetry submitted successfully');
+                return Promise.resolve({ sent: true });
+            })
             .catch((err) => {
                 // never reject when sending telemetry, just log any errors
                 logger.error(`Sending telemetry failed: ${err.message}`);
