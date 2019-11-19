@@ -142,9 +142,9 @@ class FailoverClient {
             .then(() => {
                 if (!this.standbyFlag) {
                     logger.info('Performing Failover - update');
-                    logger.debug(`recoverPreviousTask: ${JSON.stringify(this.recoverPreviousTask)}`);
-                    logger.debug(`addressDiscovery: ${JSON.stringify(this.addressDiscovery)}`);
-                    logger.debug(`routeDiscovery: ${JSON.stringify(this.routeDiscovery)}`);
+                    logger.debug(`recoverPreviousTask: ${util.stringify(this.recoverPreviousTask)}`);
+                    logger.debug(`addressDiscovery: ${util.stringify(this.addressDiscovery)}`);
+                    logger.debug(`routeDiscovery: ${util.stringify(this.routeDiscovery)}`);
                     const updateActions = [
                         this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
                         this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
@@ -311,7 +311,7 @@ class FailoverClient {
     getTaskStateFile() {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
-                logger.silly(`Download stateFile: ${JSON.stringify(data)}`);
+                logger.silly(`Download stateFile: ${util.stringify(data)}`);
                 return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));

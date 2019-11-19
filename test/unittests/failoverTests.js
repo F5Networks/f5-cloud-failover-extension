@@ -321,17 +321,6 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    // it('should retrieve the taskstate file', () => {
-    //     // downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
-    //     // const downloadDataFromStorageSpy = sinon.stub(cloudProviderMock, 'downloadDataFromStorage').resolves({});
-    //
-    //     // downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUN });
-    //     failover.getTaskStateFile()
-    //         .then((result) => {
-    //             assert(result);
-    //         });
-    // });
-
     it('should retrieve the taskstate file', () => config.init(restWorker)
         .then(() => config.processConfigRequest(declaration))
         .then(() => failover.getTaskStateFile())
@@ -339,6 +328,4 @@ describe('Failover', () => {
             assert(result);
         })
         .catch(err => Promise.reject(err)));
-
-    // it()
 });

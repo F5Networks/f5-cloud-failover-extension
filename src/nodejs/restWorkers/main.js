@@ -94,7 +94,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     configWorker.init(this)
         .then(() => configWorker.getConfig())
         .then((config) => {
-            // initialize failover
+            // failover can only be initialized if a configuration has already been provided
             if (config && config.environment) {
                 logger.info('calling failover init');
                 return failover.init();
@@ -226,7 +226,7 @@ function processRequest(restOperation) {
                 device.getGlobalSettings()
             ])
                 .then((result) => {
-                    logger.info(`taskState: ${JSON.stringify(result[0])}`);
+                    logger.silly(`taskState: ${util.stringify(result[0])}`);
                     if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
                         logger.silly('Failover is already executing');
                         return Promise.resolve();
@@ -235,7 +235,7 @@ function processRequest(restOperation) {
                 })
                 .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
-                    logger.info(`POST taskState: ${JSON.stringify(taskState)}`);
+                    logger.silly(`POST taskState: ${util.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
                 .catch((err) => {

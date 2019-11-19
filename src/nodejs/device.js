@@ -154,7 +154,6 @@ class Device {
             '/tm/sys/global-settings'])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
-        // return this.globalSettings;
     }
 
     /**
@@ -167,7 +166,6 @@ class Device {
             '/tm/cm/traffic-group/stats'])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
-        // return this.trafficGroups;
     }
 
     /**
@@ -180,8 +178,6 @@ class Device {
             '/tm/net/self'])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
-
-        // return this.selfAddresses;
     }
 
 
@@ -195,8 +191,6 @@ class Device {
             '/tm/ltm/virtual-address'])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
-
-        // return this.virtualAddresses;
     }
 
     /**
