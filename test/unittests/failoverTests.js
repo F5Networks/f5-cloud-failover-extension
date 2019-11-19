@@ -59,6 +59,7 @@ describe('Failover', () => {
 
         const FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
         failover = new FailoverClient();
+        failover.init();
 
         sinon.stub(device.prototype, 'discoverMgmtPort').resolves(443);
         deviceGlobalSettingsMock = sinon.stub(device.prototype, 'getGlobalSettings');
@@ -331,5 +332,5 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it()
+    // it()
 });
