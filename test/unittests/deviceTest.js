@@ -20,12 +20,12 @@ const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-depe
 const assert = require('assert');
 const Device = require('../../src/nodejs/device');
 
-const mockResults = [
-    'globalSettings',
-    'trafficGroups',
-    'selfAddresses',
-    'virtualAddresses'
-];
+const mockResults = {
+    '/tm/sys/global-settings': ['globalSettings'],
+    '/tm/cm/traffic-group/stats': ['trafficGroups'],
+    '/tm/net/self': ['selfAddresses'],
+    '/tm/ltm/virtual-address': ['virtualAddresses']
+};
 
 describe('Device', () => {
     let device;
@@ -38,7 +38,6 @@ describe('Device', () => {
         deviceGetConfig = device.getConfig;
 
         device.bigip.init = sinon.stub().resolves();
-        device.getConfig = sinon.stub().resolves(mockResults);
 
         connectAddressMock = sinon.stub(Device.prototype, '_connectAddress')
             .resolves({ connected: true, port: 443 });
@@ -111,25 +110,45 @@ describe('Device', () => {
 
     it('validate getGlobalSettings', () => device.init()
         .then(() => {
-            assert.strictEqual(device.getGlobalSettings(), 'globalSettings');
+            const expectedValue = mockResults['/tm/sys/global-settings'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getGlobalSettings();
+        })
+        .then((globalSettings) => {
+            assert.strictEqual(globalSettings, 'globalSettings');
         })
         .catch(err => Promise.reject(err)));
 
     it('validate getTrafficGroupsStats', () => device.init()
         .then(() => {
-            assert.strictEqual(device.getTrafficGroupsStats(), 'trafficGroups');
+            const expectedValue = mockResults['/tm/cm/traffic-group/stats'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getTrafficGroupsStats();
+        })
+        .then((trafficGroupsStats) => {
+            assert.strictEqual(trafficGroupsStats, 'trafficGroups');
         })
         .catch(err => Promise.reject(err)));
 
     it('validate getSelfAddresses', () => device.init()
         .then(() => {
-            assert.strictEqual(device.getSelfAddresses(), 'selfAddresses');
+            const expectedValue = mockResults['/tm/net/self'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getSelfAddresses();
+        })
+        .then((selfAddresses) => {
+            assert.strictEqual(selfAddresses, 'selfAddresses');
         })
         .catch(err => Promise.reject(err)));
 
     it('validate getVirtualAddresses', () => device.init()
         .then(() => {
-            assert.strictEqual(device.getVirtualAddresses(), 'virtualAddresses');
+            const expectedValue = mockResults['/tm/ltm/virtual-address'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getVirtualAddresses();
+        })
+        .then((virtualAddresses) => {
+            assert.strictEqual(virtualAddresses, 'virtualAddresses');
         })
         .catch(err => Promise.reject(err)));
 });

@@ -21,7 +21,7 @@
         "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --level=debug ",
+        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:443/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --level=debug --method GET",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
@@ -40,7 +40,6 @@
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.10.3",
         "@f5devcentral/f5-teem": "^1.1.0",
-        "googleapis": "^44.0.0",
         "@google-cloud/compute": "^1.1.5",
         "@google-cloud/storage": "^4.0.0",
         "ajv": "^6.10.0",
@@ -51,7 +50,9 @@
         "azure-arm-storage": "^8.1.0",
         "azure-storage": "^2.10.3",
         "commander": "^2.19.0",
+        "googleapis": "^44.0.0",
         "gtoken": "3.0.0",
+        "hooks": "^0.3.2",
         "ipaddr.js": "^1.7.0",
         "ms-rest-azure": "^2.6.0",
         "request": "^2.83.0",

@@ -73,18 +73,6 @@ class Device {
                     product: this.product
                 }
             ))
-            .then(() => this.getConfig([
-                '/tm/sys/global-settings',
-                '/tm/cm/traffic-group/stats',
-                '/tm/net/self',
-                '/tm/ltm/virtual-address'
-            ]))
-            .then((results) => {
-                this.globalSettings = results[0];
-                this.trafficGroups = results[1];
-                this.selfAddresses = results[2];
-                this.virtualAddresses = results[3];
-            })
             .catch(err => Promise.reject(err));
     }
 
@@ -162,7 +150,10 @@ class Device {
     *  @returns {Object} global settings config object
     */
     getGlobalSettings() {
-        return this.globalSettings;
+        return this.getConfig([
+            '/tm/sys/global-settings'])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -171,7 +162,10 @@ class Device {
     *  @returns {Object} global traffic groups stats config object
     */
     getTrafficGroupsStats() {
-        return this.trafficGroups;
+        return this.getConfig([
+            '/tm/cm/traffic-group/stats'])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -180,7 +174,10 @@ class Device {
     *  @returns {Object} self addresses config object
     */
     getSelfAddresses() {
-        return this.selfAddresses;
+        return this.getConfig([
+            '/tm/net/self'])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
     }
 
 
@@ -190,7 +187,10 @@ class Device {
     *  @returns {Object} virtual addresses config object
     */
     getVirtualAddresses() {
-        return this.virtualAddresses;
+        return this.getConfig([
+            '/tm/ltm/virtual-address'])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
     }
 
     /**
