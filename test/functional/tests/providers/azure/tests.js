@@ -143,7 +143,7 @@ describe('Provider: Azure', () => {
                 return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password);
             })
             .then((data) => {
-                dutSecondary.authData = data
+                dutSecondary.authData = data;
                 const options = funcUtils.makeOptions({ authToken: data.token });
                 return utils.makeRequest(dutSecondary.ip, '/mgmt/tm/net/self', options);
             })

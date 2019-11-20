@@ -255,6 +255,7 @@ class FailoverClient {
                         this.recoveryOperations.routes
                     ]);
                 }
+                return Promise.resolve([{}, {}]);
             })
             .catch(err => Promise.reject(err));
     }

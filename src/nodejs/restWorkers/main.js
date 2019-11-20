@@ -22,6 +22,7 @@ const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
 const Device = require('../device.js');
 const TelemetryClient = require('../telemetry.js').TelemetryClient;
+const baseSchema = require('../schema/base_schema.json');
 
 const telemetry = new TelemetryClient();
 
