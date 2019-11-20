@@ -184,6 +184,10 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(operations) {
+        if (!operations || Object.keys(operations).length === 0) {
+            this.logger.info('No reassociated addresses to update.');
+            return Promise.resolve();
+        }
         return this._reassociateEIPs(operations)
             .then(() => {
                 this.logger.info('EIP(s) reassociated successfully');
@@ -205,7 +209,7 @@ class Cloud extends AbstractCloud {
      */
     updateRoutes(options) {
         options = options || {};
-        const localAddresses = options.localAddresses || [];
+        const localAddresses = options.localAddresses;
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
@@ -274,6 +278,11 @@ class Cloud extends AbstractCloud {
     */
     _updateRoutes(operations) {
         const promises = [];
+
+        if (!operations || Object.keys(operations).length === 0) {
+            this.logger.info('No route operations to run');
+            return Promise.resolve();
+        }
 
         operations.forEach((operation) => {
             promises.push(this._updateRouteTable(operation.routeTable, operation.networkInterfaceId));

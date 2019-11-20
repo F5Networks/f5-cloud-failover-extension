@@ -335,21 +335,67 @@ describe('Provider: GCP', () => {
 
     // ideally this would be replaced by a check for previous failover task success completion
     // GCP: long wait time to avoid long-running failover race conditions
-    it('Flapping scenario: should wait 60 seconds', () => new Promise(
-        resolve => setTimeout(resolve, 60000)
-    ));
+    // it('Flapping scenario: should wait 60 seconds', () => new Promise(
+    //     resolve => setTimeout(resolve, 60000)
+    // ));
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait 60 seconds', () => new Promise(
-        resolve => setTimeout(resolve, 60000)
-    ));
+    it('wait until taskState is running on standby BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 1000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    authToken: dutSecondary.authData.token,
+                    hostname: dutSecondary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
+
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should check network interface alias IP(s) contains virtual addresses (primary)', function () {
         this.retries(RETRIES.LONG);

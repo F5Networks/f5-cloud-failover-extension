@@ -22,8 +22,11 @@ const Logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
+const Device = require('../device.js');
+
 
 const failover = new FailoverClient();
+const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
 
 const logger = new Logger(module);
@@ -89,11 +92,21 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
 
     // init config worker - makes functions from restWorker available, etc.
     configWorker.init(this)
+        .then(() => configWorker.getConfig())
+        .then((config) => {
+            // failover can only be initialized if a configuration has already been provided
+            if (config && config.environment) {
+                logger.info('calling failover init');
+                return failover.init();
+            }
+            return Promise.resolve();
+        })
+        .then(() => device.init())
         .then(() => {
             success();
         })
-        .catch(() => {
-            error();
+        .catch((err) => {
+            error(err);
         });
 };
 
@@ -179,7 +192,10 @@ function processRequest(restOperation) {
         case 'POST':
             configWorker.processConfigRequest(body)
                 .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                    return Promise.all([config, failover.init()]);
+                })
+                .then((result) => {
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: result[0] });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
@@ -203,17 +219,21 @@ function processRequest(restOperation) {
         // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
         case 'POST':
-            failover.getTaskStateFile()
-                .then((taskState) => {
-                    logger.info(`taskState: ${JSON.stringify(taskState)}`);
-                    if (taskState.taskState === failoverStates.RUN) {
+            Promise.all([
+                failover.getTaskStateFile(),
+                device.getGlobalSettings()
+            ])
+                .then((result) => {
+                    logger.silly(`taskState: ${util.stringify(result[0])}`);
+                    if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
+                        logger.silly('Failover is already executing');
                         return Promise.resolve();
                     }
                     return failover.execute();
                 })
                 .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
-                    logger.info(`POST taskState: ${JSON.stringify(taskState)}`);
+                    logger.silly(`POST taskState: ${util.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
                 .catch((err) => {
