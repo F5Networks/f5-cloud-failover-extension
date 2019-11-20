@@ -186,18 +186,16 @@ function processRequest(restOperation) {
 
     logger.debug(`HTTP Request - ${method} /${pathName}`);
 
-    let config = null;
     switch (pathName) {
     case 'declare':
         switch (method) {
         case 'POST':
             configWorker.processConfigRequest(body)
-                .then((configData) => {
-                    config = configData;
-                    return failover.init();
+                .then((config) => {
+                    return Promise.all([config, failover.init()]);
                 })
-                .then(() => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
+                .then((result) => {
+                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: result[0] });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
@@ -205,8 +203,7 @@ function processRequest(restOperation) {
             break;
         case 'GET':
             configWorker.getConfig()
-                .then((configData) => {
-                    config = configData;
+                .then((config) => {
                     util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
                 })
                 .catch((err) => {
