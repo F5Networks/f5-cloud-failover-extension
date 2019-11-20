@@ -405,6 +405,17 @@ resource "null_resource" "onboard1" {
   depends_on = [local_file.do1, null_resource.login1]
 }
 
+# disable phone home - replace this with an update in the DO declaration when ID993 is completed
+resource "null_resource" "disable_phone_home" {
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/sys/software/update -d '{\"autoPhonehome\":\"disabled\"}'"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = [null_resource.onboard1]
+}
+
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual" {
   provisioner "local-exec" {
@@ -413,7 +424,7 @@ resource "null_resource" "create_virtual" {
   triggers = {
     always_run = "${timestamp()}"
   }
-  depends_on = [null_resource.onboard1]
+  depends_on = [null_resource.disable_phone_home]
 }
 
 output "deployment_info" {
