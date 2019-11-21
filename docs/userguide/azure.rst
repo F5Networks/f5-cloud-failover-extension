@@ -50,7 +50,6 @@ This example declaration shows the minimum information needed to update the clou
 
 
 
-
 Requirements
 ------------
 These are the requirements for setting up Cloud Failover in Microsoft Azure. More information is provided in the sections below.
@@ -66,7 +65,7 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 - **Route(s) in a route table tagged with:**
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-  - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: `10.0.0.10,10.0.0.11`
+  - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
   See :ref:`azure-udrtagging` for more information.
 
@@ -133,7 +132,7 @@ Under the storage account, create a special key ``f5_self_ips`` containing a com
 
 Creating and assigning an MSI
 -----------------------------
-To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI.
+To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI. Read more about managed identities |managed-identity|.
 
 1. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
