@@ -83,7 +83,7 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 For example:
 
-.. image:: ../images/gcp/GCPIamRoleSummary.png
+.. image:: ../images/gcp/GCPIAMRoleSummary.png
   :width: 800
 
 
