@@ -67,6 +67,39 @@ Cloud Failover extension stores the BIG-IP failover IP address and routes in the
 |
 
 
+**Does the Cloud Failover Extension collect telemetry data?**
+
+We collect non-personal telemetry data to help improve the Cloud Failover Extension. An example of the payload that is sent is shown below. You can disable this feature by running the command ``tmsh modify sys software update auto-phonehome disabled``.
+
+.. code-block:: json
+
+    {
+        "documentType": "f5-cloud-failover-data",
+        "documentVersion": "1",
+        "digitalAssetId": "xxxx",
+        "digitalAssetName": "f5-cloud-failover",
+        "digitalAssetVersion": "1.0.0",
+        "observationStartTime": "xxxx",
+        "observationEndTime": "xxxx",
+        "epochTime": "123581321",
+        "telemetryId": "xxxx",
+        "telemetryRecords": [
+            {
+                "environment": "azure",
+                "Failover": 1,
+                "platform": "BIG-IP",
+                "platformVersion": "14.1.0.5",
+                "featureFlags": {
+                    "ipFailover": true,
+                    "routeFailover": false
+                }
+            }
+        ]
+    }
+
+|
+
+
 **Does it matter if I use Cloud Failover in same network or across network?**
 
 Cloud Failover is agnostic to same-network and across-network topologies.
