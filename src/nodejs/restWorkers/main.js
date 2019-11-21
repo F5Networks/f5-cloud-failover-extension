@@ -15,15 +15,16 @@
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const util = require('../util.js');
 const Logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
 const Device = require('../device.js');
+const TelemetryClient = require('../telemetry.js').TelemetryClient;
+const baseSchema = require('../schema/base_schema.json');
 
+const telemetry = new TelemetryClient();
 
 const failover = new FailoverClient();
 const device = new Device();
@@ -169,8 +170,6 @@ function processRequest(restOperation) {
     const pathName = restOperation.getUri().pathname.split('/')[3];
     const contentType = restOperation.getContentType().toLowerCase() || '';
     let body = restOperation.getBody();
-    const vinfo = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json')), 'utf8');
-    const baseSchema = JSON.parse(fs.readFileSync(path.join(__dirname, '../schema/base_schema.json')), 'utf8');
 
     // validate content type, attempt to process regardless
     if (contentType !== 'application/json') {
@@ -191,9 +190,7 @@ function processRequest(restOperation) {
         switch (method) {
         case 'POST':
             configWorker.processConfigRequest(body)
-                .then((config) => {
-                    return Promise.all([config, failover.init()]);
-                })
+                .then(config => Promise.all([config, failover.init(), telemetry.send(config)]))
                 .then((result) => {
                     util.restOperationResponder(restOperation, 200, { message: 'success', declaration: result[0] });
                 })
@@ -216,7 +213,6 @@ function processRequest(restOperation) {
         }
         break;
     case 'trigger':
-        // TODO: response should use an async task pattern - for now simply execute failover and respond
         switch (method) {
         case 'POST':
             Promise.all([
@@ -280,8 +276,8 @@ function processRequest(restOperation) {
         break;
     case 'info':
         util.restOperationResponder(restOperation, 200, {
-            version: vinfo.version,
-            release: vinfo.version.split('.').reverse()[0],
+            version: constants.VERSION,
+            release: constants.VERSION.split('.').reverse()[0],
             schemaCurrent: baseSchema.properties.schemaVersion.enum[0],
             schemaMinimum: baseSchema.properties.schemaVersion.enum.reverse()[0]
         });

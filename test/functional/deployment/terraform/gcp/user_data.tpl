@@ -27,6 +27,9 @@ cat << 'EOF' > /config/post-nic-swap.sh
       tmsh modify sys global-settings hostname $(cat /config/hostname.txt)
       tmsh modify sys db failover.selinuxallowscripts value enable
 
+      # disable phone home - replace this with an update in the DO declaration when ID993 is completed
+      tmsh modify sys software update auto-phonehome disabled
+
       tmsh save /sys config
 EOF
 

@@ -21,5 +21,8 @@ tmsh create net route /LOCAL_ONLY/internal network ${subnet} gw ${default_gw}
 # create user
 tmsh create auth user $${adminUsername} password $${adminPassword} shell bash partition-access replace-all-with { all-partitions { role admin } }
 
+# disable phone home - replace this with an update in the DO declaration when ID993 is completed
+tmsh modify sys software update auto-phonehome disabled
+
 # save config
 tmsh save sys config

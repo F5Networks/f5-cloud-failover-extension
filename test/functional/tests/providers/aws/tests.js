@@ -87,12 +87,10 @@ describe('Provider: AWS', () => {
                     };
                 });
             })
-            .then(() => {
-                return Promise.all([
-                    utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
-                    utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-                ]);
-            })
+            .then(() => Promise.all([
+                utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
+                utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            ]))
             .then((results) => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];

@@ -85,7 +85,7 @@ How does the project handle a `POST` request to the configuration endpoint?
 
 *Response*:
 
-```javascript
+```json
 {
     "message": "success",
     "declaration": {
@@ -378,3 +378,33 @@ Note: See Release Checklist on Confluence for complete details.
 In general, see the documentation team for more details... that being said public documentation is available on clouddocs.  (See the main README for the link)
 
 See the [examples](../examples) directory for curated artifacts such as declaration examples, output examples, AS3 declaration example, etc.
+
+### Telemetry
+
+Usage telemetry is sent to an F5 provided service called TEEM.  Below describes the payload that is sent.
+
+```json
+{
+    "documentType": "f5-cloud-failover-data",
+    "documentVersion": "1",
+    "digitalAssetId": "xxxx",
+    "digitalAssetName": "f5-cloud-failover",
+    "digitalAssetVersion": "1.0.0",
+    "observationStartTime": "xxxx",
+    "observationEndTime": "xxxx",
+    "epochTime": "123581321",
+    "telemetryId": "xxxx",
+    "telemetryRecords": [
+        {
+            "environment": "azure",
+            "Failover": 1,
+            "platform": "BIG-IP",
+            "platformVersion": "14.1.0.5",
+            "featureFlags": {
+                "ipFailover": true,
+                "routeFailover": false
+            }
+        }
+    ]
+}
+```
