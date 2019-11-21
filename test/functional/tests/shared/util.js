@@ -115,5 +115,33 @@ module.exports = {
                 return utils.makeRequest(host, uri, options);
             })
             .catch(err => Promise.reject(err));
+    },
+
+    /**
+     * Get request to the trigger endpoint of a BIG-IP
+     *
+     * @param {String}  host                - host address
+     * @param {Object}  options             - function options
+     * @param {String} [options.authToken]  - Authentication token
+     * @param {String} [options.hostname]   - hostname
+     * @param {String} [options.taskState]  - taskState
+     *
+     * @returns {Promise}
+     */
+    getTriggerTaskStatus(host, options) {
+        const uri = constants.TRIGGER_ENDPOINT;
+        options = options || {};
+
+        const httpOptions = this.makeOptions({ authToken: options.authToken });
+        httpOptions.method = 'GET';
+        return utils.makeRequest(host, uri, httpOptions)
+            .then((data) => {
+                if (options.taskState !== data.taskState
+                || data.instance.indexOf(options.hostname) === -1) {
+                    return Promise.resolve(false);
+                }
+                return Promise.resolve(true);
+            })
+            .catch(err => Promise.reject(err));
     }
 };

@@ -525,6 +525,11 @@ class Cloud extends AbstractCloud {
      *
      */
     _discoverAddressOperations(failoverAddresses) {
+        if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
+            this.logger.info('No failoverAddresses to discover');
+            return Promise.resolve();
+        }
+
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
             this._discoverFwdRuleOperations(failoverAddresses)
@@ -549,9 +554,9 @@ class Cloud extends AbstractCloud {
         const associate = [];
 
         // There should be at least one item in trafficGroupIpArr
-        if (!failoverAddresses.length) {
-            this.logger.warn('No traffic group address(es) exist, skipping');
-            return Promise.reject();
+        if (!failoverAddresses || !failoverAddresses.length) {
+            this.logger.silly('No traffic group address(es) exist, skipping');
+            return Promise.resolve({ disassociate, associate });
         }
 
         // Look through each VM and seperate us vs. them
@@ -729,6 +734,11 @@ class Cloud extends AbstractCloud {
         const nicOperations = options.nics;
         const fwdRuleOperations = options.fwdRules;
 
+        if (!options || Object.keys(options).length === 0) {
+            this.logger.info('No route operations to run');
+            return Promise.resolve();
+        }
+
         return Promise.all([
             this._updateNics(nicOperations.disassociate, nicOperations.associate),
             this._updateFwdRules(fwdRuleOperations.operations)
@@ -803,7 +813,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations) {
+        if (!operations || Object.keys(operations).length === 0) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }

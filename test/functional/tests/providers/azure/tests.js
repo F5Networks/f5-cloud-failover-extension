@@ -127,6 +127,7 @@ describe('Provider: Azure', () => {
             })
             .then((data) => {
                 const options = funcUtils.makeOptions({ authToken: data.token });
+                dutPrimary.authData = data;
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((data) => {
@@ -142,6 +143,7 @@ describe('Provider: Azure', () => {
                 return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password);
             })
             .then((data) => {
+                dutSecondary.authData = data
                 const options = funcUtils.makeOptions({ authToken: data.token });
                 return utils.makeRequest(dutSecondary.ip, '/mgmt/tm/net/self', options);
             })
@@ -207,6 +209,10 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should wait 30 seconds before force standby', () => new Promise(
+        resolve => setTimeout(resolve, 30000)
+    ));
+
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
@@ -228,21 +234,65 @@ describe('Provider: Azure', () => {
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
 
     // ideally this would be replaced by a check for previous failover task success completion
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
-    ));
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.username, dutPrimary.password
     ));
 
-    it('Flapping scenario: should wait ten seconds', () => new Promise(
-        resolve => setTimeout(resolve, 10000)
-    ));
+    it('wait until taskState is running on standby BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 1000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    authToken: dutSecondary.authData.token,
+                    hostname: dutSecondary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
     ));
+
+    it('wait until taskState is success on primary BIG-IP', function () {
+        this.retries(RETRIES.MEDIUM);
+        return new Promise(
+            resolve => setTimeout(resolve, 5000)
+        )
+            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                {
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    authToken: dutPrimary.authData.token,
+                    hostname: dutPrimary.hostname
+                }))
+            .then((bool) => {
+                assert(bool);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('Flapping scenario: should check network interfaces contains virtual address (primary) ', function () {
         this.retries(RETRIES.LONG);

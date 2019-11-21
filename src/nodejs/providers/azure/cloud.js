@@ -125,7 +125,7 @@ class Cloud extends AbstractCloud {
         const localAddresses = options.localAddresses;
         const failoverAddresses = options.failoverAddresses;
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         this.logger.silly('updateAddresses: ', options);
 
@@ -491,6 +491,11 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { associate: {}, disassociate: {} }
     */
     _discoverAddressOperations(localAddresses, failoverAddresses) {
+        if (!localAddresses || Object.keys(localAddresses).length === 0
+            || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
+            this.logger.info('No localAddresses/failoverAddresses to discover');
+            return Promise.resolve();
+        }
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];
@@ -558,8 +563,9 @@ class Cloud extends AbstractCloud {
         this.logger.debug('updateAddresses disassociate operations: ', disassociate);
         this.logger.debug('updateAddresses associate operations: ', associate);
 
-        if (!disassociate || !associate) {
-            this.logger.info('No associations to update.');
+        if (!disassociate || Object.keys(disassociate).length === 0
+            || !associate || Object.keys(associate).length === 0) {
+            this.logger.info('No associate/disassociate operations to update.');
             return Promise.resolve();
         }
         const disassociatePromises = [];
@@ -664,7 +670,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations) {
+        if (!operations || Object.keys(operations).length === 0) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }

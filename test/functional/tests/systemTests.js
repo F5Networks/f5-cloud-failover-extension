@@ -69,6 +69,10 @@ const packagePath = packageDetails.path;
                 .catch(err => Promise.reject(err));
         });
 
+        it('should wait 5 seconds before verify installation', () => new Promise(
+            resolve => setTimeout(resolve, 5000)
+        ));
+
         it('should verify installation', function () {
             this.retries(10);
             const uri = constants.INFO_ENDPOINT;
@@ -115,6 +119,23 @@ const packagePath = packageDetails.path;
                 .then((data) => {
                     data = data || {};
                     assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should wait 5 seconds before post trigger', () => new Promise(
+            resolve => setTimeout(resolve, 5000)
+        ));
+
+        it('should post trigger', () => {
+            const uri = constants.TRIGGER_ENDPOINT;
+
+            options.method = 'POST';
+            options.body = {};
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.taskState, 'SUCCEEDED');
                 })
                 .catch(err => Promise.reject(err));
         });

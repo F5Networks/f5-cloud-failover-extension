@@ -59,6 +59,7 @@ describe('Failover', () => {
 
         const FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
         failover = new FailoverClient();
+        failover.init();
 
         sinon.stub(device.prototype, 'discoverMgmtPort').resolves(443);
         deviceGlobalSettingsMock = sinon.stub(device.prototype, 'getGlobalSettings');
@@ -129,21 +130,21 @@ describe('Failover', () => {
         options = options || {};
         const localAddresses = options.localAddresses || ['1.1.1.1'];
         const failoverAddresses = options.failoverAddresses || ['2.2.2.2'];
-
+        // the updateAddresses function will only be invoked if there are traffic groups in the hostname
         // verify that cloudProvider.updateAddresses method gets called - discover
         const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
         assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
         assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
         assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
 
-        // verify that cloudProvider.updateAddresses method gets called - update
-        const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
-        assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
-
         // verify that cloudProvider.updateRoutes method gets called - discover
         const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
         assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, localAddresses);
         assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+
+        // verify that cloudProvider.updateAddresses method gets called - update
+        const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
+        assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
 
         // verify that cloudProvider.updateRoutes method gets called - update
         const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
@@ -211,10 +212,7 @@ describe('Failover', () => {
 
         return config.init(restWorker)
             .then(() => config.processConfigRequest(declaration))
-            .then(() => failover.execute())
-            .then(() => {
-                validateFailover({ failoverAddresses: [] });
-            });
+            .then(() => failover.execute());
     });
 
     it('should recover from a previous failover failure', () => {
@@ -237,14 +235,6 @@ describe('Failover', () => {
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.execute())
             .then(() => {
-                // verify that cloudProvider.updateAddresses method gets called - update
-                const updateAddressesCall = spyOnUpdateAddresses.getCall(0).args[0];
-                assert.deepStrictEqual(updateAddressesCall.updateOperations, { operation: 'addresses' });
-
-                // verify that cloudProvider.updateRoutes method gets called - update
-                const updateRoutesCall = spyOnUpdateRoutes.getCall(0).args[0];
-                assert.deepStrictEqual(updateRoutesCall.updateOperations, { operation: 'routes' });
-
                 // verify that the uploaded task state is running and then eventually succeeded
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
@@ -328,6 +318,14 @@ describe('Failover', () => {
         .then(() => failover.resetFailoverState({ resetStateFile: false }))
         .then(() => {
             assert(uploadDataToStorageSpy.notCalled);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should retrieve the taskstate file', () => config.init(restWorker)
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.getTaskStateFile())
+        .then((result) => {
+            assert(result);
         })
         .catch(err => Promise.reject(err)));
 });

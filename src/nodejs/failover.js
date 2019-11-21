@@ -47,73 +47,89 @@ class FailoverClient {
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
+        this.standbyFlag = null;
+    }
+
+    /**
+     * Get Config from configWorker and initialize this.cloudProvider using the config
+     */
+    init() {
+        logger.info('Performing failover - init');
+        return configWorker.getConfig()
+            .then((data) => {
+                logger.debug(`config: ${JSON.stringify(data)}`);
+                this.config = data;
+                if (!this.config) {
+                    logger.debug('can\'t find config.environment');
+                    return Promise.reject(new Error('Environment not provided'));
+                }
+
+                this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
+                logger.debug(`cloudProvider: ${JSON.stringify(this.cloudProvider)}`);
+                return this.cloudProvider.init({
+                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
+                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
+                    routeSelfIpsTag: constants.SELF_IPS_TAG,
+                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
+                });
+            })
+            .then(() => this.device.init())
+            .catch((err) => {
+                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                return Promise.reject(new Error(errorMessage));
+            });
     }
 
     /**
      * Execute (primary function)
      */
     execute() {
+        logger.info('Performing failover - execute');
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
+        this.standbyFlag = false;
 
-        return this._getConfigAndInitializeCloudProvider()
-            .then(() => this.device.init())
-            .then(() => {
-                this.hostname = this.device.getGlobalSettings().hostname;
-
+        return Promise.all([
+            this.device.getGlobalSettings(),
+            this.device.getTrafficGroupsStats(),
+            this.device.getSelfAddresses(),
+            this.device.getVirtualAddresses()
+        ])
+            .then((results) => {
+                this.hostname = results[0].hostname;
+                this.trafficGroupStats = results[1];
+                this.selfAddresses = results[2];
+                this.virtualAddresses = results[3];
                 // wait for task - handles all possible states
                 return this._waitForTask();
             })
             .then((taskResponse) => {
-                logger.debug('Task response: ', taskResponse);
-
-                // check if we are recovering from a previous task
-                if (taskResponse.recoverPreviousTask === true) {
-                    this.recoverPreviousTask = true;
-                    this.recoveryOperations = taskResponse.state.failoverOperations;
+                if (taskResponse && taskResponse.recoverPreviousTask === true) {
+                    return Promise.resolve(taskResponse);
                 }
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running'
                 });
             })
-            .then(() => {
-                // recovering previous task - skip discovery
-                if (this.recoverPreviousTask === true) {
-                    logger.warn('Recovering previous task: ', this.recoveryOperations);
-                    return Promise.resolve([
-                        this.recoveryOperations.addresses,
-                        this.recoveryOperations.routes
-                    ]);
+            .then((taskResponse) => {
+                // return failover recovery if taskResponse is set to recoverPreviousTask for flapping scenario
+                if (taskResponse && taskResponse.recoverPreviousTask === true) {
+                    return this._getFailoverRecovery(taskResponse);
                 }
-
-                logger.info('Performing Failover - discovery');
-
-                const trafficGroups = this._getTrafficGroups(this.device.getTrafficGroupsStats(), this.hostname);
-                const selfAddresses = this._getSelfAddresses(this.device.getSelfAddresses(), trafficGroups);
-                const virtualAddresses = this._getVirtualAddresses(this.device.getVirtualAddresses(), trafficGroups);
-                const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
-
-                this.localAddresses = addresses.localAddresses;
-                this.failoverAddresses = addresses.failoverAddresses;
-
-                const discoverActions = [
-                    this.cloudProvider.updateAddresses({
-                        localAddresses: this.localAddresses,
-                        failoverAddresses: this.failoverAddresses,
-                        discoverOnly: true
-                    }),
-                    this.cloudProvider.updateRoutes({
-                        localAddresses: this.localAddresses,
-                        discoverOnly: true
-                    })
-                ];
-                return Promise.all(discoverActions);
+                const trafficGroups = this._getTrafficGroups(this.trafficGroupStats, this.hostname);
+                // if no trafficGroups, then the BigIP is in standby
+                if (trafficGroups === null || trafficGroups.length === 0) {
+                    this.standbyFlag = true;
+                    return Promise.resolve([{}, {}]);
+                }
+                // return failover discovery if there are trafficGroups (trigger request from active BigIP)
+                return this._getFailoverDiscovery(trafficGroups);
             })
-            .then((discovery) => {
-                this.addressDiscovery = discovery[0];
-                this.routeDiscovery = discovery[1];
-
+            .then((updates) => {
+                this.addressDiscovery = updates[0];
+                this.routeDiscovery = updates[1];
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running',
@@ -124,12 +140,18 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                logger.info('Performing Failover - update');
-                const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                ];
-                return Promise.all(updateActions);
+                if (!this.standbyFlag) {
+                    logger.info('Performing Failover - update');
+                    logger.debug(`recoverPreviousTask: ${util.stringify(this.recoverPreviousTask)}`);
+                    logger.debug(`addressDiscovery: ${util.stringify(this.addressDiscovery)}`);
+                    logger.debug(`routeDiscovery: ${util.stringify(this.routeDiscovery)}`);
+                    const updateActions = [
+                        this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                        this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                    ];
+                    return Promise.all(updateActions);
+                }
+                return Promise.resolve({});
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
@@ -162,12 +184,11 @@ class FailoverClient {
         const stateComponents = Object.assign({}, body);
         if (stateComponents.resetStateFile) {
             // reset State file contents
-            return this._getConfigAndInitializeCloudProvider()
-                .then(() => this._createAndUpdateStateObject({
-                    taskState: failoverStates.PASS,
-                    message: constants.STATE_FILE_RESET_MESSAGE,
-                    failoverOperations: {}
-                }))
+            return this._createAndUpdateStateObject({
+                taskState: failoverStates.PASS,
+                message: constants.STATE_FILE_RESET_MESSAGE,
+                failoverOperations: {}
+            })
                 .then(() => {
                     logger.info('Failover state file reset complete');
                 })
@@ -180,32 +201,64 @@ class FailoverClient {
         return Promise.resolve();
     }
 
+
     /**
-     * Get Config from configWorker and initialize this.cloudProvider using the config
+     * Get failover discovery (update cloud provider addresses and routes)
+     *
+     * @param {Object} trafficGroups - The traffic groups to discover local and failover addresses
+     *
+     * @returns {Promise}
      */
+    _getFailoverDiscovery(trafficGroups) {
+        logger.info('Performing Failover - discovery');
+        const selfAddresses = this._getSelfAddresses(this.selfAddresses, trafficGroups);
+        const virtualAddresses = this._getVirtualAddresses(this.virtualAddresses, trafficGroups);
+        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
 
-    _getConfigAndInitializeCloudProvider() {
-        return configWorker.getConfig()
-            .then((data) => {
-                this.config = data;
-                if (!this.config.environment) {
-                    return Promise.reject(new Error('Environment not provided'));
-                }
+        this.localAddresses = addresses.localAddresses;
+        this.failoverAddresses = addresses.failoverAddresses;
 
-                this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                return this.cloudProvider.init({
-                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
-                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
-                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: constants.SELF_IPS_TAG,
-                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
-                });
+        const discoverActions = [
+            this.cloudProvider.updateAddresses({
+                localAddresses: this.localAddresses,
+                failoverAddresses: this.failoverAddresses,
+                discoverOnly: true
+            }),
+            this.cloudProvider.updateRoutes({
+                localAddresses: this.localAddresses,
+                discoverOnly: true
             })
-            .catch((err) => {
-                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                return Promise.reject(new Error(errorMessage));
-            });
+        ];
+        return Promise.all(discoverActions);
     }
+
+    /**
+     * Get failover recovery
+     *
+     * @param {Object} taskResponse - taskResponse with state of the recovery failover operations
+     *
+     * @returns {Promise}
+     */
+    _getFailoverRecovery(taskResponse) {
+        logger.info('Performing Failover - recovery');
+        const recoveryOptions = {};
+        this.recoverPreviousTask = true;
+        this.recoveryOperations = taskResponse.state.failoverOperations;
+        recoveryOptions.taskState = failoverStates.RUN;
+        recoveryOptions.message = 'Failover running';
+        return this._createAndUpdateStateObject(recoveryOptions)
+            .then(() => {
+                logger.warn('Recovering previous task: ', this.recoveryOperations);
+                if (this.recoverPreviousTask === true) {
+                    return Promise.resolve([
+                        this.recoveryOperations.addresses,
+                        this.recoveryOperations.routes
+                    ]);
+                }
+            })
+            .catch(err => Promise.reject(err));
+    }
+
 
     /**
      * Create state object
@@ -248,6 +301,20 @@ class FailoverClient {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
+    }
+
+    /**
+     * Get task state file
+     *
+     * @returns {Promise}
+     */
+    getTaskStateFile() {
+        return this.cloudProvider.downloadDataFromStorage(stateFileName)
+            .then((data) => {
+                logger.silly(`Download stateFile: ${util.stringify(data)}`);
+                return Promise.resolve(data);
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
