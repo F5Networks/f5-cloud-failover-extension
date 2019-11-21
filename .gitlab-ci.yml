@@ -416,7 +416,7 @@ docs to production:
         variables:
             # Currently will only deploy to clouddocs.f5networks.com on commits to docs_produciton branch
             # note: master should be added here when ready to publish externally
-            - $CI_COMMIT_REF_NAME == "docs_production"
+            - $CI_COMMIT_REF_NAME == "master"
     tags:
         - cm-official-docker-executor
     dependencies:

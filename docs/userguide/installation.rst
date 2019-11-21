@@ -10,7 +10,6 @@ Downloading the RPM file
 ------------------------
 The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file.
 
-.. NOTE:: During beta release the RPM is available on |artifactory|.
 
 
 Verifying the integrity of the Cloud Failover RPM package
@@ -92,7 +91,7 @@ Copy the following commands to install the package.
 
 Updating Cloud Failover
 -----------------------
-When F5 releases a new version of Cloud Failover, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click Import and then select the new RPM, the system recognizes you are upgrading CF.
+When F5 releases a new version of Cloud Failover, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click **Import** and then select the new RPM, the system recognizes you are upgrading Cloud Failover.
 
 
 Reverting to a previous version of Cloud Failover
@@ -101,7 +100,7 @@ If you need to revert to a previous version of Cloud Failover, you must first re
 
 On the BIG-IP user interface, click :guilabel:`iApps > Package Management LX > f5-cloud-failover > Uninstall`  
 
-After you uninstall, you can import the RPM for the version of Cloud Failover you want to use.
+After you uninstall, you can use the above steps to import the RPM for the version of Cloud Failover you want to use.
 
 
 |
@@ -113,7 +112,7 @@ After you uninstall, you can import the RPM for the version of Cloud Failover yo
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
 
 
 .. |artifactory| raw:: html

@@ -1,6 +1,6 @@
 Troubleshooting
 ===============
-Use this section to read about known issues and for common troubleshooting steps. 
+Use this section to read about known issues and for common troubleshooting steps. To provide feedback on this documentation, you can file a |github|.
 
 Cloud Failover general troubleshooting tips
 -------------------------------------------
@@ -35,4 +35,4 @@ If you receive this error, see :doc:`installation` to install or re-install Clou
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">GitHub Issue</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>

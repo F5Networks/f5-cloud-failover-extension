@@ -44,9 +44,21 @@ up and running with Cloud Failover.
 
 6. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
 
-7. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to your infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. 
+7. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
+
+.. code-block:: shell
+
+  "failoverAddresses": {
+          "scopingTags": {
+            "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
+          }
+
+
 
 8. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
+
+9. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
+
 
 Quick Start Example
 -------------------
@@ -92,10 +104,10 @@ You will receive a response from Postman that looks like this example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
 
    
 .. |known-issues| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover/issues" target="_blank">Known Issues on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
 

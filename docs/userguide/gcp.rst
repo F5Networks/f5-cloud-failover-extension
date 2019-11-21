@@ -3,7 +3,7 @@
 Google Cloud
 ============
 
-
+In this section, you can see a failover event diagram, example declaration, and requirements for implementing Cloud Failover in Google Cloud. 
 
 Failover Event Diagram
 ----------------------
@@ -11,53 +11,6 @@ Failover Event Diagram
 This diagram shows a failover event with Cloud Failover implemented in Google Cloud. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
 
 .. image:: ../images/gcp/GCPFailoverExtensionHighLevel.gif
-  :width: 800
-
-
-
-Prerequisites
--------------
-These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
-
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
-- **A GCP Identity and Access Management (IAM) service account with sufficient access**. See the instructions below for creating and assigning an IAM role.
-- **A storage bucket for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
-
-  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
-- **Instances tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration**.
-- **Virtual addresses created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic**.
-- **Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic**. 
-- **Route(s) in a route table tagged with**:
-
-  - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-  - a special key call `f5_self_ips` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
-  
-  Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
-
-
-
-Creating and assigning an IAM Role
-``````````````````````````````````
-To create and assign an IAM role you must have a user role of `Editor`.
-
-1. In GCP, go to **IAM > Roles** and create the member with the following scopes:
-
-- compute-rw
-- storage-rw
-- cloud-platform
-
-For example:
-
-.. image:: ../images/gcp/GCPIAMRoleSummary.png
-  :width: 800
-
-
-2. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select Edit, and then update the Service Account.
-
-For example:
-
-.. image:: ../images/gcp/GCPIAMRoleAssignedToInstance.png
   :width: 800
 
 
@@ -95,6 +48,57 @@ This example declaration shows the minimum information needed to update the clou
     }
 
 
+Requirements
+------------
+These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
+
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
+- **A GCP Identity and Access Management (IAM) service account with sufficient access**. See the instructions below for creating and assigning an IAM role.
+- **A storage bucket for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
+
+  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
+
+- **Instances tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration**.
+- **Virtual addresses created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic**.
+- **Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic**. 
+- **Route(s) in a route table tagged with**:
+
+  - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+  - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster to which the routes should point. For example: ``10.0.0.10,10.0.0.11``
+  
+  .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
+
+
+
+Creating and assigning an IAM Role
+``````````````````````````````````
+To create and assign an IAM role you must have a user role of `Editor`.
+
+1. In GCP, go to **IAM > Roles** and create the member with the following scopes:
+
+- compute-rw
+- storage-rw
+- cloud-platform
+
+For example:
+
+.. image:: ../images/gcp/GCPIAMRoleSummary.png
+  :width: 800
+
+
+2. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select Edit, and then update the Service Account.
+
+For example:
+
+.. image:: ../images/gcp/GCPIAMRoleAssignedToInstance.png
+  :width: 800
+
+
+
+
+.. NOTE:: To provide feedback on this documentation, you can file a |issue|.
+
+
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover site on GitHub</a>
@@ -102,3 +106,7 @@ This example declaration shows the minimum information needed to update the clou
 .. |gdmtemplate| raw:: html
 
    <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
+
+.. |issue| raw:: html
+
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
