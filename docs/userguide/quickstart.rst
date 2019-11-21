@@ -18,7 +18,7 @@ up and running with Cloud Failover.
 - :guilabel:`Main tab > iApps > Package Management LX > Import`
 
 .. image:: ../images/cloud-failover-import.png
-  :width: 1000 
+  :width: 800 
 
 - Select the downloaded file and click :guilabel:`Upload`
 - For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`
