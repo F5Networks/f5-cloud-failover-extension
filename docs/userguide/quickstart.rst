@@ -11,7 +11,7 @@ up and running with Cloud Failover.
 
    Cloud Failover extension supports BIG-IP version 14.1.X and later.
 
-1. Download the latest RPM package from |github| in the **dist** directory.
+1. Download the latest RPM package from |github| in the releases section.
 
 2. Upload and install the RPM package on the using the BIG-IP GUI:
 

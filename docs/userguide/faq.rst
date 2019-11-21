@@ -93,7 +93,7 @@ You can use |issues| to submit feature requests or problems with Cloud Failover.
 
 .. |atomic| raw:: html
 
-   <a href="https://www.techopedia.com/definition/3466/atomic-operation" target="_blank">atomic</a>
+   <a href="https://www.techopedia.com/definition/3466/atomic-operation" target="_blank">Atomic</a>
 
 
 .. |github| raw:: html

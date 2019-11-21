@@ -100,11 +100,11 @@ For example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">GitHub</a>
+   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">GitHub</a>
 
 .. |cloudformation| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">here</a>
+   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">here</a>
 
 
 .. |issue| raw:: html

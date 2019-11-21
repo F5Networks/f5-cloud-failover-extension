@@ -61,7 +61,7 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - **Network Interfaces** that are tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
-- **Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic**
+- **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - **Route(s) in a route table tagged with:**
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
@@ -198,12 +198,12 @@ Using Declarative Onboarding
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">Github</a>
+   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">Github</a>
 
 
 .. |armtemplate| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-lb/3nic/existing-stack/byol" target="_blank">here</a>
+   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-lb/3nic/existing-stack/byol" target="_blank">here</a>
 
 
 .. |managed-identity| raw:: html

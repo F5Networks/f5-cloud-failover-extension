@@ -59,8 +59,8 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - **Instances tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration**.
-- **Virtual addresses created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic**.
-- **Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic**. 
+- **Virtual addresses** created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic.
+- **Forwarding rules(s)** configured with targets that match a virtual address or floating self IP on the instance serving application traffic. 
 - **Route(s) in a route table tagged with**:
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
@@ -83,7 +83,7 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 For example:
 
-.. image:: ../images/gcp/GCPIAMRoleSummary.png
+.. image:: ../images/gcp/GCPIamRoleSummary.png
   :width: 800
 
 
@@ -102,11 +102,11 @@ For example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover site on GitHub</a>
 
 .. |gdmtemplate| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
+   <a href="https://github.com/F5Networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
 
 .. |issue| raw:: html
 
