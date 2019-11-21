@@ -408,7 +408,7 @@ resource "null_resource" "onboard1" {
 # disable phone home - replace this with an update in the DO declaration when ID993 is completed
 resource "null_resource" "disable_phone_home" {
   provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/sys/software/update -d '{\"autoPhonehome\":\"disabled\"}'"
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X PUT -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/sys/software/update -d '{\"autoPhonehome\":\"disabled\"}'"
   }
   triggers = {
     always_run = "${timestamp()}"
@@ -419,7 +419,7 @@ resource "null_resource" "disable_phone_home" {
 # Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual" {
   provisioner "local-exec" {
-    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X PUT -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
   }
   triggers = {
     always_run = "${timestamp()}"
