@@ -104,10 +104,10 @@ You will receive a response from Postman that looks like this example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
 
    
 .. |known-issues| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
 

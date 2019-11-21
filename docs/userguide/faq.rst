@@ -98,11 +98,11 @@ You can use |issues| to submit feature requests or problems with Cloud Failover.
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">GitHub</a>
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">GitHub</a>
 
 
 .. |issues| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issues</a>
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issues</a>
 
 

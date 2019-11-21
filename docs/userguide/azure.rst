@@ -198,12 +198,12 @@ Using Declarative Onboarding
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">Github</a>
+   <a href="https://github.com/F5Devcentral/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">Github</a>
 
 
 .. |armtemplate| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-lb/3nic/existing-stack/byol" target="_blank">here</a>
+   <a href="https://github.com/F5Devcentral/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-lb/3nic/existing-stack/byol" target="_blank">here</a>
 
 
 .. |managed-identity| raw:: html
@@ -213,4 +213,4 @@ Using Declarative Onboarding
 
 .. |issue| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
