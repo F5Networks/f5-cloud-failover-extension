@@ -7,7 +7,8 @@ stages:
     - test_functional_init
     - test_functional_execute
     - test_functional_cleanup
-    - build
+    - build_api_docs
+    - build_docs
     - publish
 
 .helpers: &helpers |
@@ -24,6 +25,7 @@ variables:
     GIT_SECRETS_VERSION: '1.3.0'
     GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
     ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
+    DOCS_BUILD_DIR: "docs/_build/html"
     # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
     AZURE_SECRET: "$AZURE_CLIENT_SECRET"
@@ -296,24 +298,8 @@ test_functional_cleanup_gcp:
 
 ###  End of Functional Tests
 
-build_docs:
-    image: ${CONTAINTHEDOCS_IMAGE}
-    stage: build
-    script:
-        # install packages
-        # - pip install -r requirements.txt
-        # generate docs
-        - make html
-    tags:
-        - docker-executor
-    artifacts:
-        name: docs
-        paths:
-            - docs/_build/html
-        expire_in: 1 month
-
 build_api_docs:
-    stage: build
+    stage: build_api_docs
     script:
         # install packages
         - npm install
@@ -326,6 +312,23 @@ build_api_docs:
         name: docs
         paths:
             - apidocs
+        expire_in: 1 month
+
+build_docs:
+    image: ${CONTAINTHEDOCS_IMAGE}
+    stage: build_docs
+    script:
+        # generate docs
+        - make html
+        # overwrite apidocs html in generated docs folder
+        - API_DOCS_INDEX=${DOCS_BUILD_DIR}/userguide/apidocs.html
+        - cp apidocs/index.html ${API_DOCS_INDEX}
+    tags:
+        - docker-executor
+    artifacts:
+        name: docs
+        paths:
+            - ${DOCS_BUILD_DIR}
         expire_in: 1 month
 
 publish_dev_to_artifactory:
@@ -374,7 +377,7 @@ pages:
         #### place public facing docs under: /public-docs ####
         - PUBLIC_DOCS=${PUBLIC_DIR}/public-docs
         - mkdir -p ${PUBLIC_DOCS}
-        - cp -R docs/_build/html/* ${PUBLIC_DOCS}
+        - cp -R ${DOCS_BUILD_DIR}/* ${PUBLIC_DOCS}
         #### place API docs under: /api-docs ####
         - API_DOCS=${PUBLIC_DIR}/api-docs
         - mkdir -p ${API_DOCS}
@@ -426,7 +429,7 @@ docs to staging:
         - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
         - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
         # Uncomment and set to create desired version format
-        - aws s3 sync docs/_build/html s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
+        - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 
@@ -451,7 +454,7 @@ docs to production:
         - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
         - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
         # Uncomment and set to create desired version format
-        - aws s3 sync docs/_build/html s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest --profile=docs
+        - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest --profile=docs
         # create invalidation to clear cloudfront cache
         - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 

@@ -50,6 +50,7 @@ User Guide Index
    userguide/aws
    userguide/gcp
    userguide/example-declarations
+   userguide/apidocs
    userguide/troubleshooting
    revision-history
 
