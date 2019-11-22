@@ -117,8 +117,3 @@ After you uninstall, you can use the above steps to import the RPM for the versi
 .. |release| raw:: html
 
    <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">Release section</a>
-
-
-.. |artifactory| raw:: html
-
-   <a href="https://artifactory.f5.com/artifactory/list/ecosystems-f5-cloud-failover-rpm/" target="_blank">Artifactory</a>
