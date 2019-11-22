@@ -1,8 +1,7 @@
 ## Support Information
 
 Because F5 Failover Extension is on the F5devcentral repository, it is currently 
-community-supported. If you encounter a problem, you can file a GitHub issue 
-or use our slack channel for assistance.
+community-supported. If you encounter a problem, please file a [GitHub Issue](https://github.com/f5devcentral/f5-cloud-failover-extension/issues).
 
 Maintenance and F5 Technical Support of the F5 code is provided only if the
 software (i) is unmodified; and (ii) has been marked as F5 Supported in
