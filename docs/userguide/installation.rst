@@ -8,7 +8,7 @@ The Cloud Failover package is an RPM file you download, and then upload to the B
 
 Downloading the RPM file
 ------------------------
-The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file.
+The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file, found in the |release|.
 
 
 
@@ -22,7 +22,7 @@ You can get a checksum for a particular RPM by running one of the following comm
 
 - Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
 
-You can compare the checksum produced by that command against the **.sha256** file in the **dist** directory (https://github.com/F5Devcentral/f5-cloud-failover-extension/tree/master/dist). 
+You can compare the checksum produced by that command against the **.sha256** file (https://github.com/f5devcentral/f5-cloud-failover-extension/releases). 
 
 .. WARNING:: Do not continue if the hash does not match.
 
@@ -113,6 +113,10 @@ After you uninstall, you can use the above steps to import the RPM for the versi
 .. |github| raw:: html
 
    <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
+
+.. |release| raw:: html
+
+   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">Release section</a>
 
 
 .. |artifactory| raw:: html

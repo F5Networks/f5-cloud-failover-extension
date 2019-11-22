@@ -11,7 +11,7 @@ up and running with Cloud Failover.
 
    Cloud Failover extension supports BIG-IP version 14.1.X and later.
 
-1. Download the latest RPM package from |github| in the releases section.
+1. Download the latest RPM package from |github|.
 
 2. Upload and install the RPM package on the using the BIG-IP GUI:
 
@@ -104,7 +104,7 @@ You will receive a response from Postman that looks like this example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover site on GitHub</a>
 
    
 .. |known-issues| raw:: html

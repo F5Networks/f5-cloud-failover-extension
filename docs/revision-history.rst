@@ -11,9 +11,9 @@ Document Revision History
         - Description
         - Date
       
-      * - 0.9.0
+      * - 0.9.1
         - Documentation for the initial release of F5 Cloud Failover Extension
-        - 11-21-19
+        - 11-22-19
 
 
 
