@@ -3,7 +3,7 @@
 Postman Collection
 ==================
 
-Download the F5 Cloud Failover Extension Postman Collection |postman_collection_download|.
+You can use a RESTful API client like Postman to configure F5 Cloud Failover Extension. Download the F5 Cloud Failover Extension Postman Collection |postman_collection_download|.
 
 .. |postman_collection_download| raw:: html
 
