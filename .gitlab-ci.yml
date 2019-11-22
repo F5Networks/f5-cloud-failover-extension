@@ -439,9 +439,10 @@ docs to production:
         url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
     only:
         variables:
-            # Currently will only deploy to clouddocs.f5networks.com on commits to docs_produciton branch
+            # Currently will only deploy to clouddocs.f5.com on commits to master and docs_production branch
             # note: master should be added here when ready to publish externally
             - $CI_COMMIT_REF_NAME == "master"
+            - $CI_COMMIT_REF_NAME == "docs_production"
     tags:
         - cm-official-docker-executor
     dependencies:
