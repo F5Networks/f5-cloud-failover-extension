@@ -1,5 +1,4 @@
 # f5-cloud-failover
-[![Slack Status](https://f5cloudsolutions.herokuapp.com/badge.svg)](https://f5cloudsolutions.herokuapp.com)
 [![Releases](https://img.shields.io/github/release/f5devcentral/f5-cloud-failover-extension.svg)](https://github.com/f5devcentral/f5-cloud-failover-extension/releases)
 [![Issues](https://img.shields.io/github/issues/f5devcentral/f5-cloud-failover-extension.svg)](https://github.com/f5devcentral/f5-cloud-failover-extension/issues)
 
@@ -22,11 +21,14 @@ Using Cloud Failover Extension has three main benefits:
 * Standardization: Failover patterns will look similar across all clouds.
 * Portability: You can leverage a variety of methods, including cloud-native templates, Terraform, and Ansible, to install and run CF.
 * Lifecycle and Supportability: You can upgrade BIG-IP without having to call F5 support to fix failover.
-Use the following links, the navigation on the left, and/or the Next and Previous buttons to explore the documentation.
+
+### Where can I download Cloud Failover Extension?
+
+Cloud Failover Extension RPM and checksum files can be found in the [Releases section](https://github.com/f5devcentral/f5-cloud-failover-extension/releases), under Assets.
 
 ## Documentation
 
-For the documentation on Cloud Failover, including download, installation, and usage instructions, see the Cloud Failover User guides at [https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/).
+For the documentation on Cloud Failover, including download, installation, and usage instructions, see the Cloud Failover User guide at [https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/).
 
 ## Filing Issues and Getting Help
 
