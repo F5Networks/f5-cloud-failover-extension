@@ -51,6 +51,7 @@ User Guide Index
    userguide/gcp
    userguide/example-declarations
    userguide/apidocs
+   userguide/postman-collection
    userguide/troubleshooting
    revision-history
 
