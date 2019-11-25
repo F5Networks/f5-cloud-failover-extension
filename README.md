@@ -34,7 +34,7 @@ For the documentation on Cloud Failover, including download, installation, and u
 
 If you come across a bug or other issue when using Cloud Failover, use [GitHub Issues](https://github.com/f5devcentral/f5-cloud-failover-extension/issues) to submit an issue for our team.  You can also see the current known issues on that page, which are tagged with a purple Known Issue label.  
 
-Be sure to see the [Support page](SUPPORT.md) in this repo for more details and supported versions of Cloud Failover.
+F5 Cloud Failover Extension is community-supported. For more information, see the [Support page](SUPPORT.md).
 
 ## Copyright
 
