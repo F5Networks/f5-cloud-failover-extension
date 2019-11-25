@@ -20,33 +20,9 @@ Example Declaration
 -------------------
 This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.  See the :ref:`quickstart` section for steps on how to post this declaration.
 
-.. code-block:: json
-    :linenos:
-
-
-    {
-        "class": "Cloud_Failover",
-        "environment": "gcp",
-        "externalStorage": {
-            "scopingTags": {
-              "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-        "failoverAddresses": {
-            "scopingTags": {
-              "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-        "failoverRoutes": {
-          "scopingTags": {
-            "f5_cloud_failover_label": "mydeployment"
-          },
-          "scopingAddressRanges": [
-            "192.168.1.0/24"
-          ]
-        }
-    }
-
+.. literalinclude:: ../../examples/declarations/gcp.json
+   :language: json
+   :tab-width: 4
 
 Requirements
 ------------

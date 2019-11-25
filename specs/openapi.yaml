@@ -40,13 +40,13 @@ paths:
               environment: azure
               externalStorage:
                 scopingTags:
-                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+                  f5_cloud_failover_label: mydeployment
               failoverAddresses:
                 scopingTags:
-                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+                  f5_cloud_failover_label: mydeployment
               failoverRoutes:
                 scopingTags:
-                  F5_CLOUD_FAILOVER_LABEL: mydeployment
+                  f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - "192.0.2.0/24"
       responses:
@@ -64,13 +64,13 @@ paths:
                   schemaVersion: "0.9.0"
                   externalStorage:
                     scopingTags:
-                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                      f5_cloud_failover_label: mydeployment
                   failoverAddresses:
                     scopingTags:
-                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                      f5_cloud_failover_label: mydeployment
                   failoverRoutes:
                     scopingTags:
-                      F5_CLOUD_FAILOVER_LABEL: mydeployment
+                      f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - "192.0.2.0/24"
         default:
@@ -92,8 +92,8 @@ paths:
               properties:
                 action:
                   type: string
-              example:
-                action: execute
+            example:
+              action: execute
       responses:
         "200":
           description: Configuration response
