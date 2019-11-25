@@ -1,11 +1,11 @@
 {
     "item": [
         {
-            "id": "07637d6a-7500-4f1e-b26a-bb8b935a8aeb",
+            "id": "c795da21-4995-4418-b5e1-635658353a51",
             "name": "declare",
             "item": [
                 {
-                    "id": "30c61df5-94b1-4d5c-9b69-0c386f86c1a5",
+                    "id": "b3648c6c-4270-4f57-b19a-8717858c4436",
                     "name": "List configuration",
                     "request": {
                         "name": "List configuration",
@@ -27,7 +27,7 @@
                     },
                     "response": [
                         {
-                            "id": "bb33a1b9-4af7-46ce-bf4f-54920a9320fc",
+                            "id": "c55a26bf-2b17-479f-b918-690de4635e71",
                             "name": "Configuration Response",
                             "originalRequest": {
                                 "url": {
@@ -56,7 +56,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "9ea60510-35b8-4c16-b122-4b7a388145c4",
+                            "id": "33329bfd-47de-4d8e-a8ad-7597ba1cfed0",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -88,7 +88,7 @@
                     "event": []
                 },
                 {
-                    "id": "06063e07-0899-47d7-b24c-e8c7ffaecae1",
+                    "id": "ecb7b92e-4f10-4aab-9ae0-6eb61be90615",
                     "name": "Update configuration",
                     "request": {
                         "name": "Update configuration",
@@ -115,12 +115,12 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                         }
                     },
                     "response": [
                         {
-                            "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
+                            "id": "b7810cbc-39fd-4464-9a98-d071055dd2b0",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -142,7 +142,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                 }
                             },
                             "status": "OK",
@@ -158,7 +158,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
+                            "id": "cd7c9dfa-a459-42e5-9b37-122f8b20fd16",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -180,7 +180,7 @@
                                 "method": "POST",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                 }
                             },
                             "status": "Internal Server Error",
@@ -199,11 +199,11 @@
                     "event": []
                 },
                 {
-                    "id": "9e45f694-9bb2-4ebb-962c-3c2a3f3bcb6e",
+                    "id": "0c72283b-d7e0-4b78-998b-547d66ef7ca3",
                     "name": "examples",
                     "item": [
                         {
-                            "id": "94ded7e2-dc48-4ea9-9632-c038fb704731",
+                            "id": "9d62a2b1-444c-4090-9e47-233b6e6acc00",
                             "name": "(AWS) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -230,12 +230,12 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                 }
                             },
                             "response": [
                                 {
-                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
+                                    "id": "b7810cbc-39fd-4464-9a98-d071055dd2b0",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -257,7 +257,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "OK",
@@ -273,7 +273,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
+                                    "id": "cd7c9dfa-a459-42e5-9b37-122f8b20fd16",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -295,7 +295,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"aws\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "Internal Server Error",
@@ -314,7 +314,7 @@
                             "event": []
                         },
                         {
-                            "id": "25ffc414-117b-4cba-81e8-a84f7e4c9dc7",
+                            "id": "034bcb99-9931-4c87-ba68-66a3642b674f",
                             "name": "(AZURE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -341,12 +341,12 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                 }
                             },
                             "response": [
                                 {
-                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
+                                    "id": "b7810cbc-39fd-4464-9a98-d071055dd2b0",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -368,7 +368,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "OK",
@@ -384,7 +384,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
+                                    "id": "cd7c9dfa-a459-42e5-9b37-122f8b20fd16",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -406,7 +406,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"azure\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "Internal Server Error",
@@ -425,7 +425,7 @@
                             "event": []
                         },
                         {
-                            "id": "6faa840f-d44a-4255-943c-3f8c694e7a43",
+                            "id": "2960ecc7-fcc0-45ba-8155-749a1e18c94f",
                             "name": "(GCE) Update configuration",
                             "request": {
                                 "name": "Update configuration",
@@ -452,12 +452,12 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                    "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                 }
                             },
                             "response": [
                                 {
-                                    "id": "f7f477ca-74b5-443c-be18-c8b8f2bf1a51",
+                                    "id": "b7810cbc-39fd-4464-9a98-d071055dd2b0",
                                     "name": "Configuration response",
                                     "originalRequest": {
                                         "url": {
@@ -479,7 +479,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "OK",
@@ -495,7 +495,7 @@
                                     "_postman_previewlanguage": "text"
                                 },
                                 {
-                                    "id": "f261fbcb-8ab0-4abe-b7ab-7e5d2f9d6d7c",
+                                    "id": "cd7c9dfa-a459-42e5-9b37-122f8b20fd16",
                                     "name": "Unexpected Error",
                                     "originalRequest": {
                                         "url": {
@@ -517,7 +517,7 @@
                                         "method": "POST",
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"F5_CLOUD_FAILOVER_LABEL\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
+                                            "raw": "{\n    \"class\": \"Cloud_Failover\",\n    \"environment\": \"gce\",\n    \"externalStorage\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverAddresses\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        }\n    },\n    \"failoverRoutes\": {\n        \"scopingTags\": {\n            \"f5_cloud_failover_label\": \"mydeployment\"\n        },\n        \"scopingAddressRanges\": [\n            \"192.0.2.0/24\"\n        ]\n    }\n}"
                                         }
                                     },
                                     "status": "Internal Server Error",
@@ -542,11 +542,11 @@
             "event": []
         },
         {
-            "id": "32559f77-1cbd-4c7a-9c1b-ce49c4290dd4",
+            "id": "44c65221-ccd2-4549-9428-b8c35dbd7c3e",
             "name": "trigger",
             "item": [
                 {
-                    "id": "06e359b6-18ba-4a7e-8c2e-1c5d2075ff85",
+                    "id": "83fbf932-92eb-487e-a602-a88a000e9dd1",
                     "name": "Trigger failover",
                     "request": {
                         "name": "Trigger failover",
@@ -578,7 +578,7 @@
                     },
                     "response": [
                         {
-                            "id": "c6808a40-ef8e-4d82-9833-ced1d2e0c08f",
+                            "id": "bbc0ce40-c82e-441c-b2ed-65f461038bea",
                             "name": "Configuration response",
                             "originalRequest": {
                                 "url": {
@@ -614,12 +614,88 @@
                             "body": "",
                             "cookie": [],
                             "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "52fb95dc-7d7b-4065-929f-9275be40b96e",
+                            "name": "Failover task failed",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"execute\"\n}"
+                                }
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json; charset=UTF-8"
+                                }
+                            ],
+                            "body": "",
+                            "cookie": [],
+                            "_postman_previewlanguage": "text"
+                        },
+                        {
+                            "id": "87949d91-483c-4d45-9fcc-3e88f85cf41e",
+                            "name": "Unexpected Error",
+                            "originalRequest": {
+                                "url": {
+                                    "path": [
+                                        "trigger"
+                                    ],
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "query": [],
+                                    "variable": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"execute\"\n}"
+                                }
+                            },
+                            "status": "Internal Server Error",
+                            "code": 500,
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n \"taskState\": \"FAILED\",\n \"message\": \"Failover Unexpected Error\",\n \"code\": 400\n}",
+                            "cookie": [],
+                            "_postman_previewlanguage": "json"
                         }
                     ],
                     "event": []
                 },
                 {
-                    "id": "57ee401b-a62b-4117-a4ac-6e31c0f807e1",
+                    "id": "b8d87d2b-7f33-4970-b1c6-325ec829fdf5",
                     "name": "Running failover task state",
                     "request": {
                         "name": "Running failover task state",
@@ -641,7 +717,7 @@
                     },
                     "response": [
                         {
-                            "id": "3f27fd84-be28-446d-9505-919f72de5864",
+                            "id": "d1464e95-1d0d-4c2f-8e0a-d3c8c7274a58",
                             "name": "Failover task was successful",
                             "originalRequest": {
                                 "url": {
@@ -670,7 +746,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "77200863-70c0-44e8-b39d-d16beae72bc3",
+                            "id": "cb8ed114-f242-437d-b14b-263651ea4781",
                             "name": "Failover task is running",
                             "originalRequest": {
                                 "url": {
@@ -699,7 +775,7 @@
                             "_postman_previewlanguage": "json"
                         },
                         {
-                            "id": "3ad65885-baf4-454e-a0ab-41641d68a5fb",
+                            "id": "414611df-bfe0-4fd7-9931-5ce157f61161",
                             "name": "Failover task failed",
                             "originalRequest": {
                                 "url": {
@@ -728,7 +804,7 @@
                             "_postman_previewlanguage": "text"
                         },
                         {
-                            "id": "0ebabe47-10f1-4a23-a710-b9f6ba193ea7",
+                            "id": "1dfc985a-63e2-457c-bd71-5a6bc79dc491",
                             "name": "Unexpected Error",
                             "originalRequest": {
                                 "url": {
@@ -763,7 +839,7 @@
             "event": []
         },
         {
-            "id": "44ccb5e0-3e86-4f10-8ab9-24c59aa8de69",
+            "id": "5a7520b3-43d7-487b-91bf-d7bd989bd218",
             "name": "Reset failover state file",
             "request": {
                 "name": "Reset failover state file",
@@ -795,7 +871,7 @@
             },
             "response": [
                 {
-                    "id": "44f06770-1d2e-4aa4-92b8-9ad6adf080c9",
+                    "id": "1dd3af5a-2e52-4abb-b566-d79c6a4afa10",
                     "name": "Reset State Response",
                     "originalRequest": {
                         "url": {
@@ -833,7 +909,7 @@
                     "_postman_previewlanguage": "text"
                 },
                 {
-                    "id": "cfa75f1d-b6da-44ee-bc99-2339f1c330ab",
+                    "id": "88cb3c3d-5756-4373-b174-8a12c6e56376",
                     "name": "Unexpected Error",
                     "originalRequest": {
                         "url": {
@@ -883,7 +959,7 @@
         }
     ],
     "info": {
-        "_postman_id": "66211790-0b32-4ff4-8508-c0c8b67a432d",
+        "_postman_id": "778521b2-dde6-4315-a1eb-ff4154d43219",
         "name": "Cloud Failover (CF) Extension",
         "version": {
             "raw": "0.9.0",
