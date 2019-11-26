@@ -84,6 +84,10 @@ module.exports = {
         FAIL: 'FAILED',
         RUN: 'RUNNING'
     },
+    BIGIP_STATUS: {
+        ACTIVE: 'active',
+        STANDBY: 'standby'
+    },
     NIC_TAG: 'f5_cloud_failover_nic_map',
     SELF_IPS_TAG: 'f5_self_ips',
     GCP_LABEL_NAME: 'f5_cloud_failover_labels',

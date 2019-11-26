@@ -26,6 +26,7 @@ const constants = require('./constants.js');
 const logger = new Logger(module);
 
 const failoverStates = constants.FAILOVER_STATES;
+const deviceStatus = constants.BIGIP_STATUS;
 const stateFileName = constants.STATE_FILE_NAME;
 const stateFileContents = {
     taskState: failoverStates.PASS,
@@ -90,12 +91,7 @@ class FailoverClient {
         this.recoverPreviousTask = false;
         this.standbyFlag = false;
 
-        return Promise.all([
-            this.device.getGlobalSettings(),
-            this.device.getTrafficGroupsStats(),
-            this.device.getSelfAddresses(),
-            this.device.getVirtualAddresses()
-        ])
+        return this._getDeviceObjects()
             .then((results) => {
                 this.hostname = results[0].hostname;
                 this.trafficGroupStats = results[1];
@@ -118,14 +114,14 @@ class FailoverClient {
                 if (taskResponse && taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
-                const trafficGroups = this._getTrafficGroups(this.trafficGroupStats, this.hostname);
+                const tg = this._getTrafficGroups(this.trafficGroupStats, this.hostname, deviceStatus.ACTIVE);
                 // if no trafficGroups, then the BigIP is in standby
-                if (trafficGroups === null || trafficGroups.length === 0) {
+                if (tg === null || tg.length === 0) {
                     this.standbyFlag = true;
                     return Promise.resolve([{}, {}]);
                 }
                 // return failover discovery if there are trafficGroups (trigger request from active BigIP)
-                return this._getFailoverDiscovery(trafficGroups);
+                return this._getFailoverDiscovery(tg);
             })
             .then((updates) => {
                 this.addressDiscovery = updates[0];
@@ -201,6 +197,60 @@ class FailoverClient {
         return Promise.resolve();
     }
 
+    /**
+     * Returns BIG-IP's current HA status and its associated cloud objects
+     */
+    getFailoverStatusAndObjects() {
+        let result = null;
+        let hostname = null;
+        let trafficGroupStats = null;
+        logger.info('Fetching device info');
+        return this._getDeviceObjects()
+            .then((deviceInfo) => {
+                hostname = deviceInfo[0].hostname;
+                trafficGroupStats = deviceInfo[1];
+                // wait for task - handles all possible states
+                return this._waitForTask();
+            })
+            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo())
+            .then((addressAndRouteInfo) => {
+                logger.debug('Fetching addressAndRouteInfo ', addressAndRouteInfo);
+                result = addressAndRouteInfo;
+                return Promise.resolve();
+            })
+            .then(() => {
+                logger.debug('Fetching traffic groups');
+                const activeTG = this._getTrafficGroups(trafficGroupStats, hostname, deviceStatus.ACTIVE);
+                const standByTG = this._getTrafficGroups(trafficGroupStats, hostname, deviceStatus.STANDBY);
+                result.hostName = hostname;
+                if (activeTG === null || activeTG.length === 0) {
+                    result.deviceStatus = deviceStatus.STANDBY;
+                    result.trafficGroup = standByTG;
+                } else {
+                    result.deviceStatus = deviceStatus.ACTIVE;
+                    result.trafficGroup = activeTG;
+                }
+                return Promise.resolve(result);
+            })
+            .catch((err) => {
+                const errorMessage = `failover.getFailoverStatusAndObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+            });
+    }
+
+    _getDeviceObjects() {
+        return Promise.all([
+            this.device.getGlobalSettings(),
+            this.device.getTrafficGroupsStats(),
+            this.device.getSelfAddresses(),
+            this.device.getVirtualAddresses()
+        ])
+            .then(results => Promise.resolve(results))
+            .catch((err) => {
+                const errorMessage = `failover._getDeviceObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+            });
+    }
 
     /**
      * Get failover discovery (update cloud provider addresses and routes)
@@ -369,16 +419,17 @@ class FailoverClient {
      *
      * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
      * @param {String} hostname          - The hostname of the device
+     * @param {String} failoverStatus    - failover status of the device
      *
      * @returns {Object}
      */
-    _getTrafficGroups(trafficGroupStats, hostname) {
+    _getTrafficGroups(trafficGroupStats, hostname, failoverStatus) {
         const trafficGroups = [];
 
         const entries = trafficGroupStats.entries;
         Object.keys(entries).forEach((key) => {
             const local = entries[key].nestedStats.entries.deviceName.description.indexOf(hostname) !== -1
-                && entries[key].nestedStats.entries.failoverState.description === 'active';
+                && entries[key].nestedStats.entries.failoverState.description === failoverStatus;
 
             if (local) {
                 trafficGroups.push({

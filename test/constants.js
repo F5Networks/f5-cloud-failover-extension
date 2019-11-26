@@ -49,6 +49,7 @@ module.exports = {
     INFO_ENDPOINT: `${BASE_ENDPOINT}/info`,
     TRIGGER_ENDPOINT: `${BASE_ENDPOINT}/trigger`,
     RESET_ENDPOINT: `${BASE_ENDPOINT}/reset`,
+    INSPECT_ENDPOINT: `${BASE_ENDPOINT}/inspect`,
     PKG_NAME: 'f5-cloud-failover',
     DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
     DEPLOYMENT_FILE: 'deployment_info.json',

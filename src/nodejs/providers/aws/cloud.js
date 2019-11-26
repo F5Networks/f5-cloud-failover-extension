@@ -157,6 +157,36 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    getAssociatedAddressAndRouteInfo() {
+        const data = {
+            instance: this.instanceId,
+            addresses: [],
+            routes: []
+        };
+        return Promise.all([
+            this._getElasticIPs({ instanceId: this.instanceId }),
+            this._getRouteTables({ instanceId: this.instanceId })
+        ])
+            .then((result) => {
+                result[0].Addresses.forEach((address) => {
+                    data.addresses.push({
+                        publicIp: address.PublicIp,
+                        privateIp: address.PrivateIpAddress,
+                        associationId: address.AssociationId,
+                        networkInterfaceId: address.NetworkInterfaceId
+                    });
+                });
+                result[1].forEach((route) => {
+                    data.routes.push({
+                        routeTableId: route.RouteTableId,
+                        networkId: route.VpcId
+                    });
+                });
+                return Promise.resolve(data);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
     /**
     * Discover address operations
     *
@@ -164,7 +194,7 @@ class Cloud extends AbstractCloud {
     */
     _discoverAddressOperations() {
         return Promise.all([
-            this._getElasticIPs(this.tags),
+            this._getElasticIPs({ tags: this.tags }),
             this._getPrivateSecondaryIPs()
         ])
             .then((results) => {
@@ -245,7 +275,7 @@ class Cloud extends AbstractCloud {
             .then(networkInterfaceId => Promise.resolve({ routeTable, networkInterfaceId }))
             .catch(err => Promise.reject(err));
 
-        return this._getRouteTables(this.routeTags)
+        return this._getRouteTables({ tags: this.routeTags })
             .then((routeTables) => {
                 const promises = [];
 
@@ -346,26 +376,41 @@ class Cloud extends AbstractCloud {
     /**
      * Fetches the route tables based on the provided tag
      *
-     * @param {Object} tags - List of tags
-     *
+     * @param {Object} options                  - function options
+     * @param {Object} [options.tags]           - object containing tags to filter on { 'key': 'value' }
+     * @param {Object} [options.instanceId]     - object containing instanceId to filter on
      * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
      */
-    _getRouteTables(tags) {
+    _getRouteTables(options) {
+        const tags = options.tags || null;
+        const instanceId = options.instanceId || null;
         const params = {
             Filters: []
         };
-
-        const tagKeys = Object.keys(tags);
-        tagKeys.forEach((tagKey) => {
+        if (tags) {
+            const tagKeys = Object.keys(tags);
+            tagKeys.forEach((tagKey) => {
+                params.Filters.push(
+                    {
+                        Name: `tag:${tagKey}`,
+                        Values: [
+                            tags[tagKey]
+                        ]
+                    }
+                );
+            });
+        }
+        if (instanceId) {
             params.Filters.push(
                 {
-                    Name: `tag:${tagKey}`,
+                    Name: 'route.instance-id',
                     Values: [
-                        tags[tagKey]
+                        instanceId
                     ]
                 }
             );
-        });
+        }
+        this.logger.info('This is params ', params);
         return new Promise((resolve, reject) => {
             this.ec2.describeRouteTables(params)
                 .promise()
@@ -581,27 +626,43 @@ class Cloud extends AbstractCloud {
     /**
      * Returns the Elastic IP address(es) associated with this BIG-IP cluster
      *
-     * @param   {Object}    tags - object containing tags to filter on { 'key': 'value' }
+     * @param {Object} options                  - function options
+     * @param {Object} [options.tags]           - object containing tags to filter on { 'key': 'value' }
+     * @param {Object} [options.instanceId]     - object containing instanceId to filter on
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of Elastic IP(s), or
      *                          rejected if an error occurs
      */
-    _getElasticIPs(tags) {
+    _getElasticIPs(options) {
+        options = options || {};
+        const tags = options.tags || null;
+        const instanceId = options.instanceId || null;
         const params = {
             Filters: []
         };
-
-        const tagKeys = Object.keys(tags);
-        tagKeys.forEach((tagKey) => {
+        if (tags) {
+            const tagKeys = Object.keys(tags);
+            tagKeys.forEach((tagKey) => {
+                params.Filters.push(
+                    {
+                        Name: `tag:${tagKey}`,
+                        Values: [
+                            tags[tagKey]
+                        ]
+                    }
+                );
+            });
+        }
+        if (instanceId) {
             params.Filters.push(
                 {
-                    Name: `tag:${tagKey}`,
+                    Name: 'instance-id',
                     Values: [
-                        tags[tagKey]
+                        this.instanceId
                     ]
                 }
             );
-        });
+        }
         return new Promise((resolve, reject) => {
             this.ec2.describeAddresses(params).promise()
                 .then((data) => {

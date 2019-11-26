@@ -274,6 +274,19 @@ function processRequest(restOperation) {
             util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
         }
         break;
+    case 'inspect':
+        if (method === 'GET') {
+            failover.getFailoverStatusAndObjects()
+                .then((statusAndObjects) => {
+                    util.restOperationResponder(restOperation, 200, statusAndObjects);
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+        } else {
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+        }
+        break;
     case 'info':
         util.restOperationResponder(restOperation, 200, {
             version: constants.VERSION,

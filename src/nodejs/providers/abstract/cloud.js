@@ -56,6 +56,10 @@ class AbstractCloud {
     updateRoutes() {
         throw new Error('Method must be implemented in child class!');
     }
+
+    getAssociatedAddressAndRouteInfo() {
+        throw new Error('Method not implemented for GCP and Azure!');
+    }
 }
 
 module.exports = {
