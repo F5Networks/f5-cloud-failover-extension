@@ -347,4 +347,43 @@ describe('Provider: AWS', () => {
         return checkRouteTable(dutPrimary)
             .catch(err => Promise.reject(err));
     });
+
+    it('Should retrieve addresses and routes for primary (vm0)', function () {
+        this.retries(RETRIES.LONG);
+        const expectedResult = {
+            address: [{
+                privateIp: dutPrimary.ip
+            }],
+            instance: dutPrimary.instanceId,
+            hostName: dutPrimary.hostname
+        };
+        return funcUtils.getInspectStatus(dutPrimary.ip,
+            {
+                authToken: dutPrimary.authData.token
+            })
+            .then((data) => {
+                assert.notStrictEqual(expectedResult, data);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and not routes for secondary (vm1)', function () {
+        this.retries(RETRIES.LONG);
+        const expectedResult = {
+            address: [{
+                privateIp: dutSecondary.ip
+            }],
+            instance: dutSecondary.instanceId,
+            hostName: dutSecondary.hostname
+        };
+        return funcUtils.getInspectStatus(dutSecondary.ip,
+            {
+                authToken: dutSecondary.authData.token
+            })
+            .then((data) => {
+                assert.notStrictEqual(expectedResult, data);
+                assert.strictEqual(data.routes.length, 0);
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

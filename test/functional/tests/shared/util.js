@@ -137,11 +137,28 @@ module.exports = {
         return utils.makeRequest(host, uri, httpOptions)
             .then((data) => {
                 if (options.taskState !== data.taskState
-                || data.instance.indexOf(options.hostname) === -1) {
+                    || data.instance.indexOf(options.hostname) === -1) {
                     return Promise.resolve(false);
                 }
                 return Promise.resolve(true);
             })
             .catch(err => Promise.reject(err));
+    },
+
+    /**
+     * Get request to the inspect endpoint of a BIG-IP
+     *
+     * @param {String}  host                - host address
+     * @param {Object}  options             - function options
+     * @param {String} [options.authToken]  - Authentication token
+     *
+     * @returns {Promise}
+     */
+    getInspectStatus(host, options) {
+        const uri = constants.INSPECT_ENDPOINT;
+        options = options || {};
+        const httpOptions = this.makeOptions({ authToken: options.authToken });
+        httpOptions.method = 'GET';
+        return utils.makeRequest(host, uri, httpOptions);
     }
 };

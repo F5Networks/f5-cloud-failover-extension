@@ -77,7 +77,8 @@ describe('Failover', () => {
             updateAddresses: () => Promise.resolve({}),
             updateRoutes: () => Promise.resolve({}),
             downloadDataFromStorage: () => Promise.resolve({}),
-            uploadDataToStorage: () => Promise.resolve({})
+            uploadDataToStorage: () => Promise.resolve({}),
+            getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] })
         };
         sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
 
@@ -328,4 +329,20 @@ describe('Failover', () => {
             assert(result);
         })
         .catch(err => Promise.reject(err)));
+
+    it('should get current HA status and mapped cloud objects', () => config.init(restWorker)
+        .then(() => failover.getFailoverStatusAndObjects())
+        .then((data) => {
+            assert.deepStrictEqual({
+                routes: [],
+                addresses: [],
+                hostName: 'some_hostname',
+                deviceStatus: 'active',
+                trafficGroup: [
+                    {
+                        name: 'some_trafficGroup'
+                    }
+                ]
+            }, data);
+        }));
 });
