@@ -61,7 +61,7 @@ Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages
 
 **Does it matter if I use Cloud Failover in same network or across network?**
 
-Cloud Failover is agnostic to same-network and across-network topologies. See the next question for more information.
+Cloud Failover is agnostic to same-network and across-network topologies. However, see the next question for more information regarding AWS.
 
 
 |
