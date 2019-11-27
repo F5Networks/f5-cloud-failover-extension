@@ -14,7 +14,7 @@ Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent 
 -  A |declare| interface for configuring Cloud Failover on BIG-IP
 -  |atomic| (CF declarations)
 
-*BUT... it is not:*
+*but it is NOT:*
 
 -  created to include a graphical interface (GUI)
 
