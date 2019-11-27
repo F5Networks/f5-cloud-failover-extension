@@ -11,12 +11,12 @@ Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent 
 *Cloud Failover is:*
 
 -  A javascript |ilx| plug-in
--  A |declare| interface for configuring telemetry on BIG-IP
+-  A |declare| interface for configuring Cloud Failover on BIG-IP
 -  |atomic| (CF declarations)
 
-*BUT... it is:*
+*BUT... it is not:*
 
--  **not** created to include a graphical interface (GUI)
+-  created to include a graphical interface (GUI)
 
 
 |
@@ -55,6 +55,13 @@ Cloud Failover supports TMOS 14.1.x and later.
 **Can I use this with Application Services Extension (AS3)?** 
 
 Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages tenant partitions and some previous failover solutions did not support inspecting tenant partitions.
+
+|
+
+
+**Does it matter if I use Cloud Failover in same network or across network?**
+
+Cloud Failover is agnostic to same-network and across-network topologies. See the next question for more information.
 
 
 |
@@ -118,12 +125,7 @@ We collect non-personal telemetry data to help improve the Cloud Failover Extens
         ]
     }
 
-|
 
-
-**Does it matter if I use Cloud Failover in same network or across network?**
-
-Cloud Failover is agnostic to same-network and across-network topologies.
 
 |
 
