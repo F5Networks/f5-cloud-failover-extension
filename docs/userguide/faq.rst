@@ -24,7 +24,7 @@ Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent 
 
 **Where can I download Cloud Failover?**
 
-Cloud Failover is available on |github|.
+Cloud Failover is available on |github| in the |releases| section under *Assets*.
 
 
 |
