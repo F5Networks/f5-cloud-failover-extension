@@ -18,13 +18,16 @@
 
 const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
 const assert = require('assert');
+const constants = require('../constants.js');
+
 const Device = require('../../src/nodejs/device');
 
 const mockResults = {
     '/tm/sys/global-settings': ['globalSettings'],
     '/tm/cm/traffic-group/stats': ['trafficGroups'],
     '/tm/net/self': ['selfAddresses'],
-    '/tm/ltm/virtual-address': ['virtualAddresses']
+    '/tm/ltm/virtual-address': ['virtualAddresses'],
+    '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT]
 };
 
 describe('Device', () => {
@@ -151,4 +154,61 @@ describe('Device', () => {
             assert.strictEqual(virtualAddresses, 'virtualAddresses');
         })
         .catch(err => Promise.reject(err)));
+
+    it('validate getDataGroups', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
+            return device.getDataGroups();
+        })
+        .then((dataGroups) => {
+            assert.deepStrictEqual(dataGroups, [constants.DATA_GROUP_OBJECT]);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate getDataGroups with optional name', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
+            return device.getDataGroups({ name: constants.DATA_GROUP_OBJECT.name });
+        })
+        .then((dataGroups) => {
+            assert.deepStrictEqual(dataGroups, { exists: true, data: constants.DATA_GROUP_OBJECT });
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate createDataGroup creates data group', () => {
+        device.getConfig = sinon.stub().resolves([[]]);
+        device.bigip.create = sinon.stub().resolves();
+
+        return device.init()
+            .then(() => device.createDataGroup(
+                constants.DATA_GROUP_OBJECT.name,
+                constants.DATA_GROUP_OBJECT.records
+            ))
+            .then(() => {
+                const createArgs = device.bigip.create.getCall(0).args;
+                assert.deepStrictEqual(createArgs[0], '/tm/ltm/data-group/internal');
+                assert.deepStrictEqual(createArgs[1].name, constants.DATA_GROUP_OBJECT.name);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate createDataGroup updates existing data group', () => {
+        device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
+        device.bigip.modify = sinon.stub().resolves();
+
+        return device.init()
+            .then(() => device.createDataGroup(
+                constants.DATA_GROUP_OBJECT.name,
+                constants.DATA_GROUP_OBJECT.records
+            ))
+            .then(() => {
+                const updateArgs = device.bigip.modify.getCall(0).args;
+                assert.deepStrictEqual(
+                    updateArgs[0],
+                    `/tm/ltm/data-group/internal/${constants.DATA_GROUP_OBJECT.name}`
+                );
+                assert.deepStrictEqual(updateArgs[1].name, constants.DATA_GROUP_OBJECT.name);
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

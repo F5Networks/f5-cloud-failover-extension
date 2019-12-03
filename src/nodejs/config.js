@@ -26,39 +26,28 @@ const PATHS = constants.PATHS;
 
 const logger = new Logger(module);
 
-const DFL_CONFIG_IN_STATE = {
-    config: {},
-    taskState: {}
+const STATE_DATA_GROUP_NAME = 'f5-cloud-failover-state';
+const DFL_OBJECT_IN_STATE = {
+    config: {}
 };
 
 class ConfigWorker {
     constructor() {
-        this.state = DFL_CONFIG_IN_STATE;
+        this.state = DFL_OBJECT_IN_STATE;
         this.validator = new Validator();
-
-        this._restWorker = null;
+        this.device = new Device();
     }
 
     /**
      * Initialize (state, etc.)
      *
-     * @param {Object} restWorker
+     * @returns {Promise} A promise which is resolved when initialization is complete
      */
-    init(restWorker) {
-        this._restWorker = restWorker;
-
-        return new Promise((resolve, reject) => {
-            this._restWorker.loadState(null, (err, state) => {
-                if (err) {
-                    const message = `error loading state: ${err.message}`;
-                    logger.warning(message);
-                    reject(err);
-                }
-                resolve(state);
-            });
-        })
+    init() {
+        return this.device.init()
+            .then(() => this._loadStateFromStore())
             .then((state) => {
-                this.state = state || DFL_CONFIG_IN_STATE;
+                this.state = state;
             })
             .catch((err) => {
                 logger.error(`Could not initialize state: ${util.stringify(err.message)}`);
@@ -69,27 +58,25 @@ class ConfigWorker {
     /**
      * Get Configuration
      *
+     * @returns {Promise} The configuration
      */
     getConfig() {
-        return Promise.resolve(this.state.config);
+        return this._loadStateFromStore()
+            .then(state => Promise.resolve(state.config))
+            .catch(err => Promise.reject(err));
     }
 
     /**
      * Set Configuration
      *
      * @param {Object} config
+     *
+     * @returns {Promise} A promise which is resolved when the configuration has been set
      */
     setConfig(config) {
-        this.state.config = config;
-        // save to persistent storage
-        return new Promise((resolve, reject) => {
-            this._restWorker.saveState(null, this.state, (err) => {
-                if (err) {
-                    reject(err);
-                }
-                resolve();
-            });
-        })
+        this.state.config = config || {};
+
+        return this._saveStateToStore(this.state)
             .catch((err) => {
                 logger.error(`Could not set config: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
@@ -97,33 +84,60 @@ class ConfigWorker {
     }
 
     /**
-     * Get task state
+     * Parse state out of data group
      *
+     * @param {Object} dataGroup - data group object to parse
+     *
+     * @returns {Object} The parsed state object
      */
-    getTaskState() {
-        return Promise.resolve(this.state.taskState);
+    _parseStateFromDataGroup(dataGroup) {
+        let state = DFL_OBJECT_IN_STATE;
+        try {
+            if (dataGroup) {
+                state = JSON.parse(util.base64('decode', dataGroup.records[0].data));
+            }
+        } catch (err) {
+            logger.warn(`Error parsing state: ${err.message}`);
+        }
+        return state;
     }
 
     /**
-     * Set task state
+     * Load stateful configuration from persistent "store"
      *
-     * @param {Object} taskState
+     * @returns {Promise} The loaded configuration
      */
-    setTaskState(taskState) {
-        this.state.taskState = taskState || {};
-        // save to persistent storage
-        return new Promise((resolve, reject) => {
-            this._restWorker.saveState(null, this.state, (err) => {
-                if (err) {
-                    reject(err);
+    _loadStateFromStore() {
+        return this.device.getDataGroups({ name: STATE_DATA_GROUP_NAME })
+            .then((dataGroup) => {
+                if (dataGroup.exists === false) {
+                    return Promise.resolve(DFL_OBJECT_IN_STATE);
                 }
-                resolve();
-            });
-        })
-            .catch((err) => {
-                logger.error(`Could not set task state: ${util.stringify(err.message)}`);
-                return Promise.reject(err);
-            });
+                return Promise.resolve(this._parseStateFromDataGroup(dataGroup.data));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Save stateful configuration to persistent "store"
+     * Saved as a single base64 encoded data group record
+     *
+     * @param {Object} state - the state object to save to store
+     *
+     * @returns {Promise} A promise which is resolved when the configuration is saved
+     */
+    _saveStateToStore(state) {
+        return this.device.createDataGroup(
+            STATE_DATA_GROUP_NAME,
+            [
+                {
+                    name: 'state',
+                    data: util.base64('encode', util.stringify(state))
+                }
+            ]
+        )
+            .then(() => Promise.resolve({ saved: true }))
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -152,7 +166,7 @@ class ConfigWorker {
      * 1) If CF static comment is not in the file append CF trigger call
      * 2) If legacy failover script call is in the file, disable it (comment it out)
      *
-     * @param {String}  scriptPath  - Path to the specific failover trigger script to update
+     * @param {String} scriptPath - Path to the specific failover trigger script to update
      *
      * @returns {Promise} A promise which is resolved when the script update is complete
      *                    or rejected if an error occurs.
@@ -181,7 +195,7 @@ class ConfigWorker {
     /**
      * Process Configuration
      *
-     * @param {Object} body
+     * @param {Object} body - the http request body to process
      */
     processConfigRequest(body) {
         const declaration = Object.assign({}, body);
@@ -193,11 +207,8 @@ class ConfigWorker {
         }
 
         logger.debug('Successfully validated declaration');
-        this.setConfig(declaration);
 
-        this.device = new Device();
-
-        return this.device.init()
+        return this.setConfig(declaration)
             .then(() => this._updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))
             .catch((err) => {

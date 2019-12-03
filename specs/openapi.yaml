@@ -1,6 +1,6 @@
 openapi: "3.0.0"
 info:
-  version: 0.9.0
+  version: 0.9.1
   title: Cloud Failover (CF) Extension
   description: F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the TS Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
@@ -8,6 +8,29 @@ info:
 servers:
   - url: https://192.0.2.1:443/mgmt/shared/cloud-failover
 paths:
+  /info:
+    get:
+      summary: List extension information
+      tags:
+        - Information
+      responses:
+        "200":
+          description: Information Response
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/InformationResponse"
+              example:
+                version: "0.9.1"
+                release: "1"
+                schemaCurrent: "0.9.1"
+                schemaMinimum: "0.9.0"
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /declare:
     get:
       summary: List configuration
@@ -61,7 +84,7 @@ paths:
                 declaration:
                   class: Cloud_Failover
                   environment: azure
-                  schemaVersion: "0.9.0"
+                  schemaVersion: "0.9.1"
                   externalStorage:
                     scopingTags:
                       f5_cloud_failover_label: mydeployment
@@ -252,6 +275,17 @@ components:
               type: array
               items:
                 type: string
+    InformationResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        release:
+          type: string
+        schemaCurrent:
+          type: string
+        schemaMinimum:
+          type: string
     ConfigurationResponse:
       type: object
       properties:

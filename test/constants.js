@@ -16,9 +16,15 @@
 
 'use strict';
 
-const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
-
 const constants = require('../src/nodejs/constants.js');
+
+const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
+const EXAMPLE_DECLARATIONS = {
+    basic: {
+        class: 'Cloud_Failover',
+        environment: 'azure'
+    }
+};
 
 /**
  * Constants used across two or more files
@@ -26,19 +32,17 @@ const constants = require('../src/nodejs/constants.js');
  * @module
  */
 module.exports = {
-    restWorker: {
-        loadState: (first, cb) => { cb(null); },
-        saveState: (first, state, cb) => { cb(null); }
-    },
-    invalidRestWorker: {
-        loadState: (first, cb) => { cb(true); },
-        saveState: (first, state, cb) => { cb(null); }
-    },
-    declarations: {
-        basic: {
-            class: 'Cloud_Failover',
-            environment: 'azure'
-        }
+    declarations: EXAMPLE_DECLARATIONS,
+    DATA_GROUP_OBJECT: {
+        name: 'f5-cloud-failover-store',
+        records: [
+            {
+                name: 'state',
+                data: Buffer.from(
+                    JSON.stringify({ config: EXAMPLE_DECLARATIONS.basic })
+                ).toString('base64')
+            }
+        ]
     },
     REQUEST: {
         PORT: 443,
@@ -55,7 +59,7 @@ module.exports = {
     DEPLOYMENT_FILE: 'deployment_info.json',
     FAILOVER_STATES: constants.FAILOVER_STATES,
     RETRIES: {
-        LONG: 1000,
+        LONG: 500,
         MEDIUM: 100,
         SHORT: 10
     },

@@ -91,8 +91,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
         error();
     }
 
-    // init config worker - makes functions from restWorker available, etc.
-    configWorker.init(this)
+    configWorker.init()
         .then(() => configWorker.getConfig())
         .then((config) => {
             // failover can only be initialized if a configuration has already been provided

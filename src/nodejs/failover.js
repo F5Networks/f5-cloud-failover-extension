@@ -56,9 +56,10 @@ class FailoverClient {
      */
     init() {
         logger.info('Performing failover - init');
+
         return configWorker.getConfig()
             .then((data) => {
-                logger.debug(`config: ${JSON.stringify(data)}`);
+                logger.debug(`config: ${util.stringify(data)}`);
                 this.config = data;
                 if (!this.config) {
                     logger.debug('can\'t find config.environment');
@@ -334,10 +335,10 @@ class FailoverClient {
     /**
      * Create and update state object
      *
-     * @param {Object} [options]            - function options
-     * @param {String} [options.taskState]  - task state
+     * @param {Object} [options]                    - function options
+     * @param {String} [options.taskState]          - task state
      * @param {String} [options.failoverOperations] - failover operations
-     * @param {String} [options.message] - task state message
+     * @param {String} [options.message]            - task state message
      *
      * @returns {Promise}
      */
@@ -346,8 +347,8 @@ class FailoverClient {
         const failoverOperations = options.failoverOperations || {};
         const message = options.message || '';
         const stateObject = this._createStateObject({ taskState, failoverOperations, message });
-        return configWorker.setTaskState(stateObject)
-            .then(() => this.cloudProvider.uploadDataToStorage(stateFileName, stateObject))
+
+        return this.cloudProvider.uploadDataToStorage(stateFileName, stateObject)
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
