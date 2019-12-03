@@ -61,8 +61,7 @@ module.exports = {
     /**
      * Get deployment declaration
      *
-     * @returns {Object} Returns
-     * { deploymentId: foo, environment: bar }
+     * @returns {Object} Returns rendered example declaration
      */
     getDeploymentDeclaration() {
         const environmentInfo = this.getEnvironmentInfo();

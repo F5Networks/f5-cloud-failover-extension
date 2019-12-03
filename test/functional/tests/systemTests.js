@@ -25,7 +25,10 @@ const packageDetails = utils.getPackageDetails();
 const packageFile = packageDetails.name;
 const packagePath = packageDetails.path;
 
-[dutPrimary, dutSecondary].forEach((dut) => {
+const clusterMembers = [dutPrimary, dutSecondary];
+const clusterMemberIps = clusterMembers.map(member => member.ip);
+
+clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
         const dutHost = dut.ip;
         const dutUser = dut.username;
@@ -34,9 +37,7 @@ const packagePath = packageDetails.path;
         let authToken = null;
         let options = {};
 
-        before(() => {
-        });
-        beforeEach(() => utils.getAuthToken(dutHost, dutUser, dutPassword)
+        before(() => utils.getAuthToken(dutHost, dutUser, dutPassword)
             .then((data) => {
                 authToken = data.token;
                 options = {
@@ -45,6 +46,8 @@ const packagePath = packageDetails.path;
                     }
                 };
             }));
+        beforeEach(() => {
+        });
         after(() => {
             Object.keys(require.cache).forEach((key) => {
                 delete require.cache[key];
@@ -74,7 +77,7 @@ const packagePath = packageDetails.path;
         ));
 
         it('should verify installation', function () {
-            this.retries(10);
+            this.retries(constants.RETRIES.LONG);
             const uri = constants.INFO_ENDPOINT;
 
             return utils.makeRequest(dutHost, uri, options)
@@ -136,6 +139,91 @@ const packagePath = packageDetails.path;
                 .then((data) => {
                     data = data || {};
                     assert.strictEqual(data.taskState, 'SUCCEEDED');
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+});
+
+describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () => {
+    before(() => {
+        const promises = [];
+        clusterMembers.forEach((member) => {
+            promises.push(utils.getAuthToken(member.ip, member.username, member.password)
+                .then((authToken) => {
+                    member.authToken = authToken.token;
+                })
+                .catch(err => Promise.reject(err)));
+        });
+        return Promise.all(promises)
+            .catch(err => Promise.reject(err));
+    });
+    beforeEach(() => {
+    });
+    after(() => {
+        Object.keys(require.cache).forEach((key) => {
+            delete require.cache[key];
+        });
+    });
+
+    describe('Should sync configuration', () => {
+        const originalBody = funcUtils.getDeploymentDeclaration();
+        const modifiedBody = funcUtils.getDeploymentDeclaration();
+        modifiedBody.failoverAddresses.scopingTags = { foo: 'bar' };
+
+        it('should post modified declaration (primary)', () => {
+            const host = clusterMembers[0];
+
+            const options = {
+                headers: {
+                    'x-f5-auth-token': host.authToken
+                },
+                method: 'POST',
+                body: modifiedBody
+            };
+
+            return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
+                .then((data) => {
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should get declaration (secondary) and verify it synced', function () {
+            this.retries(constants.RETRIES.SHORT);
+            const host = clusterMembers[1];
+
+            const options = {
+                headers: {
+                    'x-f5-auth-token': host.authToken
+                }
+            };
+
+            return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
+                .then((data) => {
+                    assert.strictEqual(data.message, 'success');
+                    assert.deepStrictEqual(
+                        data.declaration.failoverAddresses.scopingTags,
+                        modifiedBody.failoverAddresses.scopingTags
+                    );
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should post original declaration (primary)', () => {
+            const host = clusterMembers[0];
+
+            const options = {
+                headers: {
+                    'x-f5-auth-token': host.authToken
+                },
+                method: 'POST',
+                body: originalBody
+            };
+
+            return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
+                .then((data) => {
+                    assert.strictEqual(data.message, 'success');
                 })
                 .catch(err => Promise.reject(err));
         });

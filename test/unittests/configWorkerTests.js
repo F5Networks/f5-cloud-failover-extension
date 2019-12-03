@@ -13,21 +13,22 @@
 const assert = require('assert');
 const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
 const constants = require('../constants.js');
-const Device = require('../../src/nodejs/device');
 
 const declaration = constants.declarations.basic;
-const restWorker = constants.restWorker;
-const invalidRestWorker = constants.invalidRestWorker;
 
 describe('Config Worker', () => {
     let config;
     let mockExecuteBigIpBashCmd;
+    let Device;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
+        Device = require('../../src/nodejs/device');
     });
     beforeEach(() => {
         sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
         mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
     });
     after(() => {
@@ -39,13 +40,13 @@ describe('Config Worker', () => {
         sinon.restore();
     });
 
-    it('should process request', () => config.init(restWorker)
+    it('should process request', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
         }));
 
-    it('validate error case for init method', () => config.init(invalidRestWorker)
+    it('validate error case for init method', () => config.init()
         .then(() => {
             // fails in a case when promise is resolved
             assert.fail();
@@ -56,14 +57,10 @@ describe('Config Worker', () => {
         }));
 
     it('validate error case for setConfig method', () => {
-        const mockConfig = {
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').rejects();
 
-        };
-        config._restWorker = sinon.stub();
-        config._restWorker.saveState = sinon.stub().callsFake((first, state, callback) => {
-            callback(true);
-        });
-        return config.setConfig(mockConfig)
+        return config.setConfig({})
             .then(() => {
                 // fails in a case when promise is resolved
                 assert.fail();
@@ -74,7 +71,7 @@ describe('Config Worker', () => {
             });
     });
 
-    it('should reject invalid declaration', () => config.init(restWorker)
+    it('should reject invalid declaration', () => config.init()
         .then(() => config.processConfigRequest({ foo: 'bar' }))
         .then(() => {
             assert.fail('Should throw an error');
@@ -85,7 +82,7 @@ describe('Config Worker', () => {
             return Promise.reject(err);
         }));
 
-    it('should get config', () => config.init(restWorker)
+    it('should get config', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then(() => config.getConfig())
         .then((response) => {
@@ -95,7 +92,8 @@ describe('Config Worker', () => {
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';
         mockExecuteBigIpBashCmd.rejects(new Error(errMsg));
-        return config.init(restWorker)
+
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
             .then(() => {
                 assert.fail('processConfigRequest() should have caught and rejected.');
@@ -120,7 +118,7 @@ describe('Config Worker', () => {
         it('should check failover script(s) get trigger call added', () => {
             mockExecuteBigIpBashCmd.resolves(originalContents);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 4 times, list and update for tgactive/tgrefresh
@@ -136,7 +134,7 @@ describe('Config Worker', () => {
         it('should check failover script(s) do not add trigger call when already added', () => {
             mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${triggerCommand}`);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 2 times, list for tgactive/tgrefresh
@@ -148,7 +146,7 @@ describe('Config Worker', () => {
         it('should check legacy failover script call gets disabled', () => {
             mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND}`);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 4 times, list and update for tgactive/tgrefresh
