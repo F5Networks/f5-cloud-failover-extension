@@ -417,4 +417,43 @@ describe('Provider: GCP', () => {
         return checkRoutes(primarySelfIps)
             .catch(err => Promise.reject(err));
     });
+
+    it('Should retrieve addresses and routes for primary BIG-IP', function () {
+        this.retries(RETRIES.LONG);
+        const expectedResult = {
+            instance: dutPrimary.hostname,
+            address: [{
+                publicIp: dutPrimary.ip
+            }]
+
+        };
+        return funcUtils.getInspectStatus(dutPrimary.ip,
+            {
+                authToken: dutPrimary.authData.token
+            })
+            .then((data) => {
+                assert.notStrictEqual(expectedResult, data);
+                assert(data.routes.length > 0);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and not routes for secondary BIG-IP', function () {
+        this.retries(RETRIES.LONG);
+        const expectedResult = {
+            instance: dutSecondary.hostname,
+            address: [{
+                publicIp: dutSecondary.ip
+            }]
+        };
+        return funcUtils.getInspectStatus(dutSecondary.ip,
+            {
+                authToken: dutSecondary.authData.token
+            })
+            .then((data) => {
+                assert.notStrictEqual(expectedResult, data);
+                assert.strictEqual(data.routes.length, 0);
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

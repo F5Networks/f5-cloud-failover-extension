@@ -1050,7 +1050,8 @@ describe('Provider - AWS', () => {
                 routes: [
                     {
                         routeTableId: '123',
-                        networkId: '123'
+                        networkId: '123',
+                        routeTableName: 'route-123'
                     }
                 ]
             };
@@ -1067,7 +1068,8 @@ describe('Provider - AWS', () => {
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
-                            VpcId: '123'
+                            VpcId: '123',
+                            name: 'route-123'
                         }
                     ]);
                     return provider.getAssociatedAddressAndRouteInfo();

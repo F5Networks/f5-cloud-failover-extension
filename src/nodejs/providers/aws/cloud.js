@@ -18,6 +18,7 @@
 
 const AWS = require('aws-sdk');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 const constants = require('../../constants');
@@ -158,11 +159,8 @@ class Cloud extends AbstractCloud {
     }
 
     getAssociatedAddressAndRouteInfo() {
-        const data = {
-            instance: this.instanceId,
-            addresses: [],
-            routes: []
-        };
+        const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
+        data.instance = this.instanceId;
         return Promise.all([
             this._getElasticIPs({ instanceId: this.instanceId }),
             this._getRouteTables({ instanceId: this.instanceId })
@@ -179,6 +177,7 @@ class Cloud extends AbstractCloud {
                 result[1].forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
+                        routeTableName: route.name,
                         networkId: route.VpcId
                     });
                 });
