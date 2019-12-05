@@ -590,4 +590,95 @@ describe('Provider - GCP', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    describe('function getAssociatedAddressAndRouteInfo', () => {
+        function initMockup() {
+            const expectedData = {
+                instance: 'i-123',
+                addresses: [
+                    {
+                        publicIp: '1.1.1.1',
+                        privateIp: '1.1.1.1',
+                        networkInterfaceId: 'nic0'
+                    }
+                ],
+                routes: []
+            };
+            sinon.replace(provider, '_getLocalMetadata', sinon.fake.returns('i-123'));
+            sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
+            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+            sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+            return expectedData;
+        }
+
+        it('validate return addresses and routes for active device', () => {
+            const expectedData = initMockup();
+            expectedData.routes.push({
+                routeTableId: '123',
+                routeTableName: 'x',
+                networkId: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x'
+            });
+            return provider.init(testPayload)
+                .then(() => {
+                    provider._getVmsByTags = sinon.stub().resolves([{
+                        name: 'i-123',
+                        networkInterfaces: [
+                            {
+                                networkIP: '1.1.1.1',
+                                accessConfigs: [
+                                    {
+                                        natIP: '1.1.1.1'
+                                    }
+                                ],
+                                name: 'nic0'
+                            }
+                        ]
+                    }]);
+                    provider._getRoutes = sinon.stub().resolves(([
+                        {
+                            id: '123',
+                            name: 'x',
+                            network: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x',
+                            nextHopIp: '1.1.1.1'
+                        }
+                    ]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo();
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate return addresses and not routes for standby device', () => {
+            const expectedData = initMockup();
+            return provider.init(testPayload)
+                .then(() => {
+                    provider._getVmsByTags = sinon.stub().resolves([{
+                        name: 'i-123',
+                        networkInterfaces: [
+                            {
+                                networkIP: '1.1.1.1',
+                                accessConfigs: [
+                                    {
+                                        natIP: '1.1.1.1'
+                                    }
+                                ],
+                                name: 'nic0'
+                            }
+                        ]
+                    }]);
+                    provider._getRoutes = sinon.stub().resolves(([]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo();
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
 });

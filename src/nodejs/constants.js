@@ -98,5 +98,10 @@ module.exports = {
     TRIGGER_COMMAND: 'curl -u admin:admin -d {} -X POST http://localhost:8100/mgmt/shared/cloud-failover/trigger',
     LEGACY_TRIGGER_COMMENT: '# Disabled by F5 Failover Extension',
     LEGACY_TRIGGER_COMMAND: '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@f5devcentral/f5-cloud-libs-azure/scripts/failoverProvider.js',
-    STATE_FILE_RESET_MESSAGE: 'Failover state file was reset'
+    STATE_FILE_RESET_MESSAGE: 'Failover state file was reset',
+    INSPECT_ADDRESSES_AND_ROUTES: {
+        instance: null,
+        addresses: [],
+        routes: []
+    }
 };

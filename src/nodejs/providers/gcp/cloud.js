@@ -22,6 +22,7 @@ const { Storage } = require('@google-cloud/storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
@@ -514,6 +515,52 @@ class Cloud extends AbstractCloud {
             }
         });
         return matched;
+    }
+
+    /**
+     * Get the addresses and routes for inspect endpoint
+     *
+     * @returns {Promise} A promise which will be resolved with the array of Big-IP addresses and routes
+     */
+    getAssociatedAddressAndRouteInfo() {
+        const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
+        data.instance = this.instanceName;
+        return Promise.all([
+            this._getVmsByTags(this.tags),
+            this._getRoutes({ tags: this.routeTags })
+        ])
+            .then((result) => {
+                const privateIps = [];
+                result[0].forEach((vm) => {
+                    vm.networkInterfaces.forEach((address) => {
+                        if (vm.name === this.instanceName) {
+                            let vmPublicIp = null;
+                            if (address.accessConfigs) {
+                                vmPublicIp = address.accessConfigs[0].natIP;
+                            }
+                            privateIps.push(address.networkIP);
+                            data.addresses.push({
+                                publicIp: vmPublicIp,
+                                privateIp: address.networkIP,
+                                networkInterfaceId: address.name
+                            });
+                        }
+                    });
+                });
+                result[1].forEach((route) => {
+                    // only show route if the Big-IP instance is active
+                    // by matching the nextHopIp with privateIps of active Big-IP
+                    if (privateIps.includes(route.nextHopIp)) {
+                        data.routes.push({
+                            routeTableId: route.id,
+                            routeTableName: route.name,
+                            networkId: route.network
+                        });
+                    }
+                });
+                return Promise.resolve(data);
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
