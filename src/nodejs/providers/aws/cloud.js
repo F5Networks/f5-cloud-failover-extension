@@ -168,8 +168,8 @@ class Cloud extends AbstractCloud {
             .then((result) => {
                 result[0].Addresses.forEach((address) => {
                     data.addresses.push({
-                        publicIp: address.PublicIp,
-                        privateIp: address.PrivateIpAddress,
+                        publicIpAddress: address.PublicIp,
+                        privateIpAddress: address.PrivateIpAddress,
                         associationId: address.AssociationId,
                         networkInterfaceId: address.NetworkInterfaceId
                     });
@@ -177,7 +177,6 @@ class Cloud extends AbstractCloud {
                 result[1].forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
-                        routeTableName: route.name,
                         networkId: route.VpcId
                     });
                 });
@@ -409,7 +408,6 @@ class Cloud extends AbstractCloud {
                 }
             );
         }
-        this.logger.info('This is params ', params);
         return new Promise((resolve, reject) => {
             this.ec2.describeRouteTables(params)
                 .promise()

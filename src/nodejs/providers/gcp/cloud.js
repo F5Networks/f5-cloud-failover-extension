@@ -540,8 +540,8 @@ class Cloud extends AbstractCloud {
                             }
                             privateIps.push(address.networkIP);
                             data.addresses.push({
-                                publicIp: vmPublicIp,
-                                privateIp: address.networkIP,
+                                publicIpAddress: vmPublicIp,
+                                privateIpAddress: address.networkIP,
                                 networkInterfaceId: address.name
                             });
                         }

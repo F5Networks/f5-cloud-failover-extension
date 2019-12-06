@@ -224,6 +224,12 @@ resource "azurerm_route_table" "route_table" {
     f5_cloud_failover_label = "${module.utils.env_prefix}",
     f5_self_ips = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
+
+}
+
+resource "azurerm_subnet_route_table_association" "subnet_route_table_association" {
+  subnet_id      = "${azurerm_subnet.internal.id}"
+  route_table_id = "${azurerm_route_table.route_table.id}"
 }
 
 resource "azurerm_virtual_machine" "vm0" {
