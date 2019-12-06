@@ -148,6 +148,34 @@ describe('Provider: AWS', () => {
         });
     }
 
+    function getElasticIps(instanceId) {
+        const paramInstanceId = instanceId || null;
+        const params = {
+            Filters: [
+                {
+                    Name: 'tag:f5_cloud_failover_label',
+                    Values: [deploymentInfo.deploymentId]
+                }
+            ]
+        };
+        if (paramInstanceId) {
+            params.Filters.push(
+                {
+                    Name: 'instance-id',
+                    Values: [
+                        paramInstanceId
+                    ]
+                }
+            );
+        }
+
+        return new Promise((resolve, reject) => {
+            ec2.describeAddresses(params).promise()
+                .then(data => resolve(data))
+                .catch(err => reject(err));
+        });
+    }
+
     function getInstanceNics(instanceId) {
         const params = {
             Filters: [
@@ -167,7 +195,8 @@ describe('Provider: AWS', () => {
         });
     }
 
-    function getRouteTableRoutes() {
+    function getRouteTableRoutes(instanceId) {
+        const instanceIdParam = instanceId || null;
         const params = {
             Filters: [
                 {
@@ -176,12 +205,21 @@ describe('Provider: AWS', () => {
                 }
             ]
         };
+        if (instanceIdParam) {
+            params.Filters.push(
+                {
+                    Name: 'route.instance-id',
+                    Values: [
+                        instanceIdParam
+                    ]
+                }
+            );
+        }
 
         return new Promise((resolve, reject) => {
             ec2.describeRouteTables(params).promise()
-                .then((data) => {
-                    const routes = data.RouteTables[0].Routes;
-                    resolve(routes);
+                .then((routeTables) => {
+                    resolve(routeTables.RouteTables);
                 })
                 .catch(err => reject(err));
         });
@@ -202,12 +240,13 @@ describe('Provider: AWS', () => {
             getInstanceNics(instance.instanceId)
         ])
             .then((responses) => {
-                matchRouteTables(responses[0], responses[1]);
+                matchRouteTables(responses[0][0].Routes, responses[1]);
             })
             .catch(err => Promise.reject(err));
     }
 
     // Functional tests
+
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password
@@ -348,21 +387,43 @@ describe('Provider: AWS', () => {
             .catch(err => Promise.reject(err));
     });
 
+
     it('Should retrieve addresses and routes for primary (vm0)', function () {
         this.retries(RETRIES.LONG);
         const expectedResult = {
-            address: [{
-                privateIp: dutPrimary.ip
-            }],
+            addresses: [],
+            routes: [],
             instance: dutPrimary.instanceId,
             hostName: dutPrimary.hostname
         };
-        return funcUtils.getInspectStatus(dutPrimary.ip,
-            {
-                authToken: dutPrimary.authData.token
+        return Promise.all([
+            getElasticIps(dutPrimary.instanceId),
+            getRouteTableRoutes(dutPrimary.instanceId)
+        ])
+            .then((results) => {
+                results[0].Addresses.forEach((address) => {
+                    expectedResult.addresses.push({
+                        publicIpAddress: address.PublicIp,
+                        privateIpAddress: address.PrivateIpAddress,
+                        associationId: address.AssociationId,
+                        networkInterfaceId: address.NetworkInterfaceId
+                    });
+                });
+                results[1].forEach((route) => {
+                    expectedResult.routes.push({
+                        routeTableId: route.RouteTableId,
+                        networkId: route.VpcId
+                    });
+                });
             })
+            .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
+                {
+                    authToken: dutPrimary.authData.token
+                }))
             .then((data) => {
-                assert.notStrictEqual(expectedResult, data);
+                assert.deepStrictEqual(data.instance, expectedResult.instance);
+                assert.deepStrictEqual(data.hostName, expectedResult.hostName);
+                assert.deepStrictEqual(data.routes, expectedResult.routes);
             })
             .catch(err => Promise.reject(err));
     });
@@ -376,13 +437,28 @@ describe('Provider: AWS', () => {
             instance: dutSecondary.instanceId,
             hostName: dutSecondary.hostname
         };
-        return funcUtils.getInspectStatus(dutSecondary.ip,
-            {
-                authToken: dutSecondary.authData.token
+        return Promise.all([
+            getElasticIps(dutSecondary.instanceId),
+            getRouteTableRoutes(dutSecondary.instanceId)
+        ])
+            .then((results) => {
+                results[0].Addresses.forEach((address) => {
+                    expectedResult.addresses.push({
+                        publicIpAddress: address.PublicIp,
+                        privateIpAddress: address.PrivateIpAddress,
+                        associationId: address.AssociationId,
+                        networkInterfaceId: address.NetworkInterfaceId
+                    });
+                });
+                assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
             })
+            .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                {
+                    authToken: dutSecondary.authData.token
+                }))
             .then((data) => {
-                assert.notStrictEqual(expectedResult, data);
-                assert.strictEqual(data.routes.length, 0);
+                assert.deepStrictEqual(data.instance, expectedResult.instance);
+                assert.deepStrictEqual(data.routes, []);
             })
             .catch(err => Promise.reject(err));
     });

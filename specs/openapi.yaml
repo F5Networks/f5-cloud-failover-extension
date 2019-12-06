@@ -237,6 +237,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /inspect:
+    get:
+      summary: List associated cloud objects
+      tags:
+        - Information
+      responses:
+        "200":
+          description: Inspect Response
+          content:
+            "application/json; charset=UTF-8":
+              schema:
+                $ref: "#/components/schemas/InspectResponse"
+              example:
+                instance: "123"
+                addresses: [{
+                  privateIpAddress: "1.1.1.1",
+                  publicIpAddress: "40.40.40.40"
+                }]
+                routes: [{
+                  routeTableId: '123'
+                }]
+                hostName: "failover1.local"
+                deviceStatus: "active"
+                trafficGroup: [
+                {
+                  name: "/Common/traffic-group-1"
+                }]
+        default:
+          description: Unexpected Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     Configuration:
@@ -286,6 +319,27 @@ components:
           type: string
         schemaMinimum:
           type: string
+    InspectResponse:
+      type: object
+      properties:
+        instance:
+          type: string
+        addresses:
+          type: array
+        routes:
+          type: array
+        hostName:
+          type: string
+        deviceStatus:
+          type: string
+          enum:
+            - active
+            - standby
+        trafficGroup:
+          type: array
+          properties:
+            name:
+              type: string
     ConfigurationResponse:
       type: object
       properties:

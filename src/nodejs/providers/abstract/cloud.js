@@ -58,7 +58,7 @@ class AbstractCloud {
     }
 
     getAssociatedAddressAndRouteInfo() {
-        throw new Error('Method not implemented for GCP and Azure!');
+        throw new Error('Method must be implemented in child class!');
     }
 }
 

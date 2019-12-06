@@ -66,12 +66,17 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
         assert.fail('Matching ipconfig not found');
     }
 }
+
+function _filterRouteTablesBasedOnTags(routeTables) {
+    return routeTables.filter(i => i.tags
+        && Object.keys(i.tags).indexOf(routeTagKey) !== -1
+        && i.tags[routeTagKey] === routeTagValue);
+}
+
 function routeMatch(routeTables, selfIps) {
     let match = false;
     // filter
-    routeTables = routeTables.filter(i => i.tags
-        && Object.keys(i.tags).indexOf(routeTagKey) !== -1
-        && i.tags[routeTagKey] === routeTagValue);
+    routeTables = _filterRouteTablesBasedOnTags(routeTables);
     // check
     routeTables.forEach((routeTable) => {
         routeTable.routes.forEach((route) => {
@@ -169,6 +174,29 @@ describe('Provider: Azure', () => {
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
                 routeMatch(routeTables, selfIps);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function getAssociatedRouteTables(selfIps) {
+        const result = [];
+        return networkClient.routeTables.listAll()
+            .then((routeTables) => {
+                // filter
+                routeTables = _filterRouteTablesBasedOnTags(routeTables);
+                // check
+                routeTables.forEach((routeTable) => {
+                    routeTable.routes.forEach((route) => {
+                        if (selfIps.indexOf(route.nextHopIpAddress) !== -1) {
+                            result.push({
+                                routeTableId: routeTable.id,
+                                routeTableName: routeTable.name,
+                                networkId: routeTable.subnets[0].id
+                            });
+                        }
+                    });
+                });
+                return Promise.resolve(result);
             })
             .catch(err => Promise.reject(err));
     }
@@ -305,6 +333,47 @@ describe('Provider: Azure', () => {
         this.retries(RETRIES.MEDIUM);
 
         return checkRouteTables(primarySelfIps)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and routes for primary', function () {
+        this.retries(RETRIES.LONG);
+        let expectedRoutes;
+        return getAssociatedRouteTables(primarySelfIps)
+            .then((routes) => {
+                expectedRoutes = routes;
+            })
+            .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
+                {
+                    authToken: dutPrimary.authData.token
+                }))
+            .then((data) => {
+                assert.ok(data.hostName === dutPrimary.hostname);
+                assert.deepStrictEqual(data.routes, expectedRoutes);
+                data.addresses.forEach((address) => {
+                    if (address.publicIpAddress === '') {
+                        assert.ok(primarySelfIps.includes(address.privateIpAddress));
+                    }
+                });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and not routes for secondary', function () {
+        this.retries(RETRIES.LONG);
+        return funcUtils.getInspectStatus(dutSecondary.ip,
+            {
+                authToken: dutSecondary.authData.token
+            })
+            .then((data) => {
+                assert.deepStrictEqual(data.hostName, dutSecondary.hostname);
+                assert.deepStrictEqual(data.routes, []);
+                data.addresses.forEach((address) => {
+                    if (address.publicIpAddress === '') {
+                        assert.ok(secondarySelfIps.includes(address.privateIpAddress));
+                    }
+                });
+            })
             .catch(err => Promise.reject(err));
     });
 });

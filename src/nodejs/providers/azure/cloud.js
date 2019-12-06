@@ -30,6 +30,7 @@ const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const MAX_RETRIES = require('../../constants').MAX_RETRIES;
 const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 
 const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
@@ -234,6 +235,46 @@ class Cloud extends AbstractCloud {
                         }
                     );
                 }));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get Associated Address and Route Info - Returns associated and route table information
+     *
+     * @returns {Object}
+     */
+    getAssociatedAddressAndRouteInfo() {
+        const localAddresses = [];
+        const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
+        return this._getInstanceMetadata()
+            .then((metadata) => {
+                this.logger.info('Fetching instance metadata');
+                data.instance = metadata.compute.vmId;
+                metadata.network.interface.forEach((nic) => {
+                    data.addresses.push(nic.ipv4.ipAddress[0]);
+                    localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
+                });
+            })
+            .then(() => this._getRouteTables(this.tags))
+            .then((routeTables) => {
+                this.logger.info('Fetching instance route tables');
+                routeTables.forEach((routeTable) => {
+                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
+                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                    routeTable.routes.forEach((route) => {
+                        if (route.nextHopIpAddress === selfIpToUse) {
+                            this.logger.info('this is route', routeTable);
+                            data.routes.push({
+                                routeTableId: routeTable.id,
+                                routeTableName: routeTable.name,
+                                networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
+                            });
+                        }
+                    });
+                });
+                this.logger.info('Returning associated address and route info');
+                return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
     }
@@ -609,23 +650,36 @@ class Cloud extends AbstractCloud {
             });
         })
             .then((routeTables) => {
-                if (tags) {
-                    // filter route tables based on tag(s)
-                    routeTables = routeTables.filter((item) => {
-                        let matchedTags = 0;
-                        const tagKeys = Object.keys(tags);
-                        tagKeys.forEach((key) => {
-                            if (item.tags && Object.keys(item.tags).indexOf(key) !== -1
-                            && item.tags[key] === tags[key]) {
-                                matchedTags += 1;
-                            }
-                        });
-                        return tagKeys.length === matchedTags;
-                    });
-                }
+                // filter route tables based on tag(s)
+                routeTables = this._filterRouteTablesByTag(routeTables, tags);
                 return Promise.resolve(routeTables);
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Filter route tables based on tags
+     *
+     * @param {Object} routeTables        - route tables
+     * @param {Object} tags               - tags to filter on { 'key': 'value' }
+     *
+     * @returns {object} routeTables      - filtered route tables
+     */
+    _filterRouteTablesByTag(routeTables, tags) {
+        if (tags) {
+            routeTables = routeTables.filter((item) => {
+                let matchedTags = 0;
+                const tagKeys = Object.keys(tags);
+                tagKeys.forEach((key) => {
+                    if (item.tags && Object.keys(item.tags).indexOf(key) !== -1
+                        && item.tags[key] === tags[key]) {
+                        matchedTags += 1;
+                    }
+                });
+                return tagKeys.length === matchedTags;
+            });
+        }
+        return routeTables;
     }
 
     /**
