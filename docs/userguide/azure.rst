@@ -38,11 +38,11 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
   
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
-- **Network Interfaces** that are tagged with a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
+- **Network Interfaces** that are tagged with a key and value corresponding to the key and value provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
 - **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - **Route(s) in a route table tagged with:**
 
-  - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+  - a key tag and a value tag corresponding to the key and value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
   - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
   See :ref:`azure-udrtagging` for more information.
@@ -57,11 +57,15 @@ Tagging Azure Network Infrastructure Objects
 Tag your infrastructure with the the labels/value or keys that you sent in your declaration.
 
 
-
 .. _azure-nictagging:
 
 Network Interfaces
 ``````````````````
+For address failover you need two distinct tags:
+
+- Deployment scoping tag: the key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``. 
+- NIC mapping tag: the key is static but the value is user-provided and must match the correcsponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
+
 Within Azure, go to **NIC > Tags**.
 
 The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the NICs.
@@ -81,6 +85,11 @@ In the example below, each external traffic NIC on both BIG-IP systems is tagged
 
 User-Defined routes
 ```````````````````
+For route failover you need two distinct tags:
+
+- Deployment scoping tag: key and value can be anything, defaults to f5_cloud_failover_label:mydeployment in our examples
+-	Self IP mapping tag: the key is static but the value is user-provided and must contain an array of *one* corresponding self IP for each BIG-IP where the next hop should be pointed. For example, ``f5_self_ips:<self IP on BIG-IP 1>,<self IP on BIG-IP 2>``.
+
 Within Azure, go to **Basic UDR > Tags** to set:
 
 - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
