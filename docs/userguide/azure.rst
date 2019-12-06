@@ -73,8 +73,8 @@ The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a s
 
 In the example below, each external traffic NIC on both BIG-IP systems is tagged with:
 
-- Name: f5_cloud_failover_label
-- Value: mydeployment
+- Name: ``f5_cloud_failover_label``, Value: ``mydeployment``
+- Name: ``f5_cloud_failover_nic_map``, Value: ``external``
 
 
 .. image:: ../images/azure/AzureNICTags.png
