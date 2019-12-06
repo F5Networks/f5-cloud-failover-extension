@@ -87,7 +87,7 @@ User-Defined routes
 ```````````````````
 For route failover you need two distinct tags:
 
-- Deployment scoping tag: key and value can be anything, defaults to f5_cloud_failover_label:mydeployment in our examples
+- Deployment scoping tag: key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
 -	Self IP mapping tag: the key is static but the value is user-provided and must contain an array of *one* corresponding self IP for each BIG-IP where the next hop should be pointed. For example, ``f5_self_ips:<self IP on BIG-IP 1>,<self IP on BIG-IP 2>``.
 
 Within Azure, go to **Basic UDR > Tags** to set:
