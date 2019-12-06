@@ -64,11 +64,9 @@ Network Interfaces
 For address failover you need two distinct tags:
 
 - Deployment scoping tag: the key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``. 
-- NIC mapping tag: the key is static but the value is user-provided and must match the correcsponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
+- NIC mapping tag: the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
 
-Within Azure, go to **NIC > Tags**.
-
-The network interfaces should have ``f5_cloud_failover_nic_map`` tagged with a specific value. For example, network interface 1 (nic01) and network interface 2 (nic-02) should be tagged with ``f5_cloud_failover_nic_map: external`` to indicate association between the NICs.
+Within Azure, go to **NIC > Tags** to add two new tags.
 
 
 In the example below, each external traffic NIC on both BIG-IP systems is tagged with:
