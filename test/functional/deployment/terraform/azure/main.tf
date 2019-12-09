@@ -454,7 +454,8 @@ output "deployment_info" {
       }
     ],
     deploymentId: "${module.utils.env_prefix}",
-    environment: "azure"
+    environment: "azure",
+    networkTopology: "sameNetwork"
   }
 }
 

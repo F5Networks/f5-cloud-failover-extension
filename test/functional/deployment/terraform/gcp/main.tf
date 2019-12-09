@@ -436,7 +436,8 @@ output "deployment_info" {
     deploymentId: module.utils.env_prefix,
     environment: "gcp",
     region: "${var.region}",
-    zone: "${var.zone}"
+    zone: "${var.zone}",
+    networkTopology: "sameNetwork"
   }
 }
 

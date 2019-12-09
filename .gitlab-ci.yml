@@ -177,11 +177,18 @@ test_functional_init_azure:
     variables:
         CF_ENV_CLOUD: "azure"
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
 test_functional_init_aws:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
+
+# run functional tests: aws - same network topology
+test_functional_init_aws_same_net:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
 
 # run functional tests: gcp
 test_functional_init_gcp:
@@ -224,13 +231,23 @@ test_functional_execute_azure:
         - test_functional_init_azure
         - build_package
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
 test_functional_execute_aws:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "aws"
     dependencies:
         - test_functional_init_aws
+        - build_package
+
+# run functional tests: aws - same network topology
+test_functional_execute_aws_same_net:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    dependencies:
+        - test_functional_init_aws_same_net
         - build_package
 
 # run functional tests: gcp
@@ -279,13 +296,22 @@ test_functional_cleanup_azure:
     dependencies:
         - test_functional_init_azure
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
 test_functional_cleanup_aws:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "aws"
     dependencies:
         - test_functional_init_aws
+
+# run functional tests: aws - same network topology
+test_functional_cleanup_aws_same_net:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    dependencies:
+        - test_functional_init_aws_same_net
 
 # run functional tests: gcp
 test_functional_cleanup_gcp:

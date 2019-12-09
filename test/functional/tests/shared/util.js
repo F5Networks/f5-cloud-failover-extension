@@ -54,7 +54,8 @@ module.exports = {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            zone: deploymentInfo.zone || null // optional: used by GCP
+            zone: deploymentInfo.zone || null, // optional: used by GCP
+            networkTopology: deploymentInfo.networkTopology || null // optional: used by AWS
         };
     },
 
@@ -123,7 +124,8 @@ module.exports = {
      * @param {Object}  options             - function options
      * @param {String} [options.authToken]  - Authentication token
      * @param {String} [options.hostname]   - hostname
-     * @param {String} [options.taskState]  - taskState
+     * @param {String} [options.taskState]  - taskState to check against, use this or taskStates
+     * @param {Array} [options.taskStates]  - taskStates to check against, use this or taskState
      *
      * @returns {Promise}
      */
@@ -131,11 +133,13 @@ module.exports = {
         const uri = constants.TRIGGER_ENDPOINT;
         options = options || {};
 
+        const taskStates = options.taskStates || [options.taskState] || [];
+
         const httpOptions = this.makeOptions({ authToken: options.authToken });
         httpOptions.method = 'GET';
         return utils.makeRequest(host, uri, httpOptions)
             .then((data) => {
-                if (options.taskState !== data.taskState
+                if (taskStates.indexOf(data.taskState) === -1
                     || data.instance.indexOf(options.hostname) === -1) {
                     return Promise.resolve(false);
                 }

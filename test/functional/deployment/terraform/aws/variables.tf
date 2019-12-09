@@ -31,3 +31,14 @@ variable "admin_username" {
   description = "The admin username for the virtual machine"
   default     = "awsuser"
 }
+
+variable "instance_key_name" {
+  description = "Specify the name of the pre-loaded instance SSH key to use"
+  default     = "dewpt"
+}
+
+variable "use_availability_zones" {
+  description = "Specify if multiple availability zones should be used"
+  default     = true
+  type        = bool
+}
