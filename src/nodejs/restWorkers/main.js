@@ -228,7 +228,6 @@ function processRequest(restOperation) {
                 })
                 .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
-                    logger.silly(`POST taskState: ${util.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
                 .catch((err) => {

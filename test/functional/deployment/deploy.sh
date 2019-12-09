@@ -1,31 +1,77 @@
 #!/bin/bash
-# helper script to deploy infrastructure based on environment
-# usage: ./deploy.sh azure create
+
+# Script to deploy infrastructure based on environment
+# Usage: ./deploy.sh --environment azure --action create
+
+# logs an error and exits
+# usage: log_error_and_exit message
+function log_error_and_exit() {
+    echo "Error: ${1}"
+    exit 1
+}
+
+# Define any global variables
+script_location=$(dirname "$0")
+help=false
+environment=""
+action="create"
+tf_vars_file="terraform.tfvars"
+
+# Define command line usage help
+read -r -d '' USAGE << EOM
+    Usage: $0
+        --help                      Print usage message and exit
+        --environment <string>      Environment to deploy into: azure, aws, gcp
+        --action <string>           Action to take: create, delete, show
+        --project-id <string>       Environment project ID, required for some environments
+
+EOM
+
+# Parse command line arguments
+while [[ $# -gt 0 ]] ; do
+    case "$1" in
+        --help)
+            help=true
+            shift ;;
+        --environment)
+            environment="$2"
+            shift 2 ;;
+        --action)
+            action="$2"
+            shift 2 ;;
+        --project-id)
+            project_id="$2"
+            shift 2 ;;
+        *|--)
+            shift
+            break ;;
+    esac
+done
 
 set -e
 
-environment=${1}
-action=${2:-create}
-script_location=$(dirname "$0")
-
-# validate input(s)
-if [[ -z "$environment" ]]; then
-  echo "Positional parameter 'environment' must be provided"
-  exit 1
+if $help ; then
+    echo "$USAGE"
+    exit
 fi
 
-# validate environment variable(s)
+# cleanup any file(s) from previous runs
+rm -f ${tf_vars_file}
+
+# perform any input validation
+if [[ -z "$environment" ]]; then
+  log_error_and_exit "'environment' must be provided"
+fi
 if [[ ${environment} == "gcp" ]]; then
-    # check for required GCP project ID environment variable
-    if [[ -z "$GOOGLE_PROJECT_ID" ]]; then
-        echo "Environment variable 'GOOGLE_PROJECT_ID' must be provided"
-        exit 1
+    # check for required GCP project ID, via parameter or environment variable
+    project_id="${project_id:-$GOOGLE_PROJECT_ID}"
+    if [[ -z "${project_id}" ]]; then
+        log_error_and_exit "Project ID must be provided, using environment variable 'GOOGLE_PROJECT_ID'"
     fi
-    echo "project_id = \"${GOOGLE_PROJECT_ID}\"" > terraform.tfvars
+    echo "project_id = \"${project_id}\"" >> ${tf_vars_file}
 fi
 if [[ -z "$ARTIFACTORY_SERVER" ]]; then
-    echo "Environment variable 'ARTIFACTORY_SERVER' must be provided"
-    exit 1
+    log_error_and_exit "Environment variable 'ARTIFACTORY_SERVER' must be provided"
 fi
 
 # install python dependencies
@@ -40,7 +86,12 @@ if [[ ${USE_SUDO} == "true" ]]; then
 fi
 tf_command+="terraform"
 
-# support create|delete|show
+# handle some required terraform normalization
+if [[ -n "$CF_ENV_USE_AVAILABILITY_ZONES" ]]; then
+    echo "use_availability_zones = \"${CF_ENV_USE_AVAILABILITY_ZONES}\"" >> ${tf_vars_file}
+fi
+
+# supported actions: create, delete, show
 if [[ ${action} == "create" ]]; then
     ${tf_command} init ${script_location}/terraform/${environment}
     ${tf_command} apply -auto-approve ${script_location}/terraform/${environment}
@@ -53,11 +104,8 @@ elif [[ ${action} == "show" ]]; then
     ${tf_command} output -json
     echo $(${tf_command} output -json) | jq .deployment_info.value -r > deployment_info.json
 else
-    echo "Unknown action: ${action}"
-    exit 1
+    log_error_and_exit "Unknown action: ${action}"
 fi
 
 # perform any cleanup necessary
 deactivate && rm -rf venv
-
-
