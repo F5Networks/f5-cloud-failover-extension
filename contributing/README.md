@@ -349,6 +349,11 @@ All core modules are included inside `../src/nodejs/`
     - Purpose: Define shared variables
 - [util.js](../src/nodejs/util.js)
     - Purpose: Perform common tasks
+---
+### Quick deployment setup
+
+A quick way to see the failover extension in action run ```npm run deployment-setup```. This command builds the cloud failover extension RPM, creates two clustered BIG-IPs in your desired cloud, installs the RPM on the BIG-IPs and runs our functional tests against the created deployments. Once the deployment-setup script has been executed the extension is ready to perform failover on the addresses and routes that were created by the deployment.
+
 
 ---
 ### Testing methodology
