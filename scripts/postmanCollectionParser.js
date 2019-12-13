@@ -2,15 +2,32 @@
 
 const fs = require('fs');
 const uuidv4 = require('uuid/v4');
+const validate = require('jsonschema').validate;
 
 // constants
-const INPUT_FILE = 'examples/generatedPostmanCollection.json';
-const OUTPUT_FILE = 'examples/generatedPostmanCollection.json';
+const INPUT_FILE = 'examples/postmanCollection.json';
+const OUTPUT_FILE = 'examples/postmanCollection.json';
 const ENVIRONMENTS = ['aws', 'azure', 'gce'];
 const COLLECTION_CONSTANTS = {
     DECLARE_ENDPOINT: 'declare',
     UPDATE_REQUEST: 'Update configuration',
     EXAMPLE_FOLDER: 'examples'
+};
+
+const BASIC_AUTH_CONFIG = {
+    type: 'basic',
+    basic: [
+        {
+            key: 'password',
+            value: 'password-123',
+            type: 'string'
+        },
+        {
+            key: 'username',
+            value: 'awsuser',
+            type: 'string'
+        }
+    ]
 };
 
 // Deep copy by converting object to / from JSON
@@ -108,4 +125,26 @@ parsedCollection.item.forEach((item) => {
         item = addExamples(declareEndpoints);
     }
 });
-fs.writeFileSync(OUTPUT_FILE, JSON.stringify(parsedCollection, null, 4));
+
+// Add basic auth config to parent postman configuration
+parsedCollection.auth = BASIC_AUTH_CONFIG;
+
+// Removing auth entry from each request to force auth inheritance from parent
+parsedCollection.item = removeAuthConfig(parsedCollection.item);
+
+function removeAuthConfig(requestObjects) {
+    requestObjects.forEach((requestObject) => {
+        if (requestObject.request !== undefined) {
+            delete requestObject.request.auth;
+            return requestObject;
+        }
+        return removeAuthConfig(requestObject.item);
+    });
+    return requestObjects;
+}
+
+// Validate if parsedCollection is valid JSON
+const parsedCollectionInJson = JSON.stringify(parsedCollection, null, 4);
+if (!validate(parsedCollectionInJson, {}).valid) throw new Error('Generated Postman collection is invalid JSON');
+
+fs.writeFileSync(OUTPUT_FILE, parsedCollectionInJson);

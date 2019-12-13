@@ -375,7 +375,7 @@ Build/publish makes use of GitLab and [.gitlab-ci.yml](../.gitlab-ci.yml) for au
 - Matthe Zinke's ICRDK [development kit](https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/README.md)
 - Vim on BIG-IP (enough said, you know who you are)
 
-Note: See Release Checklist on Confluence for complete details.
+Note: See Release Process snippet in internal repo for complete details.
 
 ---
 ### Public documentation methodology

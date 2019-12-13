@@ -7,7 +7,7 @@ stages:
     - test_functional_init
     - test_functional_execute
     - test_functional_cleanup
-    - build_api_docs
+    - build_api_docs_and_postman_collection
     - build_docs
     - publish
 
@@ -43,6 +43,7 @@ variables:
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
+    POSTMAN_EXAMPLES: 'postman_collection'
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
@@ -83,7 +84,7 @@ build_package:
 # test package against node 4.x
 test_node4:
     stage: test
-    image: node:4  
+    image: node:4
     script:
         - npm install --global npm@5.10.0
         - npm install mocha@5.2.0
@@ -324,7 +325,7 @@ test_functional_cleanup_gcp:
 ###  End of Functional Tests
 
 build_api_docs:
-    stage: build_api_docs
+    stage: build_api_docs_and_postman_collection
     script:
         # install packages
         - npm install
@@ -337,6 +338,21 @@ build_api_docs:
         name: docs
         paths:
             - apidocs
+        expire_in: 1 month
+
+build_postman_collection:
+    stage: build_api_docs_and_postman_collection
+    script:
+        # install packages
+        - npm install
+        # generate postman-collection
+        - npm run make-postman-collection
+    tags:
+        - docker-executor
+    artifacts:
+        name: ${POSTMAN_EXAMPLES}
+        paths:
+            - examples
         expire_in: 1 month
 
 build_docs:
@@ -367,8 +383,16 @@ publish_dev_to_artifactory:
         - RPM_FILE=$(ls dist/new_build/*.rpm)
         - RPM_NAME=$(basename $RPM_FILE)
         - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${RPM_NAME}
+        - echo "Uploading RPM"
         - >-
             UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+        - echo $UPLOAD_RESULT
+        - POSTMAN_COLLECTION_FILE=$(ls examples/postmanCollection.json)
+        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${POSTMAN_EXAMPLES}
+        - echo "Uploading Postman Collection and Examples"
+        - >-
+            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${POSTMAN_COLLECTION_FILE} ${URL})
         - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
         - echo $UPLOAD_RESULT
 
@@ -393,7 +417,7 @@ pages:
     stage: publish
     environment:
         name: staging
-        url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}   
+        url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}
     script:
         - PUBLIC_DIR='./public'
         - mkdir -p ${PUBLIC_DIR}
