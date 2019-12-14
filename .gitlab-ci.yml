@@ -43,7 +43,7 @@ variables:
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
-    POSTMAN_EXAMPLES: 'postman_collection'
+    POSTMAN_EXAMPLES: 'postman-collection'
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
