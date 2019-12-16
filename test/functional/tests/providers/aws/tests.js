@@ -66,9 +66,7 @@ function matchRouteTables(routes, nics) {
     }
 }
 
-describe('Provider: AWS', () => {
-    const privateIpToInstance = {};
-
+describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     let ec2;
 
     before(function () {
@@ -78,19 +76,10 @@ describe('Provider: AWS', () => {
         ec2 = new AWS.EC2();
 
 
-        return getEc2Instances({ Key: 'deploymentId', Value: deploymentInfo.deploymentId })
-            .then((data) => {
-                Object.keys(data).forEach((key) => {
-                    privateIpToInstance[data[key].PublicIpAddress] = {
-                        InstanceId: key,
-                        NetworkInterfaces: data[key].NetworkInterfaces
-                    };
-                });
-            })
-            .then(() => Promise.all([
-                utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
-                utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
-            ]))
+        return Promise.all([
+            utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
+            utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+        ])
             .then((results) => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];
@@ -226,8 +215,21 @@ describe('Provider: AWS', () => {
     }
 
     function checkElasticIP(instance) {
-        return getElasticIpPrivateAddress()
-            .then((privateIp) => {
+        return Promise.all([
+            getElasticIpPrivateAddress(),
+            getEc2Instances({ Key: 'deploymentId', Value: deploymentInfo.deploymentId })
+        ])
+            .then((results) => {
+                const privateIp = results[0];
+                const instanceData = results[1];
+                const privateIpToInstance = {};
+
+                Object.keys(instanceData).forEach((key) => {
+                    privateIpToInstance[instanceData[key].PublicIpAddress] = {
+                        InstanceId: key,
+                        NetworkInterfaces: instanceData[key].NetworkInterfaces
+                    };
+                });
                 matchElasticIpToInstance(privateIp, privateIpToInstance, instance);
             })
             .catch(err => Promise.reject(err));
@@ -287,6 +289,7 @@ describe('Provider: AWS', () => {
 
     it('wait until taskState is success on secondary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
+
         return new Promise(
             resolve => setTimeout(resolve, 5000)
         )
@@ -296,8 +299,8 @@ describe('Provider: AWS', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -333,8 +336,8 @@ describe('Provider: AWS', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -354,8 +357,8 @@ describe('Provider: AWS', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -375,8 +378,8 @@ describe('Provider: AWS', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -398,12 +401,14 @@ describe('Provider: AWS', () => {
 
     it('Should retrieve addresses and routes for primary (vm0)', function () {
         this.retries(RETRIES.LONG);
+
         const expectedResult = {
             addresses: [],
             routes: [],
             instance: dutPrimary.instanceId,
             hostName: dutPrimary.hostname
         };
+
         return Promise.all([
             getElasticIps(dutPrimary.instanceId),
             getRouteTableRoutes(dutPrimary.instanceId)
@@ -438,13 +443,15 @@ describe('Provider: AWS', () => {
 
     it('Should retrieve addresses and not routes for secondary (vm1)', function () {
         this.retries(RETRIES.LONG);
+
         const expectedResult = {
-            address: [{
+            addresses: [{
                 privateIp: dutSecondary.ip
             }],
             instance: dutSecondary.instanceId,
             hostName: dutSecondary.hostname
         };
+
         return Promise.all([
             getElasticIps(dutSecondary.instanceId),
             getRouteTableRoutes(dutSecondary.instanceId)

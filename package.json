@@ -22,7 +22,7 @@
         "deployment-setup": "bash scripts/build_rpm.sh && npm run deployment-create && npm run test-functional",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:443/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --level=debug --method GET",
+        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:443/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/postmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },

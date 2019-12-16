@@ -404,8 +404,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -425,8 +425,8 @@ describe('Provider: GCP', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -446,8 +446,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });

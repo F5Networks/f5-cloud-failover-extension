@@ -648,6 +648,7 @@ describe('Provider - Azure', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
     describe('function getAssociatedAddressAndRouteInfo', () => {
         it('should return addresses and routes for active device ', () => {
             const expectedData = {
@@ -715,6 +716,7 @@ describe('Provider - Azure', () => {
                 })
                 .catch(err => Promise.reject(err));
         });
+
         it('should return addresses and not routes for standby device ', () => {
             const expectedData = {
                 instance: 'vm-1',
