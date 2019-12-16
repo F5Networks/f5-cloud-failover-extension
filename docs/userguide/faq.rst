@@ -75,6 +75,13 @@ Cloud Failover Extension does not currently support AWS Same-AZ. Same AZ failove
 |
 
 
+**Does Cloud Failover Extension support IPV6?**
+
+Cloud Failover Extension does not currently support IPV6.
+
+
+|
+
 **What information does Cloud Failover Extension store?**
 
 Cloud Failover Extension stores the BIG-IP failover IP address and routes in the cloud storage JSON file (example below). For this reason, make sure your cloud store does not have public access.
