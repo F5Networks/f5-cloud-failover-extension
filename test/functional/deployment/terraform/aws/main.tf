@@ -166,42 +166,58 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
   "Version": "2012-10-17",
   "Statement": [
     {
-        "Action": [
-            "ec2:DescribeInstances",
-            "ec2:DescribeInstanceStatus",
-            "ec2:DescribeAddresses",
-            "ec2:AssociateAddress",
-            "ec2:DisassociateAddress",
-            "ec2:DescribeNetworkInterfaces",
-            "ec2:DescribeNetworkInterfaceAttribute",
-            "ec2:DescribeRouteTables",
-            "ec2:ReplaceRoute",
-            "ec2:CreateRoute",
-            "ec2:assignprivateipaddresses",
-            "sts:AssumeRole",
-            "s3:ListAllMyBuckets"
-        ],
-        "Resource": [
-            "*"
-        ],
-        "Effect": "Allow"
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeAddresses",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeNetworkInterfaceAttribute",
+        "ec2:DescribeRouteTables",
+        "ec2:assignprivateipaddresses",
+        "ec2:unassignPrivateIpAddresses",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:ListBucket",
-            "s3:GetBucketTagging"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
-        "Effect": "Allow"
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam:::role/Failover-Extension-IAM-role-${module.utils.env_prefix}",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:PutObject",
-            "s3:GetObject",
-            "s3:DeleteObject"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
-        "Effect": "Allow"
+      "Action": [
+          "ec2:CreateRoute",
+          "ec2:ReplaceRoute"
+      ],
+      "Resource": "arn:aws:ec2:::route-table/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Name": "External Security Group: Failover Extension-${module.utils.env_prefix}"
+        }
+      },
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
+      "Effect": "Allow"
     }
   ]
 }
