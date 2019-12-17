@@ -73,85 +73,116 @@ For example:
 IAM Role Example Declaration
 ````````````````````````````
 
-Below is a more specific example declaration that includes IAM roles.
+Below is an example F5 policy that includes IAM roles.
 
-.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. The customer is responsible for following the provider's IAM best practices.
+.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
 
 .. code-block:: json
 
+    Examples for ec2:ReplaceRoute
+      {
+        "Effect": "Allow",
+        "Action": [
+            "ec2:CreateRoute",
+            "ec2:ReplaceRoute"
+        ],
+        "Resource": "arn:aws:ec2:::route-table/*",
+        "Condition": {
+            "StringEquals": {
+            "ec2:Vpc": "arn:aws:ec2:region:account:vpc/vpc-ec43eb89"
+            }
+        }
+    },
+
+    Or 
     {
-      resource "aws_iam_role_policy" "BigIpPolicy" {
+        "Effect": "Allow",
+        "Action": [
+            "ec2:CreateRoute",
+            "ec2:ReplaceRoute"
+        ],
+        "Resource": "arn:aws:ec2:::route-table/*",
+        "Condition": {
+            "StringEquals": {
+            "ec2:ResourceTag/Owner": "${aws:username}"
+            }
+        }
+    },
+
+
+    ==
+    resource "aws_iam_role_policy" "BigIpPolicy" {
       name = "BigIpPolicy"
       role = "${aws_iam_role.main.id}"
 
       policy = <<EOF
-      {
+    {
       "Version": "2012-10-17",
       "Statement": [
-          {
-              "Action": [
-                  "ec2:DescribeInstances",
-                  "ec2:DescribeInstanceStatus",
-                  "ec2:DescribeAddresses",
-                  "ec2:DescribeNetworkInterfaces",
-                  "ec2:DescribeNetworkInterfaceAttribute",
-                  "ec2:DescribeRouteTables",
-                  "ec2:AssociateAddress",
-                  "ec2:DisassociateAddress",
-                  "ec2:assignprivateipaddresses",
-                  "ec2:unassignPrivateIpAddresses",
-                  "s3:ListAllMyBuckets"
-              ],
-              "Resource": [
-                  "*"
-              ],
-              "Effect": "Allow"
-          },
-          {
-              "Action": [
-                  "sts:AssumeRole"
-              ],
-              "Resource": [
-                  "arn:aws:iam:::role/Failover-Extension-IAM-role-${module.utils.env_prefix}"
-              ],
-              "Effect": "Allow"
-          },
-          {   
-              "Action": [
-                  "ec2:CreateRoute",
-                  "ec2:ReplaceRoute"
-              ],
-              "Resource": [
-                  "arn:aws:ec2:::route-table/*"
-              ],
-              "Condition": {
-                  "StringEquals": {
-                      "ec2:Vpc": "arn:aws:ec2:::vpc/${aws_vpc.main.id}"
-                  }
-              },
-              "Effect": "Allow"
-          },
-          {
-              "Action": [
-                  "s3:ListBucket",
-                  "s3:GetBucketTagging"
-              ],
-              "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
-              "Effect": "Allow"
-          },
-          {
-              "Action": [
-                  "s3:PutObject",
-                  "s3:GetObject",
-                  "s3:DeleteObject"
-              ],
-              "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
-              "Effect": "Allow"
+        {
+        "Effect": "Allow",
+        "Action": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeInstanceStatus",
+            "ec2:DescribeAddresses",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribeNetworkInterfaceAttribute",
+            "ec2:DescribeRouteTables",
+            "ec2:AssociateAddress",
+            "ec2:DisassociateAddress",
+            "ec2:assignprivateipaddresses",
+            "ec2:unassignPrivateIpAddresses",
+            "s3:ListAllMyBuckets"
+        ],
+        "Resource": "*",
+        "Condition": {
+            "StringEquals": {
+            "ec2:ResourceTag/Owner": "${aws:username}"
+            }
+        }
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+            "sts:AssumeRole"
+        ],
+        "Resource": "arn:aws:iam:::role/Failover-Extension-IAM-role-${module.utils.env_prefix}"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "ec2:CreateRoute",
+            "ec2:ReplaceRoute"
+          ],
+          "Resource": "arn:aws:ec2:::route-table/*",
+          "Condition": {
+            "StringEquals": {
+            "ec2:Vpc": "arn:aws:ec2:region:account:vpc/vpc-ec43eb89"
+            }
           }
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:ListBucket",
+            "s3:GetBucketTagging"
+          ],
+          "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject"
+          ],
+          "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*"
+        }
       ]
-      }
-      EOF
     }
+    EOF
+    }
+
 
 
 
