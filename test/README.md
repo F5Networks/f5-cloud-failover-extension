@@ -59,6 +59,23 @@ Delete:
 
 Note: Running terraform commands may require sudo in certain environments, set the following environment variable if necessary - `export USE_SUDO=true`
 
+#### Quick Environment Setup
+
+Creating and configuration of the environment can be done quickly using this command. It builds the cloud failover extension RPM locally, creates the deployment and installs the RPM in the newly created deployment and runs all the functional tests. Once the command has executed look for the `deployment-info.json` file to find the information about the BIG-IPs and its IP address to access them.
+
+Prereq: 
+
+- See Manual Environment Setup prereqs
+
+Select Environment: 
+
+- See Manual Environment Setup, Select Environment section
+
+Setup
+
+- `npm run deployment-setup`
+
+
 ## Misc Notes
 
 - Deploy source code on to the environment BIG-IP(s) using scp: `bash scripts/deploy_source.sh`

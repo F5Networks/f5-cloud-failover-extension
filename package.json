@@ -16,13 +16,14 @@
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
         "test-functional": "mocha --recursive \"./test/functional/tests/testRunner.js\" --opts ./test/.mocha.opts",
-        "deployment-create": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" create",
-        "deployment-delete": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" delete",
-        "deployment-show": "bash test/functional/deployment/deploy.sh \"$CF_ENV_CLOUD\" show",
+        "deployment-create": "bash test/functional/deployment/deploy.sh --environment \"$CF_ENV_CLOUD\" --action create",
+        "deployment-delete": "bash test/functional/deployment/deploy.sh --environment \"$CF_ENV_CLOUD\" --action delete",
+        "deployment-show": "bash test/functional/deployment/deploy.sh --environment \"$CF_ENV_CLOUD\" --action show",
+        "deployment-setup": "bash scripts/build_rpm.sh && npm run deployment-create && npm run test-functional",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
-        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:443/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --level=debug --method GET",
-        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/generatedPostmanCollection.json -p; npm run postprocess-postman-collection",
+        "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:443/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",
+        "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/postmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
     "nyc": {
@@ -56,7 +57,8 @@
         "ipaddr.js": "^1.7.0",
         "ms-rest-azure": "^2.6.0",
         "request": "^2.83.0",
-        "uuid": "^3.3.2"
+        "uuid": "^3.3.2",
+        "jsonschema": "^1.2.5"
     },
     "devDependencies": {
         "@azure/arm-network": "^14.0.0",

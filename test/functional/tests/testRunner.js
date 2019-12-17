@@ -14,12 +14,14 @@ const funcUtils = require('./shared/util.js');
 
 // add test files in a defined order
 const testFiles = [];
-// optionally set env var to ignore system tests
+// system tests
 if (process.env.CF_ENV_SYSTEM_TESTS !== 'ignore') {
     testFiles.push('./systemTests.js');
 }
-// add specific provider test
-testFiles.push(`./providers/${funcUtils.getEnvironmentInfo().environment}/tests.js`);
+// specific provider tests
+if (process.env.CF_ENV_PROVIDER_TESTS !== 'ignore') {
+    testFiles.push(`./providers/${funcUtils.getEnvironmentInfo().environment}/tests.js`);
+}
 
 testFiles.forEach((file) => {
     require(file);

@@ -67,7 +67,6 @@ class FailoverClient {
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                logger.debug(`cloudProvider: ${JSON.stringify(this.cloudProvider)}`);
                 return this.cloudProvider.init({
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),

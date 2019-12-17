@@ -597,8 +597,8 @@ describe('Provider - GCP', () => {
                 instance: 'i-123',
                 addresses: [
                     {
-                        publicIp: '1.1.1.1',
-                        privateIp: '1.1.1.1',
+                        publicIpAddress: '1.1.1.1',
+                        privateIpAddress: '1.1.1.1',
                         networkInterfaceId: 'nic0'
                     }
                 ],

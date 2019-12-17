@@ -224,6 +224,12 @@ resource "azurerm_route_table" "route_table" {
     f5_cloud_failover_label = "${module.utils.env_prefix}",
     f5_self_ips = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
+
+}
+
+resource "azurerm_subnet_route_table_association" "subnet_route_table_association" {
+  subnet_id      = "${azurerm_subnet.internal.id}"
+  route_table_id = "${azurerm_route_table.route_table.id}"
 }
 
 resource "azurerm_virtual_machine" "vm0" {
@@ -416,7 +422,6 @@ resource "null_resource" "disable_phone_home" {
   depends_on = [null_resource.onboard1]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual" {
   provisioner "local-exec" {
     command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
@@ -448,7 +453,8 @@ output "deployment_info" {
       }
     ],
     deploymentId: "${module.utils.env_prefix}",
-    environment: "azure"
+    environment: "azure",
+    networkTopology: "sameNetwork"
   }
 }
 

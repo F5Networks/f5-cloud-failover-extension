@@ -648,4 +648,109 @@ describe('Provider - Azure', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    describe('function getAssociatedAddressAndRouteInfo', () => {
+        it('should return addresses and routes for active device ', () => {
+            const expectedData = {
+                instance: 'vm-1',
+                addresses: [
+                    {
+                        privateIpAddress: '1.1.1.1',
+                        publicIpAddress: '100.100.100.100'
+                    }
+                ],
+                routes: [
+                    {
+                        routeTableId: '/foo/foo/foo/rg01/id_rt01',
+                        routeTableName: 'rt01',
+                        networkId: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+            };
+            const mockInstanceMetadata = {
+                compute: {
+                    vmId: 'vm-1'
+                },
+                network: {
+                    interface: [{
+                        ipv4: {
+                            ipAddress: [{
+                                privateIpAddress: '1.1.1.1',
+                                publicIpAddress: '100.100.100.100'
+                            }]
+                        }
+                    }]
+                }
+
+
+            };
+            const routeTable01 = {
+                id: '/foo/foo/foo/rg01/id_rt01',
+                name: 'rt01',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '1.1.1.1, 2.2.2.2'
+                },
+                routes: [
+                    {
+                        id: 'id_route01',
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '1.1.1.1'
+                    }
+                ],
+                subnets: [
+                    {
+                        id: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+
+            };
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._getRouteTables = sinon.stub().resolves([routeTable01]);
+            provider.routeSelfIpsTag = 'F5_SELF_IPS';
+            return provider.getAssociatedAddressAndRouteInfo()
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should return addresses and not routes for standby device ', () => {
+            const expectedData = {
+                instance: 'vm-1',
+                addresses: [
+                    {
+                        privateIpAddress: '1.1.1.1',
+                        publicIpAddress: '100.100.100.100'
+                    }
+                ],
+                routes: []
+            };
+            const mockInstanceMetadataStandby = {
+                compute: {
+                    vmId: 'vm-1'
+                },
+                network: {
+                    interface: [{
+                        ipv4: {
+                            ipAddress: [{
+                                privateIpAddress: '1.1.1.1',
+                                publicIpAddress: '100.100.100.100'
+                            }]
+                        }
+                    }]
+                }
+            };
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadataStandby);
+            provider._getRouteTables = sinon.stub().resolves([]);
+            provider.routeSelfIpsTag = 'F5_SELF_IPS';
+            return provider.getAssociatedAddressAndRouteInfo()
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
 });

@@ -44,8 +44,14 @@ module.exports = {
     /**
      * Get environment info
      *
-     * @returns {Object} Returns
-     * { deploymentId: 'foo', environment: 'foo', region: 'foo', zone: 'foo' }
+     * @returns {Object} Returns:
+     *  {
+     *      deploymentId: 'foo',
+     *      environment: 'foo',
+     *      region: 'foo',
+     *      zone: 'foo',
+     *      networkTopology: 'foo'
+     *  }
      */
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
@@ -54,7 +60,8 @@ module.exports = {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            zone: deploymentInfo.zone || null // optional: used by GCP
+            zone: deploymentInfo.zone || null, // optional: used by GCP
+            networkTopology: deploymentInfo.networkTopology || null // optional: used by AWS
         };
     },
 
@@ -123,23 +130,26 @@ module.exports = {
      * @param {Object}  options             - function options
      * @param {String} [options.authToken]  - Authentication token
      * @param {String} [options.hostname]   - hostname
-     * @param {String} [options.taskState]  - taskState
+     * @param {String} [options.taskState]  - taskState to check against, use this or taskStates
+     * @param {Array} [options.taskStates]  - taskStates to check against, use this or taskState
      *
-     * @returns {Promise}
+     * @returns {Promise} Resolved with task status: { 'boolean': true, 'taskStateResponse': {} }
      */
     getTriggerTaskStatus(host, options) {
         const uri = constants.TRIGGER_ENDPOINT;
         options = options || {};
 
+        const taskStates = options.taskStates || [options.taskState] || [];
+
         const httpOptions = this.makeOptions({ authToken: options.authToken });
         httpOptions.method = 'GET';
         return utils.makeRequest(host, uri, httpOptions)
             .then((data) => {
-                if (options.taskState !== data.taskState
+                if (taskStates.indexOf(data.taskState) === -1
                     || data.instance.indexOf(options.hostname) === -1) {
-                    return Promise.resolve(false);
+                    return Promise.resolve({ boolean: false, taskStateResponse: data });
                 }
-                return Promise.resolve(true);
+                return Promise.resolve({ boolean: true, taskStateResponse: data });
             })
             .catch(err => Promise.reject(err));
     },

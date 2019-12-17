@@ -349,6 +349,11 @@ All core modules are included inside `../src/nodejs/`
     - Purpose: Define shared variables
 - [util.js](../src/nodejs/util.js)
     - Purpose: Perform common tasks
+---
+### Quick deployment setup
+
+A quick way to see the failover extension in action run ```npm run deployment-setup```. This command builds the cloud failover extension RPM, creates two clustered BIG-IPs in your desired cloud, installs the RPM on the BIG-IPs and runs our functional tests against the created deployments. Once the deployment-setup script has been executed the extension is ready to perform failover on the addresses and routes that were created by the deployment.
+
 
 ---
 ### Testing methodology
@@ -370,7 +375,7 @@ Build/publish makes use of GitLab and [.gitlab-ci.yml](../.gitlab-ci.yml) for au
 - Matthe Zinke's ICRDK [development kit](https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/README.md)
 - Vim on BIG-IP (enough said, you know who you are)
 
-Note: See Release Checklist on Confluence for complete details.
+Note: See Release Process snippet in internal repo for complete details.
 
 ---
 ### Public documentation methodology
