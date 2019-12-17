@@ -9,7 +9,7 @@ up and running with Cloud Failover.
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   Cloud Failover extension supports BIG-IP version 14.1.X and later.
+   Cloud Failover Extension supports BIG-IP version 14.1.X and later.
 
 1. Download the latest RPM package from |github|.
 
@@ -24,7 +24,7 @@ up and running with Cloud Failover.
 - For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`
     
 
-3. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover.
+3. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover Extension.
 
 4. Provide authorization (basic auth) to the BIG-IP system:  
 
@@ -32,7 +32,7 @@ up and running with Cloud Failover.
    - If using cURL, see :ref:`installcurl-ref`.
 
 5. Using a RESTful API client like Postman, send a GET request to the URI
-   ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover is running
+   ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is running
    properly. You should receive an expect response of Success after you have posted this declaration. For example:
 
    .. code-block:: shell
@@ -104,7 +104,7 @@ You will receive a response from Postman that looks like this example:
 
 .. |github| raw:: html
 
-   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover site on GitHub</a>
+   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
 
    
 .. |known-issues| raw:: html

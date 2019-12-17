@@ -8,7 +8,7 @@ In this section, you can see a failover event diagram, example declaration, and 
 Failover Event Diagram
 ----------------------
 
-This diagram shows a failover event with Cloud Failover implemented in AWS. You can see Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device.
+This diagram shows a failover event with CFE implemented in AWS. You can see Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
 .. image:: ../images/aws/AWSFailoverExtensionHighLevel.gif
   :width: 800
@@ -18,7 +18,7 @@ This diagram shows a failover event with Cloud Failover implemented in AWS. You 
 
 Example Declaration
 -------------------
-This example declaration shows the minimum information needed to update the cloud resources in AWS.  See the :ref:`quickstart` section for steps on how to post this declaration.
+This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. literalinclude:: ../../examples/declarations/aws.json
    :language: json
@@ -30,16 +30,16 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
 - **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for creating and assigning an IAM role.
-- **An S3 bucket for Cloud Failover extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
+- **An S3 bucket for Cloud Failover Extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
 
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - Elastic IP addresses tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+    - a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration
     - a special key called `VIPS` containing a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
 
 - Route(s) in a route table tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+    - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
     - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. Example: ``10.0.0.10,10.0.0.11``
   
   .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
