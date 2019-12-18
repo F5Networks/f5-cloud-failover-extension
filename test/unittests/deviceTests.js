@@ -27,6 +27,8 @@ const mockResults = {
     '/tm/cm/traffic-group/stats': ['trafficGroups'],
     '/tm/net/self': ['selfAddresses'],
     '/tm/ltm/virtual-address': ['virtualAddresses'],
+    '/tm/ltm/snat-translation': ['snatTranslationAddress'],
+    '/tm/ltm/nat': ['natAddress'],
     '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT]
 };
 
@@ -152,6 +154,28 @@ describe('Device', () => {
         })
         .then((virtualAddresses) => {
             assert.strictEqual(virtualAddresses, 'virtualAddresses');
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate getSnatTranslationAddresses', () => device.init()
+        .then(() => {
+            const expectedValue = mockResults['/tm/ltm/snat-translation'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getSnatTranslationAddresses();
+        })
+        .then((snatTranslationAddresses) => {
+            assert.strictEqual(snatTranslationAddresses, 'snatTranslationAddress');
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate getNatAddresses', () => device.init()
+        .then(() => {
+            const expectedValue = mockResults['/tm/ltm/nat'];
+            device.getConfig = sinon.stub().resolves(expectedValue);
+            return device.getNatAddresses();
+        })
+        .then((snatTranslationAddresses) => {
+            assert.strictEqual(snatTranslationAddresses, 'natAddress');
         })
         .catch(err => Promise.reject(err)));
 
