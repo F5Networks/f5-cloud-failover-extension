@@ -23,15 +23,49 @@ resource "azurerm_storage_account" "storage_account" {
   }
 }
 
+data "azurerm_subscription" "primary" {}
+
+resource "azurerm_role_definition" "azurerm_role_def" {
+  name        = "AzContributor"
+  scope       = "${data.azurerm_subscription.primary.id}"
+  description = "Manage VM actions, network, read storage, not access to resources."
+  
+  permissions {
+    actions = [
+      "Microsoft.Authorization/*/read",
+      "Microsoft.Compute/locations/*",
+      "Microsoft.Compute/virtualMachines/*",
+      "Microsoft.Network/*",
+      "Microsoft.Resources/deployments/*",
+      "Microsoft.Resources/subscriptions/resourceGroups/read",
+      "Microsoft.Storage/storageAccounts/listKeys/action",
+      "Microsoft.Storage/storageAccounts/read"    
+    ]
+    not_actions = [
+      "Microsoft.Authorization/*/Delete",
+      "Microsoft.Authorization/*/Write",
+      "Microsoft.Authorization/elevateAccess/Action",
+      "Microsoft.Blueprint/blueprintAssignments/write",
+      "Microsoft.Blueprint/blueprintAssignments/delete"
+    ]
+    data_actions = []
+    not_data_actions = []
+  }
+
+  assignable_scopes = [
+    "${data.azurerm_subscription.primary.id}"
+  ]
+}
+
 resource "azurerm_role_assignment" "vm0_assignment" {
-  scope                 = "${azurerm_resource_group.deployment.id}"
-  role_definition_name  = "Contributor"
+  scope                 = "${data.azurerm_subscription.primary.id}"
+  role_definition_id    = "${azurerm_role_definition.azurerm_role_def.id}"
   principal_id          = "${lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")}"
 }
 
 resource "azurerm_role_assignment" "vm1_assignment" {
-  scope                 = "${azurerm_resource_group.deployment.id}"
-  role_definition_name  = "Contributor"
+  scope                 = "${data.azurerm_subscription.primary.id}"
+  role_definition_id    = "${azurerm_role_definition.azurerm_role_def.id}"
   principal_id          = "${lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")}"
 }
 

@@ -175,8 +175,8 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeNetworkInterfaceAttribute",
         "ec2:DescribeRouteTables",
-        "ec2:assignprivateipaddresses",
-        "ec2:unassignPrivateIpAddresses",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
         "s3:ListAllMyBuckets"
       ],
       "Resource": "*",
