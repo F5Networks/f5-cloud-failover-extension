@@ -29,21 +29,42 @@ Requirements
 These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
-- **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for creating and assigning an IAM role.
-- **An S3 bucket for Cloud Failover extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
+- **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for :ref:`aws-iam`.
+- **An S3 bucket for Cloud Failover extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) to provide in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
 
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
-- Elastic IP addresses tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
-    - a special key called `VIPS` containing a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
-
-- Route(s) in a route table tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. Example: ``10.0.0.10,10.0.0.11``
+- **Route(s) in a route table** tagged with:
+    - a key/value corresponding to the key/value(s) to provide in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
+    - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``.
   
   .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
+  
 
+- **If provisioning Same Network Topology, you will need**:
+
+  - Network Interfaces tagged with:
+
+    - a key/value corresponding to the key/value(s) to provide in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+    - a special key called ``f5_cloud_failover_nic_map``. This key is a NIC mapping tag where the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
+
+  - to disable the built-in script (/usr/libexec/aws/aws-failover-tgactive.sh) from a BIG-IP shell, either manually or using automation:
+
+    .. code-block:: bash
+
+      mount -o remount,rw /usr
+      mv /usr/libexec/aws/aws-failover-tgactive.sh /usr/libexec/aws/aws-failover-tgactive.sh.disabled
+      mount -o remount,ro /us
+
+- **If provisioning Across Network Topology, you will need**:
+
+  - Elastic IP addresses tagged with:
+
+    - a key/value corresponding to the key/value(s) to provide in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration
+    - a special key called `VIPS` containing a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
+
+
+.. _aws-iam:
 
 Creating and assigning an IAM Role
 ``````````````````````````````````
