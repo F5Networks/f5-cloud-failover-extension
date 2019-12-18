@@ -202,6 +202,35 @@ class Device {
     }
 
     /**
+    * Intended for getting SNAT translation addresses config object
+    *
+    * Note: ltm/snat-translation endpoint provides addresses stored for both
+    * direct SNAT as well as SNAT pools
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getSnatTranslationAddresses() {
+        return this.getConfig([
+            '/tm/ltm/snat-translation'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Intended for getting NAT addresses config object
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getNatAddresses() {
+        return this.getConfig([
+            '/tm/ltm/nat'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
     * Get data-group(s) - internal only
     *
     * @param {Object}  options       - Options object for the function
