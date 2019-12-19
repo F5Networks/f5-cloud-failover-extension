@@ -157,6 +157,7 @@ EOF
   )}"
 }
 
+// Addresses write action do not have Resource type associate with it
 resource "aws_iam_role_policy" "BigIpPolicy" {
   name = "BigIpPolicy"
   role = "${aws_iam_role.main.id}"
@@ -170,14 +171,14 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
         "ec2:DescribeInstances",
         "ec2:DescribeInstanceStatus",
         "ec2:DescribeAddresses",
-        "ec2:AssociateAddress",
-        "ec2:DisassociateAddress",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeNetworkInterfaceAttribute",
         "ec2:DescribeRouteTables",
+        "s3:ListAllMyBuckets",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress",
         "ec2:AssignPrivateIpAddresses",
-        "ec2:UnassignPrivateIpAddresses",
-        "s3:ListAllMyBuckets"
+        "ec2:UnassignPrivateIpAddresses"
       ],
       "Resource": "*",
       "Effect": "Allow"
