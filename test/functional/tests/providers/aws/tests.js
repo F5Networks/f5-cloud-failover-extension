@@ -23,7 +23,9 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
+
+const deploymentDeclaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 
 // Helper functions
 function matchElasticIpToInstance(privateIp, instances, instance) {

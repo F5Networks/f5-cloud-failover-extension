@@ -72,6 +72,9 @@ paths:
                   f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - "192.0.2.0/24"
+              controls:
+                class: Controls
+                logLevel: info
       responses:
         "200":
           description: Configuration response
@@ -96,6 +99,9 @@ paths:
                       f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - "192.0.2.0/24"
+                  controls:
+                    class: Controls
+                    logLevel: info
         default:
           description: Unexpected Error
           content:
@@ -230,7 +236,7 @@ paths:
           content:
             "application/json; charset=UTF-8":
               schema:
-                $ref: "#/components/schemas/ResetStateResponse"
+                $ref: "#/components/schemas/ResponseWithMessageString"
         default:
           description: Unexpected Error
           content:
@@ -308,6 +314,13 @@ components:
               type: array
               items:
                 type: string
+        controls:
+          type: object
+          properties:
+            class:
+              type: string
+            logLevel:
+              type: string
     InformationResponse:
       type: object
       properties:
@@ -381,6 +394,7 @@ components:
                   type: array
                   items:
                     type: string
+            additionalProperties: true
     TaskStateResponse:
       type: object
       properties:
@@ -412,7 +426,7 @@ components:
           type: integer
         message:
           type: string
-    ResetStateResponse:
+    ResponseWithMessageString:
       type: object
       properties:
         message:

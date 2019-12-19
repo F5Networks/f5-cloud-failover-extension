@@ -17,15 +17,12 @@
 'use strict';
 
 const util = require('./util.js');
-const Logger = require('./logger.js');
+const logger = require('./logger.js');
 const Validator = require('./validator.js');
 const Device = require('./device.js');
 const constants = require('./constants.js');
 
 const PATHS = constants.PATHS;
-
-const logger = new Logger(module);
-
 const STATE_DATA_GROUP_NAME = 'f5-cloud-failover-state';
 const DFL_OBJECT_IN_STATE = {
     config: {}
@@ -97,7 +94,7 @@ class ConfigWorker {
                 state = JSON.parse(util.base64('decode', dataGroup.records[0].data));
             }
         } catch (err) {
-            logger.warn(`Error parsing state: ${err.message}`);
+            logger.warning(`Error parsing state: ${err.message}`);
         }
         return state;
     }
@@ -208,6 +205,11 @@ class ConfigWorker {
 
         logger.debug('Successfully validated declaration');
 
+        // Set log level based on controls declaration
+        if (declaration.controls && declaration.controls.logLevel) {
+            logger.info('Setting controls log level');
+            logger.setLogLevel(declaration.controls.logLevel);
+        }
         return this.setConfig(declaration)
             .then(() => this._updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))

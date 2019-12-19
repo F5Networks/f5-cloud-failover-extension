@@ -15,20 +15,24 @@ const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-depe
 const constants = require('../constants.js');
 
 const declaration = constants.declarations.basic;
+const declarationWithControls = constants.declarations.basicWithLogging;
 
 describe('Config Worker', () => {
     let config;
     let mockExecuteBigIpBashCmd;
     let Device;
+    let logger;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
         Device = require('../../src/nodejs/device');
+        logger = require('../../src/nodejs/logger');
     });
     beforeEach(() => {
         sinon.stub(Device.prototype, 'init').resolves();
         sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
         sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.spy(logger, 'setLogLevel');
         mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
     });
     after(() => {
@@ -43,6 +47,13 @@ describe('Config Worker', () => {
     it('should process request', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then((response) => {
+            assert.strictEqual(response.class, declaration.class);
+        }));
+
+    it('should process request with controls', () => config.init()
+        .then(() => config.processConfigRequest(declarationWithControls))
+        .then((response) => {
+            assert(logger.setLogLevel.calledOnce);
             assert.strictEqual(response.class, declaration.class);
         }));
 
