@@ -383,13 +383,13 @@ class Cloud extends AbstractCloud {
                 routeTables.forEach((routeTable) => {
                     const getSelfIpsFromTag = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0];
                     if (!getSelfIpsFromTag) {
-                        this.logger.warn(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
+                        this.logger.warning(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
                     }
 
                     const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
                     const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
                     if (!selfIpToUse) {
-                        this.logger.warn(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
+                        this.logger.warning(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
                     }
 
                     promises.push(_getUpdateOperationObject(selfIpToUse, routeTable));

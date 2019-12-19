@@ -27,8 +27,9 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const rgName = deploymentInfo.deploymentId;
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
 
-const declaration = funcUtils.getDeploymentDeclaration();
+const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];

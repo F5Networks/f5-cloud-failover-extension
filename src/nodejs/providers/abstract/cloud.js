@@ -28,7 +28,7 @@ class AbstractCloud {
     constructor(name, options) {
         this.environment = name;
 
-        const logger = options ? options.logger : new Logger(module);
+        const logger = options ? options.logger : Logger;
         if (logger) {
             this.logger = logger;
         }

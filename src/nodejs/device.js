@@ -22,9 +22,7 @@ const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
 const constants = require('./constants.js');
 const util = require('./util.js');
-const Logger = require('./logger.js');
-
-const logger = new Logger(module);
+const logger = require('./logger.js');
 
 const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
@@ -49,7 +47,7 @@ class Device {
         this.mgmtPort = options.mgmtPort || mgmtPortDiscovery;
         this.product = options.product || 'BIG-IP';
 
-        this.bigip = new BigIp({ logger });
+        this.bigip = new BigIp();
     }
 
     /**

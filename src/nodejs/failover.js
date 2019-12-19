@@ -17,13 +17,11 @@
 'use strict';
 
 const Device = require('./device.js');
-const Logger = require('./logger.js');
+const logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 const constants = require('./constants.js');
-
-const logger = new Logger(module);
 
 const failoverStates = constants.FAILOVER_STATES;
 const deviceStatus = constants.BIGIP_STATUS;
@@ -43,7 +41,6 @@ class FailoverClient {
         this.cloudProvider = null;
         this.hostname = null;
         this.config = null;
-
         this.addressDiscovery = null;
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
@@ -307,7 +304,7 @@ class FailoverClient {
         recoveryOptions.message = 'Failover running';
         return this._createAndUpdateStateObject(recoveryOptions)
             .then(() => {
-                logger.warn('Recovering previous task: ', this.recoveryOperations);
+                logger.warning('Recovering previous task: ', this.recoveryOperations);
                 if (this.recoverPreviousTask === true) {
                     return Promise.resolve([
                         this.recoveryOperations.addresses,

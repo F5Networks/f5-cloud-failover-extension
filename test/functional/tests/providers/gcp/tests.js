@@ -27,7 +27,9 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const declaration = funcUtils.getDeploymentDeclaration();
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
+
+const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];

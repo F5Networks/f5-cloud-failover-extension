@@ -16,7 +16,7 @@
 'use strict';
 
 const util = require('../util.js');
-const Logger = require('../logger.js');
+const logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
@@ -29,8 +29,6 @@ const telemetry = new TelemetryClient();
 const failover = new FailoverClient();
 const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
-
-const logger = new Logger(module);
 
 /**
  * @class Worker
@@ -69,7 +67,7 @@ Worker.prototype.onStart = function (success, error) {
         success();
     } catch (err) {
         const message = `Error creating cloud failover worker: ${err}`;
-        logger.severe(message);
+        logger.error(message);
         error(message);
     }
 };
@@ -87,7 +85,7 @@ Worker.prototype.onStart = function (success, error) {
  */
 Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     if (errMsg) {
-        this.logger.severe(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
+        this.logger.error(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
         error();
     }
 
