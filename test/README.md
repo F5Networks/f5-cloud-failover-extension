@@ -41,7 +41,7 @@ Prereq:
 
 - Terraform 0.12+
 - Python 3.7+ (will create a virtual environment)
-    - f5-cloud-cli package`
+    - f5-cli package
 - Login to cloud provider CLI (TF uses the files each CLI lays down for authentication) - `az login`, `aws configure`, `gcloud auth application-default login`
 
 Select Environment: 
