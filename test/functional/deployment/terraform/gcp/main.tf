@@ -244,7 +244,7 @@ resource "google_compute_instance" "vm01" {
   metadata_startup_script = "${data.template_file.vm01_cloud_init_script.rendered}"
 
   service_account {
-    scopes = ["compute-ro", "storage-rw", "cloud-platform"]
+    scopes = ["cloud-platform"]
   }
 
 }
@@ -301,7 +301,7 @@ resource "google_compute_instance" "vm02" {
   metadata_startup_script = "${data.template_file.vm02_cloud_init_script.rendered}"
 
   service_account {
-    scopes = ["compute-ro", "storage-ro", "cloud-platform"]
+    scopes = ["cloud-platform"]
   }
 
 }

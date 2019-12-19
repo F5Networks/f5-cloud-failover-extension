@@ -26,27 +26,26 @@ resource "azurerm_storage_account" "storage_account" {
 data "azurerm_subscription" "primary" {}
 
 resource "azurerm_role_definition" "azurerm_role_def" {
-  name        = "AzContributor"
+  name        = "${module.utils.env_prefix}"
   scope       = "${data.azurerm_subscription.primary.id}"
-  description = "Manage VM actions, network, read storage, not access to resources."
+  description = "Manage VM actions, network, read storage, block role assignments/policy assignments."
   
   permissions {
     actions = [
       "Microsoft.Authorization/*/read",
-      "Microsoft.Compute/locations/*",
-      "Microsoft.Compute/virtualMachines/*",
-      "Microsoft.Network/*",
-      "Microsoft.Resources/deployments/*",
+      "Microsoft.Compute/locations/*/read",
+      "Microsoft.Compute/virtualMachines/*/read",
+      "Microsoft.Network/networkInterfaces/read",
+      "Microsoft.Network/networkInterfaces/write",
+      "Microsoft.Network/routeTables/*/read",
+      "Microsoft.Network/routeTables/*/write",
       "Microsoft.Resources/subscriptions/resourceGroups/read",
-      "Microsoft.Storage/storageAccounts/listKeys/action",
-      "Microsoft.Storage/storageAccounts/read"    
+      "Microsoft.Storage/storageAccounts/read",
+      "Microsoft.Storage/storageAccounts/listKeys/action"   
     ]
     not_actions = [
       "Microsoft.Authorization/*/Delete",
-      "Microsoft.Authorization/*/Write",
-      "Microsoft.Authorization/elevateAccess/Action",
-      "Microsoft.Blueprint/blueprintAssignments/write",
-      "Microsoft.Blueprint/blueprintAssignments/delete"
+      "Microsoft.Authorization/*/Write"
     ]
     data_actions = []
     not_data_actions = []
