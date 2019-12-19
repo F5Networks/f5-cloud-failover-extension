@@ -37,6 +37,7 @@ resource "azurerm_role_definition" "azurerm_role_def" {
       "Microsoft.Compute/virtualMachines/*/read",
       "Microsoft.Network/networkInterfaces/read",
       "Microsoft.Network/networkInterfaces/write",
+      "Microsoft.Network/*/join/action",
       "Microsoft.Network/routeTables/*/read",
       "Microsoft.Network/routeTables/*/write",
       "Microsoft.Resources/subscriptions/resourceGroups/read",
