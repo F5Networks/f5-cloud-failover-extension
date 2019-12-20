@@ -537,6 +537,7 @@ class Cloud extends AbstractCloud {
             this.logger.info('No localAddresses/failoverAddresses to discover');
             return Promise.resolve();
         }
+
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];

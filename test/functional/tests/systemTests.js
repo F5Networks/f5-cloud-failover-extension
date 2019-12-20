@@ -27,6 +27,8 @@ const packagePath = packageDetails.path;
 
 const clusterMembers = [dutPrimary, dutSecondary];
 const clusterMemberIps = clusterMembers.map(member => member.ip);
+const exampleDeclaration = require('./shared/exampleDeclaration.json');
+const exampleDeclarationWithControls = require('./shared/exampleDeclarationWithControls.json');
 
 clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
@@ -100,11 +102,22 @@ clusterMembers.forEach((dut) => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should post declaration', () => {
+        it('should post declaration without controls', () => {
             const uri = constants.DECLARE_ENDPOINT;
-
             options.method = 'POST';
-            options.body = funcUtils.getDeploymentDeclaration();
+            options.body = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should post declaration with controls', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            options.method = 'POST';
+            options.body = funcUtils.getDeploymentDeclaration(exampleDeclarationWithControls);
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
@@ -167,8 +180,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
     });
 
     describe('Should sync configuration', () => {
-        const originalBody = funcUtils.getDeploymentDeclaration();
-        const modifiedBody = funcUtils.getDeploymentDeclaration();
+        const originalBody = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+        const modifiedBody = funcUtils.getDeploymentDeclaration(exampleDeclaration);
         modifiedBody.failoverAddresses.scopingTags = { foo: 'bar' };
 
         it('should post modified declaration (primary)', () => {

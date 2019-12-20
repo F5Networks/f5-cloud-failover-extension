@@ -34,15 +34,15 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
 - **An Azure system-assigned or user-managed identity with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for :ref:`azure-msi`. Read more about managed identities |managed-identity|.
-- **A storage account for Cloud Failover extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration. See the instructions below for tagging a :ref:`azure-storage`.
+- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging a :ref:`azure-storage`.
   
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
-- **Network Interfaces** that are tagged with a key and value corresponding to the key and value provided in the `failoverAddresses.scopingTags` section of the Cloud Failover extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
+- **Network Interfaces** that are tagged with a key and value corresponding to the key and value provided in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
 - **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - **Route(s) in a route table tagged with:**
 
-  - a key tag and a value tag corresponding to the key and value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+  - a key tag and a value tag corresponding to the key and value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
   - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
   See :ref:`azure-udrtagging` for more information.
@@ -90,7 +90,7 @@ For route failover you need two distinct tags:
 
 Within Azure, go to **Basic UDR > Tags** to set:
 
-- a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
+- a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
 - a special key call ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
 .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
@@ -103,7 +103,7 @@ Within Azure, go to **Basic UDR > Tags** to set:
 
 Storage account
 ```````````````
-Add a storage account to your resource group, and tag with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
+Add a storage account to your resource group, and tag with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
 
 .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 

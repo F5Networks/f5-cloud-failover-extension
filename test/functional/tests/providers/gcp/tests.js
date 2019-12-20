@@ -27,7 +27,9 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const declaration = funcUtils.getDeploymentDeclaration();
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
+
+const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];
@@ -404,8 +406,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -425,8 +427,8 @@ describe('Provider: GCP', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -446,8 +448,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });

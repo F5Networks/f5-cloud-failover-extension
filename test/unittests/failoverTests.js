@@ -27,6 +27,8 @@ describe('Failover', () => {
     let deviceGetTrafficGroupsMock;
     let deviceGetSelfAddressesMock;
     let deviceGetVirtualAddressesMock;
+    let deviceGetNatAddressesMock;
+    let deviceGetSnatTranslationAddressesMock;
     let cloudProviderMock;
     let downloadDataFromStorageMock;
 
@@ -42,7 +44,7 @@ describe('Failover', () => {
                     entries: {
                         deviceName: { description: 'some_hostname' },
                         failoverState: { description: 'active' },
-                        trafficGroup: { description: 'some_trafficGroup' }
+                        trafficGroup: { description: 'traffic-group-1' }
                     }
                 }
             }
@@ -63,7 +65,8 @@ describe('Failover', () => {
         deviceGetTrafficGroupsMock = sinon.stub(Device.prototype, 'getTrafficGroupsStats');
         deviceGetSelfAddressesMock = sinon.stub(Device.prototype, 'getSelfAddresses');
         deviceGetVirtualAddressesMock = sinon.stub(Device.prototype, 'getVirtualAddresses');
-
+        deviceGetSnatTranslationAddressesMock = sinon.stub(Device.prototype, 'getSnatTranslationAddresses');
+        deviceGetNatAddressesMock = sinon.stub(Device.prototype, 'getNatAddresses');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
@@ -84,7 +87,7 @@ describe('Failover', () => {
 
         deviceGetSelfAddressesMock.returns([
             {
-                name: 'some_trafficGroup',
+                name: 'traffic-group-1',
                 address: '1.1.1.1',
                 trafficGroup: 'local_only'
             }
@@ -92,10 +95,12 @@ describe('Failover', () => {
         deviceGetVirtualAddressesMock.returns([
             {
                 address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup',
-                parition: 'Common'
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
             }
         ]);
+        deviceGetSnatTranslationAddressesMock.returns([]);
+        deviceGetNatAddressesMock.returns([]);
 
         uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
 
@@ -169,6 +174,52 @@ describe('Failover', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should execute failover with virtual and snat addresses', () => {
+        deviceGetSnatTranslationAddressesMock.returns([
+            {
+                address: '2.2.2.3',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3'] });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should execute failover with virtual, snat and nat addresses', () => {
+        deviceGetSnatTranslationAddressesMock.returns([
+            {
+                address: '2.2.2.3',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+        deviceGetNatAddressesMock.returns([
+            {
+                originatingAddress: '1.1.1.4',
+                translationAddress: '2.2.2.4',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3', '2.2.2.4'] });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should result in no failover addresses when no virtual addresses exist', () => {
         deviceGetVirtualAddressesMock.returns([]);
 
@@ -189,7 +240,7 @@ describe('Failover', () => {
                         entries: {
                             deviceName: { description: 'some_hostname' },
                             failoverState: { description: 'active' },
-                            trafficGroup: { description: 'some_other_trafficGroup' }
+                            trafficGroup: { description: 'some-other-traffic-group' }
                         }
                     }
                 }
@@ -248,12 +299,12 @@ describe('Failover', () => {
         deviceGetVirtualAddressesMock.returns([
             {
                 address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup',
+                trafficGroup: 'traffic-group-1',
                 parition: 'Common'
             },
             {
                 address: '3.3.3.3',
-                trafficGroup: 'some_trafficGroup',
+                trafficGroup: 'traffic-group-1',
                 parition: 'Tenant_01'
             }
         ]);
@@ -348,7 +399,7 @@ describe('Failover', () => {
                 deviceStatus: 'active',
                 trafficGroup: [
                     {
-                        name: 'some_trafficGroup'
+                        name: 'traffic-group-1'
                     }
                 ]
             }, data);

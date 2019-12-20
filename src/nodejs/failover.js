@@ -17,13 +17,11 @@
 'use strict';
 
 const Device = require('./device.js');
-const Logger = require('./logger.js');
+const logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 const constants = require('./constants.js');
-
-const logger = new Logger(module);
 
 const failoverStates = constants.FAILOVER_STATES;
 const deviceStatus = constants.BIGIP_STATUS;
@@ -43,7 +41,6 @@ class FailoverClient {
         this.cloudProvider = null;
         this.hostname = null;
         this.config = null;
-
         this.addressDiscovery = null;
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
@@ -67,7 +64,6 @@ class FailoverClient {
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                logger.debug(`cloudProvider: ${JSON.stringify(this.cloudProvider)}`);
                 return this.cloudProvider.init({
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
@@ -98,6 +94,9 @@ class FailoverClient {
                 this.trafficGroupStats = results[1];
                 this.selfAddresses = results[2];
                 this.virtualAddresses = results[3];
+                this.snatAddresses = results[4];
+                this.natAddresses = results[5];
+
                 // wait for task - handles all possible states
                 return this._waitForTask();
             })
@@ -244,7 +243,9 @@ class FailoverClient {
             this.device.getGlobalSettings(),
             this.device.getTrafficGroupsStats(),
             this.device.getSelfAddresses(),
-            this.device.getVirtualAddresses()
+            this.device.getVirtualAddresses(),
+            this.device.getSnatTranslationAddresses(),
+            this.device.getNatAddresses()
         ])
             .then(results => Promise.resolve(results))
             .catch((err) => {
@@ -262,9 +263,13 @@ class FailoverClient {
      */
     _getFailoverDiscovery(trafficGroups) {
         logger.info('Performing Failover - discovery');
-        const selfAddresses = this._getSelfAddresses(this.selfAddresses, trafficGroups);
-        const virtualAddresses = this._getVirtualAddresses(this.virtualAddresses, trafficGroups);
-        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+
+        const addresses = this._getFailoverAddresses(
+            this._getSelfAddresses(this.selfAddresses, trafficGroups),
+            this._getFloatingAddresses(
+                this.virtualAddresses, this.snatAddresses, this.natAddresses, trafficGroups
+            )
+        );
 
         this.localAddresses = addresses.localAddresses;
         this.failoverAddresses = addresses.failoverAddresses;
@@ -299,7 +304,7 @@ class FailoverClient {
         recoveryOptions.message = 'Failover running';
         return this._createAndUpdateStateObject(recoveryOptions)
             .then(() => {
-                logger.warn('Recovering previous task: ', this.recoveryOperations);
+                logger.warning('Recovering previous task: ', this.recoveryOperations);
                 if (this.recoverPreviousTask === true) {
                     return Promise.resolve([
                         this.recoveryOperations.addresses,
@@ -469,44 +474,53 @@ class FailoverClient {
     }
 
     /**
-     * Get virtual addresses
+     * Get (all) floating addresses from multiple address types
      *
      * @param {Object} virtualAddresses - Virtual addresses
-     * @param {Object} trafficGroups - Traffic groups
+     * @param {Object} snatAddresses    - SNAT (translation) addresses
+     * @param {Object} natAddresses     - NAT addresses
+     * @param {Object} trafficGroups    - Traffic groups
      *
      * @returns {Object}
      */
-    _getVirtualAddresses(virtualAddresses, trafficGroups) {
+    _getFloatingAddresses(virtualAddresses, snatAddresses, natAddresses, trafficGroups) {
         const addresses = [];
 
-        if (!virtualAddresses.length) {
-            logger.error('No virtual addresses exist, create them prior to failover.');
-        } else {
-            virtualAddresses.forEach((item) => {
-                const address = item.address.split('%')[0];
-                const addressTrafficGroup = item.trafficGroup;
+        // helper function to add address (as needed)
+        const _addAddress = (item, addressKey) => {
+            const address = item[addressKey].split('%')[0];
+            const addressTrafficGroup = item.trafficGroup;
 
-                trafficGroups.forEach((nestedItem) => {
-                    if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
-                        addresses.push({
-                            address
-                        });
-                    }
-                });
+            trafficGroups.forEach((nestedItem) => {
+                if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
+                    addresses.push({
+                        address
+                    });
+                }
             });
-        }
+        };
+
+        virtualAddresses.forEach((item) => {
+            _addAddress(item, 'address');
+        });
+        snatAddresses.forEach((item) => {
+            _addAddress(item, 'address');
+        });
+        natAddresses.forEach((item) => {
+            _addAddress(item, 'translationAddress');
+        });
         return addresses;
     }
 
     /**
      * Get failover addresses
      *
-     * @param {Object} selfAddresses   - Self addresses
-     * @param {Object} virtualAddresses - Virtual addresses
+     * @param {Object} selfAddresses     - Self addresses (floating and non-floating)
+     * @param {Object} floatingAddresses - Floating addresses
      *
      * @returns {Object}
      */
-    _getFailoverAddresses(selfAddresses, virtualAddresses) {
+    _getFailoverAddresses(selfAddresses, floatingAddresses) {
         const localAddresses = [];
         const failoverAddresses = [];
 
@@ -518,8 +532,8 @@ class FailoverClient {
                 localAddresses.push(item.address);
             }
         });
-        // go through all virtual addresses and add address to appropriate array
-        virtualAddresses.forEach((item) => {
+        // always add all floating addresses to failover address array
+        floatingAddresses.forEach((item) => {
             failoverAddresses.push(item.address);
         });
 

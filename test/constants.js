@@ -23,6 +23,14 @@ const EXAMPLE_DECLARATIONS = {
     basic: {
         class: 'Cloud_Failover',
         environment: 'azure'
+    },
+    basicWithLogging: {
+        class: 'Cloud_Failover',
+        environment: 'azure',
+        controls: {
+            class: 'Controls',
+            logLevel: 'info'
+        }
     }
 };
 
@@ -71,5 +79,13 @@ module.exports = {
     TRIGGER_COMMAND: 'curl -u admin:admin -d {} -X POST http://localhost:8100/mgmt/shared/cloud-failover/trigger',
     LEGACY_TRIGGER_COMMENT: '# Disabled by F5 Failover Extension',
     LEGACY_TRIGGER_COMMAND: '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@f5devcentral/f5-cloud-libs-azure/scripts/failoverProvider.js',
-    STATE_FILE_RESET_MESSAGE: 'Failover state file was reset'
+    STATE_FILE_RESET_MESSAGE: 'Failover state file was reset',
+    LOG_LEVELS: {
+        silly: 0,
+        verbose: 1,
+        debug: 2,
+        info: 3,
+        warning: 4,
+        error: 5
+    }
 };

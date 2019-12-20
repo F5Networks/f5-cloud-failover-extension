@@ -71,6 +71,21 @@
                     "additionalProperties": true
                 }
             }
+        },
+        "controls": {
+            "title": "Controls",
+            "description": "Controls class used to set logging level",
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string",
+                    "additionalProperties": false
+                },
+                "logLevel": {
+                    "type": "string",
+                    "additionalProperties": false
+                }
+            }
         }
     },
     "allOf": [

@@ -49,7 +49,7 @@ describe('Provider - AWS', () => {
         }
     };
 
-    const _generateEIPConfigsStubResponse = {
+    const _generatePublicAddressOperationsStubResponse = {
         '1.1.1.1': {
             AllocationId: 'eipalloc-456',
             target: {
@@ -133,7 +133,7 @@ describe('Provider - AWS', () => {
         provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
         provider.logger.silly = sinon.stub();
-        provider.logger.warn = sinon.stub();
+        provider.logger.warning = sinon.stub();
 
         provider.metadata.request = sinon.stub()
             .callsFake((path, callback) => {
@@ -411,7 +411,6 @@ describe('Provider - AWS', () => {
             const expectedError = 'cannot describe the EIP adddresses';
             return provider.init(mockInitData)
                 .then(() => {
-                    // eslint-disable-next-line arrow-body-style
                     provider.ec2.describeAddresses = sinon.stub()
                         .callsFake(() => ({
                             promise() {
@@ -462,7 +461,6 @@ describe('Provider - AWS', () => {
         };
         it('should get Private Secondary IPs from AWS', () => provider.init(mockInitData)
             .then(() => {
-                // eslint-disable-next-line arrow-body-style
                 provider.ec2.describeNetworkInterfaces = sinon.stub()
                     .callsFake(() => ({
                         promise() {
@@ -513,7 +511,6 @@ describe('Provider - AWS', () => {
             const expectedError = 'cannot describe the Network Interfaces';
             return provider.init(mockInitData)
                 .then(() => {
-                    // eslint-disable-next-line arrow-body-style
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
                         .callsFake(() => ({
                             promise() {
@@ -530,7 +527,7 @@ describe('Provider - AWS', () => {
                 });
         });
     });
-    describe('function _generateEIPConfigs', () => {
+    describe('function _generatePublicAddressOperations', () => {
         const EIPdata = [
             {
                 Tags: [
@@ -559,15 +556,15 @@ describe('Provider - AWS', () => {
         ];
 
         it('should return correct Elastic IP configuration', () => provider.init(mockInitData)
-            .then(() => provider._generateEIPConfigs(EIPdata, _getPrivateSecondaryIPsStubResponse))
+            .then(() => provider._generatePublicAddressOperations(EIPdata, _getPrivateSecondaryIPsStubResponse))
             .then((results) => {
-                assert.deepEqual(results, _generateEIPConfigsStubResponse);
+                assert.deepEqual(results, _generatePublicAddressOperationsStubResponse);
             })
             .catch(() => {
                 assert.fail();
             }));
     });
-    describe('function _associateIpAddress', () => {
+    describe('function _associatePublicAddress', () => {
         const allocationId = 'eipalloc-0b5671ebba3628edd';
         const networkInterfaceId = 'eni-0157ac0f9506af78b';
         const privateIpAddress = '10.0.1.11';
@@ -585,7 +582,7 @@ describe('Provider - AWS', () => {
                             }
                         };
                     });
-                return provider._associateIpAddress(allocationId, networkInterfaceId, privateIpAddress);
+                return provider._associatePublicAddress(allocationId, networkInterfaceId, privateIpAddress);
             })
             .then(() => {
                 assert.deepEqual(passedParams, {
@@ -610,7 +607,7 @@ describe('Provider - AWS', () => {
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
-                    return provider._associateIpAddress();
+                    return provider._associatePublicAddress();
                 })
                 .then(() => {
                     assert.ok(false, 'should have rejected');
@@ -620,7 +617,7 @@ describe('Provider - AWS', () => {
                 });
         });
     });
-    describe('function _disassociateIpAddress', () => {
+    describe('function _disassociatePublicAddress', () => {
         let passedParams;
         const associationIdToDisassociate = 'eipassoc-00523b2b8b8c01793';
 
@@ -635,7 +632,7 @@ describe('Provider - AWS', () => {
                             }
                         };
                     });
-                return provider._disassociateIpAddress(associationIdToDisassociate);
+                return provider._disassociatePublicAddress(associationIdToDisassociate);
             })
             .then(() => {
                 assert.deepEqual(passedParams, {
@@ -646,20 +643,20 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
-    describe('function _reassociateEIPs', () => {
-        it('should call _disassociateIpAddress with correct params', () => {
+    describe('function _reassociatePublicAddresses', () => {
+        it('should call _disassociatePublicAddress with correct params', () => {
             const passedParams = [];
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._disassociateIpAddress = sinon.stub()
+                    provider._disassociatePublicAddress = sinon.stub()
                         .callsFake((params) => {
                             passedParams.push(params);
                             return Promise.resolve();
                         });
-                    provider._associateIpAddress = sinon.stub()
+                    provider._associatePublicAddress = sinon.stub()
                         .resolves();
 
-                    return provider._reassociateEIPs(_generateEIPConfigsStubResponse);
+                    return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
                 })
                 .then(() => {
                     assert.deepEqual(passedParams, ['eipassoc-123', 'eipassoc-321']);
@@ -670,13 +667,13 @@ describe('Provider - AWS', () => {
                 });
         });
 
-        it('should call _associateIpAddress with correct params', () => {
+        it('should call _associatePublicAddress with correct params', () => {
             const passedParams = [];
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._disassociateIpAddress = sinon.stub()
+                    provider._disassociatePublicAddress = sinon.stub()
                         .resolves();
-                    provider._associateIpAddress = sinon.stub()
+                    provider._associatePublicAddress = sinon.stub()
                         .callsFake(
                             (allocationId, networkInterfaceId, privateIpAddress) => {
                                 passedParams.push({
@@ -688,7 +685,7 @@ describe('Provider - AWS', () => {
                             }
                         );
 
-                    return provider._reassociateEIPs(_generateEIPConfigsStubResponse);
+                    return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
                 })
                 .then(() => {
                     assert.deepEqual(passedParams, [
@@ -711,7 +708,7 @@ describe('Provider - AWS', () => {
         });
 
         it('should not reject if there is no work to do', () => provider.init(mockInitData)
-            .then(() => provider._reassociateEIPs([]))
+            .then(() => provider._reassociatePublicAddresses([]))
             .then(() => {
                 assert.ok(true);
             })
@@ -719,87 +716,214 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
     describe('function updateAddress', () => {
-        it('should send correct parameters to EIP configuration function', () => {
-            let passedParams;
+        let actualParams;
+
+        const nicsTagSet = [
+            {
+                Key: 'f5_cloud_failover_nic_map',
+                Value: 'external'
+            }
+        ];
+        const localAddresses = ['1.2.3.4'];
+        const failoverAddresses = ['10.10.10.10'];
+
+        beforeEach(() => {
+            actualParams = {
+                assign: {
+                    private: null,
+                    public: null
+                },
+                unassign: {
+                    private: null,
+                    public: null
+                }
+            };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub()
-                        .resolves(_getElasticIPsStubResponse);
-                    provider._getPrivateSecondaryIPs = sinon.stub()
-                        .resolves(_getPrivateSecondaryIPsStubResponse);
-                    provider._reassociateEIPs = sinon.stub()
-                        .resolves();
-                    provider._generateEIPConfigs = sinon.stub()
-                        .callsFake((eips, secondaryPrivateIps) => {
-                            passedParams = {
-                                eips,
-                                secondaryPrivateIps
+                    provider.ec2.unassignPrivateIpAddresses = sinon.stub()
+                        .callsFake((params) => {
+                            actualParams.unassign.private = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve();
+                                }
                             };
-                            return Promise.resolve();
                         });
-
-                    return provider.updateAddresses({ discoverOnly: true });
+                    provider.ec2.assignPrivateIpAddresses = sinon.stub()
+                        .callsFake((params) => {
+                            actualParams.assign.private = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve();
+                                }
+                            };
+                        });
+                    provider.ec2.disassociateAddress = sinon.stub()
+                        .callsFake((params) => {
+                            actualParams.unassign.public = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve();
+                                }
+                            };
+                        });
+                    provider.ec2.associateAddress = sinon.stub()
+                        .callsFake((params) => {
+                            actualParams.assign.public = params;
+                            return {
+                                promise() {
+                                    return Promise.resolve();
+                                }
+                            };
+                        });
                 })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should validate private+public address gets reassociated', () => {
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.4'
+                            }
+                        ],
+                        TagSet: nicsTagSet
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-2',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.5'
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.10',
+                                Association: {
+                                    PublicIp: '2.2.2.2'
+                                }
+                            }
+                        ],
+                        TagSet: nicsTagSet
+                    }
+                ]
+            };
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: []
+                    }
+                ]
+            };
+            provider.ec2.describeAddresses = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                });
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses })
+                .then(() => {
+                    // assert private address gets reassociated properly
+                    assert.deepEqual(actualParams.unassign.private, { NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.10'] });
+                    assert.deepEqual(actualParams.assign.private, { NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.10'] });
+                    // assert public address gets reassociated properly
+                    assert.deepEqual(actualParams.unassign.public, { AssociationId: 'association-id' });
+                    assert.deepEqual(actualParams.assign.public, {
+                        AllocationId: 'allocation-id',
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddress: '10.10.10.10',
+                        AllowReassociation: true
+                    });
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should validate public address gets reassociated (using across-net VIPS tag)', () => {
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        PrivateIpAddress: '10.10.10.11',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: [
+                            {
+                                Key: 'VIPS',
+                                Value: '10.10.10.10,10.10.10.11'
+                            }
+                        ]
+                    }
+                ]
+            };
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.10'
+                            }
+                        ],
+                        TagSet: []
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-2',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.100'
+                            }
+                        ],
+                        TagSet: []
+                    }
+                ]
+            };
+            provider.ec2.describeAddresses = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                });
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+
+            return provider.updateAddresses({ discoverOnly: true })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
-                    const elasticIps = _getElasticIPsStubResponse.Addresses;
-                    assert.deepEqual(passedParams,
-                        {
-                            eips: elasticIps,
-                            secondaryPrivateIps: _getPrivateSecondaryIPsStubResponse
-                        });
+                    // assert public address gets reassociated properly
+                    assert.deepEqual(actualParams.unassign.public, { AssociationId: 'association-id' });
+                    assert.deepEqual(actualParams.assign.public, {
+                        AllocationId: 'allocation-id',
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddress: '10.10.10.10',
+                        AllowReassociation: true
+                    });
                 })
-                .catch(() => {
-                    assert.fail();
-                });
-        });
-
-        it('should send correct parameters to EIP reassociation function', () => {
-            let passedParams;
-            return provider.init(mockInitData)
-                .then(() => {
-                    provider._getElasticIPs = sinon.stub()
-                        .resolves(_getElasticIPsStubResponse);
-                    provider._getPrivateSecondaryIPs = sinon.stub()
-                        .resolves(_getPrivateSecondaryIPsStubResponse);
-                    provider._reassociateEIPs = sinon.stub()
-                        .callsFake((EIPConfigs) => {
-                            passedParams = EIPConfigs;
-                            return Promise.resolve();
-                        });
-                    provider._generateEIPConfigs = sinon.stub()
-                        .resolves(_generateEIPConfigsStubResponse);
-
-                    return provider.updateAddresses();
-                })
-                .then(() => {
-                    assert.deepEqual(passedParams, _generateEIPConfigsStubResponse);
-                })
-                .catch(() => {
-                    assert.fail();
-                });
-        });
-
-        it('should reject upon error', () => {
-            const expectedError = '_getPrivateSecondaryIPs error';
-            return provider.init(mockInitData)
-                .then(() => {
-                    provider._getElasticIPs = sinon.stub()
-                        .resolves();
-                    provider._getPrivateSecondaryIPs = sinon.stub()
-                        .rejects(new Error(expectedError));
-
-                    return provider.updateAddresses();
-                })
-                .then(() => {
-                    assert.ok(false, 'should have rejected');
-                })
-                .catch((err) => {
-                    assert.strictEqual(err.message, expectedError);
-                });
+                .catch(err => Promise.reject(err));
         });
     });
+
     describe('function uploadDataToStorage', () => {
         let passedParams;
 
@@ -825,6 +949,7 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
     describe('function downloadDataFromStorage', () => {
         let passedParams;
         const mockResponseBody = { foo: 'bar' };
@@ -883,56 +1008,57 @@ describe('Provider - AWS', () => {
             })
             .catch(err => Promise.reject(err)));
     });
+
     describe('function updateRoutes should', () => {
         it('update routes if route exists', () => {
-            provider.init(mockInitData)
+            const routeTable = {
+                RouteTableId: 'rtb-123',
+                Routes: [
+                    {
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        InstanceId: 'i-123',
+                        InstanceOwnerId: '123',
+                        NetworkInterfaceId: 'eni-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    },
+                    {
+                        DestinationCidrBlock: '10.0.0.0/16',
+                        GatewayId: 'local',
+                        Origin: 'CreateRouteTable',
+                        State: 'active'
+                    },
+                    {
+                        DestinationCidrBlock: '0.0.0.0/0',
+                        GatewayId: 'igw-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    }
+                ],
+                Tags: [
+                    {
+                        Key: 'F5_CLOUD_FAILOVER_LABEL',
+                        Value: 'foo'
+                    },
+                    {
+                        Key: 'F5_SELF_IPS',
+                        Value: '10.0.1.211, 10.0.11.52'
+                    }
+                ]
+            };
+            const localAddresses = ['10.0.1.211'];
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-345'
+                    }
+                ]
+            };
+            return provider.init(mockInitData)
                 .then(() => {
-                    const routeTable = {
-                        RouteTableId: 'rtb-123',
-                        Routes: [
-                            {
-                                DestinationCidrBlock: '192.0.2.0/24',
-                                InstanceId: 'i-123',
-                                InstanceOwnerId: '123',
-                                NetworkInterfaceId: 'eni-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '10.0.0.0/16',
-                                GatewayId: 'local',
-                                Origin: 'CreateRouteTable',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '0.0.0.0/0',
-                                GatewayId: 'igw-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            }
-                        ],
-                        Tags: [
-                            {
-                                Key: 'F5_CLOUD_FAILOVER_LABEL',
-                                Value: 'foo'
-                            },
-                            {
-                                Key: 'F5_SELF_IPS',
-                                Value: '10.0.1.211, 10.0.11.52'
-                            }
-                        ]
-                    };
-                    const localAddresses = ['10.0.1.211'];
                     provider.routeTags = { F5_LABEL: 'foo' };
                     provider.routeAddresses = ['192.0.2.0/24'];
                     provider.routeSelfIpsTag = 'F5_SELF_IPS';
-                    const describeNetworkInterfacesResponse = {
-                        NetworkInterfaces: [
-                            {
-                                NetworkInterfaceId: 'eni-345'
-                            }
-                        ]
-                    };
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
                         .returns({
                             promise() {
@@ -1035,6 +1161,7 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
     });
+
     describe('function getAssociatedAddressAndRouteInfo', () => {
         it('should return addresses and routes for active device ', () => {
             const expectedData = {
@@ -1077,6 +1204,7 @@ describe('Provider - AWS', () => {
                 })
                 .catch(err => Promise.reject(err));
         });
+
         it('should return addresses and not routes for standby device ', () => {
             const expectedData = {
                 instance: 'i-123',

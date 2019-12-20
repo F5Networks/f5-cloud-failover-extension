@@ -16,7 +16,6 @@ const constants = require('../../../constants.js');
 
 const deploymentFile = process.env[constants.DEPLOYMENT_FILE_VAR]
     || path.join(process.cwd(), constants.DEPLOYMENT_FILE);
-const exampleDeclaration = require('./exampleDeclaration.json');
 
 module.exports = {
     /**
@@ -44,8 +43,14 @@ module.exports = {
     /**
      * Get environment info
      *
-     * @returns {Object} Returns
-     * { deploymentId: 'foo', environment: 'foo', region: 'foo', zone: 'foo' }
+     * @returns {Object} Returns:
+     *  {
+     *      deploymentId: 'foo',
+     *      environment: 'foo',
+     *      region: 'foo',
+     *      zone: 'foo',
+     *      networkTopology: 'foo'
+     *  }
      */
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
@@ -64,9 +69,9 @@ module.exports = {
      *
      * @returns {Object} Returns rendered example declaration
      */
-    getDeploymentDeclaration() {
+    getDeploymentDeclaration(declaration) {
         const environmentInfo = this.getEnvironmentInfo();
-        return JSON.parse(mustache.render(utils.stringify(exampleDeclaration), {
+        return JSON.parse(mustache.render(utils.stringify(declaration), {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment
         }));
@@ -127,7 +132,7 @@ module.exports = {
      * @param {String} [options.taskState]  - taskState to check against, use this or taskStates
      * @param {Array} [options.taskStates]  - taskStates to check against, use this or taskState
      *
-     * @returns {Promise}
+     * @returns {Promise} Resolved with task status: { 'boolean': true, 'taskStateResponse': {} }
      */
     getTriggerTaskStatus(host, options) {
         const uri = constants.TRIGGER_ENDPOINT;
@@ -141,9 +146,9 @@ module.exports = {
             .then((data) => {
                 if (taskStates.indexOf(data.taskState) === -1
                     || data.instance.indexOf(options.hostname) === -1) {
-                    return Promise.resolve(false);
+                    return Promise.resolve({ boolean: false, taskStateResponse: data });
                 }
-                return Promise.resolve(true);
+                return Promise.resolve({ boolean: true, taskStateResponse: data });
             })
             .catch(err => Promise.reject(err));
     },

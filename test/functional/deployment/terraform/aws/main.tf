@@ -246,7 +246,7 @@ resource "aws_network_interface" "mgmt1" {
 resource "aws_eip" "mgmt1" {
   vpc = true
   network_interface = "${aws_network_interface.mgmt1.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.mgmt1.private_ip}"
 
   tags = "${merge(
     var.global_tags,
@@ -274,7 +274,7 @@ resource "aws_network_interface" "mgmt2" {
 resource "aws_eip" "mgmt2" {
   vpc = true
   network_interface = "${aws_network_interface.mgmt2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.mgmt2.private_ip}"
 
   tags = "${merge(
     var.global_tags,
@@ -291,12 +291,16 @@ resource "aws_network_interface" "external1" {
   security_groups = ["${aws_security_group.external.id}"]
   description = "Public External Interface for the BIG-IP"
 
-  private_ips_count = 1
+  // only a single private IP is required for an application in the "same network"
+  // topology, create the IP on the second BIG-IP
+  private_ips_count = "${var.use_availability_zones ? 1 : 0}"
 
   tags = "${merge(
     var.global_tags,
     {
-      Name = "External Network Interface 1: Failover Extension-${module.utils.env_prefix}"
+      Name = "External Network Interface 1: Failover Extension-${module.utils.env_prefix}",
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
+      f5_cloud_failover_nic_map = "external"
     }
   )}"
 }
@@ -304,7 +308,7 @@ resource "aws_network_interface" "external1" {
 resource "aws_eip" "external1" {
   vpc = true
   network_interface = "${aws_network_interface.external1.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external1.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.external1.private_ip}"
 
   tags = "${merge(
     var.global_tags,
@@ -324,7 +328,9 @@ resource "aws_network_interface" "external2" {
   tags = "${merge(
     var.global_tags,
     {
-      Name = "External Network Interface 2: Failover Extension-${module.utils.env_prefix}"
+      Name = "External Network Interface 2: Failover Extension-${module.utils.env_prefix}",
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
+      f5_cloud_failover_nic_map = "external"
     }
   )}"
 }
@@ -332,7 +338,7 @@ resource "aws_network_interface" "external2" {
 resource "aws_eip" "external2" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.external2.private_ip}"
 
   tags = "${merge(
     var.global_tags,
@@ -345,14 +351,17 @@ resource "aws_eip" "external2" {
 resource "aws_eip" "vip1" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
+  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[1] != aws_network_interface.external2.private_ip ? tolist(aws_network_interface.external2.private_ips)[1] : tolist(aws_network_interface.external2.private_ips)[0]}"
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
       f5_cloud_failover_label = "${module.utils.env_prefix}",
-      VIPS = "${"${index("${tolist(aws_network_interface.external1.private_ips)}", "${aws_network_interface.external1.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external1.private_ips)[1]}" : "${tolist(aws_network_interface.external1.private_ips)[0]}"},${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
+      // VIPS value is conditional on network topology
+      // - across network: should contain '<BIG-IP 1 private application IP>,<BIG-IP 2 private application IP>'
+      // - same network: should either not exist or contain an empty string
+      VIPS = "${var.use_availability_zones ? "${tolist(aws_network_interface.external1.private_ips)[1] != aws_network_interface.external1.private_ip ? tolist(aws_network_interface.external1.private_ips)[1] : tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[1] != aws_network_interface.external2.private_ip ? tolist(aws_network_interface.external2.private_ips)[1] : tolist(aws_network_interface.external2.private_ips)[0]}" : ""}"
     }
   )}"
 }
@@ -559,6 +568,19 @@ resource "null_resource" "onboard1" {
     always_run = fileexists("${path.module}/../../declarations/do/aws_do_template.json")
   }
   depends_on = [local_file.do1, null_resource.login1]
+}
+
+# create floating traffic group virtual address only for the same network topology
+resource "null_resource" "create_virtual" {
+  count = "${var.use_availability_zones ? 0 : 1}"
+
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${aws_eip.mgmt2.public_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${aws_eip.vip1.private_ip}\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = [null_resource.onboard1]
 }
 
 output "public_vip_address" {

@@ -22,9 +22,7 @@ const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
 const constants = require('./constants.js');
 const util = require('./util.js');
-const Logger = require('./logger.js');
-
-const logger = new Logger(module);
+const logger = require('./logger.js');
 
 const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
@@ -49,7 +47,7 @@ class Device {
         this.mgmtPort = options.mgmtPort || mgmtPortDiscovery;
         this.product = options.product || 'BIG-IP';
 
-        this.bigip = new BigIp({ logger });
+        this.bigip = new BigIp();
     }
 
     /**
@@ -196,6 +194,35 @@ class Device {
     getVirtualAddresses() {
         return this.getConfig([
             '/tm/ltm/virtual-address'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Intended for getting SNAT translation addresses config object
+    *
+    * Note: ltm/snat-translation endpoint provides addresses stored for both
+    * direct SNAT as well as SNAT pools
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getSnatTranslationAddresses() {
+        return this.getConfig([
+            '/tm/ltm/snat-translation'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Intended for getting NAT addresses config object
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getNatAddresses() {
+        return this.getConfig([
+            '/tm/ltm/nat'
         ])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));

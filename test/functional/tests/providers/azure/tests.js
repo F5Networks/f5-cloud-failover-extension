@@ -27,8 +27,9 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const rgName = deploymentInfo.deploymentId;
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
 
-const declaration = funcUtils.getDeploymentDeclaration();
+const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
@@ -273,8 +274,8 @@ describe('Provider: Azure', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -294,8 +295,8 @@ describe('Provider: Azure', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -316,8 +317,8 @@ describe('Provider: Azure', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });

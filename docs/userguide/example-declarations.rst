@@ -1,7 +1,10 @@
 .. _example-declarations:
 
 Example Declarations
---------------------
+====================
+
+Azure Declaration and Response
+------------------------------
 
 .. code-block:: json
 
@@ -58,3 +61,5 @@ Response:
             }
         }
     }
+
+
