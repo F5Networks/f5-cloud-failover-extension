@@ -198,7 +198,7 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
       "Resource": "arn:aws:ec2:::route-table/*",
       "Condition": {
         "StringEquals": {
-          "ec2:ResourceTag/Name": "External Security Group: Failover Extension-${module.utils.env_prefix}"
+          "ec2:ResourceTag/Name": "External Route Table: Failover Extension-${module.utils.env_prefix}"
         }
       },
       "Effect": "Allow"
