@@ -157,8 +157,13 @@ EOF
   )}"
 }
 
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = "${data.aws_caller_identity.current.account_id}"
+}
+
 // Addresses write action do not have Resource type associate with it
-// "ec2:Vpc": "arn:aws:ec2:${var.aws_region}::vpc/${module.network.network_id}"
 resource "aws_iam_role_policy" "BigIpPolicy" {
   name = "BigIpPolicy"
   role = "${aws_iam_role.main.id}"
@@ -193,14 +198,13 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
     },
     {
       "Action": [
-        "ec2:DescribeRouteTables",
         "ec2:CreateRoute",
         "ec2:ReplaceRoute"
       ],
-      "Resource": "arn:aws:ec2:${var.aws_region}::route-table/*",
+      "Resource": "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:route-table/${aws_route_table.external.id}",
       "Condition": {
         "StringEquals": {
-          "ec2:Region": "${var.aws_region}""
+          "ec2:ResourceTag/Name": "External Route Table: Failover Extension-${module.utils.env_prefix}"
         }
       },
       "Effect": "Allow"
