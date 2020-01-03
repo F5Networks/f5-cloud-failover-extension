@@ -194,6 +194,33 @@ data "template_file" "vm02_cloud_init_script" {
   }
 }
 
+resource "google_service_account" "sa" {
+  account_id   = "tf-func-test-sa-${module.utils.env_prefix}"
+  display_name = "tf-func-test-sa-${module.utils.env_prefix}"
+  description = "${var.reaper_tag}"
+}
+
+resource "google_project_iam_member" "compute_admin_role" {
+  project = var.project_id
+  role    = "roles/compute.admin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+resource "google_project_iam_member" "compute_instance_admin_role" {
+  project = var.project_id
+  role    = "roles/compute.instanceAdmin.v1"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+resource "google_project_iam_member" "storage_admin_role" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+resource "google_project_iam_member" "storage_object_admin_role" {
+  project = var.project_id
+  role    = "roles/storage.objectAdmin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+
 // Creating GCP resources for First BIGIP Instance
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${module.utils.env_prefix}"
@@ -244,6 +271,7 @@ resource "google_compute_instance" "vm01" {
   metadata_startup_script = "${data.template_file.vm01_cloud_init_script.rendered}"
 
   service_account {
+    email = google_service_account.sa.email
     scopes = ["cloud-platform"]
   }
 
@@ -301,6 +329,7 @@ resource "google_compute_instance" "vm02" {
   metadata_startup_script = "${data.template_file.vm02_cloud_init_script.rendered}"
 
   service_account {
+    email = google_service_account.sa.email
     scopes = ["cloud-platform"]
   }
 
