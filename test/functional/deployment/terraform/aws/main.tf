@@ -157,6 +157,13 @@ EOF
   )}"
 }
 
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = "${data.aws_caller_identity.current.account_id}"
+}
+
+// Addresses write action do not have Resource type associate with it
 resource "aws_iam_role_policy" "BigIpPolicy" {
   name = "BigIpPolicy"
   role = "${aws_iam_role.main.id}"
@@ -166,43 +173,58 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
   "Version": "2012-10-17",
   "Statement": [
     {
-        "Action": [
-            "ec2:DescribeInstances",
-            "ec2:DescribeInstanceStatus",
-            "ec2:DescribeAddresses",
-            "ec2:AssociateAddress",
-            "ec2:DisassociateAddress",
-            "ec2:assignPrivateIpAddresses",
-            "ec2:unassignPrivateIpAddresses",
-            "ec2:DescribeNetworkInterfaces",
-            "ec2:DescribeNetworkInterfaceAttribute",
-            "ec2:DescribeRouteTables",
-            "ec2:ReplaceRoute",
-            "ec2:CreateRoute",
-            "sts:AssumeRole",
-            "s3:ListAllMyBuckets"
-        ],
-        "Resource": [
-            "*"
-        ],
-        "Effect": "Allow"
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeNetworkInterfaceAttribute",
+        "ec2:DescribeRouteTables",
+        "s3:ListAllMyBuckets",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:ListBucket",
-            "s3:GetBucketTagging"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
-        "Effect": "Allow"
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam:::role/Failover-Extension-IAM-role-${module.utils.env_prefix}",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:PutObject",
-            "s3:GetObject",
-            "s3:DeleteObject"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
-        "Effect": "Allow"
+      "Action": [
+        "ec2:CreateRoute",
+        "ec2:ReplaceRoute"
+      ],
+      "Resource": "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:route-table/${aws_route_table.external.id}",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Name": "External Route Table: Failover Extension-${module.utils.env_prefix}"
+        }
+      },
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
+      "Effect": "Allow"
     }
   ]
 }

@@ -256,7 +256,7 @@ class Cloud extends AbstractCloud {
                     localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
                 });
             })
-            .then(() => this._getRouteTables(this.tags))
+            .then(() => this._getRouteTables({ tags: this.routeTags }))
             .then((routeTables) => {
                 this.logger.info('Fetching instance route tables');
                 routeTables.forEach((routeTable) => {
