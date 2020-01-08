@@ -389,7 +389,6 @@ resource "aws_route_table" "external" {
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
       f5_cloud_failover_label = "${module.utils.env_prefix}"
-      f5_self_ips = "${aws_network_interface.external1.private_ip},${aws_network_interface.external2.private_ip}"
     }
   )}"
 }
@@ -597,22 +596,24 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = "failover0.local",
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt1.public_ip,
         instanceId = aws_instance.vm0.id,
         mgmt_port = 443,
-        hostname = "failover0.local",
-        primary = false
+        next_hop_address = aws_network_interface.external1.private_ip
       },
       {
+        primary = true,
+        hostname = "failover1.local",
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt2.public_ip,
         instanceId = aws_instance.vm1.id,
         mgmt_port = 443,
-        hostname = "failover1.local",
-        primary = true
+        next_hop_address = aws_network_interface.external2.private_ip
       }
     ],
     deploymentId: module.utils.env_prefix,

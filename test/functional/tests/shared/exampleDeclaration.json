@@ -1,6 +1,10 @@
 {
     "class": "Cloud_Failover",
     "environment": "{{environment}}",
+    "controls": {
+      "class": "Controls",
+      "logLevel": "debug"
+    },
     "externalStorage": {
       "scopingTags": {
         "f5_cloud_failover_label": "{{deploymentId}}"
@@ -17,6 +21,13 @@
       },
       "scopingAddressRanges": [
         "192.0.2.0/24"
-      ]
+      ],
+      "nextHopAddresses": {
+        "discoveryType": "address",
+        "items": [
+          "{{nextHopAddress1}}",
+          "{{nextHopAddress2}}"
+        ]
+      }
     }
 }

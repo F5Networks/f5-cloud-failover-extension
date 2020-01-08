@@ -33,6 +33,7 @@ const MAX_RETRIES = require('../../constants').MAX_RETRY;
 const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 
 const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
+
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
     let ret = {};
@@ -54,18 +55,23 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-     *
-     * @param {Object} options        - function options
-     * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
-     */
+    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
+    *
+    * @param {Object} options                       - function options
+    * @param {Object} [options.tags]                - tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeTags]           - tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeAddresses]      - addresses to filter on [ '192.0.2.0/24' ]
+    * @param {Object} [options.routeNextHopAddress] - next hop address discovery configuration:
+    *                                                   { 'type': 'address': 'items': [], tag: null}
+    * @param {Object} [options.storageTags]         - storage tags to filter on { 'key': 'value' }
+    */
     init(options) {
         options = options || {};
         this.tags = options.tags || null;
         this.storageTags = options.storageTags || {};
         this.routeTags = options.routeTags || null;
         this.routeAddresses = options.routeAddresses || null;
-        this.routeSelfIpsTag = options.routeSelfIpsTag || null;
+        this.routeNextHopAddress = options.routeNextHopAddress || {};
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -749,17 +755,17 @@ class Cloud extends AbstractCloud {
 
                 const operations = [];
                 routes.forEach((route) => {
-                    if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
-                        const selfIpsToUse = gcpLabelParse(route.description)[this.routeSelfIpsTag];
-                        const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                        // check if route should be updated and if next hop is our address,
-                        // if not we need to update it
-                        if (this.routeAddresses.indexOf(route.destRange)
-                            !== -1 && route.nextHopIp !== selfIpToUse) {
-                            route.nextHopIp = selfIpToUse;
-                            operations.push(route);
-                        }
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        gcpLabelParse(route.description),
+                        this.routeNextHopAddress
+                    );
+                    // check if route should be updated and if next hop is our address,
+                    // if not we need to update it
+                    if (this.routeAddresses.indexOf(route.destRange)
+                        !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                        route.nextHopIp = nextHopAddress;
+                        operations.push(route);
                     }
                 });
 

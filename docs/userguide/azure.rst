@@ -43,7 +43,6 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 - **Route(s) in a route table tagged with:**
 
   - a key tag and a value tag corresponding to the key and value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
-  - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
   See :ref:`azure-udrtagging` for more information.
 
@@ -61,7 +60,7 @@ Tag your infrastructure with the the labels/value or keys that you sent in your 
 
 Network Interfaces
 ``````````````````
-For address failover you need two distinct tags:
+For address failover you need the following tag(s):
 
 - Deployment scoping tag: the key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``. 
 - NIC mapping tag: the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
@@ -83,15 +82,13 @@ In the example below, each external traffic NIC on both BIG-IP systems is tagged
 
 User-Defined routes
 ```````````````````
-For route failover you need two distinct tags:
+For route failover you need the following tag(s):
 
 - Deployment scoping tag: key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
--	Self IP mapping tag: the key is static but the value is user-provided and must contain an array of *one* corresponding self IP for each BIG-IP where the next hop should be pointed. For example, ``f5_self_ips:<self IP on BIG-IP 1>,<self IP on BIG-IP 2>``.
 
 Within Azure, go to **Basic UDR > Tags** to set:
 
 - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
-- a special key call ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``
 
 .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
@@ -106,11 +103,6 @@ Storage account
 Add a storage account to your resource group, and tag with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
 
 .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
-Under the storage account, create a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster to which the routes should point. The example below uses ``10.0.3.4,10.0.3.5``. 
-
-.. image:: ../images/azure/AzureSelfipTags.png
-  :width: 800
 
 
 .. _azure-msi:

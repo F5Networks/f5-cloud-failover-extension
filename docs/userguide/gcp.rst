@@ -40,11 +40,10 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
 - **Route(s) in a route table tagged with**:
 
   - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
-  - a special key ``f5_self_ips`` containing a comma-separated list of addresses mapping to a self IP address on each instance in the cluster to which the routes should point. For example: ``10.0.0.10,10.0.0.11``
   
   .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
-  .. IMPORTANT:: Since GCP routes do not support GCP labels a JSON blob **must** be added to the description, for example: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment","f5_self_ips":["10.0.0.10","10.0.0.11"]}``
+  .. IMPORTANT:: Since GCP routes do not support GCP labels a JSON blob **must** be added to the description, for example: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``
 
 
 Creating and assigning an IAM Role

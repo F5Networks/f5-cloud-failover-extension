@@ -256,7 +256,6 @@ resource "azurerm_route_table" "route_table" {
 
   tags = {
     f5_cloud_failover_label = "${module.utils.env_prefix}",
-    f5_self_ips = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
 
 }
@@ -470,20 +469,22 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = "failover0.local",
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
         mgmt_port = 443,
-        hostname = "failover0.local",
-        primary = false
+        next_hop_address = azurerm_network_interface.internal0.private_ip_address
       },
       {
+        primary = true,
+        hostname = "failover1.local",
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
         mgmt_port = 443,
-        hostname = "failover1.local",
-        primary = true
+        next_hop_address = azurerm_network_interface.internal1.private_ip_address
       }
     ],
     deploymentId: "${module.utils.env_prefix}",

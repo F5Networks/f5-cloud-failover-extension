@@ -72,6 +72,11 @@ paths:
                   f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - "192.0.2.0/24"
+                nextHopAddresses:
+                  discoveryType: address
+                  items:
+                    - "192.0.2.10"
+                    - "192.0.2.11"
               controls:
                 class: Controls
                 logLevel: info
@@ -99,6 +104,11 @@ paths:
                       f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - "192.0.2.0/24"
+                    nextHopAddresses:
+                      discoveryType: address
+                      items:
+                        - "192.0.2.10"
+                        - "192.0.2.11"
                   controls:
                     class: Controls
                     logLevel: info
@@ -314,6 +324,15 @@ components:
               type: array
               items:
                 type: string
+            nextHopAddresses:
+              type: object
+              properties:
+                discoveryType:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: string
         controls:
           type: object
           properties:
@@ -394,7 +413,7 @@ components:
                   type: array
                   items:
                     type: string
-            additionalProperties: true
+          additionalProperties: true
     TaskStateResponse:
       type: object
       properties:

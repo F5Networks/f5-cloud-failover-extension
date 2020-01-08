@@ -27,6 +27,10 @@ describe('Provider - AWS', () => {
             key1: 'value1',
             key2: 'value2'
         },
+        routeTags: {
+            F5_CLOUD_FAILOVER_LABEL: 'foo'
+        },
+        routeAddresses: ['192.0.2.0/24'],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -1010,7 +1014,11 @@ describe('Provider - AWS', () => {
     });
 
     describe('function updateRoutes should', () => {
-        it('update routes if route exists', () => {
+        const localAddresses = ['10.0.1.211'];
+
+        let createRouteSpy;
+
+        beforeEach(() => {
             const routeTable = {
                 RouteTableId: 'rtb-123',
                 Routes: [
@@ -1046,7 +1054,6 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            const localAddresses = ['10.0.1.211'];
             const describeNetworkInterfacesResponse = {
                 NetworkInterfaces: [
                     {
@@ -1054,11 +1061,17 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            return provider.init(mockInitData)
+
+            const thisMockInitData = Object.assign({
+                routeNextHopAddress: {
+                    type: 'routeTag',
+                    tag: 'F5_SELF_IPS'
+                }
+            }, mockInitData);
+
+
+            return provider.init(thisMockInitData)
                 .then(() => {
-                    provider.routeTags = { F5_LABEL: 'foo' };
-                    provider.routeAddresses = ['192.0.2.0/24'];
-                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
                         .returns({
                             promise() {
@@ -1077,93 +1090,74 @@ describe('Provider - AWS', () => {
                                 return Promise.resolve({});
                             }
                         });
-                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
-                    return provider.updateRoutes({
-                        localAddresses,
-                        discoverOnly: true
-                    })
-                        .then(operations => provider.updateRoutes({ updateOperations: operations }))
-                        .then(() => {
-                            assert(createRouteSpy.calledOnce);
-                            assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
-                        })
-                        .catch(err => Promise.reject(err));
+
+                    createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
                 .catch(err => Promise.reject(err));
         });
 
-        it('not update routes if route does not exist', () => {
-            provider.init(mockInitData)
+        it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({
+            localAddresses,
+            discoverOnly: true
+        })
+            .then(operations => provider.updateRoutes({ updateOperations: operations }))
+            .then(() => {
+                assert(createRouteSpy.calledOnce);
+                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+            })
+            .catch(err => Promise.reject(err)));
+
+        it('not update routes if matching route is not found', () => {
+            provider.routeAddresses = ['192.0.100.0/24'];
+
+            return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    const routeTable = {
-                        RouteTableId: 'rtb-123',
-                        Routes: [
-                            {
-                                DestinationCidrBlock: '10.0.0.0/16',
-                                GatewayId: 'local',
-                                Origin: 'CreateRouteTable',
-                                State: 'active'
-                            },
-                            {
-                                DestinationCidrBlock: '0.0.0.0/0',
-                                GatewayId: 'igw-123',
-                                Origin: 'CreateRoute',
-                                State: 'active'
-                            }
-                        ],
-                        Tags: [
-                            {
-                                Key: 'F5_CLOUD_FAILOVER_LABEL',
-                                Value: 'foo'
-                            },
-                            {
-                                Key: 'F5_SELF_IPS',
-                                Value: '10.0.1.211, 10.0.11.52'
-                            }
-                        ]
-                    };
-                    const localAddresses = ['10.0.2.211'];
-                    provider.routeTags = { F5_LABEL: 'foo1' };
-                    provider.routeAddresses = ['192.1.2.0/24'];
-                    provider.routeSelfIpsTag = 'F5_SELF_IPS';
-                    const describeNetworkInterfacesResponse = {
-                        NetworkInterfaces: [
-                            {
-                                NetworkInterfaceId: 'eni-345'
-                            }
-                        ]
-                    };
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve(describeNetworkInterfacesResponse);
-                            }
-                        });
-                    provider.ec2.describeRouteTables = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({ RouteTables: [routeTable] });
-                            }
-                        });
-                    provider.ec2.replaceRoute = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({});
-                            }
-                        });
-                    const createRouteSpy = sinon.spy(provider, '_replaceRoute');
-                    return provider.updateRoutes({ localAddresses })
-                        .then(() => {
-                            assert(createRouteSpy.notCalled);
-                        })
-                        .catch(err => Promise.reject(err));
+                    assert(createRouteSpy.notCalled);
                 })
                 .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: address', () => {
+            provider.routeNextHopAddress = {
+                type: 'address',
+                items: ['10.0.1.211', '10.0.11.52']
+            };
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(createRouteSpy.calledOnce);
+                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('not update routes when matching next hop address is not found', () => {
+            provider.routeNextHopAddress = {
+                type: 'address',
+                items: []
+            };
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(createRouteSpy.notCalled);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('throw an error on an unknown next hop discovery method', () => {
+            provider.routeNextHopAddress = {
+                type: 'foo'
+            };
+
+            return provider.updateRoutes({ localAddresses })
+                .catch((err) => {
+                    assert.strictEqual(err.message.indexOf('Invalid discovery type') !== -1, true);
+                });
         });
     });
 
-    describe('function getAssociatedAddressAndRouteInfo', () => {
-        it('should return addresses and routes for active device ', () => {
+    describe('function getAssociatedAddressAndRouteInfo should', () => {
+        it('return addresses and routes for active device ', () => {
             const expectedData = {
                 instance: 'i-123',
                 addresses: [
@@ -1205,7 +1199,7 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should return addresses and not routes for standby device ', () => {
+        it('return addresses and not routes for standby device ', () => {
             const expectedData = {
                 instance: 'i-123',
                 addresses: [

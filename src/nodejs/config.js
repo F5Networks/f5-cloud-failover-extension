@@ -205,11 +205,11 @@ class ConfigWorker {
 
         logger.debug('Successfully validated declaration');
 
-        // Set log level based on controls declaration
+        // Update log level based on controls property, if necessary
         if (declaration.controls && declaration.controls.logLevel) {
-            logger.info('Setting controls log level');
             logger.setLogLevel(declaration.controls.logLevel);
         }
+
         return this.setConfig(declaration)
             .then(() => this._updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))

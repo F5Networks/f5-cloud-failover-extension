@@ -29,20 +29,6 @@ Requirements
 These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
-<<<<<<< HEAD
-- **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for creating and assigning an IAM role.
-- **An S3 bucket for Cloud Failover Extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
-
-  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
-- Elastic IP addresses tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration
-    - a special key called `VIPS` containing a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
-
-- Route(s) in a route table tagged with:
-    - a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
-    - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. Example: ``10.0.0.10,10.0.0.11``
-=======
 - **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for :ref:`aws-iam`.
 - **An S3 bucket for Cloud Failover extension cluster-wide file(s)**. This must be tagged with a key/value pair corresponding to the key/value(s) to provide in the `externalStorage.scopingTags` section of the Cloud Failover extension configuration.
 
@@ -50,8 +36,6 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - **Route(s) in a route table** tagged with:
     - a key/value corresponding to the key/value(s) to provide in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
-    - a special key called `f5_self_ips` containing a comma-separated list of addresses that map to a self IP address on each instance in the cluster. For example: ``10.0.0.10,10.0.0.11``.
->>>>>>> develop
   
   .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
   
