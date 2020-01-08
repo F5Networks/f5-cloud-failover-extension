@@ -38,6 +38,7 @@ class AbstractCloud {
     }
 
     init() {
+        // TODO: setting standard instance attributes could happen here via super.init() call
         throw new Error('Method must be implemented in child class!');
     }
 
@@ -59,6 +60,74 @@ class AbstractCloud {
 
     getAssociatedAddressAndRouteInfo() {
         throw new Error('Method must be implemented in child class!');
+    }
+
+    /**
+    * Normalize tags into a known object structure
+    *
+    * Known unique object structures
+    * - { 'key1': 'value1' }
+    * - [{ 'Key': 'key1', 'Value': 'value1' }]
+    *
+    * @param {Object|Array} tags - cloud resource tags
+    *
+    * @returns {Object} - tags: { 'key1': 'value1' }
+    */
+    _normalizeTags(tags) {
+        let ret = {};
+        if (Array.isArray(tags)) {
+            ret = tags.reduce((acc, cur) => {
+                acc[cur.Key] = cur.Value;
+                return acc;
+            }, {});
+        } else {
+            ret = tags;
+        }
+        return ret;
+    }
+
+    /**
+    * Discover next hop address - support address and routeTag discovery types
+    *
+    * @param {Object} localAddresses          - local addresses
+    * @param {Object} routeTableTags          - route table tags
+    * @param {Object} discoveryOptions        - discovery options
+    * @param {String} [discoveryOptions.type] - type of discovery: address|routeTag
+    * @param {Array} [discoveryOptions.items] - items, used for some discovery types
+    * @param {String} [discoveryOptions.tag]  - tag, used for some discovery types
+    *
+    * @returns {String} - next hop address
+    */
+    _discoverNextHopAddress(localAddresses, routeTableTags, discoveryOptions) {
+        let potentialAddresses = [];
+
+        switch (discoveryOptions.type) {
+        case 'address':
+            potentialAddresses = discoveryOptions.items;
+            break;
+        case 'routeTag':
+            routeTableTags = this._normalizeTags(routeTableTags);
+            if (!routeTableTags[discoveryOptions.tag]) {
+                this.logger.warning(`expected tag: ${discoveryOptions.tag} does not exist on route table`);
+            }
+            // tag value may be '1.1.1.1,2.2.2.2' or ['1.1.1.1', '2.2.2.2']
+            if (Array.isArray(routeTableTags[discoveryOptions.tag])) {
+                potentialAddresses = routeTableTags[discoveryOptions.tag];
+            } else {
+                potentialAddresses = routeTableTags[discoveryOptions.tag].split(',').map(i => i.trim());
+            }
+            break;
+        default:
+            throw new Error(`Invalid discovery type was provided: ${discoveryOptions.type}`);
+        }
+
+        const nextHopAddressToUse = potentialAddresses.filter(item => localAddresses.indexOf(item) !== -1)[0];
+        if (!nextHopAddressToUse) {
+            this.logger.warning(`Next hop address to use is empty: ${localAddresses} ${potentialAddresses}`);
+        }
+
+        this.logger.silly(`Next hop address: ${nextHopAddressToUse}`);
+        return nextHopAddressToUse;
     }
 }
 

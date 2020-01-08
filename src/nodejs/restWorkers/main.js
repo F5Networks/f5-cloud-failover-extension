@@ -92,6 +92,10 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     configWorker.init()
         .then(() => configWorker.getConfig())
         .then((config) => {
+            // set log level if it has been provided in the configuration
+            if (util.getDataByKey(config, 'controls.logLevel')) {
+                logger.setLogLevel(config.controls.logLevel);
+            }
             // failover can only be initialized if a configuration has already been provided
             if (config && config.environment) {
                 logger.info('calling failover init');

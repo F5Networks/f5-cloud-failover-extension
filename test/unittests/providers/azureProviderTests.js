@@ -41,9 +41,11 @@ describe('Provider - Azure', () => {
         provider = new AzureCloudProvider(mockMetadata);
 
         provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
+        provider.logger.warning = sinon.stub();
         provider.logger.info = sinon.stub();
+        provider.logger.debug = sinon.stub();
+        provider.logger.verbose = sinon.stub();
         provider.logger.silly = sinon.stub();
     });
     after(() => {
@@ -570,45 +572,81 @@ describe('Provider - Azure', () => {
             });
     });
 
-    it('validate updateRoutes with resolved promise', () => {
-        const routeTable01 = {
-            id: '/foo/foo/foo/rg01/id_rt01',
-            name: 'rt01',
-            provisioningState: 'Succeeded',
-            tags: {
-                F5_LABEL: 'foo',
-                F5_SELF_IPS: '10.0.1.10,10.0.1.11'
-            },
-            routes: [
-                {
-                    id: 'id_route01',
-                    name: 'route01',
-                    addressPrefix: '192.0.0.0/24',
-                    nextHopType: 'VirtualAppliance',
-                    nextHopIpAddress: '10.0.1.10'
-                }
-            ]
-        };
-
-        provider.networkClient = sinon.stub();
-        provider.networkClient.routeTables = sinon.stub();
-        provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable01]);
-        provider.networkClient.routes = sinon.stub();
-
-        const providerRouteUpdateSpy = sinon.stub().yields(null, []);
-        provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
-
+    describe('function updateRoutes should', () => {
         const localAddresses = ['10.0.1.11'];
-        provider.routeTags = { F5_LABEL: 'foo' };
-        provider.routeAddresses = ['192.0.0.0/24'];
-        provider.routeSelfIpsTag = 'F5_SELF_IPS';
 
-        return provider.updateRoutes({ localAddresses, discoverOnly: true })
+        let providerRouteUpdateSpy;
+
+        beforeEach(() => {
+            const routeTable01 = {
+                id: '/foo/foo/foo/rg01/id_rt01',
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11'
+                },
+                routes: [
+                    {
+                        id: 'id_route01',
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10'
+                    }
+                ]
+            };
+
+            provider.networkClient = sinon.stub();
+            provider.networkClient.routeTables = sinon.stub();
+            provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable01]);
+            provider.networkClient.routes = sinon.stub();
+
+            providerRouteUpdateSpy = sinon.stub().yields(null, []);
+            provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
+
+            provider.routeTags = { F5_LABEL: 'foo' };
+            provider.routeAddresses = ['192.0.0.0/24'];
+            provider.routeNextHopAddress = {
+                type: 'routeTag',
+                tag: 'F5_SELF_IPS'
+            };
+        });
+
+        it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({ localAddresses, discoverOnly: true })
             .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
             })
-            .catch(err => Promise.reject(err));
+            .catch(err => Promise.reject(err)));
+
+        it('update routes using next hop discovery method: address', () => {
+            provider.routeNextHopAddress = {
+                type: 'address',
+                items: ['10.0.1.10', '10.0.1.11']
+            };
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('not update routes when matching next hop address is not found', () => {
+            provider.routeNextHopAddress = {
+                type: 'address',
+                items: []
+            };
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.strictEqual(providerRouteUpdateSpy.called, false);
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 
     it('should execute downloadDataFromStorage', () => {
@@ -709,7 +747,11 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
-            provider.routeSelfIpsTag = 'F5_SELF_IPS';
+            provider.routeNextHopAddress = {
+                type: 'routeTag',
+                tag: 'F5_SELF_IPS'
+            };
+
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -745,7 +787,11 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadataStandby);
             provider._getRouteTables = sinon.stub().resolves([]);
-            provider.routeSelfIpsTag = 'F5_SELF_IPS';
+            provider.routeNextHopAddress = {
+                type: 'routeTag',
+                tag: 'F5_SELF_IPS'
+            };
+
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);

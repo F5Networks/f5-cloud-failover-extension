@@ -310,7 +310,7 @@ resource "google_compute_instance" "vm02" {
 
 resource "google_compute_route" "ext-route" {
   name        = "network-route-${module.utils.env_prefix}"
-  description = "${var.reaper_tag} f5_cloud_failover_labels={\"f5_cloud_failover_label\":\"${module.utils.env_prefix}\",\"f5_self_ips\": [\"${google_compute_instance.vm01.network_interface.2.network_ip}\",\"${google_compute_instance.vm02.network_interface.2.network_ip}\"]}"
+  description = "${var.reaper_tag} f5_cloud_failover_labels={\"f5_cloud_failover_label\":\"${module.utils.env_prefix}\"}"
   dest_range  = "192.0.2.0/24"
   network     = "${google_compute_network.int_network.name}"
   next_hop_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}"
@@ -417,20 +417,22 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = google_compute_instance.vm01.name,
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm01.name
-        primary = false
+        next_hop_address = google_compute_instance.vm01.network_interface.2.network_ip
       },
       {
+        primary = true,
+        hostname = google_compute_instance.vm02.name,
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm02.name
-        primary = true
+        next_hop_address = google_compute_instance.vm02.network_interface.2.network_ip
       }
     ],
     deploymentId: module.utils.env_prefix,

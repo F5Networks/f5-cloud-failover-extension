@@ -1,6 +1,6 @@
 {
     "class": "Cloud_Failover",
-    "environment": "gcp",
+    "environment": "aws",
 	"externalStorage": {
 		"scopingTags": {
 			"f5_cloud_failover_label": "mydeployment"
@@ -19,11 +19,7 @@
 			"192.168.1.0/24"
 		],
 		"nextHopAddresses": {
-			"discoveryType": "address",
-			"items": [
-				"192.0.2.10",
-				"192.0.2.11"
-			]
+			"discoveryType": "routeTag"
 		}
 	}
 }
