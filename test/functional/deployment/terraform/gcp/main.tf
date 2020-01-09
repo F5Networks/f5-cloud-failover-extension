@@ -204,6 +204,7 @@ resource "google_compute_instance" "vm01" {
 
   labels = {
     f5_cloud_failover_label = "${module.utils.env_prefix}"
+    another_tag = "with_a_value"
   }
 
   boot_disk {

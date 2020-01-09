@@ -575,14 +575,15 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate _getVmsByTags with extra tag - should return no result', () => {
+    it('validate _getVmsByTags with extra tags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-tag-key': 'test-tag-value', 'missing-label': 'missing-label-value' } } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' } } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
         return provider._getVmsByTags(provider.tags)
             .then((data) => {
-                assert.ok(data.length === 0);
+                assert.ok(data.length === 1);
+                assert.strictEqual(data[0], 'test_data');
             });
     });
 
