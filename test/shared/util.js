@@ -35,6 +35,17 @@ module.exports = {
     },
 
     /**
+     * Deep copy
+     *
+     * @param {Object} obj - object to copy
+     *
+     * @returns {Object} deep copy of source object
+     */
+    deepCopy(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    },
+
+    /**
      * Get package details
      *
      * @returns {Object} { name: 'foo.rpm', path: '/tmp/foo.rpm' }

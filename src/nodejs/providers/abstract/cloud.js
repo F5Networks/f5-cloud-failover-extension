@@ -32,14 +32,26 @@ class AbstractCloud {
         if (logger) {
             this.logger = logger;
         }
-
-        // properties populated via configuration at runtime
-        this.tags = null;
     }
 
-    init() {
-        // TODO: setting standard instance attributes could happen here via super.init() call
-        throw new Error('Method must be implemented in child class!');
+    /**
+    * Initialize the Cloud Provider
+    *
+    * @param {Object} options                         - function options
+    * @param {Object} [options.tags]                  - tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeTags]             - tags to filter on { 'key': 'value' }
+    * @param {Object} [options.routeAddresses]        - addresses to filter on [{ 'range': '192.0.2.0/24' }]
+    * @param {Object} [options.routeNextHopAddresses] - next hop address discovery configuration:
+    *                                                     { 'type': 'address': 'items': [], tag: null}
+    * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
+    */
+    init(options) {
+        options = options || {};
+        this.tags = options.tags || {};
+        this.routeTags = options.routeTags || {};
+        this.routeAddresses = options.routeAddresses || [];
+        this.routeNextHopAddresses = options.routeNextHopAddresses || {};
+        this.storageTags = options.storageTags || {};
     }
 
     uploadDataToStorage() {
@@ -87,7 +99,7 @@ class AbstractCloud {
     }
 
     /**
-    * Discover next hop address - support address and routeTag discovery types
+    * Discover next hop address - support 'none' (static) and routeTag discovery types
     *
     * @param {Object} localAddresses          - local addresses
     * @param {Object} routeTableTags          - route table tags
@@ -102,7 +114,7 @@ class AbstractCloud {
         let potentialAddresses = [];
 
         switch (discoveryOptions.type) {
-        case 'address':
+        case 'static':
             potentialAddresses = discoveryOptions.items;
             break;
         case 'routeTag':

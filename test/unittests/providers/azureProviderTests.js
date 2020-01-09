@@ -606,8 +606,8 @@ describe('Provider - Azure', () => {
             provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
 
             provider.routeTags = { F5_LABEL: 'foo' };
-            provider.routeAddresses = ['192.0.0.0/24'];
-            provider.routeNextHopAddress = {
+            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
+            provider.routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };
@@ -620,9 +620,9 @@ describe('Provider - Azure', () => {
             })
             .catch(err => Promise.reject(err)));
 
-        it('update routes using next hop discovery method: address', () => {
-            provider.routeNextHopAddress = {
-                type: 'address',
+        it('update routes using next hop discovery method: static', () => {
+            provider.routeNextHopAddresses = {
+                type: 'static',
                 items: ['10.0.1.10', '10.0.1.11']
             };
 
@@ -635,8 +635,8 @@ describe('Provider - Azure', () => {
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeNextHopAddress = {
-                type: 'address',
+            provider.routeNextHopAddresses = {
+                type: 'static',
                 items: []
             };
 
@@ -747,7 +747,7 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
-            provider.routeNextHopAddress = {
+            provider.routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };
@@ -787,7 +787,7 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadataStandby);
             provider._getRouteTables = sinon.stub().resolves([]);
-            provider.routeNextHopAddress = {
+            provider.routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };

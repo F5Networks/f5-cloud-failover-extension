@@ -48,23 +48,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options                       - function options
-    * @param {Object} [options.tags]                - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]           - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]      - addresses to filter on [ '192.0.2.0/24' ]
-    * @param {Object} [options.routeNextHopAddress] - next hop address discovery configuration:
-    *                                                   { 'type': 'address': 'items': [], tag: null}
-    * @param {Object} [options.storageTags]         - storage tags to filter on { 'key': 'value' }
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || {};
-        this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeNextHopAddress = options.routeNextHopAddress || {};
-        this.storageTags = options.storageTags || {};
+        super.init(options);
 
         let environment;
 
@@ -265,7 +252,7 @@ class Cloud extends AbstractCloud {
                     const nextHopAddress = this._discoverNextHopAddress(
                         localAddresses,
                         routeTable.tags,
-                        this.routeNextHopAddress
+                        this.routeNextHopAddresses
                     );
                     routeTable.routes.forEach((route) => {
                         if (route.nextHopIpAddress === nextHopAddress) {
@@ -706,11 +693,11 @@ class Cloud extends AbstractCloud {
                     const nextHopAddress = this._discoverNextHopAddress(
                         localAddresses,
                         routeTable.tags,
-                        this.routeNextHopAddress
+                        this.routeNextHopAddresses
                     );
                     if (nextHopAddress) {
                         routeTable.routes.forEach((route) => {
-                            if (this.routeAddresses.indexOf(route.addressPrefix)
+                            if (this.routeAddresses.map(i => i.range).indexOf(route.addressPrefix)
                                 !== -1 && route.nextHopIpAddress !== nextHopAddress) {
                                 route.nextHopIpAddress = nextHopAddress;
                                 const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];

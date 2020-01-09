@@ -83,7 +83,7 @@ describe('Provider - GCP', () => {
         provider.routeTags = {
             'test-tag-key': 'test-tag-value'
         };
-        provider.routeNextHopAddress = {
+        provider.routeNextHopAddresses = {
             type: 'routeTag',
             tag: 'f5_self_ips'
         };
@@ -268,11 +268,11 @@ describe('Provider - GCP', () => {
                 };
             });
 
-            provider.routeAddresses = ['192.0.0.0/24'];
+            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
-            provider.routeNextHopAddress = {
+            provider.routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'f5_self_ips'
             };
@@ -287,9 +287,9 @@ describe('Provider - GCP', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('update routes using next hop discovery method: address', () => {
-            provider.routeNextHopAddress = {
-                type: 'address',
+        it('update routes using next hop discovery method: static', () => {
+            provider.routeNextHopAddresses = {
+                type: 'static',
                 items: ['1.1.1.1', '2.2.2.2']
             };
 
@@ -616,8 +616,10 @@ describe('Provider - GCP', () => {
     });
 
     describe('function getAssociatedAddressAndRouteInfo', () => {
-        function initMockup() {
-            const expectedData = {
+        let expectedData;
+
+        beforeEach(() => {
+            expectedData = {
                 instance: 'i-123',
                 addresses: [
                     {
@@ -632,11 +634,23 @@ describe('Provider - GCP', () => {
             sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
             sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
             sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
-            return expectedData;
-        }
+            sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([{
+                name: 'i-123',
+                networkInterfaces: [
+                    {
+                        networkIP: '1.1.1.1',
+                        accessConfigs: [
+                            {
+                                natIP: '1.1.1.1'
+                            }
+                        ],
+                        name: 'nic0'
+                    }
+                ]
+            }]));
+        });
 
         it('validate return addresses and routes for active device', () => {
-            const expectedData = initMockup();
             expectedData.routes.push({
                 routeTableId: '123',
                 routeTableName: 'x',
@@ -644,20 +658,6 @@ describe('Provider - GCP', () => {
             });
             return provider.init(testPayload)
                 .then(() => {
-                    provider._getVmsByTags = sinon.stub().resolves([{
-                        name: 'i-123',
-                        networkInterfaces: [
-                            {
-                                networkIP: '1.1.1.1',
-                                accessConfigs: [
-                                    {
-                                        natIP: '1.1.1.1'
-                                    }
-                                ],
-                                name: 'nic0'
-                            }
-                        ]
-                    }]);
                     provider._getRoutes = sinon.stub().resolves(([
                         {
                             id: '123',
@@ -673,27 +673,12 @@ describe('Provider - GCP', () => {
                 .then((data) => {
                     assert.deepStrictEqual(data, expectedData);
                 })
-                .catch(err => Promise.reject(err));
+                .catch(err => Promise.reject(new Error(`${err.stack}`)));
         });
 
         it('validate return addresses and not routes for standby device', () => {
-            const expectedData = initMockup();
             return provider.init(testPayload)
                 .then(() => {
-                    provider._getVmsByTags = sinon.stub().resolves([{
-                        name: 'i-123',
-                        networkInterfaces: [
-                            {
-                                networkIP: '1.1.1.1',
-                                accessConfigs: [
-                                    {
-                                        natIP: '1.1.1.1'
-                                    }
-                                ],
-                                name: 'nic0'
-                            }
-                        ]
-                    }]);
                     provider._getRoutes = sinon.stub().resolves(([]));
                 })
                 .then(() => {

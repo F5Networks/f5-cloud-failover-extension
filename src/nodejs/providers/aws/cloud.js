@@ -29,29 +29,15 @@ class Cloud extends AbstractCloud {
 
         this.metadata = new AWS.MetadataService();
         this.s3 = {};
+        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.ec2 = {};
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options                       - function options
-    * @param {Object} [options.tags]                - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]           - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]      - addresses to filter on [ '192.0.2.0/24' ]
-    * @param {Object} [options.routeNextHopAddress] - next hop address discovery configuration:
-    *                                                   { 'type': 'address': 'items': [], tag: null}
-    * @param {Object} [options.storageTags]         - storage tags to filter on { 'key': 'value' }
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || null;
-        this.storageTags = options.storageTags || null;
-        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
-        this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeNextHopAddress = options.routeNextHopAddress || {};
-
+        super.init(options);
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -161,7 +147,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Updates route tables, by using the routeNextHopAddress discovery method to find the network interface the
+     * Updates route tables, by using the next hop address discovery method to find the network interface the
      * scoping address would need to be routed to and then updating or creating a new route to the network interface
      *
      * @param {Object} options                     - function options
@@ -344,7 +330,7 @@ class Cloud extends AbstractCloud {
         const _getUpdateOperationObject = (address, routeTable) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 const updateNotRequired = routeTable.Routes.every((route) => {
-                    if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1
+                    if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1
                         && route.NetworkInterfaceId !== networkInterfaceId) {
                         return false;
                     }
@@ -368,7 +354,7 @@ class Cloud extends AbstractCloud {
                     const nextHopAddress = this._discoverNextHopAddress(
                         localAddresses,
                         routeTable.Tags,
-                        this.routeNextHopAddress
+                        this.routeNextHopAddresses
                     );
 
                     if (nextHopAddress) {
@@ -417,7 +403,7 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTable, networkInterfaceId) {
         const promises = [];
         routeTable.Routes.forEach((route) => {
-            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+            if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1) {
                 promises.push(this._replaceRoute(
                     route.DestinationCidrBlock,
                     networkInterfaceId,

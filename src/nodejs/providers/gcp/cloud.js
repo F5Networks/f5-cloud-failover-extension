@@ -55,23 +55,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options                       - function options
-    * @param {Object} [options.tags]                - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]           - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]      - addresses to filter on [ '192.0.2.0/24' ]
-    * @param {Object} [options.routeNextHopAddress] - next hop address discovery configuration:
-    *                                                   { 'type': 'address': 'items': [], tag: null}
-    * @param {Object} [options.storageTags]         - storage tags to filter on { 'key': 'value' }
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || null;
-        this.storageTags = options.storageTags || {};
-        this.routeTags = options.routeTags || null;
-        this.routeAddresses = options.routeAddresses || null;
-        this.routeNextHopAddress = options.routeNextHopAddress || {};
+        super.init(options);
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -748,11 +735,11 @@ class Cloud extends AbstractCloud {
                     const nextHopAddress = this._discoverNextHopAddress(
                         localAddresses,
                         gcpLabelParse(route.description),
-                        this.routeNextHopAddress
+                        this.routeNextHopAddresses
                     );
                     // check if route should be updated and if next hop is our address,
                     // if not we need to update it
-                    if (this.routeAddresses.indexOf(route.destRange)
+                    if (this.routeAddresses.map(i => i.range).indexOf(route.destRange)
                         !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
                         route.nextHopIp = nextHopAddress;
                         operations.push(route);
