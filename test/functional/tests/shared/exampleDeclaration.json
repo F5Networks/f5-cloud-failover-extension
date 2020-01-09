@@ -20,10 +20,12 @@
         "f5_cloud_failover_label": "{{deploymentId}}"
       },
       "scopingAddressRanges": [
-        "192.0.2.0/24"
+        {
+          "range": "192.0.2.0/24"
+        }
       ],
-      "nextHopAddresses": {
-        "discoveryType": "address",
+      "defaultNextHopAddresses": {
+        "discoveryType": "static",
         "items": [
           "{{nextHopAddress1}}",
           "{{nextHopAddress2}}"

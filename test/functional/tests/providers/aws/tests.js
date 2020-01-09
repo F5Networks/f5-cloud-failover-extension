@@ -52,7 +52,7 @@ function matchRouteTables(routes, nics) {
 
     routes.forEach((route) => {
         const cidrBlock = route.DestinationCidrBlock;
-        const scopingAddresses = deploymentDeclaration.failoverRoutes.scopingAddressRanges;
+        const scopingAddresses = deploymentDeclaration.failoverRoutes.scopingAddressRanges.map(i => i.range);
         const selfIpToUse = scopingAddresses.filter(item => cidrBlock.indexOf(item) !== -1);
         if (selfIpToUse.length > 0) {
             nicToCheck = route.NetworkInterfaceId;

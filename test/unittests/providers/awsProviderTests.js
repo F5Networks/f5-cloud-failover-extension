@@ -30,7 +30,7 @@ describe('Provider - AWS', () => {
         routeTags: {
             F5_CLOUD_FAILOVER_LABEL: 'foo'
         },
-        routeAddresses: ['192.0.2.0/24'],
+        routeAddresses: [{ range: '192.0.2.0/24' }],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -1063,7 +1063,7 @@ describe('Provider - AWS', () => {
             };
 
             const thisMockInitData = Object.assign({
-                routeNextHopAddress: {
+                routeNextHopAddresses: {
                     type: 'routeTag',
                     tag: 'F5_SELF_IPS'
                 }
@@ -1108,7 +1108,7 @@ describe('Provider - AWS', () => {
             .catch(err => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
-            provider.routeAddresses = ['192.0.100.0/24'];
+            provider.routeAddresses = [{ range: '192.0.100.0/24' }];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
@@ -1117,9 +1117,9 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('update routes using next hop discovery method: address', () => {
-            provider.routeNextHopAddress = {
-                type: 'address',
+        it('update routes using next hop discovery method: static', () => {
+            provider.routeNextHopAddresses = {
+                type: 'static',
                 items: ['10.0.1.211', '10.0.11.52']
             };
 
@@ -1132,8 +1132,8 @@ describe('Provider - AWS', () => {
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeNextHopAddress = {
-                type: 'address',
+            provider.routeNextHopAddresses = {
+                type: 'static',
                 items: []
             };
 
@@ -1145,7 +1145,7 @@ describe('Provider - AWS', () => {
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
-            provider.routeNextHopAddress = {
+            provider.routeNextHopAddresses = {
                 type: 'foo'
             };
 
