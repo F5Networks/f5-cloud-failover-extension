@@ -200,25 +200,28 @@ resource "google_service_account" "sa" {
   description = "${var.reaper_tag}"
 }
 
-resource "google_project_iam_member" "compute_admin_role" {
+resource "google_project_iam_member" "gcp_role_member_assignment" {
   project = var.project_id
-  role    = "roles/compute.admin"
+  role    = "projects/${var.project_id}/roles/tfCustomRole.${module.utils.env_prefix}"
   member  = "serviceAccount:${google_service_account.sa.email}"
 }
-resource "google_project_iam_member" "compute_instance_admin_role" {
-  project = var.project_id
-  role    = "roles/compute.instanceAdmin.v1"
-  member  = "serviceAccount:${google_service_account.sa.email}"
-}
-resource "google_project_iam_member" "storage_admin_role" {
-  project = var.project_id
-  role    = "roles/storage.admin"
-  member  = "serviceAccount:${google_service_account.sa.email}"
-}
-resource "google_project_iam_member" "storage_object_admin_role" {
-  project = var.project_id
-  role    = "roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.sa.email}"
+
+resource "google_project_iam_custom_role" "gcp_custom_roles" {
+  role_id = "tfCustomRole.${module.utils.env_prefix}"
+  title = "tfCustomRole.${module.utils.env_prefix}"
+  description = "${var.reaper_tag}"
+  //TODO: include all necessary permissions
+  permissions = ["compute.instances.create", "compute.instances.get", "compute.instances.list",
+    "compute.targetInstances.get", "compute.targetInstances.list", "compute.targetInstances.use", "compute.routes.get",
+    "compute.targetInstances.create", "compute.routes.list", "compute.routes.create", "compute.routes.delete", "compute.forwardingRules.create",
+    "compute.forwardingRules.get", "compute.forwardingRules.list", "compute.forwardingRules.setTarget",
+    "compute.forwardingRules.setLabels", "storage.objects.get", "storage.objects.create", "storage.objects.update", "storage.objects.list",
+    "storage.objects.delete", "storage.buckets.get", "storage.buckets.create", "storage.buckets.update", "storage.buckets.delete",
+    "storage.buckets.list","resourcemanager.projects.get", "compute.globalForwardingRules.create", "compute.globalForwardingRules.get",
+    "compute.globalForwardingRules.list", "compute.globalAddresses.get", "compute.globalAddresses.list", "compute.globalForwardingRules.setTarget",
+    "compute.routers.get", "compute.routers.list", "compute.routers.get", "compute.routers.update", "compute.routers.use", "compute.routers.delete",
+    "compute.projects.get", "compute.networks.get", "compute.networks.list", "compute.networks.create", "compute.networks.use", "compute.networks.update",
+    "compute.instances.getIamPolicy", "compute.instances.updateNetworkInterface", "compute.networks.updatePolicy"]
 }
 
 // Creating GCP resources for First BIGIP Instance
