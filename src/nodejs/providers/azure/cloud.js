@@ -48,21 +48,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options                   - function options
-    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
-    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || {};
-        this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
-        this.storageTags = options.storageTags || {};
+        super.init(options);
 
         let environment;
 
@@ -260,11 +249,14 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 this.logger.info('Fetching instance route tables');
                 routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.tags,
+                        this.routeNextHopAddresses
+                    );
                     routeTable.routes.forEach((route) => {
-                        if (route.nextHopIpAddress === selfIpToUse) {
-                            this.logger.info('this is route', routeTable);
+                        if (route.nextHopIpAddress === nextHopAddress) {
+                            this.logger.info('this is an associated route', routeTable);
                             data.routes.push({
                                 routeTableId: routeTable.id,
                                 routeTableName: routeTable.name,
@@ -698,17 +690,21 @@ class Cloud extends AbstractCloud {
 
                 // for each route table go through routes and discover any necessary updates
                 routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                    routeTable.routes.forEach((route) => {
-                        if (this.routeAddresses.indexOf(route.addressPrefix)
-                            !== -1 && route.nextHopIpAddress !== selfIpToUse) {
-                            route.nextHopIpAddress = selfIpToUse;
-                            const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
-                            operations.push(parameters);
-                        }
-                    });
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.tags,
+                        this.routeNextHopAddresses
+                    );
+                    if (nextHopAddress) {
+                        routeTable.routes.forEach((route) => {
+                            if (this.routeAddresses.map(i => i.range).indexOf(route.addressPrefix)
+                                !== -1 && route.nextHopIpAddress !== nextHopAddress) {
+                                route.nextHopIpAddress = nextHopAddress;
+                                const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
+                                operations.push(parameters);
+                            }
+                        });
+                    }
                 });
                 return Promise.resolve({ operations });
             })

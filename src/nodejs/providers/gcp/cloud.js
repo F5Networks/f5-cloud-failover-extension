@@ -33,6 +33,7 @@ const MAX_RETRIES = require('../../constants').MAX_RETRY;
 const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 
 const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
+
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
     let ret = {};
@@ -54,18 +55,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-     *
-     * @param {Object} options        - function options
-     * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
-     */
+    * See the parent class method for details
+    */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || null;
-        this.storageTags = options.storageTags || {};
-        this.routeTags = options.routeTags || null;
-        this.routeAddresses = options.routeAddresses || null;
-        this.routeSelfIpsTag = options.routeSelfIpsTag || null;
+        super.init(options);
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -397,17 +390,7 @@ class Cloud extends AbstractCloud {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
-                    let flag = true;
-                    Object.keys(vm.metadata.labels)
-                        .forEach((labelName) => {
-                            if (Object.keys(tags).indexOf(labelName) === -1
-                            || Object.values(tags).indexOf(vm.metadata.labels[labelName]) === -1) {
-                                flag = false;
-                            }
-                        });
-                    if (flag) {
-                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
-                    }
+                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
                 });
                 return Promise.all(promises);
             })
@@ -574,7 +557,7 @@ class Cloud extends AbstractCloud {
     _discoverAddressOperations(failoverAddresses) {
         if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No failoverAddresses to discover');
-            return Promise.resolve();
+            return Promise.resolve({ nics: [], fwdRules: [] });
         }
 
         return Promise.all([
@@ -749,17 +732,17 @@ class Cloud extends AbstractCloud {
 
                 const operations = [];
                 routes.forEach((route) => {
-                    if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
-                        const selfIpsToUse = gcpLabelParse(route.description)[this.routeSelfIpsTag];
-                        const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                        // check if route should be updated and if next hop is our address,
-                        // if not we need to update it
-                        if (this.routeAddresses.indexOf(route.destRange)
-                            !== -1 && route.nextHopIp !== selfIpToUse) {
-                            route.nextHopIp = selfIpToUse;
-                            operations.push(route);
-                        }
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        gcpLabelParse(route.description),
+                        this.routeNextHopAddresses
+                    );
+                    // check if route should be updated and if next hop is our address,
+                    // if not we need to update it
+                    if (this.routeAddresses.map(i => i.range).indexOf(route.destRange)
+                        !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                        route.nextHopIp = nextHopAddress;
+                        operations.push(route);
                     }
                 });
 

@@ -171,12 +171,17 @@ function getLevelName(level) {
 /**
  * Get Log Level  value by name, by default returns value for current global logLevel
  *
+ * Note: If zero is a valid log level ensure defensive code allows for that
+ *
  * @param {String} [levelName] - log level name
  *
  * @returns {Number} log level value
  */
 function getLevel(levelName) {
-    return levelName ? LOG_LEVELS[levelName] : currentLogLevel;
+    if (levelName === undefined || levelName === null) {
+        return currentLogLevel;
+    }
+    return LOG_LEVELS[levelName];
 }
 
 class LoggerInstance {

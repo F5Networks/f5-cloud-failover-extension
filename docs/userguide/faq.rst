@@ -69,7 +69,7 @@ Cloud Failover Extension is agnostic to same-network and across-network topologi
 
 **Does Cloud Failover Extension support AWS Same-AZ failover?**
 
-Cloud Failover Extension does not currently support AWS Same-AZ. Same AZ failover is still provided by the original functionality built-in to BIG-IP VE AWS image. See the |releases| section on GitHub to keep up to date with CFE features and enhancements.
+Cloud Failover Extension now supports the AWS Same-AZ network topology. The Cloud Failover Extension will disable the original functionality built-in to the BIG-IP VE AWS image.
 
 
 |
@@ -88,15 +88,16 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 .. code-block:: json
 
-    "taskState": "SUCCEEDED",
-    "message": "Failover Completed Successfully",
-    "timestamp": "2019-09-25T23:44:44.381Z",
-    "instance": "failover0.local",
-    "failoverOperations": {
-    "routes": {},
-    "addresses": {}
+    {
+        "taskState": "SUCCEEDED",
+        "message": "Failover Completed Successfully",
+        "timestamp": "2019-09-25T23:44:44.381Z",
+        "instance": "failover0.local",
+        "failoverOperations": {
+            "routes": {},
+            "addresses": {}
+        }
     }
-
 
 
 |
@@ -132,6 +133,12 @@ We collect non-personal telemetry data to help improve the Cloud Failover Extens
         ]
     }
 
+
+|
+
+**Why does Cloud Failover Extension no longer default to a tag on the route for next hop address discovery?**
+
+Specifying the `f5_self_ips` tag on the route object itself proved to be a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform.  For backwards compatability this option is still available however going forward alternate approaches will be promoted, such as simply providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload.  See :ref:`example-declarations` for an example using the original route tag discovery method.
 
 
 |

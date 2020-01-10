@@ -68,7 +68,12 @@ class FailoverClient {
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: constants.SELF_IPS_TAG,
+                    routeNextHopAddresses: {
+                        // provide default discovery type of 'routeTag' for backwards compatability...
+                        type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
+                        items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
+                        tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
+                    },
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })

@@ -65,38 +65,18 @@ Quick Start Example
 
 Here is an example declaration for Microsoft Azure.
 
-.. code-block:: json
-
-
-    {
-        "class": "Cloud_Failover",
-        "environment": "azure",
-          "externalStorage": {
-            "scopingTags": {
-              "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-          "failoverAddresses": {
-            "scopingTags": {
-              "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-        "failoverRoutes": {
-          "scopingTags": {
-            "f5_cloud_failover_label": "mydeployment"
-          },
-          "scopingAddressRanges": [
-            "0.0.0.0/0"
-          ]
-        }
-    }
-
+.. literalinclude:: ../../examples/declarations/quickstart.json
+   :language: json
+   :tab-width: 4
 
 You will receive a response from Postman that looks like this example:
 
 .. code-block:: json
 
-    {"message":"success","declaration":{"class":"Cloud_Failover","environment":"azure","externalStorage":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"}},"failoverAddresses":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"}},"failoverRoutes":{"scopingTags":{"f5_cloud_failover_label":"mydeployment"},"scopingAddressRanges":["0.0.0.0/0"]},"schemaVersion":"0.9.0"}}
+    {
+      "message": "success",
+      "declaration": "..."
+    }
 
 
 

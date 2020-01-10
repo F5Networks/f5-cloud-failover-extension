@@ -29,28 +29,15 @@ class Cloud extends AbstractCloud {
 
         this.metadata = new AWS.MetadataService();
         this.s3 = {};
+        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.ec2 = {};
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options        - function options
-    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
-    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'f5_self_ips'
-    * @param {Object} [options.storageTags]     - object containing storage tags to filter on { 'key': 'value' }
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || null;
-        this.storageTags = options.storageTags || null;
-        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
-        this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
-
+        super.init(options);
 
         return this._getInstanceIdentityDoc()
             .then((metadata) => {
@@ -160,7 +147,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Updates the route table on the BIG-IP Cluster, by using the routeSelfIpsTag tag to find the network interface the
+     * Updates route tables, by using the next hop address discovery method to find the network interface the
      * scoping address would need to be routed to and then updating or creating a new route to the network interface
      *
      * @param {Object} options                     - function options
@@ -241,23 +228,6 @@ class Cloud extends AbstractCloud {
             }
         );
         return params;
-    }
-
-    /**
-     * Normalize tag set object structure into simpler key/value store
-     *
-     * @param {Object} tags - object containing tag set [{"Key":"mykey","Value":"myvalue"}]
-     *
-     * @returns {Object} - Normalized response:
-     *  {
-     *      "mykey": "myvalue"
-     *  }
-     */
-    _normalizeTagSet(tagSet) {
-        return tagSet.reduce((acc, cur) => {
-            acc[cur.Key] = cur.Value;
-            return acc;
-        }, {});
     }
 
     /**
@@ -360,7 +330,7 @@ class Cloud extends AbstractCloud {
         const _getUpdateOperationObject = (address, routeTable) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 const updateNotRequired = routeTable.Routes.every((route) => {
-                    if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1
+                    if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1
                         && route.NetworkInterfaceId !== networkInterfaceId) {
                         return false;
                     }
@@ -381,18 +351,15 @@ class Cloud extends AbstractCloud {
                 const promises = [];
 
                 routeTables.forEach((routeTable) => {
-                    const getSelfIpsFromTag = routeTable.Tags.filter(tag => this.routeSelfIpsTag === tag.Key)[0];
-                    if (!getSelfIpsFromTag) {
-                        this.logger.warning(`expected tag: ${this.routeSelfIpsTag} does not exist on route table`);
-                    }
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.Tags,
+                        this.routeNextHopAddresses
+                    );
 
-                    const selfIpsToUse = getSelfIpsFromTag.Value.split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-                    if (!selfIpToUse) {
-                        this.logger.warning(`local addresses: ${localAddresses} not in selfIpsToUse: ${selfIpsToUse}`);
+                    if (nextHopAddress) {
+                        promises.push(_getUpdateOperationObject(nextHopAddress, routeTable));
                     }
-
-                    promises.push(_getUpdateOperationObject(selfIpToUse, routeTable));
                 });
                 return Promise.all(promises);
             })
@@ -436,7 +403,7 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTable, networkInterfaceId) {
         const promises = [];
         routeTable.Routes.forEach((route) => {
-            if (this.routeAddresses.indexOf(route.DestinationCidrBlock) !== -1) {
+            if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1) {
                 promises.push(this._replaceRoute(
                     route.DestinationCidrBlock,
                     networkInterfaceId,
@@ -868,8 +835,8 @@ class Cloud extends AbstractCloud {
             for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
                 const theirNic = parsedNics.theirs[h].nic;
                 const myNic = parsedNics.mine[s].nic;
-                const theirNicTags = this._normalizeTagSet(theirNic.TagSet);
-                const myNicTags = this._normalizeTagSet(myNic.TagSet);
+                const theirNicTags = this._normalizeTags(theirNic.TagSet);
+                const myNicTags = this._normalizeTags(myNic.TagSet);
 
                 if (theirNicTags[constants.NIC_TAG] && myNicTags[constants.NIC_TAG]
                     && theirNicTags[constants.NIC_TAG] === myNicTags[constants.NIC_TAG]) {
@@ -1049,7 +1016,7 @@ class Cloud extends AbstractCloud {
                 const tagKeys = Object.keys(tags);
                 const filteredBuckets = taggedBuckets.filter((taggedBucket) => {
                     let matchedTags = 0;
-                    const bucketDict = this._normalizeTagSet(taggedBucket.TagSet);
+                    const bucketDict = this._normalizeTags(taggedBucket.TagSet);
                     tagKeys.forEach((tagKey) => {
                         if (Object.keys(bucketDict).indexOf(tagKey) !== -1 && bucketDict[tagKey] === tags[tagKey]) {
                             matchedTags += 1;
@@ -1057,7 +1024,7 @@ class Cloud extends AbstractCloud {
                     });
                     return tagKeys.length === matchedTags;
                 });
-                this.logger.info('Filtered Buckets:');
+                this.logger.debug('Filtered Buckets:', filteredBuckets);
                 return Promise.resolve(filteredBuckets);
             })
             .then((filteredBuckets) => {

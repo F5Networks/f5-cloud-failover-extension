@@ -60,7 +60,13 @@ module.exports = {
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
             zone: deploymentInfo.zone || null, // optional: used by GCP
-            networkTopology: deploymentInfo.networkTopology || null // optional: used by AWS
+            networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
+            nextHopAddresses: deploymentInfo.instances.reduce((acc, cur) => {
+                if (cur.next_hop_address) {
+                    acc.push(cur.next_hop_address);
+                }
+                return acc;
+            }, [])
         };
     },
 
@@ -73,7 +79,9 @@ module.exports = {
         const environmentInfo = this.getEnvironmentInfo();
         return JSON.parse(mustache.render(utils.stringify(declaration), {
             deploymentId: environmentInfo.deploymentId,
-            environment: environmentInfo.environment
+            environment: environmentInfo.environment,
+            nextHopAddress1: environmentInfo.nextHopAddresses[0],
+            nextHopAddress2: environmentInfo.nextHopAddresses[1]
         }));
     },
 
