@@ -5,5 +5,4 @@
 
 # requirements
 f5-cli==0.9.*
-awscli==1.16.*
-boto3==1.10.*
+awscli==1.17.*
