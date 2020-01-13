@@ -29,6 +29,7 @@ const testPayload = {
 const mockVms = [
     {
         name: 'testInstanceName',
+        zone: 'projects/1111/zones/us-west1-a',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -38,6 +39,7 @@ const mockVms = [
     },
     {
         name: 'testInstanceName02',
+        zone: 'projects/1111/zones/us-west1-a',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -210,6 +212,7 @@ describe('Provider - GCP', () => {
                 assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
                 assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
                 assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
             })
             .catch(err => Promise.reject(err));
     });
