@@ -76,9 +76,7 @@ class Cloud extends AbstractCloud {
 
                 this.logger.silly(`bucket name: ${this.bucket.name}`);
 
-                // zone format: 'projects/734288666861/zones/us-west1-a'
-                const parts = this.instanceZone.split('/');
-                this.zone = parts[parts.length - 1];
+                this.zone = this._parseZone(this.instanceZone);
                 this.computeZone = this.compute.zone(this.zone);
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
@@ -430,6 +428,20 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Parse zone - parse zone out of a provider object
+     *
+     * @returns {String} The parsed zone
+     *
+     */
+    _parseZone(zoneProperty) {
+        // known zone formats
+        // - 'projects/1111/zones/us-west1-a'
+        // - 'https://www.googleapis.com/compute/v1/projects/1111/zones/us-west1-a'
+        const parts = zoneProperty.split('/');
+        return parts[parts.length - 1];
+    }
+
+    /**
      * Returns routes objects used for failover; method uses routes' description values
      * to identify route objects to work with
      *
@@ -632,7 +644,7 @@ class Cloud extends AbstractCloud {
                         });
 
                         theirNic.aliasIpRanges = theirAliasIps;
-                        disassociate.push([vm.name, nic.name, theirNic]);
+                        disassociate.push([vm.name, nic.name, theirNic, { zone: this._parseZone(vm.zone) }]);
                     }
                 }
             });
@@ -654,7 +666,7 @@ class Cloud extends AbstractCloud {
                     }
                 });
                 if (match) {
-                    associate.push([vm.name, myNic.name, myNic]);
+                    associate.push([vm.name, myNic.name, myNic, { zone: this._parseZone(vm.zone) }]);
                 }
             });
         });
@@ -886,30 +898,34 @@ class Cloud extends AbstractCloud {
     /**
      * Updates Instance Network Interface
      *
-     * @param {Object} vmId - Instance ID
+     * @param {Object} vmId           - Instance ID
+     * @param {Object} nicId          - NIC ID (name)
+     * @param {Object} nicArr         - Updated NIC properties
      *
-     * @param {Object} nicId - NIC ID (name)
-     *
-     * @param {Object} nicArr - Updated NIC properties
+     * @param {Object} options        - function options
+     * @param {Object} [options.zone] - override default zone
      *
      * @returns {Promise} A promise which will be resolved with the operation response
      *
      */
-    _updateNic(vmId, nicId, nicArr) {
-        this.logger.silly(`Updating NIC: ${nicId} for VM: ${vmId}`);
+    _updateNic(vmId, nicId, nicArr, options) {
+        options = options || {};
+        const zone = options.zone || this.zone;
+
+        this.logger.silly(`Updating NIC: ${nicId} for VM ${vmId} in zone ${zone}`);
         return this._sendRequest(
             'PATCH',
-            `zones/${this.zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
+            `zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
             nicArr
         )
             .then((data) => {
                 // updateNetworkInterface is async, returns GCP zone operation
-                const operation = this.computeZone.operation(data.name);
+                const computeZone = this.compute.zone(zone);
+                const operation = computeZone.operation(data.name);
                 return operation.promise();
             })
             .catch(err => Promise.reject(err));
     }
-
 
     /**
      * Updates forwarding rule target
