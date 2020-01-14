@@ -569,7 +569,7 @@ describe('Provider - GCP', () => {
 
     it('validate _getVmsByTags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
         return provider._getVmsByTags(provider.tags)
@@ -580,7 +580,7 @@ describe('Provider - GCP', () => {
 
     it('validate _getVmsByTags with extra tags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' } } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' }, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
         return provider._getVmsByTags(provider.tags)
