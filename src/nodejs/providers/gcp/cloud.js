@@ -315,13 +315,20 @@ class Cloud extends AbstractCloud {
     /**
      * Get instance metadata from GCP
      *
-     * @param {Object} vmName - Instance Name
+     * @param {Object} vmName         - instance name
+     *
+     * @param {Object} options        - function options
+     * @param {String} [options.zone] - instance zone
      *
      * @returns {Promise} A promise which will be resolved with the metadata for the instance
      *
      */
-    _getVmMetadata(vmName) {
-        const vm = this.computeZone.vm(vmName);
+    _getVmMetadata(vmName, options) {
+        options = options || {};
+
+        const zone = options.zone || this.zone;
+        const computeZone = this.compute.zone(zone);
+        const vm = computeZone.vm(vmName);
 
         return vm.getMetadata()
             .then((data) => {
@@ -334,18 +341,22 @@ class Cloud extends AbstractCloud {
     /**
      * Get Instance Information from VM metadata
      *
-     * @param {Object} vmName                   - Instance Name
+     * @param {Object} vmName                     - Instance Name
      *
-     * @param {Object} options                  - Options for function
-     * @param {Array} options.failOnStatusCodes - Optionally provide a list of status codes to fail
+     * @param {Object} options                    - Options for function
+     * @param {Array} [options.failOnStatusCodes] - Optionally provide a list of status codes to fail
      *                                              on, for example 'STOPPING'
+     * @param {String} [options.zone]             - instance zone
      *
      * @returns {Promise} A promise which will be resolved with the metadata for the instance
      *
      */
     _getVmInfo(vmName, options) {
-        const failOnStatusCodes = options && options.failOnStatusCodes ? options.failOnStatusCodes : [];
-        return this._getVmMetadata(vmName)
+        options = options || {};
+        const failOnStatusCodes = options.failOnStatusCodes || [];
+        const zone = options.zone || this.zone;
+
+        return this._getVmMetadata(vmName, { zone })
             .then((data) => {
                 if (failOnStatusCodes.length > 0) {
                     const vmStatus = data.status;
@@ -388,7 +399,7 @@ class Cloud extends AbstractCloud {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
-                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
+                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { zone: this._parseZone(vm.metadata.zone), failOnStatusCodes: ['STOPPING'] }], shortRetry));
                 });
                 return Promise.all(promises);
             })

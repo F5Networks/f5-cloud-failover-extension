@@ -154,8 +154,8 @@ describe('Config Worker', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should check legacy failover script call gets disabled', () => {
-            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND}`);
+        it('should check Azure legacy failover script call gets disabled', () => {
+            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND.AZURE}`);
 
             return config.init()
                 .then(() => config.processConfigRequest(declaration))
@@ -167,7 +167,26 @@ describe('Config Worker', () => {
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(
                         scriptContents,
-                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND}\n${triggerCommand}`
+                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.AZURE}\n${triggerCommand}`
+                    );
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should check GCP legacy failover script call gets disabled', () => {
+            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND.GCP}`);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => {
+                    // should be called 4 times, list and update for tgactive/tgrefresh
+                    assert.strictEqual(mockExecuteBigIpBashCmd.callCount, 4);
+                    // get updated script contents
+                    const updateScriptCommand = mockExecuteBigIpBashCmd.getCall(2).args[0];
+                    const scriptContents = getFailoverScriptContents(updateScriptCommand);
+                    assert.strictEqual(
+                        scriptContents,
+                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.GCP}\n${triggerCommand}`
                     );
                 })
                 .catch(err => Promise.reject(err));

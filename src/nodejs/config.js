@@ -176,12 +176,14 @@ class ConfigWorker {
                     return Promise.resolve();
                 }
                 // check if legacy failover script call needs to be disabled
-                if (contents.indexOf(`\n${constants.LEGACY_TRIGGER_COMMAND}`) !== -1) {
-                    contents = contents.replace(
-                        `\n${constants.LEGACY_TRIGGER_COMMAND}`,
-                        `\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND}`
-                    );
-                }
+                constants.LEGACY_TRIGGER_COMMANDS.forEach((command) => {
+                    if (contents.indexOf(`\n${command}`) !== -1) {
+                        contents = contents.replace(
+                            `\n${command}`,
+                            `\n${constants.LEGACY_TRIGGER_COMMENT}\n#${command}`
+                        );
+                    }
+                });
                 // finally, insert failover trigger command
                 contents = contents.concat(`\n${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`);
                 return this.device.executeBigIpBashCmd(`'echo "${contents}" > ${scriptPath}'`);
