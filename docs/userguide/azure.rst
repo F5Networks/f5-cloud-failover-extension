@@ -5,17 +5,17 @@ Azure
 
 In this section, you can see a failover event diagram, example declaration, and requirements for implementing Cloud Failover in Microsoft Azure. 
 
+
 Failover Event Diagram
 ----------------------
 
 This diagram shows a failover event with Cloud Failover implemented in Microsoft Azure. IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s). User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self-IP address of the active BIG-IP.
 
 
-
 .. image:: ../images/azure/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
-
+|
 
 .. _azure-example:
 
@@ -27,6 +27,7 @@ This example declaration shows the minimum information needed to update the clou
    :language: json
    :tab-width: 4
 
+|
 
 Requirements
 ------------
@@ -34,7 +35,7 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
 - **An Azure system-assigned or user-managed identity with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for :ref:`azure-msi`. Read more about managed identities |managed-identity|.
-- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging a :ref:`azure-storage`.
+- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging a :ref:`azure-storage`.
   
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
@@ -42,25 +43,25 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 - **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - **Route(s) in a route table tagged with:**
 
-  - a key tag and a value tag corresponding to the key and value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
+  - a key tag and a value tag that corresponds to the key and value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
 
   See :ref:`azure-udrtagging` for more information.
 
 - **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below for :ref:`azure-ism`.
 
-
+|
 
 Tagging Azure Network Infrastructure Objects
 --------------------------------------------
 
-Tag your infrastructure with the the labels/value or keys that you sent in your declaration.
+Tag your infrastructure with the the labels/value or keys that you send in your declaration.
 
 
 .. _azure-nictagging:
 
 Network Interfaces
 ``````````````````
-For address failover you need the following tag(s):
+For address failover you need to create two distinct tags:
 
 - Deployment scoping tag: the key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``. 
 - NIC mapping tag: the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
@@ -77,32 +78,34 @@ In the example below, each external traffic NIC on both BIG-IP systems is tagged
 .. image:: ../images/azure/AzureNICTags.png
   :width: 800
 
+|
 
 .. _azure-udrtagging:
 
 User-Defined routes
 ```````````````````
-For route failover you need the following tag(s):
+For route failover you need to create two distinct tags:
 
 - Deployment scoping tag: key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
 
 Within Azure, go to **Basic UDR > Tags** to set:
 
-- a key/value corresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
+- a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
 
 .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
 .. image:: ../images/azure/AzureUDRTags.png
   :width: 800
 
+|
 
 .. _azure-storage:
 
 Storage account
 ```````````````
-Add a storage account to your resource group, and tag with a key/value pair corresponding to the key/value(s) provided in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
+#. Add a storage account to your resource group, and tag with a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
 
-.. IMPORTANT:: Ensure the required storage accounts do not have public access.
+   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 
 .. _azure-msi:
@@ -111,23 +114,46 @@ Creating and assigning an MSI
 -----------------------------
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI. Read more about managed identities |managed-identity|.
 
-1. To enable MSI for each VM, go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
+#. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
-For example:
+   For example:
 
-.. image:: ../images/azure/AzureMSIVMIdentity.png
-  :width: 800
+   .. image:: ../images/azure/AzureMSIVMIdentity.png
+     :width: 800
 
-2. To assign permissions to each MSI, go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
+   | 
 
-- Role: Contributor
-- Assign access to: **System assigned managed identity > Virtual Machine**
+#. Assign permissions to each MSI: go to **Resource Group > Access control (IAM) > Role assignments > Add**, make the changes listed below, and then add the MSI.
 
-For example: 
+   - Role: Contributor
+   - Assign access to: **System assigned managed identity > Virtual Machine**
 
-.. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
-  :width: 800
+   |
 
+   For example: 
+
+   .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
+     :width: 800
+
+
+RBAC Role Definition
+````````````````````
+
+Below is an example Azure role definition with permissions required by CFE.
+
+.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
+
+- Microsoft.Authorization/*/read
+- Microsoft.Compute/locations/*/read
+- Microsoft.Compute/virtualMachines/*/read
+- Microsoft.Network/networkInterfaces/read
+- Microsoft.Network/networkInterfaces/write
+- Microsoft.Network/*/join/action
+- Microsoft.Network/routeTables/*/read
+- Microsoft.Network/routeTables/*/write
+- Microsoft.Resources/subscriptions/resourceGroups/read
+- Microsoft.Storage/storageAccounts/read
+- Microsoft.Storage/storageAccounts/listKeys/action
 
 .. _azure-ism:
 
@@ -168,7 +194,7 @@ Using Declarative Onboarding
   }
 
 
-
+|
 
 .. NOTE:: To provide feedback on this documentation, you can file a |issue|.
 
