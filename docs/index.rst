@@ -23,6 +23,7 @@ The diagram below shows a typical failover scenario for an active/standby pair o
 .. image:: images/azure/AzureFailoverExtensionHighLevel.gif
   :width: 800
 
+|
 
 Why use Cloud Failover Extension?
 `````````````````````````````````
@@ -31,6 +32,8 @@ Using Cloud Failover Extension has three main benefits:
 - Standardization: Failover patterns will look similar across all clouds.
 - Portability: You can leverage a variety of methods, including cloud-native templates, Terraform, and Ansible, to install and run CFE.
 - Lifecycle and Supportability: You can upgrade BIG-IP without having to call F5 support to fix failover.
+
+|
 
 Use the following links, the navigation on the left, and/or the Next and Previous buttons to explore the documentation.
 
@@ -52,6 +55,7 @@ User Guide Index
    userguide/example-declarations
    userguide/apidocs
    userguide/postman-collection
+   userguide/logging
    userguide/troubleshooting
    revision-history
 

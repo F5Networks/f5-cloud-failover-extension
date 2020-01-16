@@ -22,14 +22,6 @@ Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent
 |
 
 
-**Where can I download Cloud Failover Extension?**
-
-Cloud Failover Extension is available on |github| in the |releases| section under *Assets*.
-
-
-|
-
-
 **When is Cloud Failover a good fit and when it is not?**
 
 *Cloud Failover is a good fit where:*
@@ -46,13 +38,37 @@ Cloud Failover Extension is available on |github| in the |releases| section unde
 |
 
 
+**Where can I download Cloud Failover Extension?**
+
+Cloud Failover Extension is available on |github| in the |releases| section under *Assets*.
+
+
+|
+
+
 **Which TMOS versions does Cloud Failover Extension support?**
 
 Cloud Failover Extension supports TMOS 14.1.x and later.
 
+
 |
 
-**Can I use this with Application Services Extension (AS3)?** 
+
+**Does Cloud Failover Extension support IPv6?**
+
+Cloud Failover Extension does not currently support IPv6.
+
+
+|
+
+**How can I track new Cloud Failover Extension features?**
+
+See the |releases| section on GitHub to keep up to date with CFE features and enhancements. You can also track changes to this documentation in the :ref:`revision-history`.
+
+
+|
+
+**Can I use CFE with Application Services Extension (AS3)?** 
 
 Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages tenant partitions and some previous failover solutions did not support inspecting tenant partitions.
 
@@ -61,7 +77,7 @@ Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages
 
 **Does it matter if I use Cloud Failover Extension in same network or across network?**
 
-Cloud Failover Extension is agnostic to same-network and across-network topologies. However, see the next question for more information regarding AWS.
+Cloud Failover Extension is agnostic to same-network and across-network topologies.
 
 
 |
@@ -69,18 +85,11 @@ Cloud Failover Extension is agnostic to same-network and across-network topologi
 
 **Does Cloud Failover Extension support AWS Same-AZ failover?**
 
-Cloud Failover Extension now supports the AWS Same-AZ network topology. The Cloud Failover Extension will disable the original functionality built-in to the BIG-IP VE AWS image.
+Cloud Failover Extension does support AWS Same-AZ failover. See the :ref:`aws` section for more details.
 
 
 |
 
-
-**Does Cloud Failover Extension support IPV6?**
-
-Cloud Failover Extension does not currently support IPV6.
-
-
-|
 
 **What information does Cloud Failover Extension store?**
 
