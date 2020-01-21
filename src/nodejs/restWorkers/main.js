@@ -25,8 +25,6 @@ const TelemetryClient = require('../telemetry.js').TelemetryClient;
 const baseSchema = require('../schema/base_schema.json');
 
 const telemetry = new TelemetryClient();
-
-const failover = new FailoverClient();
 const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
 
@@ -96,12 +94,6 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
             if (util.getDataByKey(config, 'controls.logLevel')) {
                 logger.setLogLevel(config.controls.logLevel);
             }
-            // failover can only be initialized if a configuration has already been provided
-            if (config && config.environment) {
-                logger.info('calling failover init');
-                return failover.init();
-            }
-            return Promise.resolve();
         })
         .then(() => device.init())
         .then(() => {
@@ -184,12 +176,14 @@ function processRequest(restOperation) {
         }
     }
 
-    logger.debug(`HTTP Request - ${method} /${pathName}`);
+    const failover = new FailoverClient(); // failover class should be instantiated on every request
 
+    logger.debug(`HTTP Request - ${method} /${pathName}`);
     switch (pathName) {
     case 'declare':
         switch (method) {
         case 'POST':
+            // call failover init during config to ensure init succeeds prior to responding to the user
             configWorker.processConfigRequest(body)
                 .then(config => Promise.all([config, failover.init(), telemetry.send(config)]))
                 .then((result) => {
@@ -216,10 +210,11 @@ function processRequest(restOperation) {
     case 'trigger':
         switch (method) {
         case 'POST':
-            Promise.all([
-                failover.getTaskStateFile(),
-                device.getGlobalSettings()
-            ])
+            failover.init()
+                .then(() => Promise.all([
+                    failover.getTaskStateFile(),
+                    device.getGlobalSettings()
+                ]))
                 .then((result) => {
                     logger.silly(`taskState: ${util.stringify(result[0])}`);
                     if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
@@ -237,7 +232,8 @@ function processRequest(restOperation) {
                 });
             break;
         case 'GET':
-            failover.getTaskStateFile()
+            failover.init()
+                .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
                     switch (taskState.taskState) {
                     case failoverStates.RUN:
@@ -263,9 +259,10 @@ function processRequest(restOperation) {
         break;
     case 'reset':
         if (method === 'POST') {
-            failover.resetFailoverState(body)
-                .then(() => {
-                    util.restOperationResponder(restOperation, 200, { message: constants.STATE_FILE_RESET_MESSAGE });
+            failover.init()
+                .then(() => failover.resetFailoverState(body))
+                .then((response) => {
+                    util.restOperationResponder(restOperation, 200, { message: response.message });
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
@@ -276,7 +273,8 @@ function processRequest(restOperation) {
         break;
     case 'inspect':
         if (method === 'GET') {
-            failover.getFailoverStatusAndObjects()
+            failover.init()
+                .then(() => failover.getFailoverStatusAndObjects())
                 .then((statusAndObjects) => {
                     util.restOperationResponder(restOperation, 200, statusAndObjects);
                 })
