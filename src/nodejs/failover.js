@@ -52,14 +52,14 @@ class FailoverClient {
      * Get Config from configWorker and initialize this.cloudProvider using the config
      */
     init() {
-        logger.info('Performing failover - init');
+        logger.debug('Initializing failover class');
 
         return configWorker.getConfig()
             .then((data) => {
                 logger.debug(`config: ${util.stringify(data)}`);
                 this.config = data;
                 if (!this.config) {
-                    logger.debug('can\'t find config.environment');
+                    logger.debug('Can\'t find config.environment');
                     return Promise.reject(new Error('Environment not provided'));
                 }
 
@@ -180,26 +180,25 @@ class FailoverClient {
 
     /**
      * Reset Failover State (delete data in cloud storage)
+     *
+     * @returns {Promise} - { message: 'some message' }
      */
     resetFailoverState(body) {
         const stateComponents = Object.assign({}, body);
-        if (stateComponents.resetStateFile) {
-            // reset State file contents
+        if (stateComponents.resetStateFile === true) {
+            // reset state file contents
             return this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
                 message: constants.STATE_FILE_RESET_MESSAGE,
                 failoverOperations: {}
             })
-                .then(() => {
-                    logger.info('Failover state file reset complete');
-                })
+                .then(() => Promise.resolve({ message: constants.STATE_FILE_RESET_MESSAGE }))
                 .catch((err) => {
                     const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                     logger.error(errorMessage);
                 });
         }
-        logger.info('Failover state file was not reset');
-        return Promise.resolve();
+        return Promise.resolve({ message: 'No action performed' });
     }
 
     /**

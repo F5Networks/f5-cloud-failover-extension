@@ -7,7 +7,7 @@ const validate = require('jsonschema').validate;
 // constants
 const INPUT_FILE = 'examples/postmanCollection.json';
 const OUTPUT_FILE = 'examples/postmanCollection.json';
-const ENVIRONMENTS = ['aws', 'azure', 'gce'];
+const ENVIRONMENTS = ['aws', 'azure', 'gcp'];
 const COLLECTION_CONSTANTS = {
     DECLARE_ENDPOINT: 'declare',
     UPDATE_REQUEST: 'Update configuration',

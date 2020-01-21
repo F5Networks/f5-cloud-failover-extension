@@ -463,6 +463,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _getRoutes(options) {
+        options = options || {};
         const tags = options.tags || {};
 
         return this._sendRequest(
@@ -784,11 +785,13 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(options) {
+        options = options || {};
+
         const nicOperations = options.nics;
         const fwdRuleOperations = options.fwdRules;
 
         if (!options || Object.keys(options).length === 0) {
-            this.logger.info('No route operations to run');
+            this.logger.info('No address operations to run');
             return Promise.resolve();
         }
 
