@@ -1022,6 +1022,7 @@ describe('Provider - AWS', () => {
             const routeTable = {
                 RouteTableId: 'rtb-123',
                 Routes: [
+                    // IPv4
                     {
                         DestinationCidrBlock: '192.0.2.0/24',
                         InstanceId: 'i-123',
@@ -1030,15 +1031,19 @@ describe('Provider - AWS', () => {
                         Origin: 'CreateRoute',
                         State: 'active'
                     },
+                    // IPv6
+                    {
+                        DestinationIpv6CidrBlock: '::/0',
+                        InstanceId: 'i-123',
+                        InstanceOwnerId: '123',
+                        NetworkInterfaceId: 'eni-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    },
+                    // "extra route"
                     {
                         DestinationCidrBlock: '10.0.0.0/16',
                         GatewayId: 'local',
-                        Origin: 'CreateRouteTable',
-                        State: 'active'
-                    },
-                    {
-                        DestinationCidrBlock: '0.0.0.0/0',
-                        GatewayId: 'igw-123',
                         Origin: 'CreateRoute',
                         State: 'active'
                     }
@@ -1103,7 +1108,7 @@ describe('Provider - AWS', () => {
             .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert(createRouteSpy.calledOnce);
-                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
             })
             .catch(err => Promise.reject(err)));
 
@@ -1126,7 +1131,22 @@ describe('Provider - AWS', () => {
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
                     assert(createRouteSpy.calledOnce);
-                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123'));
+                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
+            provider.routeAddresses = [{ range: '::/0' }];
+            provider.routeNextHopAddresses = {
+                type: 'static',
+                items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
+            };
+
+            return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
+                .then(() => {
+                    assert(createRouteSpy.calledOnce);
+                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
                 })
                 .catch(err => Promise.reject(err));
         });

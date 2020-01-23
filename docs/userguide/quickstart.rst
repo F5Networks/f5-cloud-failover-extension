@@ -70,6 +70,7 @@ Here is an example declaration for Microsoft Azure.
    :language: json
    :tab-width: 4
 
+:fonticon:`fa fa-download` :download:`quickstart.json <../../examples/declarations/quickstart.json>`
 
 |
 

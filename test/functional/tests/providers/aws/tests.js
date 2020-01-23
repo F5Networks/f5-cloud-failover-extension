@@ -23,9 +23,9 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const exampleDeclaration = require('../../shared/exampleDeclaration.json');
+const exampleDeclarationIPv6 = require('../../shared/exampleDeclarationIPv6.json');
 
-const deploymentDeclaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+const deploymentDeclaration = funcUtils.getDeploymentDeclaration(exampleDeclarationIPv6);
 
 // Helper functions
 function matchElasticIpToInstance(privateIp, instances, instance) {
@@ -51,7 +51,7 @@ function matchRouteTables(routes, nics) {
     let nicToCheck;
 
     routes.forEach((route) => {
-        const cidrBlock = route.DestinationCidrBlock;
+        const cidrBlock = route.DestinationCidrBlock || route.DestinationIpv6CidrBlock;
         const scopingAddresses = deploymentDeclaration.failoverRoutes.scopingAddressRanges.map(i => i.range);
         const selfIpToUse = scopingAddresses.filter(item => cidrBlock.indexOf(item) !== -1);
         if (selfIpToUse.length > 0) {
@@ -251,6 +251,22 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
     // Functional tests
 
+    it('should post IPv6 declaration', () => {
+        const uri = constants.DECLARE_ENDPOINT;
+        const options = {
+            method: 'POST',
+            body: deploymentDeclaration,
+            headers: {
+                'x-f5-auth-token': dutPrimary.authData.token
+            }
+        };
+        return utils.makeRequest(dutPrimary.ip, uri, options)
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.username, dutSecondary.password

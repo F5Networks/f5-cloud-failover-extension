@@ -56,7 +56,7 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 **Does Cloud Failover Extension support IPv6?**
 
-Cloud Failover Extension does not currently support IPv6.
+IPv6 route failover is supported for AWS but not for Azure or Google Cloud. To see an example declaration for AWS that enables IPv6, see :ref:`example-declarations`.
 
 
 |
@@ -85,7 +85,15 @@ Cloud Failover Extension is agnostic to same-network and across-network topologi
 
 **Does Cloud Failover Extension support AWS Same-AZ failover?**
 
-Cloud Failover Extension does support AWS Same-AZ failover. See the :ref:`aws` section for more details.
+Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` section for more details.
+
+|
+
+
+**How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?**
+
+CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user.
+
 
 
 |
@@ -114,7 +122,7 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 **Does the Cloud Failover Extension collect telemetry data?**
 
-We collect non-personal telemetry data to help improve the Cloud Failover Extension. An example of the payload that is sent is shown below. You can disable this feature by running the command ``tmsh modify sys software update auto-phonehome disabled``.
+F5 collects non-personal telemetry data to help improve the Cloud Failover Extension. You can see an example of the payload that is sent below. To disable this feature, run the command ``tmsh modify sys software update auto-phonehome disabled``.
 
 .. code-block:: json
 
@@ -147,7 +155,7 @@ We collect non-personal telemetry data to help improve the Cloud Failover Extens
 
 **Why does Cloud Failover Extension no longer default to a tag on the route for next hop address discovery?**
 
-Specifying the `f5_self_ips` tag on the route object itself proved to be a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform.  For backwards compatability this option is still available however going forward alternate approaches will be promoted, such as simply providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload.  See :ref:`example-declarations` for an example using the original route tag discovery method.
+Specifying the `f5_self_ips` tag on the route object itself creates a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform. For backwards compatability this option is still available, however, F5 recommends alternate approaches, such as providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload. See :ref:`example-declarations` for an example using the original route tag discovery method.
 
 
 |

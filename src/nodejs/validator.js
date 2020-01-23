@@ -19,6 +19,7 @@
 const Ajv = require('ajv');
 
 const baseSchema = require('./schema/base_schema.json');
+const customFormats = require('./schema/formats.js');
 
 class Validator {
     constructor() {
@@ -30,6 +31,10 @@ class Validator {
                 extendRefs: 'fail'
             }
         );
+
+        Object.keys(customFormats).forEach((customFormat) => {
+            ajv.addFormat(customFormat, customFormats[customFormat]);
+        });
 
         this.validator = ajv
             .compile(baseSchema);

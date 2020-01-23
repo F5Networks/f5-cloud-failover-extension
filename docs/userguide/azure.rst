@@ -3,7 +3,7 @@
 Azure
 =====
 
-In this section, you can see a failover event diagram, example declaration, and requirements for implementing Cloud Failover in Microsoft Azure. 
+In this section, you can see a failover event diagram, example declaration, requirements, and tasks for implementing Cloud Failover in Microsoft Azure. 
 
 
 Failover Event Diagram
@@ -27,6 +27,8 @@ This example declaration shows the minimum information needed to update the clou
    :language: json
    :tab-width: 4
 
+:fonticon:`fa fa-download` :download:`azure.json <../../examples/declarations/azure.json>`
+
 |
 
 Requirements
@@ -40,7 +42,7 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 - **Network Interfaces** that are tagged with a key and value corresponding to the key and value provided in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
-- **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
+- **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
 - **Route(s) in a route table tagged with:**
 
   - a key tag and a value tag that corresponds to the key and value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
@@ -84,13 +86,9 @@ In the example below, each external traffic NIC on both BIG-IP systems is tagged
 
 User-Defined routes
 ```````````````````
-For route failover you need to create two distinct tags:
+For route failover you need to create a Deployment scoping tag. The key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
 
-- Deployment scoping tag: key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
-
-Within Azure, go to **Basic UDR > Tags** to set:
-
-- a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
+Within Azure, go to **Basic UDR > Tags** to set a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
 
 .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
 
@@ -103,9 +101,9 @@ Within Azure, go to **Basic UDR > Tags** to set:
 
 Storage account
 ```````````````
-#. Add a storage account to your resource group, and tag with a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
+Add a storage account to your resource group, and tag with a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
 
-   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
+.. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
 
 .. _azure-msi:

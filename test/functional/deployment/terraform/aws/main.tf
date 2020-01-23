@@ -68,14 +68,10 @@ resource "aws_security_group" "external" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "External Security Group: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = merge(var.global_tags,{ Name = "External Security Group: Failover Extension-${module.utils.env_prefix}"})
 }
 
 resource "aws_security_group" "mgmt" {
@@ -109,13 +105,7 @@ resource "aws_security_group" "mgmt" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Security Group: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = merge(var.global_tags,{Name = "Mgmt Security Group: Failover Extension-${module.utils.env_prefix}"})
 }
 
 resource "aws_s3_bucket" "configdb" {
@@ -123,13 +113,7 @@ resource "aws_s3_bucket" "configdb" {
 
   force_destroy = true
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "failoverextension-${module.utils.env_prefix}-s3bucket",
-      f5_cloud_failover_label = "${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "failoverextension-${module.utils.env_prefix}-s3bucket",f5_cloud_failover_label = "${module.utils.env_prefix}"})}"
 }
 
 resource "aws_iam_role" "main" {
@@ -149,12 +133,7 @@ resource "aws_iam_role" "main" {
   ]
 }
 EOF
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Failover Extension IAM role-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Failover Extension IAM role-${module.utils.env_prefix}"})}"
 }
 
 data "aws_caller_identity" "current" {}
@@ -241,12 +220,7 @@ resource "aws_network_interface" "mgmt1" {
   security_groups = ["${aws_security_group.mgmt.id}"]
   description = "Management Interface for BIG-IP"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Network Interface 1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Mgmt Network Interface 1: Failover Extension-${module.utils.env_prefix}"})}"
 }
 
 resource "aws_eip" "mgmt1" {
@@ -254,12 +228,7 @@ resource "aws_eip" "mgmt1" {
   network_interface = "${aws_network_interface.mgmt1.id}"
   associate_with_private_ip = "${aws_network_interface.mgmt1.private_ip}"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "ElasticIP Mgmt 1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "ElasticIP Mgmt 1: Failover Extension-${module.utils.env_prefix}"})}"
 
   depends_on = ["aws_instance.vm0"]
 }
@@ -269,12 +238,7 @@ resource "aws_network_interface" "mgmt2" {
   security_groups = ["${aws_security_group.mgmt.id}"]
   description = "Management Interface for BIG-IP"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Network Interface 2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Mgmt Network Interface 2: Failover Extension-${module.utils.env_prefix}"})}"
 }
 
 resource "aws_eip" "mgmt2" {
@@ -282,12 +246,7 @@ resource "aws_eip" "mgmt2" {
   network_interface = "${aws_network_interface.mgmt2.id}"
   associate_with_private_ip = "${aws_network_interface.mgmt2.private_ip}"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "ElasticIP Mgmt 2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "ElasticIP Mgmt 2: Failover Extension-${module.utils.env_prefix}"})}"
 
   depends_on = ["aws_instance.vm1"]
 }
@@ -307,8 +266,7 @@ resource "aws_network_interface" "external1" {
       Name = "External Network Interface 1: Failover Extension-${module.utils.env_prefix}",
       f5_cloud_failover_label = "${module.utils.env_prefix}",
       f5_cloud_failover_nic_map = "external"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_eip" "external1" {
@@ -320,8 +278,7 @@ resource "aws_eip" "external1" {
     var.global_tags,
     {
       Name = "ElasticIP External 1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_network_interface" "external2" {
@@ -337,8 +294,7 @@ resource "aws_network_interface" "external2" {
       Name = "External Network Interface 2: Failover Extension-${module.utils.env_prefix}",
       f5_cloud_failover_label = "${module.utils.env_prefix}",
       f5_cloud_failover_nic_map = "external"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_eip" "external2" {
@@ -350,8 +306,7 @@ resource "aws_eip" "external2" {
     var.global_tags,
     {
       Name = "ElasticIP External 2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_eip" "vip1" {
@@ -368,8 +323,7 @@ resource "aws_eip" "vip1" {
       // - across network: should contain '<BIG-IP 1 private application IP>,<BIG-IP 2 private application IP>'
       // - same network: should either not exist or contain an empty string
       VIPS = "${var.use_availability_zones ? "${tolist(aws_network_interface.external1.private_ips)[1] != aws_network_interface.external1.private_ip ? tolist(aws_network_interface.external1.private_ips)[1] : tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[1] != aws_network_interface.external2.private_ip ? tolist(aws_network_interface.external2.private_ips)[1] : tolist(aws_network_interface.external2.private_ips)[0]}" : ""}"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_route_table" "external" {
@@ -383,14 +337,17 @@ resource "aws_route_table" "external" {
     cidr_block = "192.0.2.0/24"
     network_interface_id = "${aws_network_interface.external2.id}"
   }
+  route {
+    ipv6_cidr_block = "2001:db8:2:2::/64"
+    network_interface_id = "${aws_network_interface.external2.id}"
+  }
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
       f5_cloud_failover_label = "${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 }
 
 resource "aws_route_table_association" "external1" {
@@ -460,8 +417,7 @@ resource "aws_instance" "vm0" {
     {
       Name = "BigIp 1: Failover Extension-${module.utils.env_prefix}"
       deploymentId = "${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
@@ -496,8 +452,7 @@ resource "aws_instance" "vm1" {
     {
       Name = "BigIp 2: Failover Extension-${module.utils.env_prefix}"
       deploymentId = "${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
@@ -505,6 +460,14 @@ resource "aws_instance" "vm1" {
   }
 
   depends_on = [null_resource.delay]
+}
+
+data "aws_network_interface" "external1_network_interface_data" {
+  id = "${aws_network_interface.external1.id}"
+}
+
+data "aws_network_interface" "external2_network_interface_data" {
+  id = "${aws_network_interface.external2.id}"
 }
 
 resource "local_file" "do0" {
@@ -515,10 +478,11 @@ resource "local_file" "do0" {
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         external_self = "${aws_network_interface.external1.private_ip}",
+        external_self_ipv6 = "${element(tolist(data.aws_network_interface.external1_network_interface_data.ipv6_addresses),0)}",
         remote_host = "${aws_network_interface.mgmt1.private_ip}"
-      }
-    )}"
+      })}"
     filename = "${path.module}/temp_do0.json"
+    depends_on = [aws_instance.vm0, data.aws_network_interface.external1_network_interface_data]
 }
 
 resource "local_file" "do1" {
@@ -529,10 +493,11 @@ resource "local_file" "do1" {
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         external_self = "${aws_network_interface.external2.private_ip}",
+        external_self_ipv6 = "${element(tolist(data.aws_network_interface.external2_network_interface_data.ipv6_addresses),0)}",
         remote_host = "${aws_network_interface.mgmt1.private_ip}"
-      }
-    )}"
+      })}"
     filename = "${path.module}/temp_do1.json"
+  depends_on = [aws_instance.vm1, data.aws_network_interface.external2_network_interface_data]
 }
 
 resource "null_resource" "login0" {
@@ -603,7 +568,8 @@ output "deployment_info" {
         mgmt_address = aws_eip.mgmt1.public_ip,
         instanceId = aws_instance.vm0.id,
         mgmt_port = 443,
-        next_hop_address = aws_network_interface.external1.private_ip
+        next_hop_address = aws_network_interface.external1.private_ip,
+        next_hop_address_ipv6 = element(tolist(data.aws_network_interface.external1_network_interface_data.ipv6_addresses),0),
       },
       {
         primary = true,
@@ -613,7 +579,8 @@ output "deployment_info" {
         mgmt_address = aws_eip.mgmt2.public_ip,
         instanceId = aws_instance.vm1.id,
         mgmt_port = 443,
-        next_hop_address = aws_network_interface.external2.private_ip
+        next_hop_address = aws_network_interface.external2.private_ip,
+        next_hop_address_ipv6 = element(tolist(data.aws_network_interface.external2_network_interface_data.ipv6_addresses),0),
       }
     ],
     deploymentId: module.utils.env_prefix,
