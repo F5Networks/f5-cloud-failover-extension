@@ -39,7 +39,7 @@
         "cache": false
     },
     "dependencies": {
-        "@f5devcentral/f5-cloud-libs": "4.10.3",
+        "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "^1.1.0",
         "@google-cloud/compute": "^1.1.5",
         "@google-cloud/storage": "^4.0.0",
