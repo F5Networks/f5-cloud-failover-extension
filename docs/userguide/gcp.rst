@@ -3,7 +3,7 @@
 Google Cloud
 ============
 
-In this section, you can see a failover event diagram, example declaration, and requirements for implementing Cloud Failover in Google Cloud. 
+In this section, you can see a failover event diagram, example declaration, requirements, and tasks for implementing Cloud Failover in Google Cloud. 
 
 
 Failover Event Diagram
@@ -25,6 +25,8 @@ This example declaration shows the minimum information needed to update the clou
 .. literalinclude:: ../../examples/declarations/gcp.json
    :language: json
    :tab-width: 4
+
+:fonticon:`fa fa-download` :download:`gcp.json <../../examples/declarations/gcp.json>`
 
 |
 

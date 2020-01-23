@@ -3,7 +3,7 @@
 AWS
 ===
 
-In this section, you can see a failover event diagram, example declaration, and requirements for implementing Cloud Failover in AWS. 
+In this section, you can see a failover event diagram, example declaration, requirements, and tasks for implementing Cloud Failover in AWS. 
 
 
 Failover Event Diagram
@@ -26,6 +26,8 @@ This example declaration shows the minimum information needed to update the clou
    :language: json
    :tab-width: 4
 
+:fonticon:`fa fa-download` :download:`aws.json <../../examples/declarations/aws.json>`
+
 |
 
 Requirements
@@ -34,7 +36,7 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
 - **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for :ref:`aws-iam`.
-- **Create an S3 bucket for Cloud Failover Extension cluster-wide file(s)**. Then add tags for a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. 
+- **Create an S3 bucket for Cloud Failover Extension cluster-wide file(s)**. Then add tags for a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. To read more about tagging AWS resources, see |awstagging|.
 
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
@@ -83,19 +85,19 @@ To create and assign an IAM role you must have a user role of `iam:CreateUser`.
    |
     
    For example, to create a role for an EC2 service follow these steps:
-       1. In the navigation pane of the console, click :guilabel:`Roles` and then choose :guilabel:`Create role`.
+       1. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
    
        2. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
 
-       3. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy from scratch.
+       3. Click :guilabel:`Create policy` to open a new browser tab and then |createpolicy|.
 
        4. Select the EC2 service, expand :guilabel:`Write box` and select the :guilabel:`CreateRoute/ReplaceRoutes` boxes that you want the service to have.
 
        5. Specify the route-table resource ARN for the ReplaceRoute and CreateRoute action.
 
-       6. Add a route table ARN with the following syntax ``arn:aws:ec2:region:account:route-table/route-table-id``
+       6. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
 
-       7. Optionally add a Request Condition.
+       7. Optionally, add a Request Condition.
    
        8. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
@@ -122,65 +124,65 @@ Below is an example F5 policy that includes IAM roles.
 
 .. code-block:: json
 
-{
-  "Version": "2012-10-17",
-  "Statement": [
     {
-      "Action": [
-        "ec2:DescribeInstances",
-        "ec2:DescribeInstanceStatus",
-        "ec2:DescribeAddresses",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DescribeNetworkInterfaceAttribute",
-        "ec2:DescribeRouteTables",
-        "s3:ListAllMyBuckets",
-        "ec2:AssociateAddress",
-        "ec2:DisassociateAddress",
-        "ec2:AssignPrivateIpAddresses",
-        "ec2:UnassignPrivateIpAddresses"
-      ],
-      "Resource": "*",
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "sts:AssumeRole"
-      ],
-      "Resource": "arn:aws:iam:::role/<my_role>",
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "ec2:CreateRoute",
-        "ec2:ReplaceRoute"
-      ],
-      "Resource": "arn:aws:ec2:<my_region>:<account_id>:route-table/<my_id>",
-      "Condition": {
-        "StringEquals": {
-          "ec2:ResourceTag/Name": "<my_resource_name>"
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Action": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeInstanceStatus",
+            "ec2:DescribeAddresses",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribeNetworkInterfaceAttribute",
+            "ec2:DescribeRouteTables",
+            "s3:ListAllMyBuckets",
+            "ec2:AssociateAddress",
+            "ec2:DisassociateAddress",
+            "ec2:AssignPrivateIpAddresses",
+            "ec2:UnassignPrivateIpAddresses"
+          ],
+          "Resource": "*",
+          "Effect": "Allow"
+        },
+        {
+          "Action": [
+            "sts:AssumeRole"
+          ],
+          "Resource": "arn:aws:iam:::role/<my_role>",
+          "Effect": "Allow"
+        },
+        {
+          "Action": [
+            "ec2:CreateRoute",
+            "ec2:ReplaceRoute"
+          ],
+          "Resource": "arn:aws:ec2:<my_region>:<account_id>:route-table/<my_id>",
+          "Condition": {
+            "StringEquals": {
+              "ec2:ResourceTag/Name": "<my_resource_name>"
+            }
+          },
+          "Effect": "Allow"
+        },
+        {
+          "Action": [
+            "s3:ListBucket",
+            "s3:GetBucketTagging"
+          ],
+          "Resource": "arn:aws:s3:::<my_id>",
+          "Effect": "Allow"
+        },
+        {
+          "Action": [
+            "s3:PutObject",
+            "s3:GetObject",
+            "s3:DeleteObject"
+          ],
+          "Resource": "arn:aws:s3:::<my_id>/*",
+          "Effect": "Allow"
         }
-      },
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "s3:ListBucket",
-        "s3:GetBucketTagging"
-      ],
-      "Resource": "arn:aws:s3:::<my_id>",
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject"
-      ],
-      "Resource": "arn:aws:s3:::<my_id>/*",
-      "Effect": "Allow"
+      ]
     }
-  ]
-}
 
 |
 
@@ -206,4 +208,14 @@ Below is an example F5 policy that includes IAM roles.
 .. |s3bucket| raw:: html
 
    <a href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html" target="_blank">S3 bucket</a>
+
+
+.. |createpolicy| raw:: html
+
+   <a href="file:///C:/f5-cloud-failover/docs/_build/html/userguide/aws.html" target="_blank">create a new policy</a>
+
+
+.. |awstagging| raw:: html
+
+   <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html" target="_blank">AWS documentation</a>
    

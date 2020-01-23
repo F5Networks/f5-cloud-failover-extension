@@ -1,0 +1,40 @@
+{
+    "class": "Cloud_Failover",
+    "environment": "{{environment}}",
+    "controls": {
+      "class": "Controls",
+      "logLevel": "debug"
+    },
+    "externalStorage": {
+      "scopingTags": {
+        "f5_cloud_failover_label": "{{deploymentId}}"
+      }
+    },
+    "failoverAddresses": {
+      "scopingTags": {
+        "f5_cloud_failover_label": "{{deploymentId}}"
+      }
+    },
+    "failoverRoutes": {
+      "scopingTags": {
+        "f5_cloud_failover_label": "{{deploymentId}}"
+      },
+      "scopingAddressRanges": [
+        {
+          "range": "192.0.2.0/24"
+        },
+        {
+          "range": "2001:db8:2:2::/64"
+        }
+      ],
+      "defaultNextHopAddresses": {
+        "discoveryType": "static",
+        "items": [
+          "{{nextHopAddress1}}",
+          "{{nextHopAddress2}}",
+          "{{nextHopAddress3}}",
+          "{{nextHopAddress4}}"
+        ]
+      }
+    }
+}

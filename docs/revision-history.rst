@@ -12,7 +12,7 @@ Document Revision History
         - Date
       
       * - 0.9.2
-        - Updated the documentation for Cloud Failover Extension v0.9.2. This release contains the following changes: |br| * Updated AWS requirements to distinguish between same network and across network topologies (see :ref:`aws`) |br| * Added an example declaration that includes IAM roles (see :ref:`aws-iam`) |br| * Added information about :ref:`logging-ref`  |br| * Updated the :ref:`faq`
+        - Updated the documentation for Cloud Failover Extension v0.9.2. This release contains the following changes: |br| * IPv6 route failover is now supported for AWS. |br| * Added example declaration for AWS IPv6 route failover (see :ref:`example-declarations`). |br| * Updated AWS requirements to distinguish between same network and across network topologies (see :ref:`aws`). |br| * Added an example declaration that includes IAM roles (see :ref:`aws-iam`). |br| * Added information about :ref:`logging-ref`.  |br| * Updated the :ref:`faq`.
         - 01-23-20
 
       * - 0.9.1

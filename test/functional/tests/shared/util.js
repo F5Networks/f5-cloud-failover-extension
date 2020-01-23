@@ -55,18 +55,22 @@ module.exports = {
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
         const deploymentInfo = require(deploymentFile);
+        const nextHopAddresses = [];
+        deploymentInfo.instances.forEach((instance) => {
+            if (instance.next_hop_address) {
+                nextHopAddresses.push(instance.next_hop_address);
+            }
+            if (instance.next_hop_address_ipv6) {
+                nextHopAddresses.push(instance.next_hop_address_ipv6);
+            }
+        });
         return {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
             zone: deploymentInfo.zone || null, // optional: used by GCP
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
-            nextHopAddresses: deploymentInfo.instances.reduce((acc, cur) => {
-                if (cur.next_hop_address) {
-                    acc.push(cur.next_hop_address);
-                }
-                return acc;
-            }, [])
+            nextHopAddresses
         };
     },
 
@@ -77,12 +81,18 @@ module.exports = {
      */
     getDeploymentDeclaration(declaration) {
         const environmentInfo = this.getEnvironmentInfo();
-        return JSON.parse(mustache.render(utils.stringify(declaration), {
+        const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
             nextHopAddress1: environmentInfo.nextHopAddresses[0],
             nextHopAddress2: environmentInfo.nextHopAddresses[1]
-        }));
+        };
+        // Added for AWS ipv6 route failover support
+        if (environmentInfo.nextHopAddresses.length === 4) {
+            declarationData.nextHopAddress3 = environmentInfo.nextHopAddresses[2];
+            declarationData.nextHopAddress4 = environmentInfo.nextHopAddresses[3];
+        }
+        return JSON.parse(mustache.render(utils.stringify(declaration), declarationData));
     },
 
     /**

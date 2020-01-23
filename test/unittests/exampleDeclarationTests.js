@@ -8,22 +8,11 @@
 
 'use strict';
 
-const assert = require('assert');
 const fs = require('fs');
-const Ajv = require('ajv');
 
-const baseSchema = require('../../src/nodejs/schema/base_schema.json');
+const Validator = require('../../src/nodejs/validator.js');
 
-const ajv = new Ajv(
-    {
-        allErrors: true,
-        useDefaults: true,
-        coerceTypes: true,
-        extendRefs: 'fail'
-    }
-);
-const validate = ajv
-    .compile(baseSchema);
+const validator = new Validator();
 
 describe('Declarations', () => {
     const baseDir = `${__dirname}/../../examples/declarations`;
@@ -32,11 +21,12 @@ describe('Declarations', () => {
     files.forEach((file) => {
         it(`should validate example: ${file}`, () => {
             const data = JSON.parse(fs.readFileSync(`${baseDir}/${file}`));
-            assert.ok(validate(data), getErrorString());
+            const validation = validator.validate(data);
+            if (!validation.isValid) {
+                const error = new Error(`Invalid declaration: ${JSON.stringify(validation.errors)}`);
+                return Promise.reject(error);
+            }
+            return Promise.resolve();
         });
     });
 });
-
-function getErrorString() {
-    return JSON.stringify(validate.errors, null, 4);
-}

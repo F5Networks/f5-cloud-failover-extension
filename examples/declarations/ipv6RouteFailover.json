@@ -1,0 +1,36 @@
+{
+    "class": "Cloud_Failover",
+    "environment": "aws",
+	"externalStorage": {
+		"scopingTags": {
+			"f5_cloud_failover_label": "mydeployment"
+		}
+    },
+	"failoverAddresses": {
+		"scopingTags": {
+			"f5_cloud_failover_label": "mydeployment"
+		}
+    },
+    "failoverRoutes": {
+		"scopingTags": {
+			"f5_cloud_failover_label": "mydeployment"
+		},
+		"scopingAddressRanges": [
+			{
+				"range": "192.168.1.0/24"
+			},
+			{
+				"range": "2001:db8:2:2::/64"
+			}
+		],
+		"defaultNextHopAddresses": {
+			"discoveryType": "static",
+			"items": [
+				"192.0.2.10",
+				"192.0.2.11",
+				"2600:1f13:12f:a803:5d15:e0e:1af9:8221",
+				"2600:1f13:12f:a804:5d15:e0e:1af9:8222"
+			]
+		}
+    }
+}

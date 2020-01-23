@@ -318,6 +318,27 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Resolve CIDR block - whether IPv4 or IPv6
+    *
+    * @param {Object} route - provider route object
+    *
+    * @returns {Object} { cidrBlock: '192.0.2.0/24', ipVersion: '4' }
+    */
+    _resolveRouteCidrBlock(route) {
+        // default to IPv4
+        let ipVersion = '4';
+        let cidrBlock = route.DestinationCidrBlock;
+
+        // check if this route is using IPv6
+        if (route.DestinationIpv6CidrBlock) {
+            cidrBlock = route.DestinationIpv6CidrBlock;
+            ipVersion = '6';
+        }
+
+        return { cidrBlock, ipVersion };
+    }
+
+    /**
     * Discover route operations
     *
     * @param {Array} localAddresses - array containing local (self) addresses [ '192.0.2.1' ]
@@ -330,7 +351,8 @@ class Cloud extends AbstractCloud {
         const _getUpdateOperationObject = (address, routeTable) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 const updateNotRequired = routeTable.Routes.every((route) => {
-                    if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1
+                    if (this.routeAddresses.map(i => i.range)
+                        .indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
                         && route.NetworkInterfaceId !== networkInterfaceId) {
                         return false;
                     }
@@ -403,11 +425,15 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTable, networkInterfaceId) {
         const promises = [];
         routeTable.Routes.forEach((route) => {
-            if (this.routeAddresses.map(i => i.range).indexOf(route.DestinationCidrBlock) !== -1) {
+            const routeCidrInfo = this._resolveRouteCidrBlock(route);
+            if (this.routeAddresses.map(i => i.range).indexOf(routeCidrInfo.cidrBlock) !== -1) {
                 promises.push(this._replaceRoute(
-                    route.DestinationCidrBlock,
+                    routeCidrInfo.cidrBlock,
                     networkInterfaceId,
-                    routeTable.RouteTableId
+                    routeTable.RouteTableId,
+                    {
+                        ipVersion: routeCidrInfo.ipVersion
+                    }
                 ));
             }
         });
@@ -466,20 +492,32 @@ class Cloud extends AbstractCloud {
     /**
      * Replaces route in a route table
      *
-     * @param {String} destCidr           - Destination Cidr of the Route that is to be replaced
-     * @param {String} networkInterfaceId - Network interface ID to update the route to
-     * @param {String} routeTableId       - Route table ID where the route is to be updated
+     * @param {Object} destCidr            - Destination Cidr of the Route that is to be replaced
+     * @param {String} networkInterfaceId  - Network interface ID to update the route to
+     * @param {String} routeTableId        - Route table ID where the route is to be updated
+     *
+     * @param {Object} options             - function options
+     * @param {Object} [options.ipVersion] - IP version, such as '4' or '6'
      *
      * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
      */
-    _replaceRoute(destCidr, networkInterfaceId, routeTableId) {
+    _replaceRoute(destCidr, networkInterfaceId, routeTableId, options) {
         this.logger.silly('Updating route: ', routeTableId, networkInterfaceId);
 
+        options = options || {};
+
         const params = {
-            DestinationCidrBlock: destCidr,
             NetworkInterfaceId: networkInterfaceId,
             RouteTableId: routeTableId
         };
+
+        // check for IPv6, default to IPv4
+        if (options.ipVersion === '6') {
+            params.DestinationIpv6CidrBlock = destCidr;
+        } else {
+            params.DestinationCidrBlock = destCidr;
+        }
+
         return new Promise((resolve, reject) => {
             this.ec2.replaceRoute(params).promise()
                 .then((data) => {
