@@ -134,6 +134,8 @@ To create and assign a Managed Service Identity (MSI) you must have a role of `U
      :width: 800
 
 
+.. _azure-rbac:
+
 RBAC Role Definition
 ````````````````````
 
