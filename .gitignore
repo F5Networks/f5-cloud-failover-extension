@@ -21,6 +21,7 @@ test/functional/*_harness_file.json
 terraform
 terraform.zip
 terraform.tfvars
+!terraform/
 
 # virtual envs
 venv/

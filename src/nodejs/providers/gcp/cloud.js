@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ const { Storage } = require('@google-cloud/storage');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
+const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
@@ -32,6 +33,7 @@ const MAX_RETRIES = require('../../constants').MAX_RETRY;
 const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 
 const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
+
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
     let ret = {};
@@ -53,18 +55,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-     *
-     * @param {Object} options        - function options
-     * @param {Object} [options.tags] - object containing tags to filter on { 'key': 'value' }
-     */
+    * See the parent class method for details
+    */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || null;
-        this.storageTags = options.storageTags || {};
-        this.routeTags = options.routeTags || null;
-        this.routeAddresses = options.routeAddresses || null;
-        this.routeSelfIpsTag = options.routeSelfIpsTag || null;
+        super.init(options);
 
         return Promise.all([
             this._getLocalMetadata('project/project-id'),
@@ -82,9 +76,7 @@ class Cloud extends AbstractCloud {
 
                 this.logger.silly(`bucket name: ${this.bucket.name}`);
 
-                // zone format: 'projects/734288666861/zones/us-west1-a'
-                const parts = this.instanceZone.split('/');
-                this.zone = parts[parts.length - 1];
+                this.zone = this._parseZone(this.instanceZone);
                 this.computeZone = this.compute.zone(this.zone);
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
                 this.computeRegion = this.compute.region(this.region);
@@ -323,13 +315,20 @@ class Cloud extends AbstractCloud {
     /**
      * Get instance metadata from GCP
      *
-     * @param {Object} vmName - Instance Name
+     * @param {Object} vmName         - instance name
+     *
+     * @param {Object} options        - function options
+     * @param {String} [options.zone] - instance zone
      *
      * @returns {Promise} A promise which will be resolved with the metadata for the instance
      *
      */
-    _getVmMetadata(vmName) {
-        const vm = this.computeZone.vm(vmName);
+    _getVmMetadata(vmName, options) {
+        options = options || {};
+
+        const zone = options.zone || this.zone;
+        const computeZone = this.compute.zone(zone);
+        const vm = computeZone.vm(vmName);
 
         return vm.getMetadata()
             .then((data) => {
@@ -342,18 +341,22 @@ class Cloud extends AbstractCloud {
     /**
      * Get Instance Information from VM metadata
      *
-     * @param {Object} vmName                   - Instance Name
+     * @param {Object} vmName                     - Instance Name
      *
-     * @param {Object} options                  - Options for function
-     * @param {Array} options.failOnStatusCodes - Optionally provide a list of status codes to fail
+     * @param {Object} options                    - Options for function
+     * @param {Array} [options.failOnStatusCodes] - Optionally provide a list of status codes to fail
      *                                              on, for example 'STOPPING'
+     * @param {String} [options.zone]             - instance zone
      *
      * @returns {Promise} A promise which will be resolved with the metadata for the instance
      *
      */
     _getVmInfo(vmName, options) {
-        const failOnStatusCodes = options && options.failOnStatusCodes ? options.failOnStatusCodes : [];
-        return this._getVmMetadata(vmName)
+        options = options || {};
+        const failOnStatusCodes = options.failOnStatusCodes || [];
+        const zone = options.zone || this.zone;
+
+        return this._getVmMetadata(vmName, { zone })
             .then((data) => {
                 if (failOnStatusCodes.length > 0) {
                     const vmStatus = data.status;
@@ -396,17 +399,7 @@ class Cloud extends AbstractCloud {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
-                    let flag = true;
-                    Object.keys(vm.metadata.labels)
-                        .forEach((labelName) => {
-                            if (Object.keys(tags).indexOf(labelName) === -1
-                            || Object.values(tags).indexOf(vm.metadata.labels[labelName]) === -1) {
-                                flag = false;
-                            }
-                        });
-                    if (flag) {
-                        promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { failOnStatusCodes: ['STOPPING'] }], shortRetry));
-                    }
+                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { zone: this._parseZone(vm.metadata.zone), failOnStatusCodes: ['STOPPING'] }], shortRetry));
                 });
                 return Promise.all(promises);
             })
@@ -446,6 +439,20 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Parse zone - parse zone out of a provider object
+     *
+     * @returns {String} The parsed zone
+     *
+     */
+    _parseZone(zoneProperty) {
+        // known zone formats
+        // - 'projects/1111/zones/us-west1-a'
+        // - 'https://www.googleapis.com/compute/v1/projects/1111/zones/us-west1-a'
+        const parts = zoneProperty.split('/');
+        return parts[parts.length - 1];
+    }
+
+    /**
      * Returns routes objects used for failover; method uses routes' description values
      * to identify route objects to work with
      *
@@ -456,6 +463,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _getRoutes(options) {
+        options = options || {};
         const tags = options.tags || {};
 
         return this._sendRequest(
@@ -517,6 +525,52 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Get the addresses and routes for inspect endpoint
+     *
+     * @returns {Promise} A promise which will be resolved with the array of Big-IP addresses and routes
+     */
+    getAssociatedAddressAndRouteInfo() {
+        const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
+        data.instance = this.instanceName;
+        return Promise.all([
+            this._getVmsByTags(this.tags),
+            this._getRoutes({ tags: this.routeTags })
+        ])
+            .then((result) => {
+                const privateIps = [];
+                result[0].forEach((vm) => {
+                    vm.networkInterfaces.forEach((address) => {
+                        if (vm.name === this.instanceName) {
+                            let vmPublicIp = null;
+                            if (address.accessConfigs) {
+                                vmPublicIp = address.accessConfigs[0].natIP;
+                            }
+                            privateIps.push(address.networkIP);
+                            data.addresses.push({
+                                publicIpAddress: vmPublicIp,
+                                privateIpAddress: address.networkIP,
+                                networkInterfaceId: address.name
+                            });
+                        }
+                    });
+                });
+                result[1].forEach((route) => {
+                    // only show route if the Big-IP instance is active
+                    // by matching the nextHopIp with privateIps of active Big-IP
+                    if (privateIps.includes(route.nextHopIp)) {
+                        data.routes.push({
+                            routeTableId: route.id,
+                            routeTableName: route.name,
+                            networkId: route.network
+                        });
+                    }
+                });
+                return Promise.resolve(data);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
      * Discover address operations
      *
      * @param {Object} failoverAddresses - failover addresses
@@ -527,7 +581,7 @@ class Cloud extends AbstractCloud {
     _discoverAddressOperations(failoverAddresses) {
         if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No failoverAddresses to discover');
-            return Promise.resolve();
+            return Promise.resolve({ nics: [], fwdRules: [] });
         }
 
         return Promise.all([
@@ -602,7 +656,7 @@ class Cloud extends AbstractCloud {
                         });
 
                         theirNic.aliasIpRanges = theirAliasIps;
-                        disassociate.push([vm.name, nic.name, theirNic]);
+                        disassociate.push([vm.name, nic.name, theirNic, { zone: this._parseZone(vm.zone) }]);
                     }
                 }
             });
@@ -624,7 +678,7 @@ class Cloud extends AbstractCloud {
                     }
                 });
                 if (match) {
-                    associate.push([vm.name, myNic.name, myNic]);
+                    associate.push([vm.name, myNic.name, myNic, { zone: this._parseZone(vm.zone) }]);
                 }
             });
         });
@@ -702,17 +756,17 @@ class Cloud extends AbstractCloud {
 
                 const operations = [];
                 routes.forEach((route) => {
-                    if (route.description.indexOf(this.routeSelfIpsTag) !== -1) {
-                        const selfIpsToUse = gcpLabelParse(route.description)[this.routeSelfIpsTag];
-                        const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                        // check if route should be updated and if next hop is our address,
-                        // if not we need to update it
-                        if (this.routeAddresses.indexOf(route.destRange)
-                            !== -1 && route.nextHopIp !== selfIpToUse) {
-                            route.nextHopIp = selfIpToUse;
-                            operations.push(route);
-                        }
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        gcpLabelParse(route.description),
+                        this.routeNextHopAddresses
+                    );
+                    // check if route should be updated and if next hop is our address,
+                    // if not we need to update it
+                    if (this.routeAddresses.map(i => i.range).indexOf(route.destRange)
+                        !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                        route.nextHopIp = nextHopAddress;
+                        operations.push(route);
                     }
                 });
 
@@ -731,11 +785,13 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(options) {
+        options = options || {};
+
         const nicOperations = options.nics;
         const fwdRuleOperations = options.fwdRules;
 
         if (!options || Object.keys(options).length === 0) {
-            this.logger.info('No route operations to run');
+            this.logger.info('No address operations to run');
             return Promise.resolve();
         }
 
@@ -856,30 +912,34 @@ class Cloud extends AbstractCloud {
     /**
      * Updates Instance Network Interface
      *
-     * @param {Object} vmId - Instance ID
+     * @param {Object} vmId           - Instance ID
+     * @param {Object} nicId          - NIC ID (name)
+     * @param {Object} nicArr         - Updated NIC properties
      *
-     * @param {Object} nicId - NIC ID (name)
-     *
-     * @param {Object} nicArr - Updated NIC properties
+     * @param {Object} options        - function options
+     * @param {Object} [options.zone] - override default zone
      *
      * @returns {Promise} A promise which will be resolved with the operation response
      *
      */
-    _updateNic(vmId, nicId, nicArr) {
-        this.logger.silly(`Updating NIC: ${nicId} for VM: ${vmId}`);
+    _updateNic(vmId, nicId, nicArr, options) {
+        options = options || {};
+        const zone = options.zone || this.zone;
+
+        this.logger.silly(`Updating NIC: ${nicId} for VM ${vmId} in zone ${zone}`);
         return this._sendRequest(
             'PATCH',
-            `zones/${this.zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
+            `zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
             nicArr
         )
             .then((data) => {
                 // updateNetworkInterface is async, returns GCP zone operation
-                const operation = this.computeZone.operation(data.name);
+                const computeZone = this.compute.zone(zone);
+                const operation = computeZone.operation(data.name);
                 return operation.promise();
             })
             .catch(err => Promise.reject(err));
     }
-
 
     /**
      * Updates forwarding rule target

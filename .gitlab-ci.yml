@@ -7,7 +7,7 @@ stages:
     - test_functional_init
     - test_functional_execute
     - test_functional_cleanup
-    - build_api_docs
+    - build_api_docs_and_postman_collection
     - build_docs
     - publish
 
@@ -26,6 +26,7 @@ variables:
     GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
     ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
     DOCS_BUILD_DIR: "docs/_build/html"
+    POSTMAN_EXAMPLES: 'postman-collection'
     # azure vars - normalize env var options between ansible and terraform
     AZURE_TENANT: "$AZURE_TENANT_ID"
     AZURE_SECRET: "$AZURE_CLIENT_SECRET"
@@ -43,6 +44,8 @@ variables:
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
+    # topology var
+    CF_ENV_NETWORK_TOPOLOGY: 'same_network'
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
@@ -70,8 +73,7 @@ build_package:
         # install packages: jq
         - apt-get update
         - apt-get install -y jq
-        # install node modules
-        - npm run install-production
+        # build RPM, handles dependency installation, etc.
         - bash ./scripts/build_rpm.sh
     tags:
         - cm-official-docker-executor
@@ -84,7 +86,7 @@ build_package:
 # test package against node 4.x
 test_node4:
     stage: test
-    image: node:4  
+    image: node:4
     script:
         - npm install --global npm@5.10.0
         - npm install mocha@5.2.0
@@ -154,10 +156,10 @@ coverage:
         # setup environment
         - set -e
         - validate npm run deployment-create
-        - mkdir -p env_metadata/${CF_ENV_CLOUD}
-        - chmod -R +wr env_metadata/${CF_ENV_CLOUD}
-        - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}
-        - cp *.tfstate env_metadata/${CF_ENV_CLOUD}
+        - mkdir -p env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}
+        - chmod -R +wr env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}
+        - cp deployment_info.json env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}
+        - cp *.tfstate env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}
     tags:
         - cm-official-docker-executor
     only:
@@ -168,7 +170,7 @@ coverage:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
     artifacts:
         paths:
-            - env_metadata/${CF_ENV_CLOUD}
+            - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}
         when: always
         expire_in: 1 month
 
@@ -178,11 +180,19 @@ test_functional_init_azure:
     variables:
         CF_ENV_CLOUD: "azure"
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
+test_functional_init_aws_across_net:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+
+# run functional tests: aws - same network topology
 test_functional_init_aws:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
 
 # run functional tests: gcp
 test_functional_init_gcp:
@@ -202,7 +212,7 @@ test_functional_init_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}/. .
         # executing fuctional test
         - validate npm run test-functional
         # run API smoke tests
@@ -225,11 +235,22 @@ test_functional_execute_azure:
         - test_functional_init_azure
         - build_package
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
+test_functional_execute_aws_across_net:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    dependencies:
+        - test_functional_init_aws_across_net
+        - build_package
+
+# run functional tests: aws - same network topology
 test_functional_execute_aws:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
     dependencies:
         - test_functional_init_aws
         - build_package
@@ -260,7 +281,7 @@ test_functional_execute_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}/. .
         # teardown environment
         - validate npm run deployment-delete
     tags:
@@ -280,11 +301,21 @@ test_functional_cleanup_azure:
     dependencies:
         - test_functional_init_azure
 
-# run functional tests: aws
+# run functional tests: aws - across network topology
+test_functional_cleanup_aws_across_net:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    dependencies:
+        - test_functional_init_aws_across_net
+
+# run functional tests: aws - same network topology
 test_functional_cleanup_aws:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
     dependencies:
         - test_functional_init_aws
 
@@ -299,7 +330,7 @@ test_functional_cleanup_gcp:
 ###  End of Functional Tests
 
 build_api_docs:
-    stage: build_api_docs
+    stage: build_api_docs_and_postman_collection
     script:
         # install packages
         - npm install
@@ -312,6 +343,21 @@ build_api_docs:
         name: docs
         paths:
             - apidocs
+        expire_in: 1 month
+
+build_postman_collection:
+    stage: build_api_docs_and_postman_collection
+    script:
+        # install packages
+        - npm install
+        # generate postman-collection
+        - npm run make-postman-collection
+    tags:
+        - docker-executor
+    artifacts:
+        name: ${POSTMAN_EXAMPLES}
+        paths:
+            - examples
         expire_in: 1 month
 
 build_docs:
@@ -342,8 +388,16 @@ publish_dev_to_artifactory:
         - RPM_FILE=$(ls dist/new_build/*.rpm)
         - RPM_NAME=$(basename $RPM_FILE)
         - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${RPM_NAME}
+        - echo "Uploading RPM"
         - >-
             UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+        - echo $UPLOAD_RESULT
+        - POSTMAN_COLLECTION_FILE=$(ls examples/postmanCollection.json)
+        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${POSTMAN_EXAMPLES}
+        - echo "Uploading Postman Collection and Examples"
+        - >-
+            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${POSTMAN_COLLECTION_FILE} ${URL})
         - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
         - echo $UPLOAD_RESULT
 
@@ -368,7 +422,7 @@ pages:
     stage: publish
     environment:
         name: staging
-        url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}   
+        url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}
     script:
         - PUBLIC_DIR='./public'
         - mkdir -p ${PUBLIC_DIR}

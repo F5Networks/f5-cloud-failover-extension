@@ -27,7 +27,9 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const declaration = funcUtils.getDeploymentDeclaration();
+const exampleDeclaration = require('../../shared/exampleDeclaration.json');
+
+const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];
@@ -139,6 +141,61 @@ function checkRoutes(selfIps) {
             if (!testRouteFlag) {
                 assert.fail('Route not found');
             }
+        })
+        .catch(err => Promise.reject(err));
+}
+function getVms(hostname) {
+    return new Promise((resolve, reject) => {
+        compute.instances.list(request, (err, response) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(response);
+            }
+        });
+    })
+        .then((data) => {
+            const instances = data.data.items || [];
+            const vms = [];
+            instances.forEach((vm) => {
+                if (vm.labels) {
+                    if (Object.values(vm.labels)
+                        .indexOf(networkInterfaceTagValue) !== -1
+                        && Object.keys(vm.labels)
+                            .indexOf(storageTagKey) !== -1) {
+                        if (vm.name.indexOf(hostname) !== -1) {
+                            vms.push(vm);
+                        }
+                    }
+                }
+            });
+            return Promise.resolve(vms);
+        })
+        .catch(err => Promise.reject(err));
+}
+
+function getRoutes(selfIps) {
+    return new Promise((resolve, reject) => {
+        compute.routes.list(request, (err, response) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(response);
+            }
+        });
+    })
+        .then((data) => {
+            const routes = data.data.items || [];
+            const result = [];
+            if (routes) {
+                routes.forEach((route) => {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1
+                        && selfIps.indexOf(route.nextHopIp) !== -1) {
+                        result.push(route);
+                    }
+                });
+            }
+            return Promise.resolve(result);
         })
         .catch(err => Promise.reject(err));
 }
@@ -349,8 +406,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -370,8 +427,8 @@ describe('Provider: GCP', () => {
                     authToken: dutSecondary.authData.token,
                     hostname: dutSecondary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -391,8 +448,8 @@ describe('Provider: GCP', () => {
                     authToken: dutPrimary.authData.token,
                     hostname: dutPrimary.hostname
                 }))
-            .then((bool) => {
-                assert(bool);
+            .then((data) => {
+                assert(data.boolean, data);
             })
             .catch(err => Promise.reject(err));
     });
@@ -415,6 +472,94 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkRoutes(primarySelfIps)
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and routes for primary BIG-IP', function () {
+        this.retries(RETRIES.SHORT);
+        const expectedResult = {
+            instance: dutPrimary.hostname,
+            addresses: [],
+            routes: []
+        };
+        return Promise.all([
+            getVms(dutPrimary.hostname),
+            getRoutes(primarySelfIps)
+        ])
+            .then((results) => {
+                const privateIps = [];
+                results[0].forEach((vm) => {
+                    vm.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                });
+                results[1].forEach((route) => {
+                    if (privateIps.includes(route.nextHopIp)) {
+                        expectedResult.routes.push({
+                            routeTableId: route.id,
+                            routeTableName: route.name,
+                            networkId: route.network
+                        });
+                    }
+                });
+            })
+            .then(() => funcUtils.getInspectStatus(dutPrimary.ip, {
+                authToken: dutPrimary.authData.token
+            }))
+            .then((data) => {
+                assert.deepStrictEqual(data.instance, expectedResult.instance);
+                assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                assert.deepStrictEqual(data.routes, expectedResult.routes);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('Should retrieve addresses and not routes for secondary BIG-IP', function () {
+        this.retries(RETRIES.SHORT);
+        const expectedResult = {
+            instance: dutSecondary.hostname,
+            addresses: []
+        };
+        return Promise.all([
+            getVms(dutSecondary.hostname),
+            getRoutes(secondarySelfIps)
+        ])
+            .then((results) => {
+                const privateIps = [];
+                results[0].forEach((vm) => {
+                    vm.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                });
+                assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
+            })
+            .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                {
+                    authToken: dutSecondary.authData.token
+                }))
+            .then((data) => {
+                assert.deepStrictEqual(data.instance, expectedResult.instance);
+                assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                assert.deepStrictEqual(data.routes, []);
+            })
             .catch(err => Promise.reject(err));
     });
 });

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,19 +21,20 @@ const net = require('net');
 const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
 
 const constants = require('./constants.js');
-const Logger = require('./logger.js');
-
-const logger = new Logger(module);
+const util = require('./util.js');
+const logger = require('./logger.js');
 
 const cloudUtils = f5CloudLibs.util;
 const BigIp = f5CloudLibs.bigIp;
 
 const mgmtPortDiscovery = 'discover';
 
+const DATA_GROUP_URI = '/tm/ltm/data-group/internal';
+
 /**
  * @class Device
  *
- * @description a singleton class which represents BIG IP device
+ * @description a class which represents a BIG-IP device
  *
  * @constructor
  */
@@ -46,12 +47,11 @@ class Device {
         this.mgmtPort = options.mgmtPort || mgmtPortDiscovery;
         this.product = options.product || 'BIG-IP';
 
-        this.bigip = new BigIp({ logger });
+        this.bigip = new BigIp();
     }
 
     /**
-    * Initialize the BIG-IP device. Executed by failover.js module
-    * and intended for instantiating f5-cloud-libs BIG-IP object
+    * Initialize a BIG-IP device
     *
     * @returns {Promise}
     */
@@ -64,6 +64,9 @@ class Device {
         }
 
         return portPromise
+            .then((port) => {
+                this.mgmtPort = port;
+            })
             .then(() => this.bigip.init(
                 this.hostname,
                 this.username,
@@ -102,14 +105,14 @@ class Device {
 
                 return Promise.reject(new Error('Port discovery failed!'));
             })
-            .then((port) => {
-                this.mgmtPort = port;
-            })
             .catch(err => Promise.reject(err));
     }
 
     /**
      * Attempt connection to an address:port
+     *
+     * @param {String} host  - host address
+     * @param {Integer} port - host port
      *
      * @returns {Promise} { 'connected': true, 'port': 443 }
      */
@@ -134,12 +137,12 @@ class Device {
     *
     * @param {Array} [endpoints] - list of BIG-IP endpoints used for getting required configuration
     *
-    * @returns {Promise}
+    * @returns {Promise} resolved promise with REST response
     */
     getConfig(endpoints) {
         const promises = [];
         for (let i = 0; i < endpoints.length; i += 1) {
-            promises.push(this.bigip.list(endpoints[i]));
+            promises.push(this.bigip.list(endpoints[i], {}, { maxRetries: 0 }));
         }
         return Promise.all(promises);
     }
@@ -147,11 +150,12 @@ class Device {
     /**
     * Intended for getting global settings config object
     *
-    *  @returns {Object} global settings config object
+    * @returns {Promise} resolved promise with REST response
     */
     getGlobalSettings() {
         return this.getConfig([
-            '/tm/sys/global-settings'])
+            '/tm/sys/global-settings'
+        ])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
     }
@@ -159,11 +163,12 @@ class Device {
     /**
     * Intended for getting global traffic groups stats config object
     *
-    *  @returns {Object} global traffic groups stats config object
+    * @returns {Promise} resolved promise with REST response
     */
     getTrafficGroupsStats() {
         return this.getConfig([
-            '/tm/cm/traffic-group/stats'])
+            '/tm/cm/traffic-group/stats'
+        ])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
     }
@@ -171,25 +176,124 @@ class Device {
     /**
     * Intended for getting self addresses config object
     *
-    *  @returns {Object} self addresses config object
+    * @returns {Promise} resolved promise with REST response
     */
     getSelfAddresses() {
         return this.getConfig([
-            '/tm/net/self'])
+            '/tm/net/self'
+        ])
             .then(results => Promise.resolve(results[0]))
             .catch(err => Promise.reject(err));
     }
 
-
     /**
     * Intended for getting virtual addresses config object
     *
-    *  @returns {Object} virtual addresses config object
+    * @returns {Promise} resolved promise with REST response
     */
     getVirtualAddresses() {
         return this.getConfig([
-            '/tm/ltm/virtual-address'])
+            '/tm/ltm/virtual-address'
+        ])
             .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Intended for getting SNAT translation addresses config object
+    *
+    * Note: ltm/snat-translation endpoint provides addresses stored for both
+    * direct SNAT as well as SNAT pools
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getSnatTranslationAddresses() {
+        return this.getConfig([
+            '/tm/ltm/snat-translation'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Intended for getting NAT addresses config object
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getNatAddresses() {
+        return this.getConfig([
+            '/tm/ltm/nat'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get data-group(s) - internal only
+    *
+    * @param {Object}  options       - Options object for the function
+    * @param {String} [options.name] - Name of a specific data group to return
+    *
+    * @returns {Promise} resolved promise with either 1) the raw REST server response or 2)
+    *                    the following object if [options.name] was provided: { 'exists': true, data: {}}
+    */
+    getDataGroups(options) {
+        options = options || {};
+
+        return this.getConfig([DATA_GROUP_URI])
+            .then((results) => {
+                const dataGroups = results[0];
+                if (!options.name) {
+                    return Promise.resolve(dataGroups);
+                }
+
+                const dataGroupsToReturn = [];
+                dataGroups.forEach((dataGroup) => {
+                    if (options.name === dataGroup.name) {
+                        dataGroupsToReturn.push(dataGroup);
+                    }
+                });
+
+                // check for the following non happy path conditions:
+                // - no data groups matched should resolve with exists:false
+                // - more than one data group matched should reject
+                if (dataGroupsToReturn.length === 0) {
+                    return Promise.resolve({ exists: false, data: {} });
+                }
+                if (dataGroupsToReturn.length > 1) {
+                    const errMsg = `More than one data group match found: ${util.stringify(dataGroupsToReturn)}`;
+                    return Promise.reject(new Error(errMsg));
+                }
+
+                return Promise.resolve({ exists: true, data: dataGroupsToReturn[0] });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Create (or update) data-group - internal only
+    *
+    * @param {String} name   - name of the data group
+    * @param {Array} records - the data group records: [{name: 0, data: 'foo'}]
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    createDataGroup(name, records) {
+        const body = {
+            name,
+            type: 'string',
+            records
+        };
+
+        return this.getDataGroups({ name })
+            .then((response) => {
+                if (response.exists === true) {
+                    logger.silly(`Modifying existing data group ${name} with body ${util.stringify(body)}`);
+                    return this.bigip.modify(`${DATA_GROUP_URI}/${name}`, body);
+                }
+                logger.silly(`Creating new data group ${name} with body ${util.stringify(body)}`);
+                return this.bigip.create(DATA_GROUP_URI, body);
+            })
             .catch(err => Promise.reject(err));
     }
 

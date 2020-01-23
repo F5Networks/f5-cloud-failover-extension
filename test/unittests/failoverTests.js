@@ -13,21 +13,22 @@ const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-depe
 const constants = require('../constants.js');
 
 const declaration = constants.declarations.basic;
-const restWorker = constants.restWorker;
 
 /* eslint-disable global-require */
 
 describe('Failover', () => {
     let config;
-    let failover;
+    let Device;
     let CloudFactory;
-    let f5CloudLibs;
-    let device;
+    let FailoverClient;
+    let failover;
 
     let deviceGlobalSettingsMock;
     let deviceGetTrafficGroupsMock;
     let deviceGetSelfAddressesMock;
     let deviceGetVirtualAddressesMock;
+    let deviceGetNatAddressesMock;
+    let deviceGetSnatTranslationAddressesMock;
     let cloudProviderMock;
     let downloadDataFromStorageMock;
 
@@ -35,7 +36,6 @@ describe('Failover', () => {
     let spyOnUpdateRoutes;
     let uploadDataToStorageSpy;
     let setConfigSpy;
-    let setTaskStateSpy;
 
     const globalSettingsMockResponse = {
         entries: {
@@ -44,7 +44,7 @@ describe('Failover', () => {
                     entries: {
                         deviceName: { description: 'some_hostname' },
                         failoverState: { description: 'active' },
-                        trafficGroup: { description: 'some_trafficGroup' }
+                        trafficGroup: { description: 'traffic-group-1' }
                     }
                 }
             }
@@ -53,46 +53,41 @@ describe('Failover', () => {
 
     beforeEach(() => {
         config = require('../../src/nodejs/config.js');
-        device = require('../../src/nodejs/device.js');
+        Device = require('../../src/nodejs/device.js');
         CloudFactory = require('../../src/nodejs/providers/cloudFactory.js');
-        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+        FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
 
-        const FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
-        failover = new FailoverClient();
-        failover.init();
-
-        sinon.stub(device.prototype, 'discoverMgmtPort').resolves(443);
-        deviceGlobalSettingsMock = sinon.stub(device.prototype, 'getGlobalSettings');
-        deviceGetTrafficGroupsMock = sinon.stub(device.prototype, 'getTrafficGroupsStats');
-        deviceGetSelfAddressesMock = sinon.stub(device.prototype, 'getSelfAddresses');
-        deviceGetVirtualAddressesMock = sinon.stub(device.prototype, 'getVirtualAddresses');
-
-        sinon.stub(f5CloudLibs.bigIp.prototype, 'init').resolves();
-        sinon.stub(f5CloudLibs.bigIp.prototype, 'list');
-        sinon.stub(f5CloudLibs.bigIp.prototype, 'create').returns();
-        sinon.stub(device.prototype, 'executeBigIpBashCmd').resolves('');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
+        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        deviceGlobalSettingsMock = sinon.stub(Device.prototype, 'getGlobalSettings');
+        deviceGetTrafficGroupsMock = sinon.stub(Device.prototype, 'getTrafficGroupsStats');
+        deviceGetSelfAddressesMock = sinon.stub(Device.prototype, 'getSelfAddresses');
+        deviceGetVirtualAddressesMock = sinon.stub(Device.prototype, 'getVirtualAddresses');
+        deviceGetSnatTranslationAddressesMock = sinon.stub(Device.prototype, 'getSnatTranslationAddresses');
+        deviceGetNatAddressesMock = sinon.stub(Device.prototype, 'getNatAddresses');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
             updateAddresses: () => Promise.resolve({}),
             updateRoutes: () => Promise.resolve({}),
             downloadDataFromStorage: () => Promise.resolve({}),
-            uploadDataToStorage: () => Promise.resolve({})
+            uploadDataToStorage: () => Promise.resolve({}),
+            getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] })
         };
-        sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
-
         downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.PASS });
-
         spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
         spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
+        sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
 
         deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
         deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
 
         deviceGetSelfAddressesMock.returns([
             {
-                name: 'some_trafficGroup',
+                name: 'traffic-group-1',
                 address: '1.1.1.1',
                 trafficGroup: 'local_only'
             }
@@ -100,12 +95,16 @@ describe('Failover', () => {
         deviceGetVirtualAddressesMock.returns([
             {
                 address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup',
-                parition: 'Common'
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
             }
         ]);
+        deviceGetSnatTranslationAddressesMock.returns([]);
+        deviceGetNatAddressesMock.returns([]);
 
         uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
+
+        failover = new FailoverClient();
     });
     afterEach(() => {
         sinon.restore();
@@ -151,8 +150,9 @@ describe('Failover', () => {
         assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
     }
 
-    it('should execute failover', () => config.init(restWorker)
+    it('should execute failover', () => config.init()
         .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
         .then(() => failover.execute())
         .then(() => {
             validateFailover();
@@ -164,8 +164,9 @@ describe('Failover', () => {
         downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.RUN });
         downloadDataFromStorageMock.onCall(1).resolves({ taskState: constants.FAILOVER_STATES.PASS });
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 validateFailover();
@@ -173,11 +174,58 @@ describe('Failover', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should execute failover with virtual and snat addresses', () => {
+        deviceGetSnatTranslationAddressesMock.returns([
+            {
+                address: '2.2.2.3',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3'] });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should execute failover with virtual, snat and nat addresses', () => {
+        deviceGetSnatTranslationAddressesMock.returns([
+            {
+                address: '2.2.2.3',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+        deviceGetNatAddressesMock.returns([
+            {
+                originatingAddress: '1.1.1.4',
+                translationAddress: '2.2.2.4',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3', '2.2.2.4'] });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should result in no failover addresses when no virtual addresses exist', () => {
         deviceGetVirtualAddressesMock.returns([]);
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 validateFailover({ failoverAddresses: [] });
@@ -192,15 +240,16 @@ describe('Failover', () => {
                         entries: {
                             deviceName: { description: 'some_hostname' },
                             failoverState: { description: 'active' },
-                            trafficGroup: { description: 'some_other_trafficGroup' }
+                            trafficGroup: { description: 'some-other-traffic-group' }
                         }
                     }
                 }
             }
         });
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 validateFailover({ failoverAddresses: [] });
@@ -210,9 +259,11 @@ describe('Failover', () => {
     it('should result in no failover addresses when device hostname does not match any traffic groups', () => {
         deviceGlobalSettingsMock.returns({ hostname: 'some_other_hostname' });
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
-            .then(() => failover.execute());
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .catch(err => Promise.reject(err));
     });
 
     it('should recover from a previous failover failure', () => {
@@ -229,17 +280,17 @@ describe('Failover', () => {
             message: 'Failover failed because of x'
         });
         setConfigSpy = sinon.stub(Object.getPrototypeOf(config), 'setConfig').resolves();
-        setTaskStateSpy = sinon.stub(Object.getPrototypeOf(config), 'setTaskState').resolves();
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 // verify that the uploaded task state is running and then eventually succeeded
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
                 assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
-                assert.strictEqual(setTaskStateSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
+                assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
             })
             .catch(err => Promise.reject(err));
     });
@@ -248,18 +299,19 @@ describe('Failover', () => {
         deviceGetVirtualAddressesMock.returns([
             {
                 address: '2.2.2.2',
-                trafficGroup: 'some_trafficGroup',
+                trafficGroup: 'traffic-group-1',
                 parition: 'Common'
             },
             {
                 address: '3.3.3.3',
-                trafficGroup: 'some_trafficGroup',
+                trafficGroup: 'traffic-group-1',
                 parition: 'Tenant_01'
             }
         ]);
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 validateFailover({ failoverAddresses: ['2.2.2.2', '3.3.3.3'] });
@@ -270,8 +322,9 @@ describe('Failover', () => {
     it('should reject when an error occurs during failover execution', () => {
         deviceGlobalSettingsMock.returns();
 
-        return config.init(restWorker)
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
             .then(() => failover.execute())
             .then(() => {
                 assert.fail();
@@ -285,7 +338,8 @@ describe('Failover', () => {
     it('should reject when enviroment is not provided during failover execution', () => {
         sinon.stub(Object.getPrototypeOf(config), 'getConfig').resolves({});
 
-        return failover.execute()
+        return failover.init()
+            .then(() => failover.execute())
             .then(() => {
                 assert.fail();
             })
@@ -295,8 +349,9 @@ describe('Failover', () => {
             });
     });
 
-    it('should reset state file when reset state file function is called after config declaration has occurred', () => config.init(restWorker)
+    it('should reset state file when reset state file function is called after config declaration has occurred', () => config.init()
         .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
         .then(() => failover.resetFailoverState({ resetStateFile: true }))
         .then(() => {
             assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
@@ -305,7 +360,8 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('should reset state file when reset state file function is called before declaration', () => failover.resetFailoverState({ resetStateFile: true })
+    it('should reset state file when reset state file function is called before declaration', () => failover.init()
+        .then(() => failover.resetFailoverState({ resetStateFile: true }))
         .then(() => {
             assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
             assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].message, constants.STATE_FILE_RESET_MESSAGE);
@@ -313,19 +369,39 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('should not reset state file when reset state file key is set to false', () => config.init(restWorker)
+    it('should not reset state file when reset state file key is set to false', () => config.init()
         .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
         .then(() => failover.resetFailoverState({ resetStateFile: false }))
         .then(() => {
             assert(uploadDataToStorageSpy.notCalled);
         })
         .catch(err => Promise.reject(err)));
 
-    it('should retrieve the taskstate file', () => config.init(restWorker)
+    it('should retrieve the taskstate file', () => config.init()
         .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
         .then(() => failover.getTaskStateFile())
         .then((result) => {
             assert(result);
         })
         .catch(err => Promise.reject(err)));
+
+    it('should get current HA status and mapped cloud objects', () => config.init()
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
+        .then(() => failover.getFailoverStatusAndObjects())
+        .then((data) => {
+            assert.deepStrictEqual({
+                routes: [],
+                addresses: [],
+                hostName: 'some_hostname',
+                deviceStatus: 'active',
+                trafficGroup: [
+                    {
+                        name: 'traffic-group-1'
+                    }
+                ]
+            }, data);
+        }));
 });

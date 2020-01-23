@@ -27,12 +27,8 @@ describe('Provider - Abstract', () => {
     it('should instantiate provider', () => {
         const provider = new Provider();
 
-        // check abstract properties
-        assert.strictEqual(provider.tags, null);
-
-        // check abstract methods
+        // check abstract methods that should throw
         const methods = [
-            'init',
             'updateAddresses',
             'updateRoutes',
             'uploadDataToStorage',

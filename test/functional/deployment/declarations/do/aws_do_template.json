@@ -51,6 +51,13 @@
             "allowService": "default",
             "trafficGroup": "traffic-group-local-only"
         },
+        "externalSelfIPv6": {
+            "class": "SelfIp",
+            "address": "${external_self_ipv6}/56",
+            "vlan": "external",
+            "allowService": "default",
+            "trafficGroup": "traffic-group-local-only"
+        },
         "configSync": {
             "class": "ConfigSync",
             "configsyncIp": "${external_self}"

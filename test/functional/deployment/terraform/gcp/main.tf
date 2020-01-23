@@ -194,6 +194,32 @@ data "template_file" "vm02_cloud_init_script" {
   }
 }
 
+resource "google_service_account" "sa" {
+  account_id   = "tf-func-test-sa-${module.utils.env_prefix}"
+  display_name = "tf-func-test-sa-${module.utils.env_prefix}"
+  description = "${var.reaper_tag}"
+}
+
+resource "google_project_iam_member" "gcp_role_member_assignment" {
+  project = var.project_id
+  role    = "projects/${var.project_id}/roles/tfCustomRole.${module.utils.env_prefix}"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+
+resource "google_project_iam_custom_role" "gcp_custom_roles" {
+  role_id = "tfCustomRole.${module.utils.env_prefix}"
+  title = "tfCustomRole.${module.utils.env_prefix}"
+  description = "${var.reaper_tag}"
+  permissions = ["compute.instances.create", "compute.instances.get", "compute.instances.list",
+    "compute.targetInstances.get", "compute.targetInstances.list", "compute.targetInstances.use",
+    "compute.routes.get", "compute.routes.list", "compute.routes.create", "compute.routes.delete",
+    "compute.forwardingRules.get", "compute.forwardingRules.list", "compute.forwardingRules.setTarget",
+    "storage.objects.get", "storage.objects.create", "storage.objects.update", "storage.objects.list",
+    "storage.objects.delete", "storage.buckets.get", "storage.buckets.create", "storage.buckets.update",
+    "storage.buckets.delete", "storage.buckets.list", "compute.instances.updateNetworkInterface",
+    "compute.networks.updatePolicy"]
+}
+
 // Creating GCP resources for First BIGIP Instance
 resource "google_compute_instance" "vm01" {
   name         = "tf-func-test-vm01-${module.utils.env_prefix}"
@@ -204,6 +230,7 @@ resource "google_compute_instance" "vm01" {
 
   labels = {
     f5_cloud_failover_label = "${module.utils.env_prefix}"
+    another_tag = "with_a_value"
   }
 
   boot_disk {
@@ -244,7 +271,8 @@ resource "google_compute_instance" "vm01" {
   metadata_startup_script = "${data.template_file.vm01_cloud_init_script.rendered}"
 
   service_account {
-    scopes = ["compute-rw", "storage-rw", "cloud-platform"]
+    email = google_service_account.sa.email
+    scopes = ["cloud-platform"]
   }
 
 }
@@ -301,7 +329,8 @@ resource "google_compute_instance" "vm02" {
   metadata_startup_script = "${data.template_file.vm02_cloud_init_script.rendered}"
 
   service_account {
-    scopes = ["compute-rw", "storage-rw", "cloud-platform"]
+    email = google_service_account.sa.email
+    scopes = ["cloud-platform"]
   }
 
 }
@@ -310,7 +339,7 @@ resource "google_compute_instance" "vm02" {
 
 resource "google_compute_route" "ext-route" {
   name        = "network-route-${module.utils.env_prefix}"
-  description = "${var.reaper_tag} f5_cloud_failover_labels={\"f5_cloud_failover_label\":\"${module.utils.env_prefix}\",\"f5_self_ips\": [\"${google_compute_instance.vm01.network_interface.2.network_ip}\",\"${google_compute_instance.vm02.network_interface.2.network_ip}\"]}"
+  description = "${var.reaper_tag} f5_cloud_failover_labels={\"f5_cloud_failover_label\":\"${module.utils.env_prefix}\"}"
   dest_range  = "192.0.2.0/24"
   network     = "${google_compute_network.int_network.name}"
   next_hop_ip = "${google_compute_instance.vm02.network_interface.2.network_ip}"
@@ -417,26 +446,29 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = google_compute_instance.vm01.name,
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm01.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm01.name
-        primary = false
+        next_hop_address = google_compute_instance.vm01.network_interface.2.network_ip
       },
       {
+        primary = true,
+        hostname = google_compute_instance.vm02.name,
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = google_compute_instance.vm02.network_interface.1.access_config.0.nat_ip,
         mgmt_port = 443,
-        hostname = google_compute_instance.vm02.name
-        primary = true
+        next_hop_address = google_compute_instance.vm02.network_interface.2.network_ip
       }
     ],
     deploymentId: module.utils.env_prefix,
     environment: "gcp",
     region: "${var.region}",
-    zone: "${var.zone}"
+    zone: "${var.zone}",
+    networkTopology: "sameNetwork"
   }
 }
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2019, F5 Networks, Inc.
+  Copyright (c) 2020, F5 Networks, Inc.
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
@@ -16,7 +16,7 @@
 'use strict';
 
 const util = require('../util.js');
-const Logger = require('../logger.js');
+const logger = require('../logger.js');
 const configWorker = require('../config.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
@@ -25,12 +25,8 @@ const TelemetryClient = require('../telemetry.js').TelemetryClient;
 const baseSchema = require('../schema/base_schema.json');
 
 const telemetry = new TelemetryClient();
-
-const failover = new FailoverClient();
 const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
-
-const logger = new Logger(module);
 
 /**
  * @class Worker
@@ -69,7 +65,7 @@ Worker.prototype.onStart = function (success, error) {
         success();
     } catch (err) {
         const message = `Error creating cloud failover worker: ${err}`;
-        logger.severe(message);
+        logger.error(message);
         error(message);
     }
 };
@@ -87,20 +83,17 @@ Worker.prototype.onStart = function (success, error) {
  */
 Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     if (errMsg) {
-        this.logger.severe(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
+        this.logger.error(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
         error();
     }
 
-    // init config worker - makes functions from restWorker available, etc.
-    configWorker.init(this)
+    configWorker.init()
         .then(() => configWorker.getConfig())
         .then((config) => {
-            // failover can only be initialized if a configuration has already been provided
-            if (config && config.environment) {
-                logger.info('calling failover init');
-                return failover.init();
+            // set log level if it has been provided in the configuration
+            if (util.getDataByKey(config, 'controls.logLevel')) {
+                logger.setLogLevel(config.controls.logLevel);
             }
-            return Promise.resolve();
         })
         .then(() => device.init())
         .then(() => {
@@ -183,12 +176,14 @@ function processRequest(restOperation) {
         }
     }
 
-    logger.debug(`HTTP Request - ${method} /${pathName}`);
+    const failover = new FailoverClient(); // failover class should be instantiated on every request
 
+    logger.debug(`HTTP Request - ${method} /${pathName}`);
     switch (pathName) {
     case 'declare':
         switch (method) {
         case 'POST':
+            // call failover init during config to ensure init succeeds prior to responding to the user
             configWorker.processConfigRequest(body)
                 .then(config => Promise.all([config, failover.init(), telemetry.send(config)]))
                 .then((result) => {
@@ -215,10 +210,11 @@ function processRequest(restOperation) {
     case 'trigger':
         switch (method) {
         case 'POST':
-            Promise.all([
-                failover.getTaskStateFile(),
-                device.getGlobalSettings()
-            ])
+            failover.init()
+                .then(() => Promise.all([
+                    failover.getTaskStateFile(),
+                    device.getGlobalSettings()
+                ]))
                 .then((result) => {
                     logger.silly(`taskState: ${util.stringify(result[0])}`);
                     if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
@@ -229,7 +225,6 @@ function processRequest(restOperation) {
                 })
                 .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
-                    logger.silly(`POST taskState: ${util.stringify(taskState)}`);
                     util.restOperationResponder(restOperation, taskState.code, taskState);
                 })
                 .catch((err) => {
@@ -237,7 +232,8 @@ function processRequest(restOperation) {
                 });
             break;
         case 'GET':
-            failover.getTaskStateFile()
+            failover.init()
+                .then(() => failover.getTaskStateFile())
                 .then((taskState) => {
                     switch (taskState.taskState) {
                     case failoverStates.RUN:
@@ -263,9 +259,24 @@ function processRequest(restOperation) {
         break;
     case 'reset':
         if (method === 'POST') {
-            failover.resetFailoverState(body)
-                .then(() => {
-                    util.restOperationResponder(restOperation, 200, { message: constants.STATE_FILE_RESET_MESSAGE });
+            failover.init()
+                .then(() => failover.resetFailoverState(body))
+                .then((response) => {
+                    util.restOperationResponder(restOperation, 200, { message: response.message });
+                })
+                .catch((err) => {
+                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
+                });
+        } else {
+            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+        }
+        break;
+    case 'inspect':
+        if (method === 'GET') {
+            failover.init()
+                .then(() => failover.getFailoverStatusAndObjects())
+                .then((statusAndObjects) => {
+                    util.restOperationResponder(restOperation, 200, statusAndObjects);
                 })
                 .catch((err) => {
                     util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });

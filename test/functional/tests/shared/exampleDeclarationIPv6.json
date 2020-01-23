@@ -22,13 +22,18 @@
       "scopingAddressRanges": [
         {
           "range": "192.0.2.0/24"
+        },
+        {
+          "range": "2001:db8:2:2::/64"
         }
       ],
       "defaultNextHopAddresses": {
         "discoveryType": "static",
         "items": [
           "{{nextHopAddress1}}",
-          "{{nextHopAddress2}}"
+          "{{nextHopAddress2}}",
+          "{{nextHopAddress3}}",
+          "{{nextHopAddress4}}"
         ]
       }
     }

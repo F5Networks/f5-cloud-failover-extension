@@ -23,15 +23,49 @@ resource "azurerm_storage_account" "storage_account" {
   }
 }
 
+data "azurerm_subscription" "primary" {}
+
+resource "azurerm_role_definition" "azurerm_role_def" {
+  name        = "${module.utils.env_prefix}"
+  scope       = "${data.azurerm_subscription.primary.id}"
+  description = "Manage VM actions, network, read storage, block role assignments/policy assignments."
+  
+  permissions {
+    actions = [
+      "Microsoft.Authorization/*/read",
+      "Microsoft.Compute/locations/*/read",
+      "Microsoft.Compute/virtualMachines/*/read",
+      "Microsoft.Network/networkInterfaces/read",
+      "Microsoft.Network/networkInterfaces/write",
+      "Microsoft.Network/*/join/action",
+      "Microsoft.Network/routeTables/*/read",
+      "Microsoft.Network/routeTables/*/write",
+      "Microsoft.Resources/subscriptions/resourceGroups/read",
+      "Microsoft.Storage/storageAccounts/read",
+      "Microsoft.Storage/storageAccounts/listKeys/action"   
+    ]
+    not_actions = [
+      "Microsoft.Authorization/*/Delete",
+      "Microsoft.Authorization/*/Write"
+    ]
+    data_actions = []
+    not_data_actions = []
+  }
+
+  assignable_scopes = [
+    "${data.azurerm_subscription.primary.id}"
+  ]
+}
+
 resource "azurerm_role_assignment" "vm0_assignment" {
-  scope                 = "${azurerm_resource_group.deployment.id}"
-  role_definition_name  = "Contributor"
+  scope                 = "${data.azurerm_subscription.primary.id}"
+  role_definition_id    = "${azurerm_role_definition.azurerm_role_def.id}"
   principal_id          = "${lookup(azurerm_virtual_machine.vm0.identity[0], "principal_id")}"
 }
 
 resource "azurerm_role_assignment" "vm1_assignment" {
-  scope                 = "${azurerm_resource_group.deployment.id}"
-  role_definition_name  = "Contributor"
+  scope                 = "${data.azurerm_subscription.primary.id}"
+  role_definition_id    = "${azurerm_role_definition.azurerm_role_def.id}"
   principal_id          = "${lookup(azurerm_virtual_machine.vm1.identity[0], "principal_id")}"
 }
 
@@ -222,8 +256,13 @@ resource "azurerm_route_table" "route_table" {
 
   tags = {
     f5_cloud_failover_label = "${module.utils.env_prefix}",
-    f5_self_ips = "${azurerm_network_interface.internal0.private_ip_address},${azurerm_network_interface.internal1.private_ip_address}"
   }
+
+}
+
+resource "azurerm_subnet_route_table_association" "subnet_route_table_association" {
+  subnet_id      = "${azurerm_subnet.internal.id}"
+  route_table_id = "${azurerm_route_table.route_table.id}"
 }
 
 resource "azurerm_virtual_machine" "vm0" {
@@ -416,7 +455,6 @@ resource "null_resource" "disable_phone_home" {
   depends_on = [null_resource.onboard1]
 }
 
-# Replace this with a POST to AS3 once the failover extension supports discovering virtual addresses in tenant partitions
 resource "null_resource" "create_virtual" {
   provisioner "local-exec" {
     command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${azurerm_public_ip.pip1.ip_address}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"10.0.2.10\",\"trafficGroup\":\"traffic-group-1\"}'"
@@ -431,24 +469,27 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = "failover0.local",
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip0.ip_address}",
         mgmt_port = 443,
-        hostname = "failover0.local",
-        primary = false
+        next_hop_address = azurerm_network_interface.internal0.private_ip_address
       },
       {
+        primary = true,
+        hostname = "failover1.local",
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         mgmt_address = "${azurerm_public_ip.pip1.ip_address}",
         mgmt_port = 443,
-        hostname = "failover1.local",
-        primary = true
+        next_hop_address = azurerm_network_interface.internal1.private_ip_address
       }
     ],
     deploymentId: "${module.utils.env_prefix}",
-    environment: "azure"
+    environment: "azure",
+    networkTopology: "sameNetwork"
   }
 }
 

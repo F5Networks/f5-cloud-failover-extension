@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const MAX_RETRIES = require('../../constants').MAX_RETRIES;
 const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 
 const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
@@ -47,21 +48,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Initialize the Cloud Provider. Called at the beginning of processing, and initializes required cloud clients
-    *
-    * @param {Object} options                   - function options
-    * @param {Object} [options.tags]            - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]       - object containing tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]  - object containing addresses to filter on [ '192.0.2.0/24' ]
-    * @param {String} [options.routeSelfIpsTag] - object containing self IP's tag to match against: 'F5_SELF_IPS'
+    * See the parent class method for details
     */
     init(options) {
-        options = options || {};
-        this.tags = options.tags || {};
-        this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeSelfIpsTag = options.routeSelfIpsTag || '';
-        this.storageTags = options.storageTags || {};
+        super.init(options);
 
         let environment;
 
@@ -234,6 +224,49 @@ class Cloud extends AbstractCloud {
                         }
                     );
                 }));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get Associated Address and Route Info - Returns associated and route table information
+     *
+     * @returns {Object}
+     */
+    getAssociatedAddressAndRouteInfo() {
+        const localAddresses = [];
+        const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
+        return this._getInstanceMetadata()
+            .then((metadata) => {
+                this.logger.info('Fetching instance metadata');
+                data.instance = metadata.compute.vmId;
+                metadata.network.interface.forEach((nic) => {
+                    data.addresses.push(nic.ipv4.ipAddress[0]);
+                    localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
+                });
+            })
+            .then(() => this._getRouteTables({ tags: this.routeTags }))
+            .then((routeTables) => {
+                this.logger.info('Fetching instance route tables');
+                routeTables.forEach((routeTable) => {
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.tags,
+                        this.routeNextHopAddresses
+                    );
+                    routeTable.routes.forEach((route) => {
+                        if (route.nextHopIpAddress === nextHopAddress) {
+                            this.logger.info('this is an associated route', routeTable);
+                            data.routes.push({
+                                routeTableId: routeTable.id,
+                                routeTableName: routeTable.name,
+                                networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
+                            });
+                        }
+                    });
+                });
+                this.logger.info('Returning associated address and route info');
+                return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
     }
@@ -496,6 +529,7 @@ class Cloud extends AbstractCloud {
             this.logger.info('No localAddresses/failoverAddresses to discover');
             return Promise.resolve();
         }
+
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];
@@ -609,23 +643,36 @@ class Cloud extends AbstractCloud {
             });
         })
             .then((routeTables) => {
-                if (tags) {
-                    // filter route tables based on tag(s)
-                    routeTables = routeTables.filter((item) => {
-                        let matchedTags = 0;
-                        const tagKeys = Object.keys(tags);
-                        tagKeys.forEach((key) => {
-                            if (item.tags && Object.keys(item.tags).indexOf(key) !== -1
-                            && item.tags[key] === tags[key]) {
-                                matchedTags += 1;
-                            }
-                        });
-                        return tagKeys.length === matchedTags;
-                    });
-                }
+                // filter route tables based on tag(s)
+                routeTables = this._filterRouteTablesByTag(routeTables, tags);
                 return Promise.resolve(routeTables);
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Filter route tables based on tags
+     *
+     * @param {Object} routeTables        - route tables
+     * @param {Object} tags               - tags to filter on { 'key': 'value' }
+     *
+     * @returns {object} routeTables      - filtered route tables
+     */
+    _filterRouteTablesByTag(routeTables, tags) {
+        if (tags) {
+            routeTables = routeTables.filter((item) => {
+                let matchedTags = 0;
+                const tagKeys = Object.keys(tags);
+                tagKeys.forEach((key) => {
+                    if (item.tags && Object.keys(item.tags).indexOf(key) !== -1
+                        && item.tags[key] === tags[key]) {
+                        matchedTags += 1;
+                    }
+                });
+                return tagKeys.length === matchedTags;
+            });
+        }
+        return routeTables;
     }
 
     /**
@@ -643,17 +690,21 @@ class Cloud extends AbstractCloud {
 
                 // for each route table go through routes and discover any necessary updates
                 routeTables.forEach((routeTable) => {
-                    const selfIpsToUse = routeTable.tags[this.routeSelfIpsTag].split(',').map(i => i.trim());
-                    const selfIpToUse = selfIpsToUse.filter(item => localAddresses.indexOf(item) !== -1)[0];
-
-                    routeTable.routes.forEach((route) => {
-                        if (this.routeAddresses.indexOf(route.addressPrefix)
-                            !== -1 && route.nextHopIpAddress !== selfIpToUse) {
-                            route.nextHopIpAddress = selfIpToUse;
-                            const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
-                            operations.push(parameters);
-                        }
-                    });
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.tags,
+                        this.routeNextHopAddresses
+                    );
+                    if (nextHopAddress) {
+                        routeTable.routes.forEach((route) => {
+                            if (this.routeAddresses.map(i => i.range).indexOf(route.addressPrefix)
+                                !== -1 && route.nextHopIpAddress !== nextHopAddress) {
+                                route.nextHopIpAddress = nextHopAddress;
+                                const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
+                                operations.push(parameters);
+                            }
+                        });
+                    }
                 });
                 return Promise.resolve({ operations });
             })

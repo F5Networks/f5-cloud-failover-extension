@@ -24,5 +24,10 @@ tmsh create auth user $${adminUsername} password $${adminPassword} shell bash pa
 # disable phone home - replace this with an update in the DO declaration when ID993 is completed
 tmsh modify sys software update auto-phonehome disabled
 
+# disable legacy aws failover script
+mount -o remount,rw /usr
+mv /usr/libexec/aws/aws-failover-tgactive.sh /usr/libexec/aws/aws-failover-tgactive.sh.disabled
+mount -o remount,ro /usr
+
 # save config
 tmsh save sys config

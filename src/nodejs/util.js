@@ -1,5 +1,5 @@
 /*
- * Copyright 2019. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -101,5 +101,24 @@ module.exports = {
             }
         });
         return ret;
+    },
+
+    /**
+     * Base64 encoder/decoder
+     *
+     * @param {String} action - decode|encode
+     * @param {String} data - data to process
+     *
+     * @returns {String} Returns processed data as a string
+     */
+    base64(action, data) {
+        // support decode|encode actions
+        if (action === 'decode') {
+            return Buffer.from(data, 'base64').toString().trim();
+        }
+        if (action === 'encode') {
+            return Buffer.from(data).toString('base64');
+        }
+        throw new Error('Unsupported action, try one of these: decode, encode');
     }
 };

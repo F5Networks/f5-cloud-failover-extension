@@ -41,7 +41,7 @@ Prereq:
 
 - Terraform 0.12+
 - Python 3.7+ (will create a virtual environment)
-    - f5-cloud-cli package`
+    - f5-cli package
 - Login to cloud provider CLI (TF uses the files each CLI lays down for authentication) - `az login`, `aws configure`, `gcloud auth application-default login`
 
 Select Environment: 
@@ -58,6 +58,23 @@ Delete:
 - `npm run deployment-delete`
 
 Note: Running terraform commands may require sudo in certain environments, set the following environment variable if necessary - `export USE_SUDO=true`
+
+#### Quick Environment Setup
+
+Creating and configuration of the environment can be done quickly using this command. It builds the cloud failover extension RPM locally, creates the deployment and installs the RPM in the newly created deployment and runs all the functional tests. Once the command has executed look for the `deployment-info.json` file to find the information about the BIG-IPs and its IP address to access them.
+
+Prereq: 
+
+- See Manual Environment Setup prereqs
+
+Select Environment: 
+
+- See Manual Environment Setup, Select Environment section
+
+Setup
+
+- `npm run deployment-setup`
+
 
 ## Misc Notes
 

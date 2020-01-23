@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,7 @@
 
 const F5TeemDevice = require('@f5devcentral/f5-teem').Device;
 const constants = require('./constants.js');
-const Logger = require('./logger.js');
-
-const logger = new Logger(module);
-
+const logger = require('./logger.js');
 
 // Use this client to send telemetry - this can be disabled using the phone home setting
 class TelemetryClient {

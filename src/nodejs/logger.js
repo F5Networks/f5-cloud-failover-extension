@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 /* eslint-disable prefer-rest-params */
 
-const path = require('path');
 const MASK_REGEX = require('./constants.js').MASK_REGEX;
 
 let f5Logger;
@@ -30,16 +29,19 @@ try {
     // get one (in our unit tests, for instance), we will mock it in the constructor
 }
 
+const LOG_LEVELS = require('./constants.js').LOG_LEVELS;
+
+let currentLogLevel = null;
+
 /**
  * Logger that works with f5-cloud-libs and restnoded styles.
  *
  * @class
  */
 class Logger {
-    constructor(module) {
+    constructor() {
         this.tag = 'f5-cloud-failover';
-        this.filename = path.basename(module.filename);
-
+        currentLogLevel = LOG_LEVELS.info;
         // If we weren't able to get the f5-logger, create a mock (so our unit tests run)
         this.logger = f5Logger
             ? f5Logger.getInstance()
@@ -47,59 +49,67 @@ class Logger {
                 silly() {},
                 verbose() {},
                 debug() {},
-                warning() {},
                 info() {},
                 error() {},
-                finest() {},
-                finer() {},
-                fine() {},
-                warn() {},
+                warning() {},
                 severe() {}
             };
     }
 
     silly(message) {
-        log.call(this, 'finest', message, Array.prototype.slice.call(arguments, 1));
+        if (LOG_LEVELS.silly >= currentLogLevel) {
+            log.call(this, 'finest', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
     verbose(message) {
-        log.call(this, 'finer', message, Array.prototype.slice.call(arguments, 1));
+        if (LOG_LEVELS.verbose >= currentLogLevel) {
+            log.call(this, 'finer', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
     debug(message) {
-        log.call(this, 'fine', message, Array.prototype.slice.call(arguments, 1));
+        if (LOG_LEVELS.debug >= currentLogLevel) {
+            log.call(this, 'fine', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
     info(message) {
-        log.call(this, 'info', message, Array.prototype.slice.call(arguments, 1));
-    }
-
-    warning(message) {
-        log.call(this, 'warning', message, Array.prototype.slice.call(arguments, 1));
+        if (LOG_LEVELS.info >= currentLogLevel) {
+            log.call(this, 'info', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
     error(message) {
-        log.call(this, 'severe', message, Array.prototype.slice.call(arguments, 1));
+        if (LOG_LEVELS.error >= currentLogLevel) {
+            log.call(this, 'severe', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
-    finest(message) {
-        log.call(this, 'finest', message, Array.prototype.slice.call(arguments, 1));
+    warning(message) {
+        if (LOG_LEVELS.warning >= currentLogLevel) {
+            log.call(this, 'warning', message, Array.prototype.slice.call(arguments, 1));
+        }
     }
 
-    finer(message) {
-        log.call(this, 'finer', message, Array.prototype.slice.call(arguments, 1));
-    }
+    setLogLevel(newLevel) {
+        let level;
+        let levelName;
 
-    fine(message) {
-        log.call(this, 'fine', message, Array.prototype.slice.call(arguments, 1));
-    }
-
-    warn(message) {
-        log.call(this, 'warning', message, Array.prototype.slice.call(arguments, 1));
-    }
-
-    severe(message) {
-        log.call(this, 'severe', message, Array.prototype.slice.call(arguments, 1));
+        if (typeof newLevel === 'string') {
+            levelName = newLevel.toLowerCase();
+            level = getLevel(levelName);
+        } else if (typeof newLevel === 'number') {
+            level = newLevel;
+            levelName = getLevelName(level);
+        }
+        if (level === undefined) {
+            this.error(`Unknown logLevel - ${newLevel}`);
+            return;
+        }
+        // allow user to see this log message to help us understand what happened with logLevel
+        this.info(`Global logLevel set to '${levelName}'`);
+        currentLogLevel = level;
     }
 }
 
@@ -124,7 +134,7 @@ function log(level, message, extraArgs) {
         }
         fullMessage = `${fullMessage} ${expandedArg}`;
     });
-    this.logger[level](`[${this.tag}: ${this.filename}] ${fullMessage}`);
+    this.logger[level](`[${this.tag}] ${fullMessage}`);
 }
 
 function mask(message) {
@@ -143,4 +153,47 @@ function mask(message) {
     return masked;
 }
 
-module.exports = Logger;
+/**
+ * Get Log Level name, by default returns name for current global logLevel
+ *
+ * @property {Number} [level] - log level value.
+ *
+ * @returns {String} log level name
+ */
+function getLevelName(level) {
+    if (level === undefined || (level > LOG_LEVELS.error || level < LOG_LEVELS.silly)) {
+        level = currentLogLevel;
+    }
+    const levelName = Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
+    return levelName;
+}
+
+/**
+ * Get Log Level  value by name, by default returns value for current global logLevel
+ *
+ * Note: If zero is a valid log level ensure defensive code allows for that
+ *
+ * @param {String} [levelName] - log level name
+ *
+ * @returns {Number} log level value
+ */
+function getLevel(levelName) {
+    if (levelName === undefined || levelName === null) {
+        return currentLogLevel;
+    }
+    return LOG_LEVELS[levelName];
+}
+
+class LoggerInstance {
+    constructor() {
+        if (!LoggerInstance.instance) {
+            LoggerInstance.instance = new Logger();
+        }
+    }
+
+    getInstance() {
+        return LoggerInstance.instance;
+    }
+}
+
+module.exports = new LoggerInstance().getInstance();

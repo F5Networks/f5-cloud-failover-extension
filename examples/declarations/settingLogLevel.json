@@ -1,6 +1,6 @@
 {
     "class": "Cloud_Failover",
-    "environment": "aws",
+    "environment": "azure",
 	"externalStorage": {
 		"scopingTags": {
 			"f5_cloud_failover_label": "mydeployment"
@@ -27,5 +27,9 @@
 				"192.0.2.11"
 			]
 		}
+    },
+    "controls": {
+      "class": "Controls",
+      "logLevel": "info"
     }
 }

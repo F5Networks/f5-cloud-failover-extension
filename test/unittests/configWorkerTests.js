@@ -13,21 +13,26 @@
 const assert = require('assert');
 const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
 const constants = require('../constants.js');
-const Device = require('../../src/nodejs/device');
 
 const declaration = constants.declarations.basic;
-const restWorker = constants.restWorker;
-const invalidRestWorker = constants.invalidRestWorker;
+const declarationWithControls = constants.declarations.basicWithLogging;
 
 describe('Config Worker', () => {
     let config;
     let mockExecuteBigIpBashCmd;
+    let Device;
+    let logger;
 
     before(() => {
         config = require('../../src/nodejs/config.js');
+        Device = require('../../src/nodejs/device');
+        logger = require('../../src/nodejs/logger');
     });
     beforeEach(() => {
         sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.spy(logger, 'setLogLevel');
         mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
     });
     after(() => {
@@ -39,13 +44,20 @@ describe('Config Worker', () => {
         sinon.restore();
     });
 
-    it('should process request', () => config.init(restWorker)
+    it('should process request', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
         }));
 
-    it('validate error case for init method', () => config.init(invalidRestWorker)
+    it('should process request with controls', () => config.init()
+        .then(() => config.processConfigRequest(declarationWithControls))
+        .then((response) => {
+            assert(logger.setLogLevel.calledOnce);
+            assert.strictEqual(response.class, declaration.class);
+        }));
+
+    it('validate error case for init method', () => config.init()
         .then(() => {
             // fails in a case when promise is resolved
             assert.fail();
@@ -56,14 +68,10 @@ describe('Config Worker', () => {
         }));
 
     it('validate error case for setConfig method', () => {
-        const mockConfig = {
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').rejects();
 
-        };
-        config._restWorker = sinon.stub();
-        config._restWorker.saveState = sinon.stub().callsFake((first, state, callback) => {
-            callback(true);
-        });
-        return config.setConfig(mockConfig)
+        return config.setConfig({})
             .then(() => {
                 // fails in a case when promise is resolved
                 assert.fail();
@@ -74,7 +82,7 @@ describe('Config Worker', () => {
             });
     });
 
-    it('should reject invalid declaration', () => config.init(restWorker)
+    it('should reject invalid declaration', () => config.init()
         .then(() => config.processConfigRequest({ foo: 'bar' }))
         .then(() => {
             assert.fail('Should throw an error');
@@ -85,7 +93,7 @@ describe('Config Worker', () => {
             return Promise.reject(err);
         }));
 
-    it('should get config', () => config.init(restWorker)
+    it('should get config', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then(() => config.getConfig())
         .then((response) => {
@@ -95,7 +103,8 @@ describe('Config Worker', () => {
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';
         mockExecuteBigIpBashCmd.rejects(new Error(errMsg));
-        return config.init(restWorker)
+
+        return config.init()
             .then(() => config.processConfigRequest(declaration))
             .then(() => {
                 assert.fail('processConfigRequest() should have caught and rejected.');
@@ -120,7 +129,7 @@ describe('Config Worker', () => {
         it('should check failover script(s) get trigger call added', () => {
             mockExecuteBigIpBashCmd.resolves(originalContents);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 4 times, list and update for tgactive/tgrefresh
@@ -136,7 +145,7 @@ describe('Config Worker', () => {
         it('should check failover script(s) do not add trigger call when already added', () => {
             mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${triggerCommand}`);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 2 times, list for tgactive/tgrefresh
@@ -145,10 +154,10 @@ describe('Config Worker', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should check legacy failover script call gets disabled', () => {
-            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND}`);
+        it('should check Azure legacy failover script call gets disabled', () => {
+            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND.AZURE}`);
 
-            return config.init(restWorker)
+            return config.init()
                 .then(() => config.processConfigRequest(declaration))
                 .then(() => {
                     // should be called 4 times, list and update for tgactive/tgrefresh
@@ -158,7 +167,26 @@ describe('Config Worker', () => {
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(
                         scriptContents,
-                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND}\n${triggerCommand}`
+                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.AZURE}\n${triggerCommand}`
+                    );
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should check GCP legacy failover script call gets disabled', () => {
+            mockExecuteBigIpBashCmd.resolves(`${originalContents}\n${constants.LEGACY_TRIGGER_COMMAND.GCP}`);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => {
+                    // should be called 4 times, list and update for tgactive/tgrefresh
+                    assert.strictEqual(mockExecuteBigIpBashCmd.callCount, 4);
+                    // get updated script contents
+                    const updateScriptCommand = mockExecuteBigIpBashCmd.getCall(2).args[0];
+                    const scriptContents = getFailoverScriptContents(updateScriptCommand);
+                    assert.strictEqual(
+                        scriptContents,
+                        `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.GCP}\n${triggerCommand}`
                     );
                 })
                 .catch(err => Promise.reject(err));

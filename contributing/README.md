@@ -77,8 +77,17 @@ How does the project handle a `POST` request to the configuration endpoint?
 			"f5_cloud_failover_label": "mydeployment"
 		},
 		"scopingAddressRanges": [
-			"192.168.1.0/24"
-		]
+			{
+				"range": "192.168.1.0/24"
+			}
+		],
+		"defaultNextHopAddresses": {
+			"discoveryType": "static",
+			"items": [
+				"192.0.2.10",
+				"192.0.2.11"
+			]
+		}
     }
 }
 ```
@@ -88,28 +97,7 @@ How does the project handle a `POST` request to the configuration endpoint?
 ```json
 {
     "message": "success",
-    "declaration": {
-        "class": "Cloud_Failover",
-        "environment": "azure",
-        "externalStorage": {
-            "scopingTags": {
-                "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-        "failoverAddresses": {
-            "scopingTags": {
-                "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-        "failoverRoutes": {
-            "scopingTags": {
-                "f5_cloud_failover_label": "mydeployment"
-            },
-            "scopingAddressRanges": [
-                "192.168.1.0/24"
-            ]
-        }
-    }
+    "declaration": ...
 }
 ```
 
@@ -204,7 +192,6 @@ What happens in the system internals between request and response?
 - Virtual addresses created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic
 - Route(s) in a route table tagged with the following (optional):
     - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 
@@ -233,7 +220,6 @@ What happens in the system internals between request and response?
     - Tagged with a special key called `VIPS` containing a comma seperated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. Example: `10.0.0.10,10.0.0.11`
 - Route(s) in a route table tagged with the following (optional):
     - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 ![diagram](images/AWSFailoverExtensionHighLevel.gif)
@@ -262,7 +248,6 @@ What happens in the system internals between request and response?
 - Forwarding rules(s) configured with targets that match a virtual address or floating self IP on the instance serving application traffic
 - Route(s) in a route table tagged with the following (optional):
     - Tagged with a key/value cooresponding to the key/value(s) provided in the `failoverRoutes.scopingTags` section of the Cloud Failover extension configuration
-    - Tagged with a special key call `f5_self_ips` containing a comma seperated list of addresses mapping to a self IP address on each instance in the cluster that the routes should be pointed at. Example: `10.0.0.10,10.0.0.11`
     - Note: The failover extension configuration `failoverRoutes.scopingAddressRanges` should contain a list of destination routes to update
 
 ![diagram](images/GoogleFailoverExtensionHighLevel.gif)
@@ -349,6 +334,11 @@ All core modules are included inside `../src/nodejs/`
     - Purpose: Define shared variables
 - [util.js](../src/nodejs/util.js)
     - Purpose: Perform common tasks
+---
+### Quick deployment setup
+
+A quick way to see the failover extension in action run ```npm run deployment-setup```. This command builds the cloud failover extension RPM, creates two clustered BIG-IPs in your desired cloud, installs the RPM on the BIG-IPs and runs our functional tests against the created deployments. Once the deployment-setup script has been executed the extension is ready to perform failover on the addresses and routes that were created by the deployment.
+
 
 ---
 ### Testing methodology
@@ -370,7 +360,7 @@ Build/publish makes use of GitLab and [.gitlab-ci.yml](../.gitlab-ci.yml) for au
 - Matthe Zinke's ICRDK [development kit](https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/README.md)
 - Vim on BIG-IP (enough said, you know who you are)
 
-Note: See Release Checklist on Confluence for complete details.
+Note: See Release Process snippet in internal repo for complete details.
 
 ---
 ### Public documentation methodology

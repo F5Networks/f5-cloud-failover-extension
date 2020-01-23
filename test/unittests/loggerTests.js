@@ -17,57 +17,43 @@
 'use strict';
 
 const assert = require('assert');
-const Logger = require('../../src/nodejs/logger');
-
-const logger = new Logger(module);
+const logger = require('../../src/nodejs/logger');
+const LOG_LEVELS = require('../constants.js').LOG_LEVELS;
 
 const loggedMessages = {
-    silly: [],
-    verbose: [],
-    debug: [],
     warning: [],
     info: [],
-    error: [],
     finest: [],
     finer: [],
     fine: [],
-    warn: [],
     severe: []
 };
 
 const loggerMock = {
-    silly(message) { loggedMessages.silly.push(message); },
-    verbose(message) { loggedMessages.verbose.push(message); },
-    debug(message) { loggedMessages.debug.push(message); },
-    warning(message) { loggedMessages.warning.push(message); },
-    info(message) { loggedMessages.info.push(message); },
-    error(message) { loggedMessages.error.push(message); },
     finest(message) { loggedMessages.finest.push(message); },
     finer(message) { loggedMessages.finer.push(message); },
     fine(message) { loggedMessages.fine.push(message); },
-    warn(message) { loggedMessages.warn.push(message); },
+    warning(message) { loggedMessages.warning.push(message); },
+    info(message) { loggedMessages.info.push(message); },
     severe(message) { loggedMessages.severe.push(message); }
 };
 
-logger.logger = loggerMock;
-
 describe('logger', () => {
     beforeEach(() => {
+        logger.logger = loggerMock;
         Object.keys(loggedMessages).forEach((level) => {
             loggedMessages[level].length = 0;
         });
     });
 
     it('should log at the appropriate level', () => {
-        Object.keys(loggedMessages).forEach((level) => {
+        Object.keys(LOG_LEVELS).forEach((level) => {
             logger[level](`this is a ${level} message`);
         });
 
-        // these levels have something else mapped to them, so there are 2 messages each
-        ['warning', 'finest', 'finer', 'fine', 'severe'].forEach((level) => {
-            assert.strictEqual(loggedMessages[level].length, 2);
-        });
-
+        // only warnings, errors and info level logs logged by default
+        assert.strictEqual(loggedMessages.warning.length, 1);
+        assert.strictEqual(loggedMessages.severe.length, 1);
         // info does not have a mapping
         assert.strictEqual(loggedMessages.info.length, 1);
         assert.notStrictEqual(loggedMessages.info[0].indexOf('this is a info message'), -1);
@@ -95,5 +81,75 @@ describe('logger', () => {
         assert.strictEqual(loggedMessages.info[0].indexOf(myPassword), -1);
         assert.notStrictEqual(loggedMessages.info[0].indexOf('password:', -1));
         assert.notStrictEqual(loggedMessages.info[0].indexOf('********', -1));
+    });
+
+    it('should log at the set log level name', () => {
+        logger.setLogLevel('silly');
+        logger.silly('This is a silly log');
+        assert.strictEqual(loggedMessages.finest.length, 1);
+        assert.notStrictEqual(loggedMessages.finest[0].indexOf('This is a silly log'), -1);
+    });
+
+    it('should log at the set log level number', () => {
+        logger.setLogLevel(LOG_LEVELS.verbose);
+        logger.verbose('This is a finer log');
+        logger.silly('This log shouldn\'t be included');
+        logger.info('This should be');
+        logger.debug('This should be');
+        logger.error('This should be');
+        logger.warning('This should be');
+        assert.strictEqual(loggedMessages.info.length, 2);
+        assert.strictEqual(loggedMessages.severe.length, 1);
+        assert.strictEqual(loggedMessages.warning.length, 1);
+        assert.strictEqual(loggedMessages.finest.length, 0);
+        assert.strictEqual(loggedMessages.finer.length, 1);
+        assert.strictEqual(loggedMessages.fine.length, 1);
+        assert.notStrictEqual(loggedMessages.finer[0].indexOf('This is a finer log'), -1);
+    });
+
+    it('should only log levels higher that info', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        logger.verbose('This log shouldn\'t be included');
+        logger.silly('This log shouldn\'t be included');
+        logger.debug('This log shouldn\'t be included');
+        logger.info('This should be');
+        logger.error('This should be');
+        logger.warning('This should be');
+        assert.strictEqual(loggedMessages.info.length, 2);
+        assert.strictEqual(loggedMessages.severe.length, 1);
+        assert.strictEqual(loggedMessages.warning.length, 1);
+        assert.strictEqual(loggedMessages.finest.length, 0);
+        assert.strictEqual(loggedMessages.finer.length, 0);
+        assert.strictEqual(loggedMessages.fine.length, 0);
+        assert.notStrictEqual(loggedMessages.info[1].indexOf('This should be'), -1);
+    });
+
+    it('should default to info level when invalid log level name is provided', () => {
+        logger.setLogLevel('blah');
+        logger.verbose('This log shouldn\'t be included');
+        logger.silly('This log shouldn\'t be included');
+        logger.debug('This log shouldn\'t be included');
+        logger.info('This should be');
+        logger.error('This should be');
+        logger.warning('This should be');
+        assert.strictEqual(loggedMessages.info.length, 1);
+        assert.strictEqual(loggedMessages.severe.length, 2);
+        assert.strictEqual(loggedMessages.warning.length, 1);
+        assert.strictEqual(loggedMessages.finest.length, 0);
+        assert.strictEqual(loggedMessages.finer.length, 0);
+        assert.strictEqual(loggedMessages.fine.length, 0);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('This should be'), -1);
+        assert.notStrictEqual(loggedMessages.severe[0].indexOf('Unknown logLevel - blah'), -1);
+    });
+
+    it('should default to info level when invalid log level number is provided', () => {
+        logger.setLogLevel(100);
+        logger.verbose('This log shouldn\'t be included');
+        logger.silly('This log shouldn\'t be included');
+        logger.info('This should be');
+        assert.strictEqual(loggedMessages.info.length, 1);
+        assert.strictEqual(loggedMessages.finest.length, 0);
+        assert.strictEqual(loggedMessages.fine.length, 0);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('Global logLevel set to \'info\''), -1);
     });
 });

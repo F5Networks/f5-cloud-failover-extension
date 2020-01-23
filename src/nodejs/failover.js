@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,14 @@
 'use strict';
 
 const Device = require('./device.js');
-const Logger = require('./logger.js');
+const logger = require('./logger.js');
 const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 const constants = require('./constants.js');
 
-const logger = new Logger(module);
-
 const failoverStates = constants.FAILOVER_STATES;
+const deviceStatus = constants.BIGIP_STATUS;
 const stateFileName = constants.STATE_FILE_NAME;
 const stateFileContents = {
     taskState: failoverStates.PASS,
@@ -42,7 +41,6 @@ class FailoverClient {
         this.cloudProvider = null;
         this.hostname = null;
         this.config = null;
-
         this.addressDiscovery = null;
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
@@ -54,23 +52,28 @@ class FailoverClient {
      * Get Config from configWorker and initialize this.cloudProvider using the config
      */
     init() {
-        logger.info('Performing failover - init');
+        logger.debug('Initializing failover class');
+
         return configWorker.getConfig()
             .then((data) => {
-                logger.debug(`config: ${JSON.stringify(data)}`);
+                logger.debug(`config: ${util.stringify(data)}`);
                 this.config = data;
                 if (!this.config) {
-                    logger.debug('can\'t find config.environment');
+                    logger.debug('Can\'t find config.environment');
                     return Promise.reject(new Error('Environment not provided'));
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                logger.debug(`cloudProvider: ${JSON.stringify(this.cloudProvider)}`);
                 return this.cloudProvider.init({
                     tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
                     routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
                     routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeSelfIpsTag: constants.SELF_IPS_TAG,
+                    routeNextHopAddresses: {
+                        // provide default discovery type of 'routeTag' for backwards compatability...
+                        type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
+                        items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
+                        tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
+                    },
                     storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
                 });
             })
@@ -90,17 +93,15 @@ class FailoverClient {
         this.recoverPreviousTask = false;
         this.standbyFlag = false;
 
-        return Promise.all([
-            this.device.getGlobalSettings(),
-            this.device.getTrafficGroupsStats(),
-            this.device.getSelfAddresses(),
-            this.device.getVirtualAddresses()
-        ])
+        return this._getDeviceObjects()
             .then((results) => {
                 this.hostname = results[0].hostname;
                 this.trafficGroupStats = results[1];
                 this.selfAddresses = results[2];
                 this.virtualAddresses = results[3];
+                this.snatAddresses = results[4];
+                this.natAddresses = results[5];
+
                 // wait for task - handles all possible states
                 return this._waitForTask();
             })
@@ -118,14 +119,14 @@ class FailoverClient {
                 if (taskResponse && taskResponse.recoverPreviousTask === true) {
                     return this._getFailoverRecovery(taskResponse);
                 }
-                const trafficGroups = this._getTrafficGroups(this.trafficGroupStats, this.hostname);
+                const tg = this._getTrafficGroups(this.trafficGroupStats, this.hostname, deviceStatus.ACTIVE);
                 // if no trafficGroups, then the BigIP is in standby
-                if (trafficGroups === null || trafficGroups.length === 0) {
+                if (tg === null || tg.length === 0) {
                     this.standbyFlag = true;
                     return Promise.resolve([{}, {}]);
                 }
                 // return failover discovery if there are trafficGroups (trigger request from active BigIP)
-                return this._getFailoverDiscovery(trafficGroups);
+                return this._getFailoverDiscovery(tg);
             })
             .then((updates) => {
                 this.addressDiscovery = updates[0];
@@ -179,28 +180,83 @@ class FailoverClient {
 
     /**
      * Reset Failover State (delete data in cloud storage)
+     *
+     * @returns {Promise} - { message: 'some message' }
      */
     resetFailoverState(body) {
         const stateComponents = Object.assign({}, body);
-        if (stateComponents.resetStateFile) {
-            // reset State file contents
+        if (stateComponents.resetStateFile === true) {
+            // reset state file contents
             return this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
                 message: constants.STATE_FILE_RESET_MESSAGE,
                 failoverOperations: {}
             })
-                .then(() => {
-                    logger.info('Failover state file reset complete');
-                })
+                .then(() => Promise.resolve({ message: constants.STATE_FILE_RESET_MESSAGE }))
                 .catch((err) => {
                     const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                     logger.error(errorMessage);
                 });
         }
-        logger.info('Failover state file was not reset');
-        return Promise.resolve();
+        return Promise.resolve({ message: 'No action performed' });
     }
 
+    /**
+     * Returns BIG-IP's current HA status and its associated cloud objects
+     */
+    getFailoverStatusAndObjects() {
+        let result = null;
+        let hostname = null;
+        let trafficGroupStats = null;
+        logger.info('Fetching device info');
+        return this._getDeviceObjects()
+            .then((deviceInfo) => {
+                hostname = deviceInfo[0].hostname;
+                trafficGroupStats = deviceInfo[1];
+                // wait for task - handles all possible states
+                return this._waitForTask();
+            })
+            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo())
+            .then((addressAndRouteInfo) => {
+                logger.debug('Fetching addressAndRouteInfo ', addressAndRouteInfo);
+                result = addressAndRouteInfo;
+                return Promise.resolve();
+            })
+            .then(() => {
+                logger.debug('Fetching traffic groups');
+                const activeTG = this._getTrafficGroups(trafficGroupStats, hostname, deviceStatus.ACTIVE);
+                const standByTG = this._getTrafficGroups(trafficGroupStats, hostname, deviceStatus.STANDBY);
+                result.hostName = hostname;
+                if (activeTG === null || activeTG.length === 0) {
+                    result.deviceStatus = deviceStatus.STANDBY;
+                    result.trafficGroup = standByTG;
+                } else {
+                    result.deviceStatus = deviceStatus.ACTIVE;
+                    result.trafficGroup = activeTG;
+                }
+                return Promise.resolve(result);
+            })
+            .catch((err) => {
+                const errorMessage = `failover.getFailoverStatusAndObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+            });
+    }
+
+    _getDeviceObjects() {
+        return Promise.all([
+            this.device.getGlobalSettings(),
+            this.device.getTrafficGroupsStats(),
+            this.device.getSelfAddresses(),
+            this.device.getVirtualAddresses(),
+            this.device.getSnatTranslationAddresses(),
+            this.device.getNatAddresses()
+        ])
+            .then(results => Promise.resolve(results))
+            .catch((err) => {
+                const errorMessage = `failover._getDeviceObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                logger.error(errorMessage);
+            });
+    }
 
     /**
      * Get failover discovery (update cloud provider addresses and routes)
@@ -211,9 +267,13 @@ class FailoverClient {
      */
     _getFailoverDiscovery(trafficGroups) {
         logger.info('Performing Failover - discovery');
-        const selfAddresses = this._getSelfAddresses(this.selfAddresses, trafficGroups);
-        const virtualAddresses = this._getVirtualAddresses(this.virtualAddresses, trafficGroups);
-        const addresses = this._getFailoverAddresses(selfAddresses, virtualAddresses);
+
+        const addresses = this._getFailoverAddresses(
+            this._getSelfAddresses(this.selfAddresses, trafficGroups),
+            this._getFloatingAddresses(
+                this.virtualAddresses, this.snatAddresses, this.natAddresses, trafficGroups
+            )
+        );
 
         this.localAddresses = addresses.localAddresses;
         this.failoverAddresses = addresses.failoverAddresses;
@@ -248,7 +308,7 @@ class FailoverClient {
         recoveryOptions.message = 'Failover running';
         return this._createAndUpdateStateObject(recoveryOptions)
             .then(() => {
-                logger.warn('Recovering previous task: ', this.recoveryOperations);
+                logger.warning('Recovering previous task: ', this.recoveryOperations);
                 if (this.recoverPreviousTask === true) {
                     return Promise.resolve([
                         this.recoveryOperations.addresses,
@@ -284,10 +344,10 @@ class FailoverClient {
     /**
      * Create and update state object
      *
-     * @param {Object} [options]            - function options
-     * @param {String} [options.taskState]  - task state
+     * @param {Object} [options]                    - function options
+     * @param {String} [options.taskState]          - task state
      * @param {String} [options.failoverOperations] - failover operations
-     * @param {String} [options.message] - task state message
+     * @param {String} [options.message]            - task state message
      *
      * @returns {Promise}
      */
@@ -296,8 +356,8 @@ class FailoverClient {
         const failoverOperations = options.failoverOperations || {};
         const message = options.message || '';
         const stateObject = this._createStateObject({ taskState, failoverOperations, message });
-        return configWorker.setTaskState(stateObject)
-            .then(() => this.cloudProvider.uploadDataToStorage(stateFileName, stateObject))
+
+        return this.cloudProvider.uploadDataToStorage(stateFileName, stateObject)
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
@@ -369,16 +429,17 @@ class FailoverClient {
      *
      * @param {Object} trafficGroupStats - The traffic group stats as returned by the device
      * @param {String} hostname          - The hostname of the device
+     * @param {String} failoverStatus    - failover status of the device
      *
      * @returns {Object}
      */
-    _getTrafficGroups(trafficGroupStats, hostname) {
+    _getTrafficGroups(trafficGroupStats, hostname, failoverStatus) {
         const trafficGroups = [];
 
         const entries = trafficGroupStats.entries;
         Object.keys(entries).forEach((key) => {
             const local = entries[key].nestedStats.entries.deviceName.description.indexOf(hostname) !== -1
-                && entries[key].nestedStats.entries.failoverState.description === 'active';
+                && entries[key].nestedStats.entries.failoverState.description === failoverStatus;
 
             if (local) {
                 trafficGroups.push({
@@ -417,44 +478,53 @@ class FailoverClient {
     }
 
     /**
-     * Get virtual addresses
+     * Get (all) floating addresses from multiple address types
      *
      * @param {Object} virtualAddresses - Virtual addresses
-     * @param {Object} trafficGroups - Traffic groups
+     * @param {Object} snatAddresses    - SNAT (translation) addresses
+     * @param {Object} natAddresses     - NAT addresses
+     * @param {Object} trafficGroups    - Traffic groups
      *
      * @returns {Object}
      */
-    _getVirtualAddresses(virtualAddresses, trafficGroups) {
+    _getFloatingAddresses(virtualAddresses, snatAddresses, natAddresses, trafficGroups) {
         const addresses = [];
 
-        if (!virtualAddresses.length) {
-            logger.error('No virtual addresses exist, create them prior to failover.');
-        } else {
-            virtualAddresses.forEach((item) => {
-                const address = item.address.split('%')[0];
-                const addressTrafficGroup = item.trafficGroup;
+        // helper function to add address (as needed)
+        const _addAddress = (item, addressKey) => {
+            const address = item[addressKey].split('%')[0];
+            const addressTrafficGroup = item.trafficGroup;
 
-                trafficGroups.forEach((nestedItem) => {
-                    if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
-                        addresses.push({
-                            address
-                        });
-                    }
-                });
+            trafficGroups.forEach((nestedItem) => {
+                if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
+                    addresses.push({
+                        address
+                    });
+                }
             });
-        }
+        };
+
+        virtualAddresses.forEach((item) => {
+            _addAddress(item, 'address');
+        });
+        snatAddresses.forEach((item) => {
+            _addAddress(item, 'address');
+        });
+        natAddresses.forEach((item) => {
+            _addAddress(item, 'translationAddress');
+        });
         return addresses;
     }
 
     /**
      * Get failover addresses
      *
-     * @param {Object} selfAddresses   - Self addresses
-     * @param {Object} virtualAddresses - Virtual addresses
+     * @param {Object} selfAddresses     - Self addresses (floating and non-floating)
+     * @param {Object} floatingAddresses - Floating addresses
      *
      * @returns {Object}
      */
-    _getFailoverAddresses(selfAddresses, virtualAddresses) {
+    _getFailoverAddresses(selfAddresses, floatingAddresses) {
         const localAddresses = [];
         const failoverAddresses = [];
 
@@ -466,8 +536,8 @@ class FailoverClient {
                 localAddresses.push(item.address);
             }
         });
-        // go through all virtual addresses and add address to appropriate array
-        virtualAddresses.forEach((item) => {
+        // always add all floating addresses to failover address array
+        floatingAddresses.forEach((item) => {
             failoverAddresses.push(item.address);
         });
 

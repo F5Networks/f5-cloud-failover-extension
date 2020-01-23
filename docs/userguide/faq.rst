@@ -4,27 +4,19 @@ Frequently Asked Questions (FAQ)
 --------------------------------
 
 
-**What is Cloud Failover?**
+**What is Cloud Failover Extension?**
 
-Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CF Extension on BIG-IP provides L3 failover functionality in cloud environments. 
+Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing CFE on BIG-IP provides L3 failover functionality in cloud environments. 
 
-*Cloud Failover is:*
+*Cloud Failover Extension is:*
 
 -  A javascript |ilx| plug-in
 -  A |declare| interface for configuring Cloud Failover on BIG-IP
--  |atomic| (CF declarations)
+-  |atomic| (CFE declarations)
 
 *but it is NOT:*
 
 -  created to include a graphical interface (GUI)
-
-
-|
-
-
-**Where can I download Cloud Failover?**
-
-Cloud Failover is available on |github| in the |releases| section under *Assets*.
 
 
 |
@@ -46,22 +38,46 @@ Cloud Failover is available on |github| in the |releases| section under *Assets*
 |
 
 
-**Which TMOS versions does Cloud Failover support?**
+**Where can I download Cloud Failover Extension?**
 
-Cloud Failover supports TMOS 14.1.x and later.
+Cloud Failover Extension is available on |github| in the |releases| section under *Assets*.
+
 
 |
 
-**Can I use this with Application Services Extension (AS3)?** 
+
+**Which TMOS versions does Cloud Failover Extension support?**
+
+Cloud Failover Extension supports TMOS 14.1.x and later.
+
+
+|
+
+
+**Does Cloud Failover Extension support IPv6?**
+
+IPv6 route failover is supported for AWS but not for Azure or Google Cloud. To see an example declaration for AWS that enables IPv6, see :ref:`example-declarations`.
+
+
+|
+
+**How can I track new Cloud Failover Extension features?**
+
+See the |releases| section on GitHub to keep up to date with CFE features and enhancements. You can also track changes to this documentation in the :ref:`revision-history`.
+
+
+|
+
+**Can I use CFE with Application Services Extension (AS3)?** 
 
 Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages tenant partitions and some previous failover solutions did not support inspecting tenant partitions.
 
 |
 
 
-**Does it matter if I use Cloud Failover in same network or across network?**
+**Does it matter if I use Cloud Failover Extension in same network or across network?**
 
-Cloud Failover is agnostic to same-network and across-network topologies. However, see the next question for more information regarding AWS.
+Cloud Failover Extension is agnostic to same-network and across-network topologies.
 
 
 |
@@ -69,18 +85,19 @@ Cloud Failover is agnostic to same-network and across-network topologies. Howeve
 
 **Does Cloud Failover Extension support AWS Same-AZ failover?**
 
-Cloud Failover Extension does not currently support AWS Same-AZ. Same AZ failover is still provided by the original functionality built-in to BIG-IP VE AWS image. See the |releases| section on GitHub to keep up to date with CF features and enhancements.
+Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` section for more details.
+
+|
+
+
+**How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?**
+
+CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user.
+
 
 
 |
 
-
-**Does Cloud Failover Extension support IPV6?**
-
-Cloud Failover Extension does not currently support IPV6.
-
-
-|
 
 **What information does Cloud Failover Extension store?**
 
@@ -88,15 +105,16 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 .. code-block:: json
 
-    "taskState": "SUCCEEDED",
-    "message": "Failover Completed Successfully",
-    "timestamp": "2019-09-25T23:44:44.381Z",
-    "instance": "failover0.local",
-    "failoverOperations": {
-    "routes": {},
-    "addresses": {}
+    {
+        "taskState": "SUCCEEDED",
+        "message": "Failover Completed Successfully",
+        "timestamp": "2019-09-25T23:44:44.381Z",
+        "instance": "failover0.local",
+        "failoverOperations": {
+            "routes": {},
+            "addresses": {}
+        }
     }
-
 
 
 |
@@ -104,7 +122,7 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 **Does the Cloud Failover Extension collect telemetry data?**
 
-We collect non-personal telemetry data to help improve the Cloud Failover Extension. An example of the payload that is sent is shown below. You can disable this feature by running the command ``tmsh modify sys software update auto-phonehome disabled``.
+F5 collects non-personal telemetry data to help improve the Cloud Failover Extension. You can see an example of the payload that is sent below. To disable this feature, run the command ``tmsh modify sys software update auto-phonehome disabled``.
 
 .. code-block:: json
 
@@ -133,12 +151,18 @@ We collect non-personal telemetry data to help improve the Cloud Failover Extens
     }
 
 
+|
+
+**Why does Cloud Failover Extension no longer default to a tag on the route for next hop address discovery?**
+
+Specifying the `f5_self_ips` tag on the route object itself creates a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform. For backwards compatability this option is still available, however, F5 recommends alternate approaches, such as providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload. See :ref:`example-declarations` for an example using the original route tag discovery method.
+
 
 |
 
-**How do I report issues, feature requests, and get help with Cloud Failover?**
+**How do I report issues, feature requests, and get help with Cloud Failover Extension?**
 
-You can use |issues| to submit feature requests or problems with Cloud Failover.
+You can use |issues| to submit feature requests or problems with Cloud Failover Extension, including documentation issues.
 
 |
 

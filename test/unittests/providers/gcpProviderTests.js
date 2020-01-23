@@ -29,6 +29,7 @@ const testPayload = {
 const mockVms = [
     {
         name: 'testInstanceName',
+        zone: 'projects/1111/zones/us-west1-a',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -38,6 +39,7 @@ const mockVms = [
     },
     {
         name: 'testInstanceName02',
+        zone: 'projects/1111/zones/us-west1-a',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -70,11 +72,12 @@ describe('Provider - GCP', () => {
     beforeEach(() => {
         provider = new GoogleCloudProvider(mockMetadata);
         provider.logger = sinon.stub();
-        provider.logger.debug = sinon.stub();
         provider.logger.error = sinon.stub();
+        provider.logger.warning = sinon.stub();
         provider.logger.info = sinon.stub();
+        provider.logger.debug = sinon.stub();
+        provider.logger.verbose = sinon.stub();
         provider.logger.silly = sinon.stub();
-        provider.logger.warn = sinon.stub();
 
         provider.tags = {
             'test-tag-key': 'test-tag-value'
@@ -82,7 +85,10 @@ describe('Provider - GCP', () => {
         provider.routeTags = {
             'test-tag-key': 'test-tag-value'
         };
-        provider.routeSelfIpsTag = 'f5_self_ips';
+        provider.routeNextHopAddresses = {
+            type: 'routeTag',
+            tag: 'f5_self_ips'
+        };
         /* eslint-disable arrow-body-style */
         provider.computeZone = {
             operation: () => {
@@ -206,6 +212,7 @@ describe('Provider - GCP', () => {
                 assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
                 assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
                 assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
             })
             .catch(err => Promise.reject(err));
     });
@@ -232,55 +239,74 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate updateRoute method', () => {
+    describe('updateRoutes should', () => {
         const localAddresses = ['1.1.1.1', '2.2.2.2'];
-        const getRoutesResponse = [
-            {
-                kind: 'test-route',
-                description,
-                id: 'some-test-id',
-                creationTimestamp: '101010101010',
-                selfLink: 'https://test-self-link',
-                nextHopIp: '1.1.1.2',
-                destRange: '192.0.0.0/24'
-            }
-        ];
-        sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
 
-        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
-        providerSendRequestMock.onCall(0).callsFake((method, path) => {
-            assert.strictEqual(method, 'DELETE');
-            assert.strictEqual(path, 'global/routes/some-test-id');
+        let providerSendRequestMock;
 
-            return Promise.resolve({
+        beforeEach(() => {
+            const getRoutesResponse = [
+                {
+                    kind: 'test-route',
+                    description,
+                    id: 'some-test-id',
+                    creationTimestamp: '101010101010',
+                    selfLink: 'https://test-self-link',
+                    nextHopIp: '1.1.1.2',
+                    destRange: '192.0.0.0/24'
+                }
+            ];
+            sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
+
+            providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+            providerSendRequestMock.onCall(0).resolves({
                 name: 'test-name'
             });
+            providerSendRequestMock.onCall(2).resolves();
+            sinon.stub(provider.compute, 'operation').callsFake(() => {
+                return {
+                    promise: () => {
+                        return Promise.resolve();
+                    }
+                };
+            });
+
+            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
         });
-        providerSendRequestMock.onCall(2).callsFake((method, path, payload) => {
-            assert.strictEqual(method, 'POST');
-            assert.strictEqual(path, 'global/routes/');
-            assert.strictEqual(payload.nextHopIp, '1.1.1.1');
-            assert.strictEqual(payload.description, description);
-            return Promise.resolve();
-        });
-        sinon.stub(provider.compute, 'operation').callsFake((name) => {
-            assert.strictEqual(name, 'test-name');
-            return {
-                promise: () => {
-                    return Promise.resolve();
-                }
+
+        it('update routes using next hop discovery method: routeTag', () => {
+            provider.routeNextHopAddresses = {
+                type: 'routeTag',
+                tag: 'f5_self_ips'
             };
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
         });
 
-        provider.routeAddresses = ['192.0.0.0/24'];
+        it('update routes using next hop discovery method: static', () => {
+            provider.routeNextHopAddresses = {
+                type: 'static',
+                items: ['1.1.1.1', '2.2.2.2']
+            };
 
-        return provider.updateRoutes({ localAddresses, discoverOnly: true })
-            .then(operations => provider.updateRoutes({ updateOperations: operations }))
-            .then(() => {
-                assert.strictEqual(provider.tags['test-tag-key'], 'test-tag-value');
-            })
-            .catch(err => Promise.reject(err));
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
+
 
     it('validate _getRoutes method execution', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
@@ -543,7 +569,7 @@ describe('Provider - GCP', () => {
 
     it('validate _getVmsByTags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
         return provider._getVmsByTags(provider.tags)
@@ -552,14 +578,15 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate _getVmsByTags with extra tag - should return no result', () => {
+    it('validate _getVmsByTags with extra tags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-tag-key': 'test-tag-value', 'missing-label': 'missing-label-value' } } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' }, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
         return provider._getVmsByTags(provider.tags)
             .then((data) => {
-                assert.ok(data.length === 0);
+                assert.ok(data.length === 1);
+                assert.strictEqual(data[0], 'test_data');
             });
     });
 
@@ -589,5 +616,81 @@ describe('Provider - GCP', () => {
                 assert.strictEqual(data.name, 'ourBucket');
             })
             .catch(err => Promise.reject(err));
+    });
+
+    describe('function getAssociatedAddressAndRouteInfo', () => {
+        let expectedData;
+
+        beforeEach(() => {
+            expectedData = {
+                instance: 'i-123',
+                addresses: [
+                    {
+                        publicIpAddress: '1.1.1.1',
+                        privateIpAddress: '1.1.1.1',
+                        networkInterfaceId: 'nic0'
+                    }
+                ],
+                routes: []
+            };
+            sinon.replace(provider, '_getLocalMetadata', sinon.fake.returns('i-123'));
+            sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
+            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+            sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+            sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([{
+                name: 'i-123',
+                networkInterfaces: [
+                    {
+                        networkIP: '1.1.1.1',
+                        accessConfigs: [
+                            {
+                                natIP: '1.1.1.1'
+                            }
+                        ],
+                        name: 'nic0'
+                    }
+                ]
+            }]));
+        });
+
+        it('validate return addresses and routes for active device', () => {
+            expectedData.routes.push({
+                routeTableId: '123',
+                routeTableName: 'x',
+                networkId: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x'
+            });
+            return provider.init(testPayload)
+                .then(() => {
+                    provider._getRoutes = sinon.stub().resolves(([
+                        {
+                            id: '123',
+                            name: 'x',
+                            network: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x',
+                            nextHopIp: '1.1.1.1'
+                        }
+                    ]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo();
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch(err => Promise.reject(new Error(`${err.stack}`)));
+        });
+
+        it('validate return addresses and not routes for standby device', () => {
+            return provider.init(testPayload)
+                .then(() => {
+                    provider._getRoutes = sinon.stub().resolves(([]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo();
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 });

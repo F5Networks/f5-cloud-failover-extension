@@ -14,144 +14,26 @@ variable "global_tags" {
   }
 }
 
-# Create 'supporting' network infrastructure for the BIG-IP VMs (aka: what is done in the AWS 'VPC' CFTs)
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  enable_dns_hostnames = true
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "vpc: Failover-Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_internet_gateway" "gateway" {
-  vpc_id = "${aws_vpc.main.id}"
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "InternetGateway: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_route_table" "mgmt" {
-  vpc_id = "${aws_vpc.main.id}"
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.gateway.id}"
+locals {
+  availability_zones = {
+    primary   = "a"
+    secondary = (var.use_availability_zones ? "b" : "a")
   }
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Route Table: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
 }
 
-resource "aws_route_table" "external" {
-  vpc_id = "${aws_vpc.main.id}"
+module "network" {
+  source = "./components/network"
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.gateway.id}"
-  }
-  route {
-    cidr_block = "192.0.2.0/24"
-    network_interface_id = "${aws_network_interface.external2.id}"
-  }
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
-      f5_cloud_failover_label = "${module.utils.env_prefix}"
-      f5_self_ips = "${aws_network_interface.external1.private_ip},${aws_network_interface.external2.private_ip}"
-    }
-  )}"
+  region                 = var.aws_region
+  global_tags            = var.global_tags
+  env_prefix             = module.utils.env_prefix
+  use_availability_zones = var.use_availability_zones
+  availability_zones     = local.availability_zones
 }
 
-resource "aws_subnet" "mgmtAz1" {
-  vpc_id = "${aws_vpc.main.id}"
-  availability_zone = "${var.aws_region}a"
-  cidr_block = "10.0.0.0/24"
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Az1 Mgmt Subnet: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_route_table_association" "mgmtAz1" {
-  subnet_id      = "${aws_subnet.mgmtAz1.id}"
-  route_table_id = "${aws_route_table.mgmt.id}"
-}
-
-resource "aws_subnet" "mgmtAz2" {
-  vpc_id = "${aws_vpc.main.id}"
-  availability_zone = "${var.aws_region}b"
-  cidr_block = "10.0.10.0/24"
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Az2 Mgmt Subnet: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_route_table_association" "mgmtAz2" {
-  subnet_id      = "${aws_subnet.mgmtAz2.id}"
-  route_table_id = "${aws_route_table.mgmt.id}"
-}
-
-resource "aws_subnet" "externalAz1" {
-  vpc_id = "${aws_vpc.main.id}"
-  availability_zone = "${var.aws_region}a"
-  cidr_block = "10.0.1.0/24"
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Az1 External Subnet: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_route_table_association" "externalAz1" {
-  subnet_id      = "${aws_subnet.externalAz1.id}"
-  route_table_id = "${aws_route_table.external.id}"
-}
-
-resource "aws_subnet" "externalAz2" {
-  vpc_id = "${aws_vpc.main.id}"
-  availability_zone = "${var.aws_region}b"
-  cidr_block = "10.0.11.0/24"
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Az2 External Subnet: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
-}
-
-resource "aws_route_table_association" "externalAz2" {
-  subnet_id      = "${aws_subnet.externalAz2.id}"
-  route_table_id = "${aws_route_table.external.id}"
-}
-
-# Create the BIG-IPs used for Failover testing
 resource "aws_security_group" "external" {
   description = "External interface rules"
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id = "${module.network.network_id}"
 
   ingress {
     from_port = 80
@@ -186,19 +68,15 @@ resource "aws_security_group" "external" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "External Security Group: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = merge(var.global_tags,{ Name = "External Security Group: Failover Extension-${module.utils.env_prefix}"})
 }
 
 resource "aws_security_group" "mgmt" {
   description = "External interface rules"
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id = "${module.network.network_id}"
 
   ingress {
     from_port = 22
@@ -227,13 +105,7 @@ resource "aws_security_group" "mgmt" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Security Group: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = merge(var.global_tags,{Name = "Mgmt Security Group: Failover Extension-${module.utils.env_prefix}"})
 }
 
 resource "aws_s3_bucket" "configdb" {
@@ -241,13 +113,7 @@ resource "aws_s3_bucket" "configdb" {
 
   force_destroy = true
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "failoverextension-${module.utils.env_prefix}-s3bucket",
-      f5_cloud_failover_label = "${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "failoverextension-${module.utils.env_prefix}-s3bucket",f5_cloud_failover_label = "${module.utils.env_prefix}"})}"
 }
 
 resource "aws_iam_role" "main" {
@@ -267,14 +133,16 @@ resource "aws_iam_role" "main" {
   ]
 }
 EOF
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Failover Extension IAM role-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Failover Extension IAM role-${module.utils.env_prefix}"})}"
 }
 
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = "${data.aws_caller_identity.current.account_id}"
+}
+
+// Addresses write action do not have Resource type associate with it
 resource "aws_iam_role_policy" "BigIpPolicy" {
   name = "BigIpPolicy"
   role = "${aws_iam_role.main.id}"
@@ -284,42 +152,58 @@ resource "aws_iam_role_policy" "BigIpPolicy" {
   "Version": "2012-10-17",
   "Statement": [
     {
-        "Action": [
-            "ec2:DescribeInstances",
-            "ec2:DescribeInstanceStatus",
-            "ec2:DescribeAddresses",
-            "ec2:AssociateAddress",
-            "ec2:DisassociateAddress",
-            "ec2:DescribeNetworkInterfaces",
-            "ec2:DescribeNetworkInterfaceAttribute",
-            "ec2:DescribeRouteTables",
-            "ec2:ReplaceRoute",
-            "ec2:CreateRoute",
-            "ec2:assignprivateipaddresses",
-            "sts:AssumeRole",
-            "s3:ListAllMyBuckets"
-        ],
-        "Resource": [
-            "*"
-        ],
-        "Effect": "Allow"
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeNetworkInterfaceAttribute",
+        "ec2:DescribeRouteTables",
+        "s3:ListAllMyBuckets",
+        "ec2:AssociateAddress",
+        "ec2:DisassociateAddress",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:ListBucket",
-            "s3:GetBucketTagging"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
-        "Effect": "Allow"
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam:::role/Failover-Extension-IAM-role-${module.utils.env_prefix}",
+      "Effect": "Allow"
     },
     {
-        "Action": [
-            "s3:PutObject",
-            "s3:GetObject",
-            "s3:DeleteObject"
-        ],
-        "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
-        "Effect": "Allow"
+      "Action": [
+        "ec2:CreateRoute",
+        "ec2:ReplaceRoute"
+      ],
+      "Resource": "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:route-table/${aws_route_table.external.id}",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Name": "External Route Table: Failover Extension-${module.utils.env_prefix}"
+        }
+      },
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.configdb.id}/*",
+      "Effect": "Allow"
     }
   ]
 }
@@ -332,87 +216,73 @@ resource "aws_iam_instance_profile" "instance_profile" {
 }
 
 resource "aws_network_interface" "mgmt1" {
-  subnet_id = "${aws_subnet.mgmtAz1.id}"
+  subnet_id = "${module.network.mgmt_subnet_1_id}"
   security_groups = ["${aws_security_group.mgmt.id}"]
   description = "Management Interface for BIG-IP"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Network Interface Az1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Mgmt Network Interface 1: Failover Extension-${module.utils.env_prefix}"})}"
 }
 
 resource "aws_eip" "mgmt1" {
   vpc = true
   network_interface = "${aws_network_interface.mgmt1.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.mgmt1.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.mgmt1.private_ip}"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "ElasticIP Mgmt Az1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "ElasticIP Mgmt 1: Failover Extension-${module.utils.env_prefix}"})}"
+
+  depends_on = ["aws_instance.vm0"]
 }
 
 resource "aws_network_interface" "mgmt2" {
-  subnet_id = "${aws_subnet.mgmtAz2.id}"
+  subnet_id = "${module.network.mgmt_subnet_2_id}"
   security_groups = ["${aws_security_group.mgmt.id}"]
   description = "Management Interface for BIG-IP"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "Mgmt Network Interface Az2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "Mgmt Network Interface 2: Failover Extension-${module.utils.env_prefix}"})}"
 }
 
 resource "aws_eip" "mgmt2" {
   vpc = true
   network_interface = "${aws_network_interface.mgmt2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.mgmt2.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.mgmt2.private_ip}"
 
-  tags = "${merge(
-    var.global_tags,
-    {
-      Name = "ElasticIP Mgmt Az2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+  tags = "${merge(var.global_tags,{Name = "ElasticIP Mgmt 2: Failover Extension-${module.utils.env_prefix}"})}"
+
+  depends_on = ["aws_instance.vm1"]
 }
 
 resource "aws_network_interface" "external1" {
-  subnet_id = "${aws_subnet.externalAz1.id}"
+  subnet_id = "${module.network.ext_subnet_1_id}"
   security_groups = ["${aws_security_group.external.id}"]
   description = "Public External Interface for the BIG-IP"
 
-  private_ips_count = 1
+  // only a single private IP is required for an application in the "same network"
+  // topology, create the IP on the second BIG-IP
+  private_ips_count = "${var.use_availability_zones ? 1 : 0}"
 
   tags = "${merge(
     var.global_tags,
     {
-      Name = "External Network Interface Az1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+      Name = "External Network Interface 1: Failover Extension-${module.utils.env_prefix}",
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
+      f5_cloud_failover_nic_map = "external"
+    })}"
 }
 
 resource "aws_eip" "external1" {
   vpc = true
   network_interface = "${aws_network_interface.external1.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external1.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.external1.private_ip}"
 
   tags = "${merge(
     var.global_tags,
     {
-      Name = "ElasticIP External Az1: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+      Name = "ElasticIP External 1: Failover Extension-${module.utils.env_prefix}"
+    })}"
 }
 
 resource "aws_network_interface" "external2" {
-  subnet_id = "${aws_subnet.externalAz2.id}"
+  subnet_id = "${module.network.ext_subnet_2_id}"
   security_groups = ["${aws_security_group.external.id}"]
   description = "Public External Interface for the BIG-IP"
 
@@ -421,37 +291,75 @@ resource "aws_network_interface" "external2" {
   tags = "${merge(
     var.global_tags,
     {
-      Name = "External Network Interface Az2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+      Name = "External Network Interface 2: Failover Extension-${module.utils.env_prefix}",
+      f5_cloud_failover_label = "${module.utils.env_prefix}",
+      f5_cloud_failover_nic_map = "external"
+    })}"
 }
 
 resource "aws_eip" "external2" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[0]}"
+  associate_with_private_ip = "${aws_network_interface.external2.private_ip}"
 
   tags = "${merge(
     var.global_tags,
     {
-      Name = "ElasticIP External Az2: Failover Extension-${module.utils.env_prefix}"
-    }
-  )}"
+      Name = "ElasticIP External 2: Failover Extension-${module.utils.env_prefix}"
+    })}"
 }
 
 resource "aws_eip" "vip1" {
   vpc = true
   network_interface = "${aws_network_interface.external2.id}"
-  associate_with_private_ip = "${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
+  associate_with_private_ip = "${tolist(aws_network_interface.external2.private_ips)[1] != aws_network_interface.external2.private_ip ? tolist(aws_network_interface.external2.private_ips)[1] : tolist(aws_network_interface.external2.private_ips)[0]}"
 
   tags = "${merge(
     var.global_tags,
     {
       Name = "ElasticIP VIP: Failover Extension-${module.utils.env_prefix}",
       f5_cloud_failover_label = "${module.utils.env_prefix}",
-      VIPS = "${"${index("${tolist(aws_network_interface.external1.private_ips)}", "${aws_network_interface.external1.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external1.private_ips)[1]}" : "${tolist(aws_network_interface.external1.private_ips)[0]}"},${"${index("${tolist(aws_network_interface.external2.private_ips)}", "${aws_network_interface.external2.private_ip}")}" == 0 ? "${tolist(aws_network_interface.external2.private_ips)[1]}" : "${tolist(aws_network_interface.external2.private_ips)[0]}"}"
-    }
-  )}"
+      // VIPS value is conditional on network topology
+      // - across network: should contain '<BIG-IP 1 private application IP>,<BIG-IP 2 private application IP>'
+      // - same network: should either not exist or contain an empty string
+      VIPS = "${var.use_availability_zones ? "${tolist(aws_network_interface.external1.private_ips)[1] != aws_network_interface.external1.private_ip ? tolist(aws_network_interface.external1.private_ips)[1] : tolist(aws_network_interface.external1.private_ips)[0]},${tolist(aws_network_interface.external2.private_ips)[1] != aws_network_interface.external2.private_ip ? tolist(aws_network_interface.external2.private_ips)[1] : tolist(aws_network_interface.external2.private_ips)[0]}" : ""}"
+    })}"
+}
+
+resource "aws_route_table" "external" {
+  vpc_id = "${module.network.network_id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${module.network.internet_gateway_id}"
+  }
+  route {
+    cidr_block = "192.0.2.0/24"
+    network_interface_id = "${aws_network_interface.external2.id}"
+  }
+  route {
+    ipv6_cidr_block = "2001:db8:2:2::/64"
+    network_interface_id = "${aws_network_interface.external2.id}"
+  }
+
+  tags = "${merge(
+    var.global_tags,
+    {
+      Name = "External Route Table: Failover Extension-${module.utils.env_prefix}"
+      f5_cloud_failover_label = "${module.utils.env_prefix}"
+    })}"
+}
+
+resource "aws_route_table_association" "external1" {
+  subnet_id      = "${module.network.ext_subnet_1_id}"
+  route_table_id = "${aws_route_table.external.id}"
+}
+
+resource "aws_route_table_association" "external2" {
+  count = "${var.use_availability_zones ? 1 : 0}"
+
+  subnet_id      = "${module.network.ext_subnet_2_id}"
+  route_table_id = "${aws_route_table.external.id}"
 }
 
 data "template_file" "user_data_vm0" {
@@ -461,7 +369,7 @@ data "template_file" "user_data_vm0" {
     admin_username  = "${var.admin_username}"
     admin_password  = "${module.utils.admin_password}"
     external_self   = "${aws_network_interface.external1.private_ip}/24"
-    subnet          = "${aws_subnet.externalAz2.cidr_block}"
+    subnet          = "${module.network.ext_subnet_2_cidr_block}"
     default_gw      = "10.0.1.1"
   }
 }
@@ -473,7 +381,7 @@ data "template_file" "user_data_vm1" {
     admin_username = "${var.admin_username}"
     admin_password = "${module.utils.admin_password}"
     external_self  = "${aws_network_interface.external2.private_ip}/24"
-    subnet          = "${aws_subnet.externalAz1.cidr_block}"
+    subnet          = "${module.network.ext_subnet_1_cidr_block}"
     default_gw      = "10.0.11.1"
   }
 }
@@ -487,8 +395,8 @@ resource "null_resource" "delay" {
 resource "aws_instance" "vm0" {
   ami = "${var.aws_bigip_ami_id}"
   instance_type = "m5.xlarge"
-  availability_zone = "${var.aws_region}a"
-  key_name = "dewpt"
+  availability_zone = "${var.aws_region}${local.availability_zones["primary"]}"
+  key_name = var.instance_key_name
 
   network_interface {
     network_interface_id = "${aws_network_interface.mgmt1.id}"
@@ -509,8 +417,7 @@ resource "aws_instance" "vm0" {
     {
       Name = "BigIp 1: Failover Extension-${module.utils.env_prefix}"
       deploymentId = "${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
@@ -523,8 +430,8 @@ resource "aws_instance" "vm0" {
 resource "aws_instance" "vm1" {
   ami = "${var.aws_bigip_ami_id}"
   instance_type = "m5.xlarge"
-  availability_zone = "${var.aws_region}b"
-  key_name = "dewpt"
+  availability_zone = "${var.aws_region}${local.availability_zones["secondary"]}"
+  key_name = var.instance_key_name
 
   network_interface {
     network_interface_id = "${aws_network_interface.mgmt2.id}"
@@ -545,8 +452,7 @@ resource "aws_instance" "vm1" {
     {
       Name = "BigIp 2: Failover Extension-${module.utils.env_prefix}"
       deploymentId = "${module.utils.env_prefix}"
-    }
-  )}"
+    })}"
 
   # Wait until the instance is in a running state
   provisioner "local-exec" {
@@ -554,6 +460,14 @@ resource "aws_instance" "vm1" {
   }
 
   depends_on = [null_resource.delay]
+}
+
+data "aws_network_interface" "external1_network_interface_data" {
+  id = "${aws_network_interface.external1.id}"
+}
+
+data "aws_network_interface" "external2_network_interface_data" {
+  id = "${aws_network_interface.external2.id}"
 }
 
 resource "local_file" "do0" {
@@ -564,10 +478,11 @@ resource "local_file" "do0" {
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         external_self = "${aws_network_interface.external1.private_ip}",
+        external_self_ipv6 = "${element(tolist(data.aws_network_interface.external1_network_interface_data.ipv6_addresses),0)}",
         remote_host = "${aws_network_interface.mgmt1.private_ip}"
-      }
-    )}"
+      })}"
     filename = "${path.module}/temp_do0.json"
+    depends_on = [aws_instance.vm0, data.aws_network_interface.external1_network_interface_data]
 }
 
 resource "local_file" "do1" {
@@ -578,10 +493,11 @@ resource "local_file" "do1" {
         admin_username = "${var.admin_username}",
         admin_password = "${module.utils.admin_password}",
         external_self = "${aws_network_interface.external2.private_ip}",
+        external_self_ipv6 = "${element(tolist(data.aws_network_interface.external2_network_interface_data.ipv6_addresses),0)}",
         remote_host = "${aws_network_interface.mgmt1.private_ip}"
-      }
-    )}"
+      })}"
     filename = "${path.module}/temp_do1.json"
+  depends_on = [aws_instance.vm1, data.aws_network_interface.external2_network_interface_data]
 }
 
 resource "null_resource" "login0" {
@@ -624,6 +540,19 @@ resource "null_resource" "onboard1" {
   depends_on = [local_file.do1, null_resource.login1]
 }
 
+# create floating traffic group virtual address only for the same network topology
+resource "null_resource" "create_virtual" {
+  count = "${var.use_availability_zones ? 0 : 1}"
+
+  provisioner "local-exec" {
+    command = "curl -skvvu ${var.admin_username}:${module.utils.admin_password} -X POST -H \"Content-Type: application/json\" https://${aws_eip.mgmt2.public_ip}/mgmt/tm/ltm/virtual-address -d '{\"name\":\"myVirtualAddress\",\"address\":\"${aws_eip.vip1.private_ip}\",\"trafficGroup\":\"traffic-group-1\"}'"
+  }
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+  depends_on = [null_resource.onboard1]
+}
+
 output "public_vip_address" {
   value = "${aws_eip.vip1.public_ip}"
 }
@@ -632,26 +561,31 @@ output "deployment_info" {
   value = {
     instances: [
       {
+        primary = false,
+        hostname = "failover0.local",
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt1.public_ip,
         instanceId = aws_instance.vm0.id,
         mgmt_port = 443,
-        hostname = "failover0.local",
-        primary = false
+        next_hop_address = aws_network_interface.external1.private_ip,
+        next_hop_address_ipv6 = element(tolist(data.aws_network_interface.external1_network_interface_data.ipv6_addresses),0),
       },
       {
+        primary = true,
+        hostname = "failover1.local",
         admin_username = var.admin_username,
         admin_password = module.utils.admin_password,
         mgmt_address = aws_eip.mgmt2.public_ip,
         instanceId = aws_instance.vm1.id,
         mgmt_port = 443,
-        hostname = "failover1.local",
-        primary = true
+        next_hop_address = aws_network_interface.external2.private_ip,
+        next_hop_address_ipv6 = element(tolist(data.aws_network_interface.external2_network_interface_data.ipv6_addresses),0),
       }
     ],
     deploymentId: module.utils.env_prefix,
     environment: "aws",
-    region: var.aws_region
+    region: var.aws_region,
+    networkTopology: "${var.use_availability_zones ? "acrossNetwork" : "sameNetwork"}"
   }
 }
