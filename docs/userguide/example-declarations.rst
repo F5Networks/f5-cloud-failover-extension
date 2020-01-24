@@ -23,7 +23,7 @@ AWS IPv6 Route Failover
 .. literalinclude:: ../../examples/declarations/ipv6RouteFailover.json
    :language: json
    :tab-width: 4
-   :emphasize-lines: 28-29
+   :emphasize-lines: 31-32
 
 :fonticon:`fa fa-download` :download:`ipv6RouteFailover.json <../../examples/declarations/ipv6RouteFailover.json>`
 
