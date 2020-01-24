@@ -56,7 +56,8 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 **Does Cloud Failover Extension support IPv6?**
 
-IPv6 route failover is supported for AWS but not for Azure or Google Cloud. To see an example declaration for AWS that enables IPv6, see :ref:`example-declarations`.
+- IPv6 route failover is currently supported for AWS only. To see an example declaration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
+- IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
 
 
 |
