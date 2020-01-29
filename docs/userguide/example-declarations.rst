@@ -11,7 +11,7 @@ For backwards compatability, you can tag the route itself with a tag to determin
 .. literalinclude:: ../../examples/declarations/routeFailoverUsesRouteTags.json
    :language: json
    :tab-width: 4
-   :emphasize-lines: 23-27
+   :emphasize-lines: 24
 
 :fonticon:`fa fa-download` :download:`routeFailoverUsesRouteTags.json <../../examples/declarations/routeFailoverUsesRouteTags.json>`
 
