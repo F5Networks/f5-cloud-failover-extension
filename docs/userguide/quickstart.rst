@@ -57,6 +57,8 @@ up and running with Cloud Failover.
 
 
 #. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
+  
+   .. NOTE:: You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. Additional configuration operations can be sent to a single device.
 
 #. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
 
