@@ -383,7 +383,7 @@ resource "null_resource" "delay_five_minutes" {
 
 resource "null_resource" "onboard01" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do01.json"
+    command = "f5 bigip extension service create --install-component --component do --declaration ${path.module}/temp_do01.json"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
@@ -412,7 +412,7 @@ resource "null_resource" "delay_one_minute02" {
 
 resource "null_resource" "onboard02" {
   provisioner "local-exec" {
-    command = "f5 bigip toolchain service create --install-component --component do --declaration ${path.module}/temp_do02.json"
+    command = "f5 bigip extension service create --install-component --component do --declaration ${path.module}/temp_do02.json"
   }
   triggers = {
     always_run = fileexists("${path.module}/../../declarations/do/gcp_do_template.json")
