@@ -393,6 +393,9 @@ build_docs:
     stage: build_docs
     script:
         # generate docs
+        - if [ "$CI_COMMIT_REF_NAME" = "docs-staging" ] || [ "$CI_COMMIT_REF_NAME" = "docs-latest" ]; then
+        -   rm -rf docs/_templates
+        - fi
         - make html
         # overwrite apidocs html in generated docs folder
         - API_DOCS_INDEX=${DOCS_BUILD_DIR}/userguide/apidocs.html

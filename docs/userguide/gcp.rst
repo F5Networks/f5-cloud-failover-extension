@@ -43,13 +43,8 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
 - **Instances tagged with a key/value that corresponds to the key/value(s) in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration**.
 - **Virtual addresses** created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic.
 - **Forwarding rules(s)** configured with targets that match a virtual address or floating self IP on the instance serving application traffic. 
-- **Route(s) in a route table tagged with**:
-
-  - a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration
+- **Route(s) in a route table tagged with** a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for :ref:`gcp-routes`.
   
-  .. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
-
-  .. IMPORTANT:: Since GCP routes do not support GCP labels, a JSON blob **must** be added to the description, for example: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``
 
 |
 
@@ -121,6 +116,51 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 |
 
+.. _gcp-routes:
+
+Creating and Tagging a Route in GCP
+```````````````````````````````````
+In Google Cloud, routes are associated with virtual machine instances by a tag, and the set of routes for a particular VM is called its routing table. For more information, see Google's documentation for |gcp-using-routes|.
+
+#. In GCP, you must add a JSON blob to the route description. For example: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``
+
+#. Make sure the route targets a ``next-hop-address`` instead of a ``next-hop-instance``.
+
+#. In your CFE declaration, enter the key/value in the `failoverRoutes.scopingTags` section that matches the tag that you attached to the routing table in GCP. Then update the list of destination routes in the `failoverRoutes.scopingAddressRanges` section.
+
+
+.. code-block:: python
+   :caption: Example of a gcloud compute command to create a route
+
+    gcloud compute routes create example-route --destination-range=192.168.1.0/24/24 --network=example-network --next-hop-address=192.0.2.10 --description='f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}'
+
+
+|
+
+
+.. code-block:: json
+   :caption: What the route section of the declaration should look like
+
+    "failoverRoutes": {
+        "scopingTags": {
+            "f5_cloud_failover_label": "mydeployment"
+        },
+        "scopingAddressRanges": [
+            {
+                "range": "192.168.1.0/24"
+            }
+        ],
+        "defaultNextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+                "192.0.2.10",
+                "192.0.2.11"
+            ]
+        }
+
+
+|
+
 .. NOTE:: To provide feedback on this documentation, you can file a |issue|.
 
 
@@ -135,3 +175,12 @@ To create and assign an IAM role you must have a user role of `Editor`.
 .. |issue| raw:: html
 
    <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
+
+
+.. |gcp-using-routes| raw:: html
+
+   <a href="https://cloud.google.com/vpc/docs/using-routes" target="_blank">using routes</a>
+
+.. |gcp-route-considerations| raw:: html
+
+   <a href="https://cloud.google.com/vpc/docs/routes#instance_next_hops" target="_blank">Google documentation</a>
