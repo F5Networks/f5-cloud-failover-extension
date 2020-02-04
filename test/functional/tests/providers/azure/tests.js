@@ -129,28 +129,34 @@ describe('Provider: Azure', () => {
         return Promise.resolve(promise)
             .then((creds) => {
                 networkClient = new NetworkManagementClient(creds.credentials, creds.subscriptionId);
-                return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+                return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username,
+                    dutPrimary.password);
             })
             .then((data) => {
                 const options = funcUtils.makeOptions({ authToken: data.token });
+                options.port = dutPrimary.port;
                 dutPrimary.authData = data;
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((data) => {
                 virtualAddresses = data.items.map(i => i.address.split('/')[0]);
-                return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+                return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username,
+                    dutPrimary.password);
             })
             .then((data) => {
                 const options = funcUtils.makeOptions({ authToken: data.token });
+                options.port = dutPrimary.port;
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
                 primarySelfIps = data.items.map(i => i.address.split('/')[0]);
-                return utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password);
+                return utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username,
+                    dutSecondary.password);
             })
             .then((data) => {
                 dutSecondary.authData = data;
                 const options = funcUtils.makeOptions({ authToken: data.token });
+                options.port = dutSecondary.port;
                 return utils.makeRequest(dutSecondary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
@@ -202,26 +208,24 @@ describe('Provider: Azure', () => {
             .catch(err => Promise.reject(err));
     }
 
-    it('should should ensure secondary is not primary', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('should check network interfaces contains virtual address (primary)', function () {
         this.retries(RETRIES.LONG);
-
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
             .catch(err => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
         this.retries(RETRIES.MEDIUM);
-
         return checkRouteTables(primarySelfIps)
             .catch(err => Promise.reject(err));
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('should check network interfaces contains virtual address (secondary)', function () {
@@ -243,7 +247,7 @@ describe('Provider: Azure', () => {
     ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('should check network interfaces contains virtual address (primary) ', function () {
@@ -272,7 +276,8 @@ describe('Provider: Azure', () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -281,7 +286,7 @@ describe('Provider: Azure', () => {
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('wait until taskState is running on standby BIG-IP', function () {
@@ -293,7 +298,8 @@ describe('Provider: Azure', () => {
                 {
                     taskState: constants.FAILOVER_STATES.RUN,
                     authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname
+                    hostname: dutSecondary.hostname,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -303,7 +309,7 @@ describe('Provider: Azure', () => {
 
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('wait until taskState is success on primary BIG-IP', function () {
@@ -315,7 +321,8 @@ describe('Provider: Azure', () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -346,7 +353,8 @@ describe('Provider: Azure', () => {
             })
             .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
                 {
-                    authToken: dutPrimary.authData.token
+                    authToken: dutPrimary.authData.token,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert.ok(data.hostName === dutPrimary.hostname);
@@ -364,7 +372,8 @@ describe('Provider: Azure', () => {
         this.retries(RETRIES.LONG);
         return funcUtils.getInspectStatus(dutSecondary.ip,
             {
-                authToken: dutSecondary.authData.token
+                authToken: dutSecondary.authData.token,
+                port: dutSecondary.port
             })
             .then((data) => {
                 assert.deepStrictEqual(data.hostName, dutSecondary.hostname);

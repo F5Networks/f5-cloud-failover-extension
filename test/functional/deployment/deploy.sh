@@ -91,6 +91,11 @@ if [[ -n "$CF_ENV_USE_AVAILABILITY_ZONES" ]]; then
     echo "use_availability_zones = \"${CF_ENV_USE_AVAILABILITY_ZONES}\"" >> ${tf_vars_file}
 fi
 
+# handle some required terraform Azure 1nic
+if [[ -n "$CF_ENV_NIC_COUNT" ]]; then
+    echo "nic_count = ${CF_ENV_NIC_COUNT}" >> ${tf_vars_file}
+fi
+
 # supported actions: create, delete, show
 if [[ ${action} == "create" ]]; then
     ${tf_command} init ${script_location}/terraform/${environment}

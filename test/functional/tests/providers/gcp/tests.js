@@ -214,31 +214,35 @@ describe('Provider: GCP', () => {
                 region: deploymentInfo.region,
                 zone: deploymentInfo.zone
             };
-            return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+            return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password);
         })
         .then((data) => {
             const uri = '/mgmt/tm/net/self';
             dutPrimary.authData = data;
             const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
+            options.port = dutPrimary.port;
             return utils.makeRequest(dutPrimary.ip, uri, options);
         })
         .then((data) => {
             primarySelfIps = data.items.map(i => i.address.split('/')[0]);
-            return utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password);
+            return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password);
         })
         .then(() => {
             const uri = '/mgmt/tm/ltm/virtual-address';
             const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
+            options.port = dutPrimary.port;
             return utils.makeRequest(dutPrimary.ip, uri, options);
         })
         .then((data) => {
             virtualAddresses = data.items.map(i => i.address.split('/')[0]);
         })
-        .then(() => utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password))
+        .then(() => utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username,
+            dutSecondary.password))
         .then((data) => {
             dutSecondary.authData = data;
             const uri = '/mgmt/tm/net/self';
             const options = funcUtils.makeOptions({ authToken: dutSecondary.authData.token });
+            options.port = dutSecondary.port;
             return utils.makeRequest(dutSecondary.ip, uri, options);
         })
         .then((data) => {
@@ -325,7 +329,7 @@ describe('Provider: GCP', () => {
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('should check network interface alias IP(s) contains virtual addresses (secondary)', function () {
@@ -360,7 +364,7 @@ describe('Provider: GCP', () => {
     ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     // it('should wait 30 seconds after force standby', () => new Promise(
@@ -404,7 +408,8 @@ describe('Provider: GCP', () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -413,7 +418,7 @@ describe('Provider: GCP', () => {
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('wait until taskState is running on standby BIG-IP', function () {
@@ -425,7 +430,8 @@ describe('Provider: GCP', () => {
                 {
                     taskState: constants.FAILOVER_STATES.RUN,
                     authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname
+                    hostname: dutSecondary.hostname,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -434,7 +440,7 @@ describe('Provider: GCP', () => {
     });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('wait until taskState is success on primary BIG-IP', function () {
@@ -446,7 +452,8 @@ describe('Provider: GCP', () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -513,7 +520,8 @@ describe('Provider: GCP', () => {
                 });
             })
             .then(() => funcUtils.getInspectStatus(dutPrimary.ip, {
-                authToken: dutPrimary.authData.token
+                authToken: dutPrimary.authData.token,
+                port: dutPrimary.port
             }))
             .then((data) => {
                 assert.deepStrictEqual(data.instance, expectedResult.instance);
@@ -553,7 +561,8 @@ describe('Provider: GCP', () => {
             })
             .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
                 {
-                    authToken: dutSecondary.authData.token
+                    authToken: dutSecondary.authData.token,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert.deepStrictEqual(data.instance, expectedResult.instance);
