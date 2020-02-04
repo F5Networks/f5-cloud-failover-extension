@@ -127,12 +127,13 @@ module.exports = {
      * Get auth token
      *
      * @param {String} host     - host
+     * @param {String} port     - port
      * @param {String} username - username
      * @param {String} password - password
      *
      * @returns {Promise} Returns promise resolved with auth token: { token: 'token' }
      */
-    getAuthToken(host, username, password) {
+    getAuthToken(host, port, username, password) {
         const uri = '/mgmt/shared/authn/login';
         const body = this.stringify({
             username,
@@ -140,6 +141,7 @@ module.exports = {
             loginProviderName: 'tmos'
         });
         const postOptions = {
+            port,
             method: 'POST',
             body
         };
@@ -156,13 +158,15 @@ module.exports = {
      * Query installed ILX packages
      *
      * @param {String} host      - host
+     * @param {String} port      - port
      * @param {String} authToken - auth token
      *
      * @returns {Promise} Returns promise resolved upon completion
      */
-    queryPackages(host, authToken) {
+    queryPackages(host, port, authToken) {
         const opts = {
             HOST: host,
+            PORT: port,
             AUTH_TOKEN: authToken,
             // below should not be required, there is a bug in icrdk
             // https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/lib/util.js#L322
@@ -185,14 +189,16 @@ module.exports = {
      * Install ILX package
      *
      * @param {String} host      - host
+     * @param {String} port      - port
      * @param {String} authToken - auth token
      * @param {String} file      - local file (RPM) to install
      *
      * @returns {Promise} Returns promise resolved upon completion
      */
-    installPackage(host, authToken, file) {
+    installPackage(host, port, authToken, file) {
         const opts = {
             HOST: host,
+            PORT: port,
             AUTH_TOKEN: authToken
         };
 
@@ -215,14 +221,16 @@ module.exports = {
      * Uninstall ILX package
      *
      * @param {String} host      - host
+     * @param {String} port      - port
      * @param {String} authToken - auth token
      * @param {String} pkg       - package to remove from device
      *
      * @returns {Promise} Returns promise resolved upon completion
      */
-    uninstallPackage(host, authToken, pkg) {
+    uninstallPackage(host, port, authToken, pkg) {
         const opts = {
             HOST: host,
+            PORT: port,
             AUTH_TOKEN: authToken
         };
 

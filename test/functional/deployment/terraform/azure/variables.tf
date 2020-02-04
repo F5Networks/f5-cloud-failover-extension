@@ -30,3 +30,7 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
+variable "nic_count" {
+  description = "Control whether or not 1nic resource should be used"
+  default     = 3
+}

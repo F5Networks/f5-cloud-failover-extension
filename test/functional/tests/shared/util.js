@@ -29,6 +29,7 @@ module.exports = {
         const hosts = require(deploymentFile).instances.map((item) => {
             item = {
                 ip: item.mgmt_address,
+                port: item.mgmt_port,
                 username: item.admin_username,
                 password: item.admin_password,
                 primary: item.primary,
@@ -105,7 +106,6 @@ module.exports = {
      */
     makeOptions(options) {
         options = options || {};
-
         const retOptions = {};
         if (options.authToken) {
             retOptions.headers = {
@@ -119,15 +119,15 @@ module.exports = {
      * Force a BIG-IP standby
      *
      * @param {String} host     - host address
+     * @param {String} port     - port
      * @param {String} username - host username
      * @param {String} password - host password
      *
      * @returns {Promise}
      */
-    forceStandby(host, username, password) {
+    forceStandby(host, port, username, password) {
         const uri = '/mgmt/tm/sys/failover';
-
-        return utils.getAuthToken(host, username, password)
+        return utils.getAuthToken(host, port, username, password)
             .then((data) => {
                 const options = this.makeOptions({ authToken: data.token });
                 options.method = 'POST';
@@ -135,6 +135,7 @@ module.exports = {
                     command: 'run',
                     standby: true
                 };
+                options.port = port;
                 return utils.makeRequest(host, uri, options);
             })
             .catch(err => Promise.reject(err));
@@ -146,6 +147,7 @@ module.exports = {
      * @param {String}  host                - host address
      * @param {Object}  options             - function options
      * @param {String} [options.authToken]  - Authentication token
+     * @param {String} [options.port]       - port
      * @param {String} [options.hostname]   - hostname
      * @param {String} [options.taskState]  - taskState to check against, use this or taskStates
      * @param {Array} [options.taskStates]  - taskStates to check against, use this or taskState
@@ -160,6 +162,7 @@ module.exports = {
 
         const httpOptions = this.makeOptions({ authToken: options.authToken });
         httpOptions.method = 'GET';
+        httpOptions.port = options.port;
         return utils.makeRequest(host, uri, httpOptions)
             .then((data) => {
                 if (taskStates.indexOf(data.taskState) === -1
@@ -174,9 +177,10 @@ module.exports = {
     /**
      * Get request to the inspect endpoint of a BIG-IP
      *
-     * @param {String}  host                - host address
-     * @param {Object}  options             - function options
-     * @param {String} [options.authToken]  - Authentication token
+     * @param {String}  host                  - host address
+     * @param {Object}  options               - function options
+     * @param {Object}  [options.port]        - port
+     * @param {String}  [options.authToken]   - Authentication token
      *
      * @returns {Promise}
      */
@@ -185,6 +189,7 @@ module.exports = {
         options = options || {};
         const httpOptions = this.makeOptions({ authToken: options.authToken });
         httpOptions.method = 'GET';
+        httpOptions.port = options.port;
         return utils.makeRequest(host, uri, httpOptions);
     }
 };

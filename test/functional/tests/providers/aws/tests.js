@@ -79,8 +79,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
 
         return Promise.all([
-            utils.getAuthToken(dutPrimary.ip, dutPrimary.username, dutPrimary.password),
-            utils.getAuthToken(dutSecondary.ip, dutSecondary.username, dutSecondary.password)
+            utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password),
+            utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password)
         ])
             .then((results) => {
                 dutPrimary.authData = results[0];
@@ -269,7 +269,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     });
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     // Test IP and Route failover
@@ -288,7 +288,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('should check that Elastic IP is mapped to secondary (vm1)', function () {
@@ -315,7 +315,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname
+                    hostname: dutSecondary.hostname,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -324,7 +325,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     });
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('should check that Elastic IP is mapped to primary (vm0)', function () {
@@ -352,7 +353,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -361,7 +363,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.username, dutPrimary.password
+        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
     it('wait until taskState is running (or succeeded) on standby BIG-IP', function () {
@@ -382,7 +384,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.username, dutSecondary.password
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
     it('wait until taskState is success on primary BIG-IP', function () {
@@ -449,7 +451,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             })
             .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
                 {
-                    authToken: dutPrimary.authData.token
+                    authToken: dutPrimary.authData.token,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert.deepStrictEqual(data.instance, expectedResult.instance);
@@ -487,7 +490,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             })
             .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
                 {
-                    authToken: dutSecondary.authData.token
+                    authToken: dutSecondary.authData.token,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert.deepStrictEqual(data.instance, expectedResult.instance);

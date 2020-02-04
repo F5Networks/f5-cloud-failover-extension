@@ -32,19 +32,21 @@ const exampleDeclaration = require('./shared/exampleDeclaration.json');
 clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
         const dutHost = dut.ip;
+        const dutPort = dut.port;
         const dutUser = dut.username;
         const dutPassword = dut.password;
 
         let authToken = null;
         let options = {};
 
-        before(() => utils.getAuthToken(dutHost, dutUser, dutPassword)
+        before(() => utils.getAuthToken(dutHost, dutPort, dutUser, dutPassword)
             .then((data) => {
                 authToken = data.token;
                 options = {
                     headers: {
                         'x-f5-auth-token': authToken
-                    }
+                    },
+                    port: dutPort
                 };
             }));
         beforeEach(() => {
@@ -57,19 +59,19 @@ clusterMembers.forEach((dut) => {
 
         it('should uninstall package (if exists)', () => {
             const packageName = constants.PKG_NAME;
-            return utils.queryPackages(dutHost, authToken)
+            return utils.queryPackages(dutHost, dutPort, authToken)
                 .then((data) => {
                     data = data.queryResponse || [];
                     return Promise.resolve(data.filter(pkg => pkg.packageName.includes(packageName)));
                 })
                 .then(pkgs => Promise.all(pkgs
-                    .map(pkg => utils.uninstallPackage(dutHost, authToken, pkg.packageName))))
+                    .map(pkg => utils.uninstallPackage(dutHost, dutPort, authToken, pkg.packageName))))
                 .catch(err => Promise.reject(err));
         });
 
         it(`should install package: ${packageFile}`, () => {
             const fullPath = `${packagePath}/${packageFile}`;
-            return utils.installPackage(dutHost, authToken, fullPath)
+            return utils.installPackage(dutHost, dutPort, authToken, fullPath)
                 .catch(err => Promise.reject(err));
         });
 
@@ -146,10 +148,11 @@ clusterMembers.forEach((dut) => {
 });
 
 describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () => {
+    const dutPort = duts.filter(dut => dut.port)[0].port;
     before(() => {
         const promises = [];
         clusterMembers.forEach((member) => {
-            promises.push(utils.getAuthToken(member.ip, member.username, member.password)
+            promises.push(utils.getAuthToken(member.ip, member.port, member.username, member.password)
                 .then((authToken) => {
                     member.authToken = authToken.token;
                 })
@@ -179,9 +182,9 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                     'x-f5-auth-token': host.authToken
                 },
                 method: 'POST',
+                port: dutPort,
                 body: modifiedBody
             };
-
             return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
                 .then((data) => {
                     assert.strictEqual(data.message, 'success');
@@ -196,7 +199,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
             const options = {
                 headers: {
                     'x-f5-auth-token': host.authToken
-                }
+                },
+                port: dutPort
             };
 
             return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
@@ -218,7 +222,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                     'x-f5-auth-token': host.authToken
                 },
                 method: 'POST',
-                body: originalBody
+                body: originalBody,
+                port: dutPort
             };
 
             return utils.makeRequest(host.ip, constants.DECLARE_ENDPOINT, options)
