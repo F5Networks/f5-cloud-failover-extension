@@ -11,7 +11,7 @@ Failover Event Diagram
 
 This diagram shows a failover event with Cloud Failover implemented in Google Cloud. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/gcp/GCPFailoverExtensionHighLevel.gif
+.. image:: ../images/gcp/gcp-diagram.gif
   :width: 800
 
 |

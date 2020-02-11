@@ -20,7 +20,7 @@ In the event of a failover between BIG-IP systems, BIG-IP fails a traffic group 
 The diagram below shows a typical failover scenario for an active/standby pair of BIG-IPs in an :ref:`azure` cloud environment. To see how Cloud Failover Extension works in other cloud environments, see the corresponding sections for :ref:`aws` and :ref:`gcp`.
 
 
-.. image:: images/azure/AzureFailoverExtensionHighLevel.gif
+.. image:: images/cfe-diagram.gif
   :width: 800
 
 |
