@@ -37,17 +37,15 @@ These are the requirements for setting up Cloud Failover in Microsoft Azure. Mor
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
 - **An Azure system-assigned or user-managed identity with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for :ref:`azure-msi`. Read more about managed identities |managed-identity|.
-- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging a :ref:`azure-storage`.
+- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value you provide in the `externalStorage.scopingTags` section of the CFE declaration. See the instructions below for tagging a :ref:`azure-storage`.
   
   .. IMPORTANT:: Ensure the required storage accounts do not have public access.
 
-- **Network Interfaces** that are tagged with a key and value corresponding to the key and value provided in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
 - **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
-- **Route(s) in a route table tagged with:**
+- **Key Tags and Value Tags**
 
-  - a key tag and a value tag that corresponds to the key and value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
-
-  See :ref:`azure-udrtagging` for more information.
+  - Route tags: a key/value pair that corresponds to the key/value you provide in the `failoverRoutes.scopingTags` section of the CFE declaration. See :ref:`azure-udrtagging` for more information.
+  - NIC tags: a key/value pair that corresponds to the key/value you provide in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for tagging :ref:`azure-nictagging`.
 
 - **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below for :ref:`azure-ism`.
 
