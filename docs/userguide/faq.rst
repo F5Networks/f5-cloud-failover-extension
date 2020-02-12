@@ -90,6 +90,13 @@ Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` 
 
 |
 
+**Do I always have to tag my resources?**
+
+Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE declaration.
+
+
+|
+
 
 **How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?**
 
