@@ -486,21 +486,20 @@ class Cloud extends AbstractCloud {
                 this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
             }
             // identify 'my' and 'their' nics
-            nic.ipConfigurations.forEach((ipConfiguration) => {
-                localAddresses.forEach((address) => {
-                    if (ipConfiguration.privateIPAddress === address) {
-                        if (myNics.indexOf(nic) === -1) {
-                            myNics.push({ nic });
-                        }
-                    }
-                });
-                failoverAddresses.forEach((address) => {
-                    if (ipConfiguration.privateIPAddress === address) {
-                        if (theirNics.indexOf(nic) === -1) {
-                            theirNics.push({ nic });
-                        }
-                    }
-                });
+            const nicAddresses = nic.ipConfigurations.map(i => i.privateIPAddress);
+            localAddresses.forEach((address) => {
+                const myNicIds = myNics.map(i => i.nic.id);
+                if (nicAddresses.indexOf(address) !== -1
+                    && myNicIds.indexOf(nic.id) === -1) {
+                    myNics.push({ nic });
+                }
+            });
+            failoverAddresses.forEach((address) => {
+                const theirNicIds = theirNics.map(i => i.nic.id);
+                if (nicAddresses.indexOf(address) !== -1
+                    && theirNicIds.indexOf(nic.id) === -1) {
+                    theirNics.push({ nic });
+                }
             });
         });
         // remove any nics from 'their' array if they are also in 'my' array

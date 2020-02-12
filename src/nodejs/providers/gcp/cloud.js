@@ -285,6 +285,8 @@ class Cloud extends AbstractCloud {
 
         return this.storage.getBuckets()
             .then((data) => {
+                this.logger.silly(`getBuckets response: ${util.stringify(data)}`);
+
                 const promises = [];
                 data[0].forEach((bucket) => {
                     promises.push(getBucketLabels(bucket));
@@ -292,6 +294,8 @@ class Cloud extends AbstractCloud {
                 return Promise.all(promises);
             })
             .then((buckets) => {
+                this.logger.silly(`buckets: ${util.stringify(buckets)}`);
+
                 const labelKeys = Object.keys(labels);
                 const filteredBuckets = buckets.filter((bucket) => {
                     let matchedTags = 0;
@@ -305,7 +309,7 @@ class Cloud extends AbstractCloud {
                     });
                     return labelKeys.length === matchedTags;
                 });
-                if (!filteredBuckets) {
+                if (!filteredBuckets || filteredBuckets.length === 0) {
                     return Promise.reject(new Error(`filteredBuckets is empty: ${filteredBuckets}`));
                 }
                 return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
