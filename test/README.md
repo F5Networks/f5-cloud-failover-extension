@@ -33,48 +33,25 @@ Best Practices:
 
 It is somewhat implied that running the functional tests requires a runtime (BIG-IP, container, etc.) to deploy the iLX extension, consumers, etc.  The current methodology is to deploy and subsequently teardown the runtime every time functional tests are run, with the understanding that functional tests will be run less frequently than unit tests.
 
+To do automated environment creation this project makes use of `automation-sdk/deployment-tool`, please see that repository for more information.
+
 #### Manual Environment Setup
 
-Creating an environment manually using the same methodology as automated tests is entirely acceptable, in fact it is anticipated for development.  Below describes the commands to setup/teardown an environment.
-
-Prereq:
-
-- Terraform 0.12+
-- Python 3.7+ (will create a virtual environment)
-    - f5-cli package
-- Login to cloud provider CLI (TF uses the files each CLI lays down for authentication) - `az login`, `aws configure`, `gcloud auth application-default login`
-
-Select Environment: 
-
-- `export CF_ENV_CLOUD=azure` (azure, aws, gcp)
-    - Note: If deploying into GCP the following environment variable needs to also be set - `export GOOGLE_PROJECT_ID=my_project_id`
-
-Create:
-
-- `npm run deployment-create`
-
-Delete:
-
-- `npm run deployment-delete`
-
-Note: Running terraform commands may require sudo in certain environments, set the following environment variable if necessary - `export USE_SUDO=true`
+Creating an environment manually using the same methodology as automated tests is entirely acceptable, in fact it is anticipated for development.  For more information, including usage, please see the `automation-sdk/deployment-tool` repository.
 
 #### Quick Environment Setup
 
-Creating and configuration of the environment can be done quickly using this command. It builds the cloud failover extension RPM locally, creates the deployment and installs the RPM in the newly created deployment and runs all the functional tests. Once the command has executed look for the `deployment-info.json` file to find the information about the BIG-IPs and its IP address to access them.
+Creation and configuration of the environment can be done quickly using the below instructions. It builds the cloud failover extension RPM locally, creates the deployment, installs the RPM in the newly created deployment and runs all the functional tests. Once the command has executed look for the `deployment-info.json` file for information about the deployment, including access.
 
-Prereq: 
+Prereqs:
 
-- See Manual Environment Setup prereqs
+- The `automation-sdk/deployment-tool` MUST be cloned to the same parent folder
+- Prereqs declared in the `automation-sdk/deployment-tool` documentation MUST be met
+- Environment Variable `CF_ENV_CLOUD` MUST be set (azure, aws, gcp)
 
-Select Environment: 
-
-- See Manual Environment Setup, Select Environment section
-
-Setup
+Execute:
 
 - `npm run deployment-setup`
-
 
 ## Misc Notes
 

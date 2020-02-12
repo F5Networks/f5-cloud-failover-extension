@@ -731,24 +731,24 @@ describe('Provider - AWS', () => {
             }
         ];
         const localAddresses = ['1.2.3.4'];
-        const failoverAddresses = ['10.10.10.10'];
+        const failoverAddresses = ['10.10.10.10', '10.10.10.11'];
 
         beforeEach(() => {
             actualParams = {
                 assign: {
-                    private: null,
-                    public: null
+                    private: [],
+                    public: []
                 },
                 unassign: {
-                    private: null,
-                    public: null
+                    private: [],
+                    public: []
                 }
             };
             return provider.init(mockInitData)
                 .then(() => {
                     provider.ec2.unassignPrivateIpAddresses = sinon.stub()
                         .callsFake((params) => {
-                            actualParams.unassign.private = params;
+                            actualParams.unassign.private.push(params);
                             return {
                                 promise() {
                                     return Promise.resolve();
@@ -757,7 +757,7 @@ describe('Provider - AWS', () => {
                         });
                     provider.ec2.assignPrivateIpAddresses = sinon.stub()
                         .callsFake((params) => {
-                            actualParams.assign.private = params;
+                            actualParams.assign.private.push(params);
                             return {
                                 promise() {
                                     return Promise.resolve();
@@ -766,7 +766,7 @@ describe('Provider - AWS', () => {
                         });
                     provider.ec2.disassociateAddress = sinon.stub()
                         .callsFake((params) => {
-                            actualParams.unassign.public = params;
+                            actualParams.unassign.public.push(params);
                             return {
                                 promise() {
                                     return Promise.resolve();
@@ -775,7 +775,7 @@ describe('Provider - AWS', () => {
                         });
                     provider.ec2.associateAddress = sinon.stub()
                         .callsFake((params) => {
-                            actualParams.assign.public = params;
+                            actualParams.assign.public.push(params);
                             return {
                                 promise() {
                                     return Promise.resolve();
@@ -812,6 +812,11 @@ describe('Provider - AWS', () => {
                                 Association: {
                                     PublicIp: '2.2.2.2'
                                 }
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.11',
+                                Association: {}
                             }
                         ],
                         TagSet: nicsTagSet
@@ -843,17 +848,22 @@ describe('Provider - AWS', () => {
 
             return provider.updateAddresses({ localAddresses, failoverAddresses })
                 .then(() => {
+                    // assert correct unassign/assign call count
+                    assert.strictEqual(actualParams.unassign.private.length, 1);
+                    assert.strictEqual(actualParams.assign.private.length, 1);
+                    assert.strictEqual(actualParams.assign.public.length, 1);
+
                     // assert private address gets reassociated properly
-                    assert.deepEqual(actualParams.unassign.private, { NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.10'] });
-                    assert.deepEqual(actualParams.assign.private, { NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.10'] });
+                    assert.deepStrictEqual(actualParams.unassign.private, [{ NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
+                    assert.deepStrictEqual(actualParams.assign.private, [{ NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
                     // assert public address gets reassociated properly
-                    assert.deepEqual(actualParams.unassign.public, { AssociationId: 'association-id' });
-                    assert.deepEqual(actualParams.assign.public, {
+                    assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
+                    assert.deepStrictEqual(actualParams.assign.public, [{
                         AllocationId: 'allocation-id',
                         NetworkInterfaceId: 'eni-1',
                         PrivateIpAddress: '10.10.10.10',
                         AllowReassociation: true
-                    });
+                    }]);
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -916,13 +926,13 @@ describe('Provider - AWS', () => {
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     // assert public address gets reassociated properly
-                    assert.deepEqual(actualParams.unassign.public, { AssociationId: 'association-id' });
-                    assert.deepEqual(actualParams.assign.public, {
+                    assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
+                    assert.deepStrictEqual(actualParams.assign.public, [{
                         AllocationId: 'allocation-id',
                         NetworkInterfaceId: 'eni-1',
                         PrivateIpAddress: '10.10.10.10',
                         AllowReassociation: true
-                    });
+                    }]);
                 })
                 .catch(err => Promise.reject(err));
         });

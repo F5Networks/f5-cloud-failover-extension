@@ -768,6 +768,8 @@ class Cloud extends AbstractCloud {
     /**
     * Parse Nics - figure out which nics are 'mine' vs. 'theirs'
     *
+    * Note: This function should ensure no duplicate nics are added
+    *
     * @param {Object} nics              - nics
     * @param {Object} localAddresses    - local addresses
     * @param {Object} failoverAddresses - failover addresses
@@ -780,21 +782,20 @@ class Cloud extends AbstractCloud {
         // add nics to 'mine' or 'their' array based on address match
         nics.forEach((nic) => {
             // identify 'my' and 'their' nics
-            nic.PrivateIpAddresses.forEach((ipConfiguration) => {
-                localAddresses.forEach((address) => {
-                    if (ipConfiguration.PrivateIpAddress === address) {
-                        if (myNics.indexOf(nic) === -1) {
-                            myNics.push({ nic });
-                        }
-                    }
-                });
-                failoverAddresses.forEach((address) => {
-                    if (ipConfiguration.PrivateIpAddress === address) {
-                        if (theirNics.indexOf(nic) === -1) {
-                            theirNics.push({ nic });
-                        }
-                    }
-                });
+            const nicAddresses = nic.PrivateIpAddresses.map(i => i.PrivateIpAddress);
+            localAddresses.forEach((address) => {
+                const myNicIds = myNics.map(i => i.nic.NetworkInterfaceId);
+                if (nicAddresses.indexOf(address) !== -1
+                    && myNicIds.indexOf(nic.NetworkInterfaceId) === -1) {
+                    myNics.push({ nic });
+                }
+            });
+            failoverAddresses.forEach((address) => {
+                const theirNicIds = theirNics.map(i => i.nic.NetworkInterfaceId);
+                if (nicAddresses.indexOf(address) !== -1
+                    && theirNicIds.indexOf(nic.NetworkInterfaceId) === -1) {
+                    theirNics.push({ nic });
+                }
             });
         });
         // remove any nics from 'their' array if they are also in 'my' array

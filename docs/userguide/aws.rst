@@ -53,13 +53,14 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
     - a key/value that corresponds to the key/value(s) in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration.
     - a special key called ``f5_cloud_failover_nic_map``. This key is a NIC mapping tag where the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
 
-  - Disable the built-in script (/usr/libexec/aws/aws-failover-tgactive.sh) from a BIG-IP shell, either manually or using automation:
+  - Disable the built-in scripts (/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh) from a BIG-IP shell, either manually or using automation:
 
     .. code-block:: bash
 
       mount -o remount,rw /usr
       mv /usr/libexec/aws/aws-failover-tgactive.sh /usr/libexec/aws/aws-failover-tgactive.sh.disabled
-      mount -o remount,ro /us
+      mv /usr/libexec/aws/aws-failover-tgrefresh.sh /usr/libexec/aws/aws-failover-tgrefresh.sh.disabled
+      mount -o remount,ro /usr
 
 - **If provisioning Across Network Topology, you will need to**:
 
