@@ -38,7 +38,7 @@ These are the minimum requirements for setting up Cloud Failover in AWS:
 - **An AWS Identity and Access Management (IAM) role with sufficient access**. See the instructions below for :ref:`aws-iam`.
 - **Create an S3 bucket for Cloud Failover Extension cluster-wide file(s)**. Then add tags for a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration. To read more about tagging AWS resources, see |awstagging|.
 
-  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
+  .. IMPORTANT:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access.
 
 - **Route(s) in a route table** tagged with:
     - a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
