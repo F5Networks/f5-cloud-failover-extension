@@ -1,7 +1,7 @@
 .. _example-declarations:
 
-Example Declarations
-====================
+Additional Declarations
+=======================
 
 Route Failover Using Route Tags
 -------------------------------
