@@ -204,7 +204,7 @@ Using Declarative Onboarding
 
 .. |armtemplate| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-lb/3nic/existing-stack/byol" target="_blank">here</a>
+   <a href="https://github.com/F5Networks/f5-azure-arm-templates/tree/master/supported/failover/same-net/via-api/n-nic/existing-stack/payg" target="_blank">here</a>
 
 
 .. |managed-identity| raw:: html

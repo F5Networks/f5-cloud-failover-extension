@@ -12,8 +12,8 @@ Document Revision History
         - Date
 
       * - 1.2
-        - Updated the documentation with the following changes: |br| * Added information about :ref:`gcp-routes`.
-        - 01-xx-20
+        - Updated the documentation with the following changes: |br| * Added information about :ref:`gcp-routes`. |br| * Updated ARM template link for :ref:`azure`. |br| * Updated all diagrams. |br| * Added a section explaining the :ref:`declaration-components`.
+        - 02-xx-20
 
       * - 1.1
         - Updated the documentation for Cloud Failover Extension v1.0.0. This release contains the following changes: |br| * IPv6 route failover is now supported for AWS. |br| * Added example declaration for AWS IPv6 route failover (see :ref:`example-declarations`). |br| * Updated AWS requirements to distinguish between same network and across network topologies (see :ref:`aws`). |br| * Added RBAC role definition for Azure (see :ref:`azure-rbac`). |br| * Added an example declaration for AWS that includes IAM roles (see :ref:`aws-iam`). |br| * Added steps for creating and assigning an IAM Role for Google Cloud (see :ref:`gcp-iam`). |br| * Added information about :ref:`logging-ref`.  |br| * Updated the :ref:`faq`.

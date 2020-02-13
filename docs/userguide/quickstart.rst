@@ -168,9 +168,8 @@ The next lines of the declaration set the failover addresses.
 
 Failover Routes
 ```````````````
-The next lines of the declaration sets the failover routes. The scoping address range filters down which route tables and which specific routes in the route table should have the next hop address updated. The scoping address ranges should match the CIDR blocks of any routes where the next hop address should
+The next lines of the declaration sets the failover routes. The scoping address range filters down which route tables and which specific routes in the route table should have the next hop address updated. The scoping address ranges should match the CIDR blocks of any routes that you want to follow the active BIG-IP.
 
-any routes that you want updated to follow the active BIG-IP.
 
 .. code-block:: json
    :linenos:
@@ -221,6 +220,7 @@ any routes that you want updated to follow the active BIG-IP.
 
 |
 
+.. NOTE:: To provide feedback on this documentation, you can file a |issue|.
 
 
 .. |github| raw:: html
@@ -231,4 +231,9 @@ any routes that you want updated to follow the active BIG-IP.
 .. |known-issues| raw:: html
 
    <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
+
+
+.. |issue| raw:: html
+
+   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
 
