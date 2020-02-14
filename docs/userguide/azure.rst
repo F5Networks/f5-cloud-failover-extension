@@ -194,7 +194,7 @@ Using Declarative Onboarding
 
 |
 
-.. NOTE:: To provide feedback on this documentation, you can file a |issue|.
+.. include:: /_static/reuse/feedback.rst
 
 
 .. |github| raw:: html
@@ -210,8 +210,3 @@ Using Declarative Onboarding
 .. |managed-identity| raw:: html
 
    <a href="https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview" target="_blank">here</a>
-
-
-.. |issue| raw:: html
-
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
