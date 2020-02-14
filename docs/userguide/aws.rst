@@ -188,7 +188,7 @@ Below is an example F5 policy that includes IAM roles.
 |
 
 
-.. NOTE:: To provide feedback on this documentation, you can file a |issue|.
+.. include:: /_static/reuse/feedback.rst
 
 
 
@@ -199,11 +199,6 @@ Below is an example F5 policy that includes IAM roles.
 .. |cloudformation| raw:: html
 
    <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">here</a>
-
-
-.. |issue| raw:: html
-
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
 
 
 .. |s3bucket| raw:: html

@@ -39,3 +39,6 @@ You set the log level in the controls class. To see more information about editi
    :emphasize-lines: 31-33
 
 :fonticon:`fa fa-download` :download:`settingLogLevel.json <../../examples/declarations/settingLogLevel.json>`
+
+
+.. include:: /_static/reuse/feedback.rst

@@ -111,8 +111,7 @@ After you uninstall, you can use the above steps to import the RPM for the versi
 
 |
 
-.. _hash-ref:
-
+.. include:: /_static/reuse/feedback.rst
 
 
 

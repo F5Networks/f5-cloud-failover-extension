@@ -161,7 +161,7 @@ In Google Cloud, routes are associated with virtual machine instances by a tag, 
 
 |
 
-.. NOTE:: To provide feedback on this documentation, you can file a |issue|.
+.. include:: /_static/reuse/feedback.rst
 
 
 .. |github| raw:: html
@@ -171,10 +171,6 @@ In Google Cloud, routes are associated with virtual machine instances by a tag, 
 .. |gdmtemplate| raw:: html
 
    <a href="https://github.com/F5Devcentral/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
-
-.. |issue| raw:: html
-
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
 
 
 .. |gcp-using-routes| raw:: html
