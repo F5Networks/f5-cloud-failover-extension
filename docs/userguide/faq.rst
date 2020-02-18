@@ -36,7 +36,6 @@ Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent
 
 -  A javascript |ilx| plug-in
 -  A |declare| interface for configuring Cloud Failover on BIG-IP
--  |atomic| (CFE declarations)
 
 *but it is NOT:*
 
@@ -88,7 +87,7 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 Does CFE support IPv6?
 ``````````````````````
 
-- IPv6 route failover is currently supported for AWS only. To see an example declaration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
+- IPv6 route failover is currently supported for AWS only. To see an example confguration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
 - IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
 
 
@@ -137,7 +136,7 @@ Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` 
 Do I always have to tag my resources?
 `````````````````````````````````````
 
-Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE declaration.
+Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE configuration.
 
 
 -----------------------------------------
@@ -219,6 +218,16 @@ Why does CFE no longer default to a tag on the route for next hop address discov
 ````````````````````````````````````````````````````````````````````````````````````
 
 Specifying the `f5_self_ips` tag on the route object itself creates a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform. For backwards compatability this option is still available, however, F5 recommends alternate approaches, such as providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload. See :ref:`example-declarations` for an example using the original route tag discovery method.
+
+
+-----------------------------------------
+
+.. _faq-persistent-config:
+
+Does CFE configuration persist after a reboot?
+````````````````````````````````````````````````````````````````````````````````````
+
+Yes, when configuration is provided using the CFE `declare` API endpoint it will be saved to the persistent BIG-IP configuration store which is loaded on reboot.
 
 
 -----------------------------------------

@@ -294,6 +294,21 @@ class Device {
                 logger.silly(`Creating new data group ${name} with body ${util.stringify(body)}`);
                 return this.bigip.create(DATA_GROUP_URI, body);
             })
+            .then(() => this.saveConfig())
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Save configuration (running)
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    saveConfig() {
+        const body = {
+            command: 'save'
+        };
+
+        return this.bigip.create('/tm/sys/config', body)
             .catch(err => Promise.reject(err));
     }
 

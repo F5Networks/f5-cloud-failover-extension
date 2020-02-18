@@ -208,7 +208,7 @@ test_functional_init_gcp:
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}/. .
         # executing fuctional test
-        - validate npm run test-functional
+        - validate npm run functional-test
         # run API smoke tests
         - validate npm run validate-api
     tags:

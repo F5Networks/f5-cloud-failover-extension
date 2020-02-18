@@ -18,7 +18,7 @@ Best practices:
 
 ## Functional
 
-All functional tests reside inside the ```functional``` folder and are run using ```npm run test-functional``` from the repository root.
+All functional tests reside inside the ```functional``` folder and are run using ```npm run functional-test``` from the repository root.
 
 Prereqs:
 
