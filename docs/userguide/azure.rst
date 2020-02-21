@@ -3,24 +3,71 @@
 Azure
 =====
 
-In this section, you can see a failover event diagram, example declaration, requirements, and tasks for implementing Cloud Failover in Microsoft Azure. 
+In this section, you will see the complete steps for implementing Cloud Failover Extension in Microsoft Azure. You can also go straight to the :ref:`azure-example`.
 
+.. _azure-prereqs:
+
+Azure CFE Prerequisites
+-----------------------
+These are the basic prerequisites for setting up CFE in Microsoft Azure.
+
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
+- **Virtual addresses** created in a floating traffic group and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
+- **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below to :ref:`azure-ims`.
+
+|
+
+Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+
+.. table:: Task Summary
+
+   =======  ===================================================================
+   Step     Task
+   =======  ===================================================================
+   1.       :ref:`download-rpm`
+
+            - :ref:`verify-rpm`
+
+   2.       :ref:`upload-install`
+
+            - :ref:`installgui-ref` (or)
+            - :ref:`installcurl-ref`
+
+   3.       :ref:`azure-msi`
+   4.       :ref:`azure-tag-objects`
+
+            - :ref:`azure-storage`
+            - :ref:`azure-nictagging`
+            - :ref:`azure-udrtagging`
+
+   5.       :ref:`azure-ims`
+   6.       Modify and POST the :ref:`azure-example`
+   7.       :ref:`update-revert`
+   =======  ===================================================================
+
+
+
+
+
+.. _azure-diagram:
 
 Failover Event Diagram
 ----------------------
 
-This diagram shows a failover event with Cloud Failover implemented in Microsoft Azure. IP configuration(s) with a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP are deleted and recreated on that device's network interface(s). User-defined routes with a destination and parent route table with tags matching the Failover Extension configuration are updated with a next hop attribute that corresponds to the self-IP address of the active BIG-IP.
+The following diagram shows a failover event with CFE implemented in Microsoft Azure with an HA pair in an Active/Standby configuration.
+
+In the diagram, the IP configuration has a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP. In the event of a failover, the IP configuration is deleted and recreated on that device's network interface. Simultaneously, the user-defined routes are updated with a next hop attribute the corresponds to the self IP address of the active BIG-IP.
 
 
-.. image:: ../images/azure/AzureFailoverExtensionHighLevel.gif
+.. image:: ../images/azure/azure-diagram.gif
   :width: 800
 
 |
 
 .. _azure-example:
 
-Example Declaration
--------------------
+Example Azure Declaration
+-------------------------
 This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. literalinclude:: ../../examples/declarations/azure.json
@@ -31,84 +78,13 @@ This example declaration shows the minimum information needed to update the clou
 
 |
 
-Requirements
-------------
-These are the requirements for setting up Cloud Failover in Microsoft Azure. More information is provided in the sections below.
-
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
-- **An Azure system-assigned or user-managed identity with sufficient access**. This should be limited to the appropriate resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. See the instructions below for :ref:`azure-msi`. Read more about managed identities |managed-identity|.
-- **A storage account for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair corresponding to the key/value you provide in the `externalStorage.scopingTags` section of the CFE declaration. See the instructions below for tagging a :ref:`azure-storage`.
-  
-  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
-- **Virtual addresses** created in a traffic group (floating) and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
-- **Key Tags and Value Tags**
-
-  - Route tags: a key/value pair that corresponds to the key/value you provide in the `failoverRoutes.scopingTags` section of the CFE declaration. See :ref:`azure-udrtagging` for more information.
-  - NIC tags: a key/value pair that corresponds to the key/value you provide in the `failoverAddresses.scopingTags` section of the CFE declaration. See the instructions below for tagging :ref:`azure-nictagging`.
-
-- **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below for :ref:`azure-ism`.
-
-|
-
-Tagging Azure Network Infrastructure Objects
---------------------------------------------
-
-Tag your infrastructure with the the labels/value or keys that you send in your declaration.
-
-
-.. _azure-nictagging:
-
-Network Interfaces
-``````````````````
-For address failover you need to create two distinct tags:
-
-- Deployment scoping tag: the key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``. 
-- NIC mapping tag: the key is static but the value is user-provided and must match the corresponding NIC on the secondary BIG-IP. For example, ``f5_cloud_failover_nic_map:<your value>``.
-
-Within Azure, go to **NIC > Tags** to add two new tags.
-
-
-In the example below, each external traffic NIC on both BIG-IP systems is tagged with:
-
-- Name: ``f5_cloud_failover_label``, Value: ``mydeployment``
-- Name: ``f5_cloud_failover_nic_map``, Value: ``external``
-
-
-.. image:: ../images/azure/AzureNICTags.png
-  :width: 800
-
-|
-
-.. _azure-udrtagging:
-
-User-Defined routes
-```````````````````
-For route failover you need to create a Deployment scoping tag. The key and value can be anything. The example below uses ``f5_cloud_failover_label:mydeployment``.
-
-Within Azure, go to **Basic UDR > Tags** to set a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration.
-
-.. NOTE:: The failover extension configuration `failoverRoutes.scopingAddressRanges` contains a list of destination routes to update.
-
-.. image:: ../images/azure/AzureUDRTags.png
-  :width: 800
-
-|
-
-.. _azure-storage:
-
-Storage account
-```````````````
-Add a storage account to your resource group, and tag with a key/value pair that corresponds to the key/value(s) in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
-
-.. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
 
 .. _azure-msi:
 
-Creating and assigning an MSI
------------------------------
-To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. This example shows a system-assigned MSI. Read more about managed identities |managed-identity|.
+Create and assign a Managed Service Identity (MSI)
+--------------------------------------------------
+In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. Read more about managed identities |managed-identity|.
+To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. The following example shows a system-assigned MSI.
 
 #. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
@@ -153,14 +129,65 @@ Below is an example Azure role definition with permissions required by CFE.
 - Microsoft.Storage/storageAccounts/read
 - Microsoft.Storage/storageAccounts/listKeys/action
 
-.. _azure-ism:
+|
 
-Setting up access to Azure's Instance Metadata Service
-------------------------------------------------------
+
+.. _azure-tag-objects:
+
+Tag your Azure Network Infrastructure Objects
+---------------------------------------------
+
+Tag your infrastructure with the the names and values that you will send in your CFE declaration.
+
+.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no NIC IP configuration objects to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
+
+
+.. _azure-storage:
+
+Tag the storage account in Azure
+````````````````````````````````
+Add a storage account to your resource group, and tag with a name/value pair that corresponds to the name/value pair in the `externalStorage.scopingTags` section of the CFE declaration.
+
+.. WARNING:: Ensure the required storage accounts do not have public access.
+
+
+.. _azure-nictagging:
+
+Tag the Network Interfaces in Azure
+```````````````````````````````````
+Within Azure, go to **NIC > Tags** to create two distinct tags:
+
+- **Deployment scoping tag**: the example below uses ``f5_cloud_failover_label:mydeployment`` but the name and value can be anything. 
+- **NIC mapping tag**: the name is static but the value is user-provided (``f5_cloud_failover_nic_map:<your value>``) and must match the corresponding NIC on the secondary BIG-IP. The example below uses ``f5_cloud_failover_nic_map:external``. This name/value tag will correspond to the name/value tag you use in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+
+.. image:: ../images/azure/AzureNICTags.png
+  :width: 800
+
+|
+
+.. _azure-udrtagging:
+
+Tag the User-Defined routes in Azure
+````````````````````````````````````
+Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``. This name/value will correspond to the name/value you use in the `failoverRoutes.scopingTags` section of the CFE declaration.
+
+.. NOTE:: You can list destination routes to update in the `failoverRoutes.scopingAddressRanges` section of the CFE declaration.
+
+.. image:: ../images/azure/AzureUDRTags.png
+  :width: 800
+
+|
+
+
+.. _azure-ims:
+
+Set up access to Azure's Instance Metadata Service
+--------------------------------------------------
 
 Azure's Instance Metadata Service is a REST Endpoint accessible to all IaaS VMs created via the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can be accessed only from within the VM.
 
-.. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (example: dhclient_route1), if that is the case the below steps are not required.
+.. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (for example: ``dhclient_route1``), if that is the case the below steps are not required.
 
 To configure the route on BIG-IP to talk to Azure's Instance Metadata Services, use either of the following commands:
 

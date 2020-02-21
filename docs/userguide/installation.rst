@@ -1,20 +1,23 @@
 .. _installation:
 
-Downloading and installing Cloud Failover
-=========================================
+Download and install Cloud Failover Extension
+=============================================
 
 The Cloud Failover Extension package is an RPM file you download, and then upload to the BIG-IP system using the iControl/iApp LX framework. Alternatively, you can see the :doc:`quickstart` section.
 
 |
 
-Downloading the RPM file
-------------------------
+.. _download-rpm:
+
+Download the RPM file
+---------------------
 The first task is to download the latest RPM file.  Go to the |github|, and download the latest (highest numbered) RPM file, found in the |release|.
 
 
+.. _verify-rpm:
 
-Verifying the integrity of the Cloud Failover Extension RPM package
-```````````````````````````````````````````````````````````````````
+Verify the integrity of the Cloud Failover Extension RPM package
+````````````````````````````````````````````````````````````````
 F5 Networks provides a checksum for each Cloud Failover Extension release so you can confirm the integrity of the RPM package.
 
 You can get a checksum for a particular RPM by running one of the following commands, depending on your operating system:
@@ -29,16 +32,17 @@ You can compare the checksum produced by that command against the **.sha256** fi
 
 |
 
-Uploading and installing the Cloud Failover Extension file on the BIG-IP
-------------------------------------------------------------------------
+.. _upload-install:
+
+Upload and install the Cloud Failover Extension file on the BIG-IP
+------------------------------------------------------------------
 After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
+
 
 .. _installgui-ref:
 
-
-
-Installing Cloud Failover Extension using the BIG-IP Configuration utility
-``````````````````````````````````````````````````````````````````````````
+Install CFE using the BIG-IP Configuration utility
+``````````````````````````````````````````````````
 
 From the Configuration utility:
 
@@ -56,8 +60,8 @@ From the Configuration utility:
 
 .. _installcurl-ref:
 
-Installing Cloud Failover using cURL from the Linux shell
-`````````````````````````````````````````````````````````
+Install CFE using cURL from the Linux shell
+```````````````````````````````````````````
 
 If you want to use cURL to install Cloud Failover Extension, use the following command syntax. 
 
@@ -94,20 +98,14 @@ If you want to use cURL to install Cloud Failover Extension, use the following c
 
 |
 
-Updating Cloud Failover Extension
----------------------------------
-When F5 releases a new version of Cloud Failover Extension, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click **Import** and then select the new RPM, the system recognizes you are upgrading Cloud Failover Extension.
+What's Next
+-----------
 
-|
+Choose the cloud environment you are working in to continue implementing CFE.
 
-Reverting to a previous version of Cloud Failover Extension
------------------------------------------------------------
-If you need to revert to a previous version of Cloud Failover Extension, you must first remove the version of CFE that is already on your BIG-IP system:
-
-On the BIG-IP user interface, click :guilabel:`iApps > Package Management LX > f5-cloud-failover > Uninstall`  
-
-After you uninstall, you can use the above steps to import the RPM for the version of Cloud Failover Extension you want to use.
-
+- :ref:`azure`
+- :ref:`aws`
+- :ref:`gcp`
 
 |
 
