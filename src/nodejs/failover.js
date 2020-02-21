@@ -278,7 +278,7 @@ class FailoverClient {
         this.localAddresses = addresses.localAddresses;
         this.failoverAddresses = addresses.failoverAddresses;
 
-        const discoverActions = [
+        return Promise.all([
             this.cloudProvider.updateAddresses({
                 localAddresses: this.localAddresses,
                 failoverAddresses: this.failoverAddresses,
@@ -288,8 +288,8 @@ class FailoverClient {
                 localAddresses: this.localAddresses,
                 discoverOnly: true
             })
-        ];
-        return Promise.all(discoverActions);
+        ])
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -419,8 +419,9 @@ class FailoverClient {
      */
     _waitForTask() {
         // retry every 3 seconds, up to 20 minutes (_checkTaskState has it's own timer)
-        const retryOptions = { maxRetries: 400, retryIntervalMs: 3 * 1000 };
-        return util.retrier.call(this, this._checkTaskState, [], retryOptions)
+        const options = { maxRetries: 400, retryInterval: 3 * 1000, thisArg: this };
+
+        return util.retrier(this._checkTaskState, [], options)
             .catch(err => Promise.reject(err));
     }
 

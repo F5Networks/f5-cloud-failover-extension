@@ -128,8 +128,10 @@ clusterMembers.forEach((dut) => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should wait 5 seconds before post trigger', () => new Promise(
-            resolve => setTimeout(resolve, 5000)
+        // note: errors such as 'connection refused' may occurr without this waiting
+        // should figure out a better mechanism to determine 'ready' state
+        it('should wait 10 seconds before post trigger', () => new Promise(
+            resolve => setTimeout(resolve, 10000)
         ));
 
         it('should post trigger', () => {

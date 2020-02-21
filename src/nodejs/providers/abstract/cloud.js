@@ -17,6 +17,10 @@
 'use strict';
 
 const Logger = require('../../logger.js');
+const utils = require('../../util.js');
+
+const MAX_RETRIES = require('../../constants').MAX_RETRIES;
+const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 
 /**
  * Abstract Cloud class - defines cloud agnostic properties and methods
@@ -75,30 +79,6 @@ class AbstractCloud {
     }
 
     /**
-    * Normalize tags into a known object structure
-    *
-    * Known unique object structures
-    * - { 'key1': 'value1' }
-    * - [{ 'Key': 'key1', 'Value': 'value1' }]
-    *
-    * @param {Object|Array} tags - cloud resource tags
-    *
-    * @returns {Object} - tags: { 'key1': 'value1' }
-    */
-    _normalizeTags(tags) {
-        let ret = {};
-        if (Array.isArray(tags)) {
-            ret = tags.reduce((acc, cur) => {
-                acc[cur.Key] = cur.Value;
-                return acc;
-            }, {});
-        } else {
-            ret = tags;
-        }
-        return ret;
-    }
-
-    /**
     * Discover next hop address - support 'none' (static) and routeTag discovery types
     *
     * @param {Object} localAddresses          - local addresses
@@ -140,6 +120,58 @@ class AbstractCloud {
 
         this.logger.silly(`Next hop address: ${nextHopAddressToUse}`);
         return nextHopAddressToUse;
+    }
+
+    /**
+    * Normalize tags into a known object structure
+    *
+    * Known unique object structures
+    * - { 'key1': 'value1' }
+    * - [{ 'Key': 'key1', 'Value': 'value1' }]
+    *
+    * @param {Object|Array} tags - cloud resource tags
+    *
+    * @returns {Object} - tags: { 'key1': 'value1' }
+    */
+    _normalizeTags(tags) {
+        let ret = {};
+        if (Array.isArray(tags)) {
+            ret = tags.reduce((acc, cur) => {
+                acc[cur.Key] = cur.Value;
+                return acc;
+            }, {});
+        } else {
+            ret = tags;
+        }
+        return ret;
+    }
+
+    /**
+     * Retrier function
+     *
+     * Note: Wrapper for utils.retrier with sane defaults, such as setting
+     * logger and 'thisArg'
+     *
+     * @param {Object}  func                    - Function to try
+     * @param {Array}   args                    - Arguments to pass to function
+     * @param {Object}  [options]               - Function options
+     * @param {Integer} [options.maxRetries]    - Number of times to retry on failure
+     * @param {Integer} [options.retryInterval] - Milliseconds between retries
+     * @param {Object}  [options.thisArg]       - 'this' arg to use
+     * @param {Object}  [options.logger]        - logger to use
+     *
+     * @returns {Promise} A promise which will be resolved once function resolves
+     */
+    _retrier(func, args, options) {
+        options = options || {};
+
+        return utils.retrier(func, args, {
+            maxRetries: options.maxRetries || MAX_RETRIES,
+            retryInterval: options.retryInterval || RETRY_INTERVAL,
+            thisArg: options.thisArg || this,
+            logger: options.logger || this.logger
+        })
+            .catch(err => Promise.reject(err));
     }
 }
 
