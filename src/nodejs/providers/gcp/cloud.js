@@ -29,11 +29,6 @@ const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
-const MAX_RETRIES = require('../../constants').MAX_RETRY;
-const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
-
-const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
-
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
     let ret = {};
@@ -74,7 +69,7 @@ class Cloud extends AbstractCloud {
                 this.instanceZone = data[3];
                 this.bucket = data[4];
 
-                this.logger.silly(`bucket name: ${this.bucket.name}`);
+                this.logger.silly(`deployment bucket name: ${this.bucket.name}`);
 
                 this.zone = this._parseZone(this.instanceZone);
                 this.computeZone = this.compute.zone(this.zone);
@@ -109,9 +104,9 @@ class Cloud extends AbstractCloud {
      */
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
+
         const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-        return file.save(util.stringify(data))
-            .then(result => Promise.resolve(result))
+        return this._retrier(file.save, [util.stringify(data)], { thisArg: file })
             .catch(err => Promise.reject(err));
     }
 
@@ -266,6 +261,8 @@ class Cloud extends AbstractCloud {
     /**
      * Get google storage bucket from given label
      *
+     * Note: do not log all bucket information, it can be very large
+     *
      * @param {Object} labels - The label name of a bucket. For example { f5_cloud_failover_label: 'x' }
      *
      * @returns {Promise} A promise which is resolved with the bucket requested
@@ -285,8 +282,6 @@ class Cloud extends AbstractCloud {
 
         return this.storage.getBuckets()
             .then((data) => {
-                this.logger.silly(`getBuckets response: ${util.stringify(data)}`);
-
                 const promises = [];
                 data[0].forEach((bucket) => {
                     promises.push(getBucketLabels(bucket));
@@ -294,10 +289,11 @@ class Cloud extends AbstractCloud {
                 return Promise.all(promises);
             })
             .then((buckets) => {
-                this.logger.silly(`buckets: ${util.stringify(buckets)}`);
-
                 const labelKeys = Object.keys(labels);
                 const filteredBuckets = buckets.filter((bucket) => {
+                    this.logger.silly(
+                        `bucket name: ${util.stringify(bucket.name)} bucket labels: ${util.stringify(bucket.labels)}`
+                    );
                     let matchedTags = 0;
                     labelKeys.forEach((labelKey) => {
                         bucket.labels.forEach((bucketLabel) => {
@@ -310,7 +306,7 @@ class Cloud extends AbstractCloud {
                     return labelKeys.length === matchedTags;
                 });
                 if (!filteredBuckets || filteredBuckets.length === 0) {
-                    return Promise.reject(new Error(`filteredBuckets is empty: ${filteredBuckets}`));
+                    return Promise.reject(new Error(`Filtered bucket does not exist: ${filteredBuckets}`));
                 }
                 return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
             });
@@ -365,7 +361,7 @@ class Cloud extends AbstractCloud {
                 if (failOnStatusCodes.length > 0) {
                     const vmStatus = data.status;
                     if (vmStatus && vmStatus.includes(failOnStatusCodes)) {
-                        return Promise.reject(new Error('vm status is in failOnStatusCodes'));
+                        return Promise.reject(new Error('VM status is in failOnStatusCodes'));
                     }
                 }
                 return Promise.resolve(data);
@@ -403,11 +399,13 @@ class Cloud extends AbstractCloud {
                 const computeVms = vmsData !== undefined ? vmsData : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
-                    promises.push(util.retrier.call(this, this._getVmInfo, [vm.name, { zone: this._parseZone(vm.metadata.zone), failOnStatusCodes: ['STOPPING'] }], shortRetry));
+                    promises.push(this._retrier(
+                        this._getVmInfo,
+                        [vm.name, { zone: this._parseZone(vm.metadata.zone), failOnStatusCodes: ['STOPPING'] }]
+                    ));
                 });
                 return Promise.all(promises);
             })
-            .then(data => Promise.resolve(data))
             .catch(err => Promise.reject(err));
     }
 
@@ -825,7 +823,7 @@ class Cloud extends AbstractCloud {
 
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+            disassociatePromises.push(this._retrier(this._updateNic, item));
         });
         return Promise.all(disassociatePromises)
             .then(() => {
@@ -833,7 +831,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+                    associatePromises.push(this._retrier(this._updateNic, item));
                 });
                 return Promise.all(associatePromises);
             })
@@ -854,7 +852,7 @@ class Cloud extends AbstractCloud {
     _updateFwdRules(operations) {
         const promises = [];
         operations.forEach((item) => {
-            promises.push(util.retrier.call(this, this._updateFwdRule, item, shortRetry));
+            promises.push(this._retrier(this._updateFwdRule, item));
         });
         return Promise.all(promises)
             .then(() => {

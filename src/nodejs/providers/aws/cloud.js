@@ -79,7 +79,7 @@ class Cloud extends AbstractCloud {
                 .catch(err => reject(err));
         });
 
-        return util.retrier.call(this, uploadObject);
+        return this._retrier(uploadObject, []);
     }
 
     /**
@@ -107,7 +107,7 @@ class Cloud extends AbstractCloud {
                 .catch(err => reject(err));
         });
 
-        return util.retrier.call(this, downloadObject);
+        return this._retrier(downloadObject, []);
     }
 
     /**
@@ -543,7 +543,7 @@ class Cloud extends AbstractCloud {
             const AssociationId = operations[eipKeys].current.AssociationId;
             // Disassociate EIP only if it is currently associated
             if (AssociationId) {
-                disassociatePromises.push(util.retrier.call(this, this._disassociatePublicAddress, [AssociationId]));
+                disassociatePromises.push(this._retrier(this._disassociatePublicAddress, [AssociationId]));
             }
         });
 
@@ -559,10 +559,10 @@ class Cloud extends AbstractCloud {
 
                     // Associate EIP only if all variables are present
                     if (allocationId && networkInterfaceId && privateIpAddress) {
-                        associatePromises.push(
-                            util.retrier.call(this, this._associatePublicAddress,
-                                [allocationId, networkInterfaceId, privateIpAddress])
-                        );
+                        associatePromises.push(this._retrier(
+                            this._associatePublicAddress,
+                            [allocationId, networkInterfaceId, privateIpAddress]
+                        ));
                     }
                 });
                 return Promise.all(associatePromises);
@@ -659,7 +659,7 @@ class Cloud extends AbstractCloud {
         let promises = [];
         disassociate.forEach((association) => {
             const args = [association.networkInterfaceId, association.addresses];
-            promises.push(util.retrier.call(this, this._disassociateAddressFromNic, args));
+            promises.push(this._retrier(this._disassociateAddressFromNic, args));
         });
 
         return Promise.all(promises)
@@ -667,7 +667,7 @@ class Cloud extends AbstractCloud {
                 promises = [];
                 associate.forEach((association) => {
                     const args = [association.networkInterfaceId, association.addresses];
-                    promises.push(util.retrier.call(this, this._associateAddressToNic, args));
+                    promises.push(this._retrier(this._associateAddressToNic, args));
                 });
                 return Promise.all(promises);
             })
@@ -1045,7 +1045,7 @@ class Cloud extends AbstractCloud {
             .then((data) => {
                 data.forEach((bucket) => {
                     const getTagsArgs = [bucket, { continueOnError: true }];
-                    getBucketTagsPromises.push(util.retrier.call(this, this._getTags, getTagsArgs));
+                    getBucketTagsPromises.push(this._retrier(this._getTags, getTagsArgs));
                 });
                 return Promise.all(getBucketTagsPromises);
             })
@@ -1089,7 +1089,7 @@ class Cloud extends AbstractCloud {
             })
             .catch(err => Promise.reject(err));
 
-        return util.retrier.call(this, listAllBuckets);
+        return this._retrier(listAllBuckets, []);
     }
 
     /**

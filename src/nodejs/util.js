@@ -8,7 +8,10 @@
 
 'use strict';
 
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
+const Logger = require('./logger.js');
+
+const MAX_RETRIES = require('./constants').MAX_RETRIES;
+const RETRY_INTERVAL = require('./constants').RETRY_INTERVAL;
 
 module.exports = {
     /**
@@ -54,32 +57,44 @@ module.exports = {
     },
 
     /**
-    * Retrier function, that wraps tryUntil() from f5-cloud-libs in a native Promise
-    *
-    * @param {Object}   func - Function to try
-    * @param {Object}   args - Arguments to pass to function
-    * @param {Object}   [retryOptions]                 - Options for retrying the request.
-    * @param {Integer}  [retryOptions.maxRetries]      - Number of times to retry if first try fails.
-    *                                                   0 to not retry. Default 90.
-    * @param {Integer}  [retryOptions.retryIntervalMs] - Milliseconds between retries. Default 10000.
-    *
-    * @returns {Promise}
-    */
-    retrier(func, args, retryOptions) {
-        const retry = retryOptions || cloudLibsUtil.DEFAULT_RETRY;
+     * Retrier function
+     *
+     * @param {Object}  func                    - Function to try
+     * @param {Array}   args                    - Arguments to pass to function
+     * @param {Object}  [options]               - Function options
+     * @param {Integer} [options.maxRetries]    - Number of times to retry on failure
+     * @param {Integer} [options.retryInterval] - Milliseconds between retries
+     * @param {Object}  [options.thisArg]       - 'this' arg to use
+     * @param {Object}  [options.logger]        - logger to use
+     *
+     * @returns {Promise} A promise which will be resolved once function resolves
+     */
+    retrier(func, args, options) {
+        options = options || {};
 
-        // set continueOnError to true, always
-        retry.continueOnError = true;
+        // max retries mutates during recursion, be careful!
+        const maxRetries = options.maxRetries !== undefined ? options.maxRetries : MAX_RETRIES;
 
-        return new Promise((resolve, reject) => {
-            cloudLibsUtil.tryUntil(this, retry, func, args)
-                .then((data) => {
-                    resolve(data);
-                })
-                .catch((error) => {
-                    reject(error);
-                });
-        });
+        const retryInterval = options.retryInterval || RETRY_INTERVAL;
+        const thisArg = options.thisArg || this;
+        const logger = options.logger || Logger;
+
+        if (maxRetries === undefined || maxRetries === 0) {
+            return Promise.reject(options.error || new Error('Unknown retrier error'));
+        }
+        return func.apply(thisArg, args)
+            .catch((error) => {
+                logger.silly(`Function error, retrying: ${error.message} Retries left: ${maxRetries}`);
+
+                return new Promise(resolve => setTimeout(resolve, retryInterval))
+                    .then(() => this.retrier(func, args, {
+                        maxRetries: maxRetries - 1,
+                        retryInterval,
+                        thisArg,
+                        logger,
+                        error
+                    }));
+            });
     },
 
     /**

@@ -28,11 +28,8 @@ const constants = require('../../constants');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
-const MAX_RETRIES = require('../../constants').MAX_RETRIES;
-const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 
-const shortRetry = { maxRetries: MAX_RETRIES, retryIntervalMs: RETRY_INTERVAL };
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 class Cloud extends AbstractCloud {
@@ -603,7 +600,7 @@ class Cloud extends AbstractCloud {
         }
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+            disassociatePromises.push(this._retrier(this._updateNic, item));
         });
         return Promise.all(disassociatePromises)
             .then(() => {
@@ -611,7 +608,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(util.retrier.call(this, this._updateNic, item, shortRetry));
+                    associatePromises.push(this._retrier(this._updateNic, item));
                 });
                 return Promise.all(associatePromises);
             })
@@ -727,7 +724,7 @@ class Cloud extends AbstractCloud {
 
         const operationsPromises = [];
         operations.forEach((item) => {
-            operationsPromises.push(util.retrier.call(this, this._updateRoute, item, shortRetry));
+            operationsPromises.push(this._retrier(this._updateRoute, item));
         });
         return Promise.all(operationsPromises)
             .then(() => {

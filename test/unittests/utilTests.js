@@ -15,11 +15,9 @@ const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-depe
 
 describe('Util', () => {
     let util;
-    let cloudLibsUtil;
 
     before(() => {
         util = require('../../src/nodejs/util.js');
-        cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -63,46 +61,25 @@ describe('Util', () => {
 
     describe('retrier', () => {
         it('should validate resolve', () => {
-            const fakeFunc = () => Promise.resolve();
-            return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
+            const fakeFuncSpy = sinon.stub().resolves();
+
+            return util.retrier(fakeFuncSpy, [], { maxRetries: 10, retryInterval: 10 })
                 .then(() => {
-                    assert.ok(true);
+                    assert.strictEqual(fakeFuncSpy.callCount, 1);
                 })
-                .catch(() => {
-                    // fails when error recieved
-                    assert.fail();
-                });
+                .catch(err => Promise.reject(err));
         });
 
         it('should validate reject', () => {
-            cloudLibsUtil.tryUntil = sinon.stub().rejects();
-            const fakeFunc = () => 'fake func return';
-            return util.retrier(fakeFunc, { key01: 'value01', key02: 'value02' })
-                .then(() => {
-                    assert.fail();
-                })
-                .catch(() => {
-                    // fails when error recieved
-                    assert.ok(true);
-                });
-        });
+            const fakeFuncSpy = sinon.stub().rejects();
+            const retryCount = 2;
 
-        it('should accept custom retryOptions', () => {
-            const fakeFunc = () => Promise.resolve();
-            const customRetry = { maxRetries: 4, retryIntervalMs: 15000 };
-            let retryParms;
-            cloudLibsUtil.tryUntil = sinon.stub().callsFake((thisArg, retryOptions) => {
-                retryParms = retryOptions;
-                return Promise.resolve();
-            });
-            return util.retrier(fakeFunc, {}, customRetry)
+            return util.retrier(fakeFuncSpy, [], { maxRetries: retryCount, retryInterval: 10 })
                 .then(() => {
-                    assert.ok(true);
-                    assert.deepEqual(retryParms, customRetry);
+                    assert.fail(); // should reject
                 })
                 .catch(() => {
-                    // fails when error recieved
-                    assert.fail();
+                    assert.strictEqual(fakeFuncSpy.callCount, retryCount);
                 });
         });
     });

@@ -472,7 +472,7 @@ describe('Provider - GCP', () => {
                 assert.ok(false);
             })
             .catch((error) => {
-                assert.strictEqual(error.message, 'vm status is in failOnStatusCodes');
+                assert.strictEqual(error.message, 'VM status is in failOnStatusCodes');
             });
     });
 
