@@ -3,7 +3,48 @@
 Google Cloud
 ============
 
-In this section, you can see a failover event diagram, example declaration, requirements, and tasks for implementing Cloud Failover in Google Cloud. 
+In this section, you can see the complete steps for implementing Cloud Failover Extension in Google Cloud. You can also go straight to the :ref:`gcp-example`.
+
+.. _gcp-prereqs:
+
+Google CFE Prerequisites
+------------------------
+These are the basic prerequisites for setting up CFE in Google Cloud Platform:
+
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
+- **Virtual addresses** created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic.
+- **Forwarding rules(s)** configured with targets that match a virtual address or floating self IP on the instance serving application traffic. 
+
+|
+
+Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+
+.. table:: Task Summary
+
+   =======  ===================================================================
+   Step     Task
+   =======  ===================================================================
+   1.       :ref:`download-rpm`
+
+            - :ref:`verify-rpm`
+
+   2.       :ref:`upload-install`
+
+            - :ref:`installgui-ref` (or)
+            - :ref:`installcurl-ref`
+
+   3.       :ref:`gcp-iam`
+   4.       :ref:`gcp-tag-objects`
+
+            - :ref:`gcp-tag-storage`
+            - :ref:`gcp-tag-addresses`
+            - :ref:`gcp-tag-routes`
+
+   5.       Modify and POST the :ref:`gcp-example`
+   6.       :ref:`update-revert`
+   =======  ===================================================================
+
+
 
 
 Failover Event Diagram
@@ -18,8 +59,8 @@ This diagram shows a failover event with Cloud Failover implemented in Google Cl
 
 .. _gcp-example:
 
-Example Declaration
--------------------
+Example GCP Declaration
+-----------------------
 This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.  See the :ref:`quickstart` section for steps on how to post this declaration.
 
 .. literalinclude:: ../../examples/declarations/gcp.json
@@ -28,22 +69,6 @@ This example declaration shows the minimum information needed to update the clou
 
 :fonticon:`fa fa-download` :download:`gcp.json <../../examples/declarations/gcp.json>`
 
-|
-
-Requirements
-------------
-These are the minimum requirements for setting up Cloud Failover in Google Cloud Platform:
-
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
-- **A GCP Identity and Access Management (IAM) service account with sufficient access**. See the instructions below for :ref:`gcp-iam`.
-- **A storage bucket for Cloud Failover Extension cluster-wide file(s)** that is tagged with a key/value pair that corresponds to the key/value(s)  in the `externalStorage.scopingTags` section of the Cloud Failover Extension configuration.
-
-  .. IMPORTANT:: Ensure the required storage accounts do not have public access.
-
-- **Instances tagged with a key/value that corresponds to the key/value(s) in the `failoverAddresses.scopingTags` section of the Cloud Failover Extension configuration**.
-- **Virtual addresses** created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic.
-- **Forwarding rules(s)** configured with targets that match a virtual address or floating self IP on the instance serving application traffic. 
-- **Route(s) in a route table tagged with** a key/value that corresponds to the key/value(s) in the `failoverRoutes.scopingTags` section of the Cloud Failover Extension configuration. See the instructions below for :ref:`gcp-routes`.
   
 
 |
@@ -51,9 +76,9 @@ These are the minimum requirements for setting up Cloud Failover in Google Cloud
 
 .. _gcp-iam:
 
-Creating and assigning an IAM Role
-``````````````````````````````````
-To create and assign an IAM role you must have a user role of `Editor`.
+Create and assign an IAM Role
+-----------------------------
+In order to successfully implement CFE in GCP, you need to have a GCP Identity and Access Management (IAM) service account with sufficient access. To create and assign an IAM role you must have a user role of `Editor`.
 
 #. In GCP, go to **IAM > Roles**.
   
@@ -93,13 +118,13 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 #. Select :guilabel:`Create` to finish creating the custom role.
 
-   .. NOTE:: These permissions are also included in by default in GCP primitives roles (Editor/Owner) and pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role bind to it with all the necessary permissions then it should be sufficient to work.
+   .. NOTE:: These permissions are also included in by default in GCP primitives roles (Editor/Owner) and pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role bind to it with all the necessary permissions then it should be sufficient.
 
    .. image:: ../images/gcp/GCPIAMRoleSummary.png
     :width: 800
 
 
-#. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM** 
+#. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM**.
 
 #. Select the edit icon next to the service account for binding.
 
@@ -107,7 +132,7 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 #. Select :guilabel:`Save` to update the service account.
   
-#. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select Edit, and then update the Service Account.
+#. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select :guilabel:`Edit`, and then update the Service Account.
 
    For example:
 
@@ -116,18 +141,82 @@ To create and assign an IAM role you must have a user role of `Editor`.
 
 |
 
-.. _gcp-routes:
+.. _gcp-tag-objects:
 
-Creating and Tagging a Route in GCP
-```````````````````````````````````
-In Google Cloud, routes are associated with virtual machine instances by a tag, and the set of routes for a particular VM is called its routing table. For more information, see Google's documentation for |gcp-using-routes|.
+Tag your Google Cloud Network Infrastructure Objects
+----------------------------------------------------
 
-#. In GCP, you must add a JSON blob to the route description. For example: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``
+Tag your infrastructure with the the keys and values that you will send in your CFE declaration.
 
-#. Make sure the route targets a ``next-hop-address`` instead of a ``next-hop-instance``.
+.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no NIC IP configuration objects to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
+
+.. _gcp-tag-storage:
+
+Tag the storage account in GCP
+``````````````````````````````
+You need to add a label to the storage bucket for Cloud Failover Extension cluster-wide file(s) and then specify a key and value for the label. This key/value will correspond to the key/value you use in the `externalStorage.scopingTags` section of the CFE configuration.
+
+.. WARNING:: Ensure the required storage accounts do not have public access.
+
+#. Open the Cloud Storage browser in the Google Cloud Console.
+
+#. In the bucket list, find the bucket you want to apply a label to, and click its :guilabel:`Bucket overflow menu (...)`.
+
+#. Click :guilabel:`Edit labels`.
+
+#. In the side panel that appears, click the :guilabel:`+ Add label` button.
+
+#. Specify a ``key`` and ``value`` for your label.
+
+#. Click :guilabel:`Save`.
+
+
+.. _gcp-tag-addresses:
+
+Tag the Network Interfaces in GCP
+`````````````````````````````````
+Now you need to tag the virtual machine instances with a key and value. This key/value will correspond to the key/value you use in the `failoverAddresses.scopingTags` section of the CFE configuration.
+
+#. Go to the VM instances page.
+
+#. Select an instance.
+
+#. On the `VM instance details` page, click :guilabel:`Edit`.
+
+#. In the :guilabel:`Networks tags` section, specify one or more tags, separated by commas.
+
+#. Click :guilabel:`Save`.
+
+
+.. _gcp-tag-routes:
+
+Tag the User-Defined routes in GCP
+``````````````````````````````````
+This key/value will correspond to the key/value you use in the `failoverRoutes.scopingTags` section of the CFE configuration.
+
+#. Go to the Routes page in the Google Cloud Console.
+
+#. Click :guilabel:`Create route`.
+
+#. Specify a :guilabel:`Name` and a :guilabel:`Description` for the route.
+
+#. Select an existing :guilabel:`Network` where the route will apply.
+
+#. Specify a :guilabel:`Destination IP range` to define the destination of the route.
+
+#. Select a :guilabel:`Priority` for the route. 
+
+#. Go to the :guilabel:`Instance tags` field to create a tag. For example ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``.
+
+#. Select a :guilabel:`Next hop` for the route and :guilabel:`Specify a forwarding rule of internal TCP/UDP load balancer` to specify the BIG-IP as a next hop.
+
+   .. TIP:: Make sure the route targets a ``next-hop-address`` instead of a ``next-hop-instance``.
+
+#. Click :guilabel:`Create`.
 
 #. In your CFE declaration, enter the key/value in the `failoverRoutes.scopingTags` section that matches the tag that you attached to the routing table in GCP. Then update the list of destination routes in the `failoverRoutes.scopingAddressRanges` section.
 
+|
 
 .. code-block:: python
    :caption: Example of a gcloud compute command to create a route
@@ -166,16 +255,12 @@ In Google Cloud, routes are associated with virtual machine instances by a tag, 
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
 
 .. |gdmtemplate| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
+   <a href="https://github.com/F5networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">here</a>
 
-
-.. |gcp-using-routes| raw:: html
-
-   <a href="https://cloud.google.com/vpc/docs/using-routes" target="_blank">using routes</a>
 
 .. |gcp-route-considerations| raw:: html
 
