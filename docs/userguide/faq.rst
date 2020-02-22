@@ -15,6 +15,7 @@ Index
 - :ref:`faq-as3`
 - :ref:`faq-same-network`
 - :ref:`faq-same-az`
+- :ref:`faq-azure-api`
 - :ref:`faq-tag`
 - :ref:`faq-existing-cluster`
 - :ref:`faq-info-store`
@@ -29,7 +30,6 @@ Index
 
 What is Cloud Failover Extension?
 `````````````````````````````````
-
 Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing CFE on BIG-IP provides L3 failover functionality in cloud environments. 
 
 *Cloud Failover Extension is:*
@@ -48,7 +48,6 @@ Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent
 
 When is CFE a good fit and when it is not?
 ``````````````````````````````````````````
-
 *Cloud Failover is a good fit where:*
 
 - You are using an HA Pair in an Active/Standby configuration.
@@ -66,7 +65,6 @@ When is CFE a good fit and when it is not?
 
 Where can I download CFE?
 `````````````````````````
-
 Cloud Failover Extension is available on |github| in the |releases| section under *Assets*.
 
 
@@ -76,7 +74,6 @@ Cloud Failover Extension is available on |github| in the |releases| section unde
 
 Which TMOS versions does CFE support?
 `````````````````````````````````````
-
 Cloud Failover Extension supports TMOS 14.1.x and later.
 
 
@@ -86,7 +83,6 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 Does CFE support IPv6?
 ``````````````````````
-
 - IPv6 route failover is currently supported for AWS only. To see an example confguration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
 - IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
 
@@ -97,7 +93,6 @@ Does CFE support IPv6?
 
 How can I track new CFE features?
 `````````````````````````````````
-
 See the |releases| section on GitHub to keep up to date with CFE features and enhancements. You can also track changes to this documentation in the :ref:`revision-history`.
 
 
@@ -107,8 +102,8 @@ See the |releases| section on GitHub to keep up to date with CFE features and en
 
 Can I use CFE with Application Services Extension (AS3)?
 ````````````````````````````````````````````````````````
-
 Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages tenant partitions and some previous failover solutions did not support inspecting tenant partitions.
+
 
 -----------------------------------------
 
@@ -116,7 +111,6 @@ Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages
 
 Does it matter if I use CFE in same network or across network?
 ``````````````````````````````````````````````````````````````
-
 Cloud Failover Extension is agnostic to same-network and across-network topologies.
 
 
@@ -126,8 +120,18 @@ Cloud Failover Extension is agnostic to same-network and across-network topologi
 
 Does CFE support AWS Same-AZ failover?
 ``````````````````````````````````````
-
 Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` section for more details.
+
+
+-----------------------------------------
+
+
+.. _faq-azure-api:
+
+Does CFE eliminate the delay time observed with previous failover templates when calling the Azure APIs?
+````````````````````````````````````````````````````````````````````````````````````````````````````````
+To failover cloud resource objects such as private IP addresses and route tables, CFE does make calls to the Azure APIs. These calls may vary significantly in response time. 
+
 
 -----------------------------------------
 
@@ -135,7 +139,6 @@ Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` 
 
 Do I always have to tag my resources?
 `````````````````````````````````````
-
 Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE configuration.
 
 
@@ -145,7 +148,6 @@ Yes. Even when you only have routes to update during failover (for example, ther
 
 How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?
 ```````````````````````````````````````````````````````````````````````````````````````````````````````````
-
 CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user.
 
 
@@ -157,7 +159,6 @@ CFE disables the existing failover scripts installed by the Cloud Templates tran
 
 What information does CFE store?
 ````````````````````````````````
-
 Cloud Failover Extension stores the BIG-IP failover IP address and routes in the cloud storage JSON file (example below). For this reason, make sure your cloud store does not have public access.
 
 .. code-block:: json
@@ -180,7 +181,6 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 Does CFE collect telemetry data?
 ````````````````````````````````
-
 F5 collects non-personal telemetry data to help improve the Cloud Failover Extension. You can see an example of the payload that is sent below. To disable this feature, run the command ``tmsh modify sys software update auto-phonehome disabled``.
 
 .. code-block:: json
@@ -216,7 +216,6 @@ F5 collects non-personal telemetry data to help improve the Cloud Failover Exten
 
 Why does CFE no longer default to a tag on the route for next hop address discovery?
 ````````````````````````````````````````````````````````````````````````````````````
-
 Specifying the `f5_self_ips` tag on the route object itself creates a circular dependency in some scenarios, especially when using declarative configuration tools like Terraform. For backwards compatability this option is still available, however, F5 recommends alternate approaches, such as providing the next hop addresses (a self IP for each BIG-IP in the cluster) in the Cloud Failover Extension configuration payload. See :ref:`example-declarations` for an example using the original route tag discovery method.
 
 
@@ -226,7 +225,6 @@ Specifying the `f5_self_ips` tag on the route object itself creates a circular d
 
 Does CFE configuration persist after a reboot?
 ````````````````````````````````````````````````````````````````````````````````````
-
 Yes, when configuration is provided using the CFE `declare` API endpoint it will be saved to the persistent BIG-IP configuration store which is loaded on reboot.
 
 
@@ -236,7 +234,6 @@ Yes, when configuration is provided using the CFE `declare` API endpoint it will
 
 How do I report issues, feature requests, and get help with CFE?
 ````````````````````````````````````````````````````````````````
-
 You can use |issues| to submit feature requests or problems with Cloud Failover Extension, including documentation issues.
 
 

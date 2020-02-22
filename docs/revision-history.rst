@@ -12,7 +12,7 @@ Document Revision History
         - Date
 
       * - 1.2
-        - Updated the documentation with the following changes: |br| • Updated page layout for all clouds to include a task summary. |br| • Added information about :ref:`gcp-routes`. |br| • Updated ARM template link for :ref:`azure`. |br| • Updated the failover event diagrams for all clouds. |br| • Added a section explaining the :ref:`declaration-components`.
+        - Updated the documentation with the following changes: |br| • Updated page layout for all clouds to include a task summary. |br| • Added information about tagging GCP routes (see :ref:`gcp-tag-routes`). |br| • Updated ARM template link for :ref:`azure`. |br| • Updated the failover event diagrams for all clouds. |br| • Added a section explaining the :ref:`declaration-components`.
         - 03-05-20
 
       * - 1.1
