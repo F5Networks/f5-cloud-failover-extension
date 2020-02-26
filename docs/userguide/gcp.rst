@@ -143,17 +143,17 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
 
 .. _gcp-tag-objects:
 
-Tag your Google Cloud Network Infrastructure Objects
-----------------------------------------------------
+Label your Google Cloud Network Infrastructure Objects
+------------------------------------------------------
 
-Tag your infrastructure with the the keys and values that you will send in your CFE declaration.
+Label your infrastructure with the the keys and values that you will send in your CFE declaration. Note that GCP uses the term `labels` rather than the term `tags`, which is used by other cloud providers.
 
-.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no NIC IP configuration objects to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
+.. IMPORTANT:: You must label the following resources. Even if you only have routes to update during failover (for example, there are no NIC IP configuration objects to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
 
 .. _gcp-tag-storage:
 
-Tag the storage account in GCP
-``````````````````````````````
+Label the storage account in GCP
+````````````````````````````````
 You need to add a label to the storage bucket for Cloud Failover Extension cluster-wide file(s) and then specify a key and value for the label. This key/value will correspond to the key/value you use in the `externalStorage.scopingTags` section of the CFE configuration.
 
 .. WARNING:: Ensure the required storage accounts do not have public access.
@@ -173,9 +173,9 @@ You need to add a label to the storage bucket for Cloud Failover Extension clust
 
 .. _gcp-tag-addresses:
 
-Tag the Network Interfaces in GCP
-`````````````````````````````````
-Now you need to tag the virtual machine instances with a key and value. This key/value will correspond to the key/value you use in the `failoverAddresses.scopingTags` section of the CFE configuration.
+Label the Network Interfaces in GCP
+```````````````````````````````````
+Now you need to label the virtual machine instances with a key and value. This key/value will correspond to the key/value you use in the `failoverAddresses.scopingTags` section of the CFE configuration.
 
 #. Go to the VM instances page.
 
@@ -183,16 +183,23 @@ Now you need to tag the virtual machine instances with a key and value. This key
 
 #. On the `VM instance details` page, click :guilabel:`Edit`.
 
-#. In the :guilabel:`Networks tags` section, specify one or more tags, separated by commas.
+#. In the :guilabel:`Labels` section, specify a name and a value.
 
 #. Click :guilabel:`Save`.
 
 
+.. image:: ../images/gcp/gcp-network-tags.png
+   :width: 700
+
+|
+
 .. _gcp-tag-routes:
 
-Tag the User-Defined routes in GCP
-``````````````````````````````````
-This key/value will correspond to the key/value you use in the `failoverRoutes.scopingTags` section of the CFE configuration.
+Label the User-Defined routes in GCP
+````````````````````````````````````
+.. include:: /_static/reuse/discovery-type-note.rst
+
+If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to label the route(s) with a key-value pair that will correspond to the key-value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
 
 #. Go to the Routes page in the Google Cloud Console.
 

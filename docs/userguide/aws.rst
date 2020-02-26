@@ -266,7 +266,9 @@ If provisioning Across Network Topology, you will need to:
 
 Tag the User-Defined routes in AWS
 ``````````````````````````````````
-Finally, you need to tag the route(s) in a route table with a key-value pair that will correspond to the key-value pair in the `failoverRoutes.scopingTags` section of the CFE declaration. Alernatively, you can list destination routes to update in the `failoverRoutes.scopingAddressRanges` section of the CFE declaration.
+.. include:: /_static/reuse/discovery-type-note.rst
+
+If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to tag the route(s) in a route table with a key-value pair that will correspond to the key-value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
   
 
 
