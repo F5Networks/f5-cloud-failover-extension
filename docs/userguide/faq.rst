@@ -148,7 +148,10 @@ Yes. Even when you only have routes to update during failover (for example, ther
 
 How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?
 ```````````````````````````````````````````````````````````````````````````````````````````````````````````
-CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user.
+As of CFE version 1.1, CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user. If you are using an older version of CFE and would like to have legacy scripts automatically disabled, you should :ref:`update-cfe`. Otherwise you will have to manually comment out the older failover scripts that the template installs: 
+
+- In ``/config/failover/tgactive`` and ``/config/failover/tgrefresh`` comment out the failover.js script with ``/config/cloud/cloud-libs/XXXXXX/failover.js``. 
+- After you POST the declaration, CFE will write out a new line that looks like this: ``curl -u admin:admin -d {} -X POST http://localhost:8100/mgmt/shared/cloud-failover/trigger``.
 
 
 

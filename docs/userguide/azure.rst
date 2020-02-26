@@ -172,9 +172,12 @@ Within Azure, go to **NIC > Tags** to create two distinct tags:
 
 Tag the User-Defined routes in Azure
 ````````````````````````````````````
-Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``. This name/value will correspond to the name/value you use in the `failoverRoutes.scopingTags` section of the CFE declaration.
+.. include:: /_static/reuse/discovery-type-note.rst
 
-.. NOTE:: You can list destination routes to update in the `failoverRoutes.scopingAddressRanges` section of the CFE declaration.
+If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to tag the route(s) with a name/value pair that will correspond to the name/value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
+
+Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
+
 
 .. image:: ../images/azure/AzureUDRTags.png
   :width: 800
