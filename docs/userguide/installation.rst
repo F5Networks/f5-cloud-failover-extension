@@ -38,6 +38,9 @@ Upload and install the Cloud Failover Extension file on the BIG-IP
 ------------------------------------------------------------------
 After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   Cloud Failover Extension supports BIG-IP version 14.1.X and later.
 
 .. _installgui-ref:
 
@@ -46,15 +49,13 @@ Install CFE using the BIG-IP Configuration utility
 
 From the Configuration utility:
 
-1. If you are using a BIG-IP version prior to 14.0, before you can use the Configuration utility, you must enable the framework using the BIG-IP command line. From the CLI, type the following command:  ``touch /var/config/rest/iapps/enable``.  You only need to run this command once per BIG-IP system.
+#. Click **iApps > Package Management LX**.
 
-2. Click **iApps > Package Management LX**.
+#. Click the **Import** button.
 
-3. Click the **Import** button.
+#. Click **Choose File** and then browse to the location you saved the RPM file, and then click **Ok**.
 
-4. Click **Choose File** and then browse to the location you saved the RPM file, and then click **Ok**.
-
-5. Click the **Upload** button.
+#. Click the **Upload** button.
 
 
 

@@ -6,11 +6,14 @@ Welcome to the F5 Cloud Failover Extension User Guide.
 Introduction
 ------------
 
-The F5 Cloud Failover Extension (CFE) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). Cloud Failover Extension uses a declarative model, meaning you provide a JSON declaration using a single REST API call. The declaration represents the configuration that Cloud Failover Extension is responsible for creating on a BIG-IP system.
+The F5 Cloud Failover Extension (CFE) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). CFE uses a declarative model, meaning you provide a JSON declaration using a single REST API call rather than a set of imperative commands. The declaration then configures the BIG-IP system with all the required settings for cloud failover. At a high level, to use CFE, you will `download the RPM from GitHub <https://github.com/F5Devcentral/f5-cloud-failover-extension>`_, upload the RPM to BIG-IP, tag or label your cloud resources, and then Post your declaration.
+
+.. image:: images/extension-steps.png
+  :width: 800
 
 How does it work?
 `````````````````
-In the event of a failover between BIG-IP systems, BIG-IP fails a traffic group over, which runs the `/config/failover/tgactive` script. The Cloud Failover Extension updates that file during any configuration request to ensure it triggers failover by calling the Cloud Failover /trigger API. During a failover event, CFE then moves or updates cloud resources as described below:
+In the event of a failover between BIG-IP systems, BIG-IP fails a traffic group over, which runs the `/config/failover/tgactive` script. CFE updates that file during any configuration request to ensure it triggers failover by calling the Cloud Failover /trigger API. During a failover event, CFE then moves or updates cloud resources as described below:
 
 - **Failover IP(s)**: The extension updates IP configurations between NICs, updates EIP/private IP associations, and updates forwarding rule target instances.
 - **Failover Routes**: The extension updates Azure User-Defined Routes (UDR), AWS route tables, and GCP forwarding rule targets to point to a self IP address of the active BIG-IP device.
@@ -21,7 +24,7 @@ The diagram below shows a typical failover scenario for an active/standby pair o
 
 
 .. image:: images/cfe-diagram.gif
-  :width: 700
+  :width: 800
 
 |
 
