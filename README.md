@@ -28,7 +28,7 @@ Cloud Failover Extension RPM and checksum files can be found in the [Releases se
 
 ## Documentation
 
-For the documentation on Cloud Failover, including download, installation, and usage instructions, see the Cloud Failover User guide at [https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/).
+For the documentation on Cloud Failover, including download, installation, and usage instructions, see the [Cloud Failover Extension User guide](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/).
 
 ## Filing Issues and Getting Help
 
