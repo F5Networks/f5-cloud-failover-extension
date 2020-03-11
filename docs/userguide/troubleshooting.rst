@@ -14,9 +14,11 @@ Cloud Failover Extension general troubleshooting tips
 
 Troubleshooting Index
 ---------------------
+
 Use this section for specific troubleshooting help.
 
-**I'm receiving a path not registered error when I try to post a declaration**  
+I'm receiving a **path not registered** error when I try to post a declaration
+``````````````````````````````````````````````````````````````````````````````
 
 If you are receiving this error, it means either you did not install Cloud Failover Extension, or it did not install properly. The error contains the following message:  
 
@@ -30,6 +32,12 @@ If you are receiving this error, it means either you did not install Cloud Failo
 
 
 If you receive this error, see :doc:`installation` to install or re-install Cloud Failover Extension.
+
+I'm receiving a **recovery operations are empty** error when failover is triggered
+``````````````````````````````````````````````````````````````````````````````````
+
+If you receive this error, it means Cloud Failover Extension had a previous failure which left it in a bad state.  Recommended performing a reset of the state file using the `reset` endpoint, which is described in the API Reference documentation.
+
 
 |
 

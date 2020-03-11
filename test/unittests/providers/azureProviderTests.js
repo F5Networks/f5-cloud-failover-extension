@@ -214,6 +214,12 @@ describe('Provider - Azure', () => {
             });
     });
 
+    it('should validate updateAddresses does not throw error if update operations is empty', () => {
+        const opts = { updateOperations: {} };
+        return provider.updateAddresses(opts)
+            .catch(err => Promise.reject(err));
+    });
+
     it('should validate updateAddresses performs discovery', () => {
         const localAddresses = ['2.2.2.2'];
         const failoverAddresses = ['10.10.10.10'];
@@ -587,6 +593,12 @@ describe('Provider - Azure', () => {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };
+        });
+
+        it('not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
+                .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({ localAddresses, discoverOnly: true })

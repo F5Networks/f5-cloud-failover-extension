@@ -143,12 +143,13 @@ The next lines of the declaration set the failover addresses.
    :linenos:
    :lineno-start: 9
 
-
+      {
         "failoverAddresses": {
             "scopingTags": {
                 "f5_cloud_failover_label": "mydeployment"
             }
-        },
+        }
+      }
 
 
 |
@@ -175,7 +176,7 @@ The next lines of the declaration sets the failover routes. The scoping address 
    :linenos:
    :lineno-start: 14
 
-
+      {
         "failoverRoutes": {
 		    "scopingTags": {
 			    "f5_cloud_failover_label": "mydeployment"
@@ -193,7 +194,7 @@ The next lines of the declaration sets the failover routes. The scoping address 
 			    ]
 		    }
         }
-    }
+      }
 
 
 

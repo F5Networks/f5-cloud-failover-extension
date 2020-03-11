@@ -290,7 +290,7 @@ describe('Failover', () => {
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
                 assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
-                assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
+                assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Complete');
             })
             .catch(err => Promise.reject(err));
     });
@@ -404,4 +404,25 @@ describe('Failover', () => {
                 ]
             }, data);
         }));
+
+    it('should reject with a helpful error message on empty recovery operations', () => {
+        downloadDataFromStorageMock.onCall(0).resolves({
+            taskState: constants.FAILOVER_STATES.FAIL,
+            failoverOperations: {
+                addresses: null,
+                routes: null
+            }
+        });
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                assert.fail('Expected error');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'Recovery operations are empty, advise reset via the API');
+            });
+    });
 });

@@ -303,10 +303,11 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(operations) {
-        if (!operations || Object.keys(operations).length === 0) {
-            this.logger.info('No reassociated addresses to update.');
+        if (!operations || !Object.keys(operations).length) {
+            this.logger.debug('No update address operations to perform');
             return Promise.resolve();
         }
+
         return Promise.all([
             this._reassociatePublicAddresses(operations.publicAddresses),
             this._reassociateAddresses(operations.interfaces)
@@ -397,13 +398,12 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateRoutes(operations) {
-        const promises = [];
-
-        if (!operations || Object.keys(operations).length === 0) {
+        if (!operations || !operations.length) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }
 
+        const promises = [];
         operations.forEach((operation) => {
             promises.push(this._updateRouteTable(operation.routeTable, operation.networkInterfaceId));
         });
@@ -536,6 +536,7 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects with status of moving the EIP
      */
     _reassociatePublicAddresses(operations) {
+        operations = operations || {};
         const disassociatePromises = [];
         const associatePromises = [];
 
@@ -653,6 +654,7 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves when all addresses are reassociated or rejects if an error occurs
      */
     _reassociateAddresses(operations) {
+        operations = operations || {};
         const disassociate = operations.disassociate || [];
         const associate = operations.associate || [];
 

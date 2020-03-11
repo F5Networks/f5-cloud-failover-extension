@@ -109,8 +109,8 @@ class Cloud extends AbstractCloud {
     */
     updateAddresses(options) {
         options = options || {};
-        const localAddresses = options.localAddresses;
-        const failoverAddresses = options.failoverAddresses;
+        const localAddresses = options.localAddresses || [];
+        const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
@@ -120,7 +120,7 @@ class Cloud extends AbstractCloud {
             return this._discoverAddressOperations(localAddresses, failoverAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.disassociate && updateOperations.associate) {
+        if (updateOperations) {
             return this._updateAddresses(updateOperations.disassociate, updateOperations.associate)
                 .catch(err => Promise.reject(err));
         }
@@ -136,7 +136,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-    * @param {Boolean} [options.updateOperations] - skip discovery and perform 'these' update operations
+    * @param {Object} [options.updateOperations] - skip discovery and perform 'these' update operations
     *
     * @returns {Promise}
     */
@@ -144,7 +144,7 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses || [];
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         this.logger.silly('updateRoutes: ', options);
 
@@ -152,7 +152,7 @@ class Cloud extends AbstractCloud {
             return this._discoverRouteOperations(localAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.operations) {
+        if (updateOperations) {
             return this._updateRoutes(updateOperations.operations)
                 .catch(err => Promise.reject(err));
         }
@@ -523,7 +523,7 @@ class Cloud extends AbstractCloud {
         if (!localAddresses || Object.keys(localAddresses).length === 0
             || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No localAddresses/failoverAddresses to discover');
-            return Promise.resolve();
+            return Promise.resolve({ disassociate: [], associate: [] });
         }
 
         return this._listNics({ tags: this.tags || null })

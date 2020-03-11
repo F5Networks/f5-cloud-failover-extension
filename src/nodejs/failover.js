@@ -45,7 +45,7 @@ class FailoverClient {
         this.routeDiscovery = null;
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
-        this.standbyFlag = null;
+        this.hasActiveTrafficGroups = null;
     }
 
     /**
@@ -79,7 +79,8 @@ class FailoverClient {
             })
             .then(() => this.device.init())
             .catch((err) => {
-                const errorMessage = `Cloud Provider initialization failed with error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                const errorMessage = `Cloud provider initialization failed: ${util.stringify(err.message)}`;
+                logger.error(`${errorMessage} ${util.stringify(err.stack)}`);
                 return Promise.reject(new Error(errorMessage));
             });
     }
@@ -91,7 +92,7 @@ class FailoverClient {
         logger.info('Performing failover - execute');
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
-        this.standbyFlag = false;
+        this.hasActiveTrafficGroups = false;
 
         return this._getDeviceObjects()
             .then((results) => {
@@ -117,20 +118,22 @@ class FailoverClient {
             .then((taskResponse) => {
                 // return failover recovery if taskResponse is set to recoverPreviousTask for flapping scenario
                 if (taskResponse && taskResponse.recoverPreviousTask === true) {
-                    return this._getFailoverRecovery(taskResponse);
+                    return this._getRecoveryOperations(taskResponse);
                 }
-                const tg = this._getTrafficGroups(this.trafficGroupStats, this.hostname, deviceStatus.ACTIVE);
-                // if no trafficGroups, then the BigIP is in standby
-                if (tg === null || tg.length === 0) {
-                    this.standbyFlag = true;
+
+                const activeTrafficGroups = this._getTrafficGroups(
+                    this.trafficGroupStats, this.hostname, deviceStatus.ACTIVE
+                );
+                if (!activeTrafficGroups.length) {
                     return Promise.resolve([{}, {}]);
                 }
-                // return failover discovery if there are trafficGroups (trigger request from active BigIP)
-                return this._getFailoverDiscovery(tg);
+                this.hasActiveTrafficGroups = true;
+                return this._getFailoverDiscovery(activeTrafficGroups);
             })
             .then((updates) => {
-                this.addressDiscovery = updates[0];
-                this.routeDiscovery = updates[1];
+                this.addressDiscovery = updates[0] || {};
+                this.routeDiscovery = updates[1] || {};
+
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running',
@@ -141,37 +144,44 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                if (!this.standbyFlag) {
-                    logger.info('Performing Failover - update');
-                    logger.debug(`recoverPreviousTask: ${util.stringify(this.recoverPreviousTask)}`);
-                    logger.debug(`addressDiscovery: ${util.stringify(this.addressDiscovery)}`);
-                    logger.debug(`routeDiscovery: ${util.stringify(this.routeDiscovery)}`);
-                    const updateActions = [
-                        this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                        this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                    ];
-                    return Promise.all(updateActions);
+                if (!this.hasActiveTrafficGroups) {
+                    // Troubleshooting Notes
+                    // - does device hostname (list sys global-settings hostname) match
+                    // the device name in configuration management (list cm device)?
+                    logger.warning('This device is not active for any traffic groups');
+                    logger.silly('Recommend checking the device hostname matches CM device name');
+                    return Promise.resolve();
                 }
-                return Promise.resolve({});
+                logger.info('Performing Failover - update');
+                logger.debug(`Address discovery: ${util.stringify(this.addressDiscovery)}`);
+                logger.debug(`Route discovery: ${util.stringify(this.routeDiscovery)}`);
+
+                const updateActions = [
+                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
+                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
+                ];
+                return Promise.all(updateActions);
             })
             .then(() => this._createAndUpdateStateObject({
                 taskState: failoverStates.PASS,
-                message: 'Failover Completed Successfully',
+                message: 'Failover Complete',
                 failoverOperations: {
                     addresses: this.addressDiscovery,
                     routes: this.routeDiscovery
                 }
             }))
             .then(() => {
-                logger.info('Failover complete');
+                logger.info('Failover Complete');
             })
             .catch((err) => {
-                const errorMessage = `failover.execute() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
-                logger.error(errorMessage);
+                logger.error(`${util.stringify(err.message)} ${util.stringify(err.stack)}`);
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.FAIL,
-                    message: 'Failover failed because of '.concat(errorMessage),
-                    failoverOperations: { addresses: this.addressDiscovery, routes: this.routeDiscovery }
+                    message: `Failover failed because ${util.stringify(err.message)}`,
+                    failoverOperations: {
+                        addresses: this.addressDiscovery,
+                        routes: this.routeDiscovery
+                    }
                 })
                     .then(() => Promise.reject(err))
                     .catch(() => Promise.reject(err));
@@ -293,30 +303,31 @@ class FailoverClient {
     }
 
     /**
-     * Get failover recovery
+     * Get recovery operations
      *
      * @param {Object} taskResponse - taskResponse with state of the recovery failover operations
      *
      * @returns {Promise}
      */
-    _getFailoverRecovery(taskResponse) {
-        logger.info('Performing Failover - recovery');
-        const recoveryOptions = {};
+    _getRecoveryOperations(taskResponse) {
+        logger.warning('Performing Failover - recovery');
+
         this.recoverPreviousTask = true;
         this.recoveryOperations = taskResponse.state.failoverOperations;
-        recoveryOptions.taskState = failoverStates.RUN;
-        recoveryOptions.message = 'Failover running';
-        return this._createAndUpdateStateObject(recoveryOptions)
-            .then(() => {
-                logger.warning('Recovering previous task: ', this.recoveryOperations);
-                if (this.recoverPreviousTask === true) {
-                    return Promise.resolve([
-                        this.recoveryOperations.addresses,
-                        this.recoveryOperations.routes
-                    ]);
-                }
-                return Promise.resolve([{}, {}]);
-            })
+
+        if (!this.recoveryOperations || (!this.recoveryOperations.addresses
+            && !this.recoveryOperations.routes)) {
+            throw new Error('Recovery operations are empty, advise reset via the API');
+        }
+
+        return this._createAndUpdateStateObject({
+            taskState: failoverStates.RUN,
+            message: 'Failover running'
+        })
+            .then(() => Promise.resolve([
+                this.recoveryOperations.addresses,
+                this.recoveryOperations.routes
+            ]))
             .catch(err => Promise.reject(err));
     }
 
@@ -432,7 +443,7 @@ class FailoverClient {
      * @param {String} hostname          - The hostname of the device
      * @param {String} failoverStatus    - failover status of the device
      *
-     * @returns {Object}
+     * @returns {Object} traffic groups this device is active for
      */
     _getTrafficGroups(trafficGroupStats, hostname, failoverStatus) {
         const trafficGroups = [];

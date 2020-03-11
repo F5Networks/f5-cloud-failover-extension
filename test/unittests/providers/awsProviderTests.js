@@ -786,6 +786,12 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('should not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateAddresses(opts)
+                .catch(err => Promise.reject(err));
+        });
+
         it('should validate private+public address gets reassociated', () => {
             const describeNetworkInterfacesResponse = {
                 NetworkInterfaces: [
@@ -1108,6 +1114,12 @@ describe('Provider - AWS', () => {
 
                     createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
                 .catch(err => Promise.reject(err));
         });
 
