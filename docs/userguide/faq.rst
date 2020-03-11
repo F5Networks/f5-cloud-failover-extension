@@ -227,7 +227,7 @@ Specifying the `f5_self_ips` tag on the route object itself creates a circular d
 .. _faq-persistent-config:
 
 Does CFE configuration persist after a reboot?
-````````````````````````````````````````````````````````````````````````````````````
+``````````````````````````````````````````````
 Yes, when configuration is provided using the CFE `declare` API endpoint it will be saved to the persistent BIG-IP configuration store which is loaded on reboot.
 
 

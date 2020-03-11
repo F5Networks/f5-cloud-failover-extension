@@ -193,6 +193,12 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should validate updateAddresses does not throw error if update operations is empty', () => {
+        const opts = { updateOperations: {} };
+        return provider.updateAddresses(opts)
+            .catch(err => Promise.reject(err));
+    });
+
     it('validate updateAddresses method', () => {
         sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
         sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
@@ -272,6 +278,13 @@ describe('Provider - GCP', () => {
             });
 
             provider.routeAddresses = [{ range: '192.0.0.0/24' }];
+        });
+
+
+        it('not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
+                .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => {

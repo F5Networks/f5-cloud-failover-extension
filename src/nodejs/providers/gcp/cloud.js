@@ -84,12 +84,11 @@ class Cloud extends AbstractCloud {
                 ]);
             })
             .then((vmsData) => {
-                this.vms = vmsData[0];
-                this.fwdRules = vmsData[1];
-                this.targetInstances = vmsData[2];
+                this.vms = vmsData[0] || [];
+                this.fwdRules = vmsData[1] || [];
+                this.targetInstances = vmsData[2] || [];
 
                 this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
-                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
@@ -157,7 +156,7 @@ class Cloud extends AbstractCloud {
     */
     updateAddresses(options) {
         options = options || {};
-        const failoverAddresses = options.failoverAddresses;
+        const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
@@ -166,7 +165,7 @@ class Cloud extends AbstractCloud {
         // update this.vms property prior to discovery/update
         return this._getVmsByTags(this.tags)
             .then((vms) => {
-                this.vms = vms;
+                this.vms = vms || [];
 
                 // discover only logic
                 if (discoverOnly === true) {
@@ -197,13 +196,13 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses || [];
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         if (discoverOnly === true) {
             return this._discoverRouteOperations(localAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.operations) {
+        if (updateOperations) {
             return this._updateRoutes(updateOperations.operations)
                 .catch(err => Promise.reject(err));
         }
@@ -581,8 +580,8 @@ class Cloud extends AbstractCloud {
      *
      */
     _discoverAddressOperations(failoverAddresses) {
-        if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
-            this.logger.info('No failoverAddresses to discover');
+        if (!failoverAddresses || !failoverAddresses.length) {
+            this.logger.debug('No failoverAddresses to discover');
             return Promise.resolve({ nics: [], fwdRules: [] });
         }
 
@@ -701,6 +700,7 @@ class Cloud extends AbstractCloud {
 
         const getOurTargetInstance = (instanceName, tgtInstances) => {
             const result = [];
+
             tgtInstances.forEach((tgt) => {
                 const tgtInstance = tgt.instance.split('/');
                 const tgtInstanceName = tgtInstance[tgtInstance.length - 1];
@@ -717,8 +717,8 @@ class Cloud extends AbstractCloud {
             this._getTargetInstances()
         ])
             .then((data) => {
-                this.fwdRules = data[0];
-                this.targetInstances = data[1];
+                this.fwdRules = data[0] || [];
+                this.targetInstances = data[1] || [];
 
                 const ourTargetInstances = getOurTargetInstance(this.instanceName, this.targetInstances);
                 if (!ourTargetInstances.length) {
@@ -752,6 +752,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { operations: [] }
     */
     _discoverRouteOperations(localAddresses) {
+        localAddresses = localAddresses || [];
+
         return this._getRoutes({ tags: this.routeTags })
             .then((routes) => {
                 this.logger.silly('Routes: ', routes);
@@ -789,8 +791,8 @@ class Cloud extends AbstractCloud {
     _updateAddresses(options) {
         options = options || {};
 
-        const nicOperations = options.nics;
-        const fwdRuleOperations = options.fwdRules;
+        const nicOperations = options.nics || {};
+        const fwdRuleOperations = options.fwdRules || {};
 
         if (!options || Object.keys(options).length === 0) {
             this.logger.info('No address operations to run');
@@ -871,7 +873,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations || Object.keys(operations).length === 0) {
+        if (!operations || !operations.length) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }

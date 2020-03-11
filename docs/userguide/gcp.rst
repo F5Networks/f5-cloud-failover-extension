@@ -234,9 +234,11 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
 |
 
 
-.. code-block:: json
-   :caption: What the route section of the declaration should look like
+:caption: What the route section of the declaration should look like
 
+.. code-block:: json
+
+   {
     "failoverRoutes": {
         "scopingTags": {
             "f5_cloud_failover_label": "mydeployment"
@@ -253,6 +255,7 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
                 "192.0.2.11"
             ]
         }
+   }
 
 
 |
