@@ -28,6 +28,7 @@ Best Practices:
 
 - Clean up after yourself - although it is a fairly safe assumption to make that this is a fresh environment consider if it were multi-use when writing tests
 - Consider carefully before testing things in functional test that should or could be tested via unit test - those are run more frequently
+- Grab logs from the DUT to help determine failures - For example `restnoded.log` is collected and placed in the `logs` directory during every functional test run
 
 ### Environment
 

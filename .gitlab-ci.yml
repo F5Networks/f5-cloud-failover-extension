@@ -219,6 +219,11 @@ test_functional_init_gcp:
             - $CI_COMMIT_REF_NAME == "develop"
             - $RUN_FUNCTIONAL_TESTS == "true"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+    artifacts:
+        paths:
+            - logs
+        when: always
+        expire_in: 1 month
 
 # run functional tests: azure
 test_functional_execute_azure:
