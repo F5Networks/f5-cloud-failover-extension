@@ -16,6 +16,8 @@
 
 'use strict';
 
+const path = require('path');
+
 const constants = require('../src/nodejs/constants.js');
 
 const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
@@ -40,6 +42,7 @@ const EXAMPLE_DECLARATIONS = {
  * @module
  */
 module.exports = {
+    ARTIFACTS_LOGS_DIR: path.join(process.cwd(), 'logs'),
     declarations: EXAMPLE_DECLARATIONS,
     DATA_GROUP_OBJECT: {
         name: 'f5-cloud-failover-store',

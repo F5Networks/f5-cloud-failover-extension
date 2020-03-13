@@ -12,16 +12,23 @@
 /* eslint-disable import/no-dynamic-require */
 const funcUtils = require('./shared/util.js');
 
-// add test files in a defined order
+/* This test runner will run test files in a defined order:
+ * - System Tests
+ * - Provider Tests
+ * - Cleanup Tests
+ *
+ * Some of the tests can be optionally disable to speed up
+ * local testing iterations
+*/
+
 const testFiles = [];
-// system tests
 if (process.env.CF_ENV_SYSTEM_TESTS !== 'ignore') {
     testFiles.push('./systemTests.js');
 }
-// specific provider tests
 if (process.env.CF_ENV_PROVIDER_TESTS !== 'ignore') {
     testFiles.push(`./providers/${funcUtils.getEnvironmentInfo().environment}/tests.js`);
 }
+testFiles.push('./cleanupTests.js');
 
 testFiles.forEach((file) => {
     require(file);

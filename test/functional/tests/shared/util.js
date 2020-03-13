@@ -8,6 +8,7 @@
 
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const mustache = require('mustache'); /* eslint-disable-line import/no-extraneous-dependencies */
 
@@ -191,5 +192,21 @@ module.exports = {
         httpOptions.method = 'GET';
         httpOptions.port = options.port;
         return utils.makeRequest(host, uri, httpOptions);
+    },
+
+    /** Create directory
+     *
+     * @param {String} path - file path
+     */
+    createDirectory(_path) {
+        if (!fs.existsSync(_path)) {
+            try {
+                fs.mkdirSync(_path);
+            } catch (err) {
+                if (err.code !== 'EEXIST') {
+                    throw err;
+                }
+            }
+        }
     }
 };
