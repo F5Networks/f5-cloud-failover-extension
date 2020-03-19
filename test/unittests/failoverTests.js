@@ -425,4 +425,54 @@ describe('Failover', () => {
                 assert.strictEqual(err.message, 'Recovery operations are empty, advise reset via the API');
             });
     });
+
+    it('should parse config for default next hop addresses', () => {
+        const defaultNextHopAddressDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            failoverRoutes: {
+                scopingTags: {
+                    f5_cloud_failover_label: 'mydeployment'
+                },
+                scopingAddressRanges: [
+                    {
+                        range: '192.168.1.0/24'
+                    },
+                    {
+                        range: '192.168.1.0/24',
+                        nextHopAddresses: {
+                            discoveryType: 'static',
+                            items: [
+                                '192.0.2.10',
+                                '192.0.2.11'
+                            ]
+                        }
+                    }
+                ],
+                defaultNextHopAddresses: {
+                    discoveryType: 'static',
+                    items: [
+                        '192.0.2.10',
+                        '192.0.2.11'
+                    ]
+                }
+            }
+        };
+        const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+        return config.init()
+            .then(() => config.processConfigRequest(defaultNextHopAddressDeclaration))
+            .then(() => failover.init())
+            .then(() => {
+                const callArg = spyOnCloudProviderInit.lastCall.lastArg;
+                assert(callArg.routeAddressRanges[0].routeAddresses
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[0].range);
+                assert(callArg.routeAddressRanges[0].routeNextHopAddresses.type
+                    === defaultNextHopAddressDeclaration.failoverRoutes.defaultNextHopAddresses.discoveryType);
+                assert(callArg.routeAddressRanges[1].routeAddresses
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1].range);
+                assert(callArg.routeAddressRanges[1].routeNextHopAddresses.type
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1]
+                        .nextHopAddresses.discoveryType);
+            });
+    });
 });

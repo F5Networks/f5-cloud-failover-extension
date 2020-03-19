@@ -86,13 +86,15 @@ module.exports = {
         const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
-            nextHopAddress1: environmentInfo.nextHopAddresses[0],
-            nextHopAddress2: environmentInfo.nextHopAddresses[1]
+            nextHopAddress1: environmentInfo.nextHopAddresses[0]
         };
         // Added for AWS ipv6 route failover support
         if (environmentInfo.nextHopAddresses.length === 4) {
-            declarationData.nextHopAddress3 = environmentInfo.nextHopAddresses[2];
-            declarationData.nextHopAddress4 = environmentInfo.nextHopAddresses[3];
+            declarationData.nextHopAddress1_IPv6 = environmentInfo.nextHopAddresses[1];
+            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[2];
+            declarationData.nextHopAddress2_IPv6 = environmentInfo.nextHopAddresses[3];
+        } else {
+            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[1];
         }
         return JSON.parse(mustache.render(utils.stringify(declaration), declarationData));
     },

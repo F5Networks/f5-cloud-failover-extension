@@ -44,8 +44,8 @@ class AbstractCloud {
     * @param {Object} options                         - function options
     * @param {Object} [options.tags]                  - tags to filter on { 'key': 'value' }
     * @param {Object} [options.routeTags]             - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeAddresses]        - addresses to filter on [{ 'range': '192.0.2.0/24' }]
-    * @param {Object} [options.routeNextHopAddresses] - next hop address discovery configuration:
+    * @param {Object} [options.routeAddressRanges]    - addresses to filter on [{ 'range': '192.0.2.0/24' }]
+    *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
     */
@@ -53,8 +53,7 @@ class AbstractCloud {
         options = options || {};
         this.tags = options.tags || {};
         this.routeTags = options.routeTags || {};
-        this.routeAddresses = options.routeAddresses || [];
-        this.routeNextHopAddresses = options.routeNextHopAddresses || {};
+        this.routeAddressRanges = options.routeAddressRanges || [];
         this.storageTags = options.storageTags || {};
     }
 
@@ -120,6 +119,23 @@ class AbstractCloud {
 
         this.logger.silly(`Next hop address: ${nextHopAddressToUse}`);
         return nextHopAddressToUse;
+    }
+
+    /**
+     * Returns route address range and next hop addresses config info given the route's
+     * destination cidr
+     *
+     * @param cidr             - Cidr to match against routeAddressRanges.routeAddresses
+     * @return {Object|null}
+     *
+     */
+
+    _matchRouteToAddressRange(cidr) {
+        // simply compare this cidr to the route address ranges array and look for a match
+        const matchingRouteAddressRange = this.routeAddressRanges.filter(
+            routeAddressRange => routeAddressRange.routeAddresses.indexOf(cidr) !== -1
+        );
+        return matchingRouteAddressRange.length ? matchingRouteAddressRange[0] : null;
     }
 
     /**
