@@ -44,7 +44,6 @@
         "@google-cloud/compute": "^1.2.0",
         "@google-cloud/storage": "^4.3.1",
         "ajv": "^6.10.0",
-        "ajv-cli": "^3.0.0",
         "aws-sdk": "^2.369.0",
         "azure-arm-network": "^13.0.0",
         "azure-arm-storage": "^8.1.0",
@@ -57,7 +56,8 @@
         "ms-rest-azure": "^2.6.0",
         "request": "^2.83.0",
         "uuid": "^3.3.2",
-        "jsonschema": "^1.2.5"
+        "jsonschema": "^1.2.5",
+        "ip-address": "^6.2.0"
     },
     "devDependencies": {
         "@azure/arm-network": "^14.0.0",

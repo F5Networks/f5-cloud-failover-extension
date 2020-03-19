@@ -3,7 +3,7 @@
     "environment": "{{environment}}",
     "controls": {
       "class": "Controls",
-      "logLevel": "debug"
+      "logLevel": "info"
     },
     "externalStorage": {
       "scopingTags": {
@@ -21,7 +21,24 @@
       },
       "scopingAddressRanges": [
         {
-          "range": "192.0.2.0/24"
+          "range": "192.0.2.0/24",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              "{{nextHopAddress1}}",
+              "{{nextHopAddress2}}"
+            ]
+          }
+        },
+        {
+          "range": "192.0.3.0/24",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              "{{nextHopAddress1}}",
+              "{{nextHopAddress2}}"
+            ]
+          }
         }
       ],
       "defaultNextHopAddresses": {

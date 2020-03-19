@@ -89,6 +89,7 @@ class Cloud extends AbstractCloud {
                 this.targetInstances = vmsData[2] || [];
 
                 this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
+                return Promise.resolve();
             })
             .catch(err => Promise.reject(err));
     }
@@ -753,27 +754,26 @@ class Cloud extends AbstractCloud {
     */
     _discoverRouteOperations(localAddresses) {
         localAddresses = localAddresses || [];
-
+        const operations = [];
         return this._getRoutes({ tags: this.routeTags })
             .then((routes) => {
                 this.logger.silly('Routes: ', routes);
-
-                const operations = [];
                 routes.forEach((route) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        gcpLabelParse(route.description),
-                        this.routeNextHopAddresses
-                    );
-                    // check if route should be updated and if next hop is our address,
-                    // if not we need to update it
-                    if (this.routeAddresses.map(i => i.range).indexOf(route.destRange)
-                        !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
-                        route.nextHopIp = nextHopAddress;
-                        operations.push(route);
+                    const matchedAddressRange = this._matchRouteToAddressRange(route.destRange);
+                    if (matchedAddressRange) {
+                        const nextHopAddress = this._discoverNextHopAddress(
+                            localAddresses,
+                            gcpLabelParse(route.description),
+                            matchedAddressRange.routeNextHopAddresses
+                        );
+                        // check if route should be updated and if next hop is our address,
+                        // if not we need to update it
+                        if (nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                            route.nextHopIp = nextHopAddress;
+                            operations.push(route);
+                        }
                     }
                 });
-
                 return Promise.resolve({ operations });
             })
             .catch(err => Promise.reject(err));

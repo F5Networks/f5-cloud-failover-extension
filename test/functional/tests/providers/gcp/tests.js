@@ -353,12 +353,6 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check route(s) next hop matches self IP (secondary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRoutes(secondarySelfIps)
-            .catch(err => Promise.reject(err));
-    });
     it('should wait 30 seconds before force standby', () => new Promise(
         resolve => setTimeout(resolve, 30000)
     ));

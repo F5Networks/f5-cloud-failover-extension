@@ -64,18 +64,7 @@ class FailoverClient {
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
-                return this.cloudProvider.init({
-                    tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
-                    routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
-                    routeAddresses: util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges'),
-                    routeNextHopAddresses: {
-                        // provide default discovery type of 'routeTag' for backwards compatability...
-                        type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
-                        items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
-                        tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
-                    },
-                    storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags')
-                });
+                return this.cloudProvider.init(this._parseConfig());
             })
             .then(() => this.device.init())
             .catch((err) => {
@@ -250,6 +239,48 @@ class FailoverClient {
                 const errorMessage = `failover.getFailoverStatusAndObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                 logger.error(errorMessage);
             });
+    }
+
+    /**
+     * Parses config from the declaration that is to be passed to cloud provider init
+     */
+    _parseConfig() {
+        const tags = util.getDataByKey(this.config, 'failoverAddresses.scopingTags');
+        const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags');
+        const scopingAddressRanges = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges') || [];
+        const routeAddressRanges = [];
+        const storageTags = util.getDataByKey(this.config, 'externalStorage.scopingTags');
+        for (let scopingAddressIndex = 0;
+            scopingAddressIndex < scopingAddressRanges.length;
+            scopingAddressIndex += 1) {
+            const addressRange = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges')[scopingAddressIndex];
+            routeAddressRanges.push({
+                routeAddresses: addressRange.range,
+                routeNextHopAddresses: this._nextHopAddressResolver(addressRange)
+            });
+        }
+        return {
+            tags, routeTags, routeAddressRanges, storageTags
+        };
+    }
+
+    /**
+     * Resolves appropriate next hop addresses if no next hop address is provided and returns the default
+     */
+    _nextHopAddressResolver(addressRange) {
+        if (addressRange.nextHopAddresses) {
+            return {
+                // Note: type is set to provide default discovery type of 'routeTag' for backwards compatibility...
+                type: addressRange.nextHopAddresses.discoveryType || 'routeTag',
+                items: addressRange.nextHopAddresses.items || [],
+                tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
+            };
+        }
+        return {
+            type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
+            items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
+            tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
+        };
     }
 
     _getDeviceObjects() {

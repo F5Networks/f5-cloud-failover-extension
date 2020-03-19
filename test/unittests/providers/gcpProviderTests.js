@@ -260,6 +260,15 @@ describe('Provider - GCP', () => {
                     selfLink: 'https://test-self-link',
                     nextHopIp: '1.1.1.2',
                     destRange: '192.0.0.0/24'
+                },
+                {
+                    kind: 'test-route-2',
+                    description,
+                    id: 'some-test-2-id',
+                    creationTimestamp: '101010101010',
+                    selfLink: 'https://test-self-2-link',
+                    nextHopIp: '1.1.1.4',
+                    destRange: '192.0.0.1/24'
                 }
             ];
             sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
@@ -277,7 +286,10 @@ describe('Provider - GCP', () => {
                 };
             });
 
-            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.0.0/24']
+                }];
         });
 
 
@@ -288,7 +300,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'f5_self_ips'
             };
@@ -304,7 +316,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['1.1.1.1', '2.2.2.2']
             };
@@ -315,6 +327,42 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update multiple routes using next hop discovery method', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.0.0/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['1.1.1.1', '2.2.2.2']
+                    }
+                },
+                {
+                    routeAddresses: ['192.0.0.1/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['1.1.1.1', '2.2.2.2']
+                    }
+                }
+            ];
+            providerSendRequestMock.onCall(1).resolves({
+                name: 'test-name-2'
+            });
+            providerSendRequestMock.onCall(3).resolves();
+            providerSendRequestMock.onCall(4).resolves();
+
+            return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
                 .catch(err => Promise.reject(err));
         });

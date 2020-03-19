@@ -4,7 +4,31 @@
     "title": "Cloud Failover",
     "description": "Top level schema for enabling cloud failover for BIG-IP",
     "type": "object",
-    "definitions": {},
+    "definitions": {
+        "nextHopAddresses": {
+            "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
+            "type": "object",
+            "properties": {
+                "discoveryType": {
+                    "type": "string",
+                    "enum": [
+                        "static",
+                        "routeTag"
+                    ],
+                    "default": "routeTag"
+                },
+                "items": {
+                    "$comment": "Certain discovery types will require an array of items, those can be provided using this property.",
+                    "type": "array",
+                    "maxItems": 10
+                }
+            },
+            "required": [
+                "discoveryType"
+            ]
+        }
+
+    },
     "required": [
         "class",
         "environment"
@@ -77,37 +101,20 @@
                             "range": {
                                 "type": "string",
                                 "format": "ipAddressWithCidr"
-                            }
-                        }
-                    }
-                },
-                "defaultNextHopAddresses": {
-                    "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
-                    "type": "object",
-                    "properties": {
-                        "discoveryType": {
-                            "type": "string",
-                            "enum": [
-                                "static",
-                                "routeTag"
-                            ],
-                            "default": "routeTag"
-                        },
-                        "items": {
-                            "$comment": "Certain discovery types will require an array of items, those can be provided using this property.",
-                            "type": "array",
-                            "maxItems": 10
+                            },
+                            "nextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
                         }
                     },
                     "required": [
-                        "discoveryType"
+                        "range",
+                        "nextHopAddresses"
                     ]
-                }
+                },
+                "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
             },
             "required": [
                 "scopingTags",
-                "scopingAddressRanges",
-                "defaultNextHopAddresses"
+                "scopingAddressRanges"
             ]
         },
         "externalStorage": {

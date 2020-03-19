@@ -30,7 +30,10 @@ describe('Provider - AWS', () => {
         routeTags: {
             F5_CLOUD_FAILOVER_LABEL: 'foo'
         },
-        routeAddresses: [{ range: '192.0.2.0/24' }],
+        routeAddressRanges: [
+            {
+                routeAddresses: ['192.0.2.0/24']
+            }],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -1047,6 +1050,14 @@ describe('Provider - AWS', () => {
                         Origin: 'CreateRoute',
                         State: 'active'
                     },
+                    {
+                        DestinationCidrBlock: '192.0.2.1/24',
+                        InstanceId: 'i-123',
+                        InstanceOwnerId: '123',
+                        NetworkInterfaceId: 'eni-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    },
                     // IPv6
                     {
                         DestinationIpv6CidrBlock: '::/0',
@@ -1083,12 +1094,11 @@ describe('Provider - AWS', () => {
                 ]
             };
 
-            const thisMockInitData = Object.assign({
-                routeNextHopAddresses: {
-                    type: 'routeTag',
-                    tag: 'F5_SELF_IPS'
-                }
-            }, mockInitData);
+            const thisMockInitData = mockInitData;
+            thisMockInitData.routeAddressRanges[0].routeNextHopAddresses = {
+                type: 'routeTag',
+                tag: 'F5_SELF_IPS'
+            };
 
 
             return provider.init(thisMockInitData)
@@ -1111,7 +1121,6 @@ describe('Provider - AWS', () => {
                                 return Promise.resolve({});
                             }
                         });
-
                     createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
                 .catch(err => Promise.reject(err));
@@ -1135,7 +1144,7 @@ describe('Provider - AWS', () => {
             .catch(err => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
-            provider.routeAddresses = [{ range: '192.0.100.0/24' }];
+            provider.routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
@@ -1145,9 +1154,12 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: ['10.0.1.211', '10.0.11.52']
+            provider.routeAddressRanges[0] = {
+                routeAddresses: ['192.0.2.0/24'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: ['10.0.1.211', '10.0.11.52']
+                }
             };
 
             return provider.updateRoutes({ localAddresses })
@@ -1158,13 +1170,55 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
-            provider.routeAddresses = [{ range: '::/0' }];
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
-            };
+        it('update routes using multiple next hop discovery method: static', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.2.0/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.211', '10.0.11.52']
+                    }
+                },
+                {
+                    routeAddresses: ['::/0'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
 
+                    }
+                },
+                {
+                    routeAddresses: ['192.0.2.1/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.211', '10.0.11.52']
+                    }
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses: ['10.0.1.211', '2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
+                .then(() => {
+                    assert(provider.ec2.describeNetworkInterfaces.calledThrice);
+                    assert(provider.ec2.describeNetworkInterfaces.args[0][0].Filters[2].Name === 'private-ip-address');
+                    assert(provider.ec2.describeNetworkInterfaces.args[1][0].Filters[2].Name === 'private-ip-address');
+                    assert(provider.ec2.describeNetworkInterfaces.args[2][0].Filters[2].Name === 'ipv6-addresses.ipv6-address');
+                    assert(createRouteSpy.calledThrice);
+                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
+                    assert(createRouteSpy.calledWith('192.0.2.1/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['::/0'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
+                    }
+                }];
             return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
                     assert(createRouteSpy.calledOnce);
@@ -1174,9 +1228,12 @@ describe('Provider - AWS', () => {
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: []
+            provider.routeAddressRanges[0] = {
+                routeAddresses: ['::/0'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: []
+                }
             };
 
             return provider.updateRoutes({ localAddresses })
@@ -1187,9 +1244,9 @@ describe('Provider - AWS', () => {
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = [{
                 type: 'foo'
-            };
+            }];
 
             return provider.updateRoutes({ localAddresses })
                 .catch((err) => {

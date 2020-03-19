@@ -72,6 +72,11 @@ paths:
                   f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - range: "192.0.2.0/24"
+                  - nextHopAddresses:
+                      discoveryType: static
+                      items:
+                        - "192.0.2.10"
+                        - "192.0.2.11"
                 defaultNextHopAddresses:
                   discoveryType: static
                   items:
@@ -104,6 +109,11 @@ paths:
                       f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - range: "192.0.2.0/24"
+                      - nextHopAddresses:
+                          discoveryType: static
+                          items:
+                            - "192.0.2.10"
+                            - "192.0.2.11"
                     defaultNextHopAddresses:
                       discoveryType: static
                       items:
@@ -323,8 +333,19 @@ components:
                 properties:
                   range:
                     type: string
+                  nextHopAddresses:
+                    type: object
+                    nullable: true
+                    properties:
+                      discoveryType:
+                        type: string
+                      items:
+                        type: array
+                        items:
+                          type: string
             defaultNextHopAddresses:
               type: object
+              nullable: true
               properties:
                 discoveryType:
                   type: string

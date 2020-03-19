@@ -246,19 +246,23 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 this.logger.info('Fetching instance route tables');
                 routeTables.forEach((routeTable) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        routeTable.tags,
-                        this.routeNextHopAddresses
-                    );
                     routeTable.routes.forEach((route) => {
-                        if (route.nextHopIpAddress === nextHopAddress) {
-                            this.logger.info('this is an associated route', routeTable);
-                            data.routes.push({
-                                routeTableId: routeTable.id,
-                                routeTableName: routeTable.name,
-                                networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
-                            });
+                        const matchedAddressRange = this._matchRouteToAddressRange(route.addressPrefix);
+                        if (matchedAddressRange) {
+                            const nextHopAddress = this._discoverNextHopAddress(
+                                localAddresses,
+                                routeTable.tags,
+                                matchedAddressRange.routeNextHopAddresses
+                            );
+
+                            if (nextHopAddress && nextHopAddress === route.nextHopIpAddress) {
+                                this.logger.silly('this is an associated route', routeTable);
+                                data.routes.push({
+                                    routeTableId: routeTable.id,
+                                    routeTableName: routeTable.name,
+                                    networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
+                                });
+                            }
                         }
                     });
                 });
@@ -683,24 +687,23 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 this.logger.silly('Route tables', routeTables);
                 const operations = [];
-
                 // for each route table go through routes and discover any necessary updates
                 routeTables.forEach((routeTable) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        routeTable.tags,
-                        this.routeNextHopAddresses
-                    );
-                    if (nextHopAddress) {
-                        routeTable.routes.forEach((route) => {
-                            if (this.routeAddresses.map(i => i.range).indexOf(route.addressPrefix)
-                                !== -1 && route.nextHopIpAddress !== nextHopAddress) {
+                    routeTable.routes.forEach((route) => {
+                        const matchedAddressRange = this._matchRouteToAddressRange(route.addressPrefix);
+                        if (matchedAddressRange) {
+                            const nextHopAddress = this._discoverNextHopAddress(
+                                localAddresses,
+                                routeTable.tags,
+                                matchedAddressRange.routeNextHopAddresses
+                            );
+                            if (nextHopAddress && route.nextHopIpAddress !== nextHopAddress) {
                                 route.nextHopIpAddress = nextHopAddress;
                                 const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
                                 operations.push(parameters);
                             }
-                        });
-                    }
+                        }
+                    });
                 });
                 return Promise.resolve({ operations });
             })
