@@ -46,6 +46,8 @@ class FailoverClient {
         this.recoverPreviousTask = null;
         this.recoveryOperations = null;
         this.hasActiveTrafficGroups = null;
+        this.isAddressOperationsEnabled = null;
+        this.isRouteOperationsEnabled = null;
     }
 
     /**
@@ -78,6 +80,12 @@ class FailoverClient {
      * Execute (primary function)
      */
     execute() {
+        this.isAddressOperationsEnabled = this._getOperationEnabledState('failoverAddresses');
+        this.isRouteOperationsEnabled = this._getOperationEnabledState('failoverRoutes');
+        if (!this.isAddressOperationsEnabled && !this.isRouteOperationsEnabled) {
+            logger.info('failoverAddresses and failoverRoutes is not enabled. Will not perform failover execute');
+            return Promise.resolve();
+        }
         logger.info('Performing failover - execute');
         // reset certain properties on every execute invocation
         this.recoverPreviousTask = false;
@@ -142,13 +150,15 @@ class FailoverClient {
                     return Promise.resolve();
                 }
                 logger.info('Performing Failover - update');
-                logger.debug(`Address discovery: ${util.stringify(this.addressDiscovery)}`);
-                logger.debug(`Route discovery: ${util.stringify(this.routeDiscovery)}`);
-
-                const updateActions = [
-                    this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }),
-                    this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery })
-                ];
+                const updateActions = [];
+                if (this.isAddressOperationsEnabled) {
+                    logger.debug(`Address discovery: ${util.stringify(this.addressDiscovery)}`);
+                    updateActions.push(this.cloudProvider.updateAddresses({ updateOperations: this.addressDiscovery }));
+                }
+                if (this.isRouteOperationsEnabled) {
+                    logger.debug(`Route discovery: ${util.stringify(this.routeDiscovery)}`);
+                    updateActions.push(this.cloudProvider.updateRoutes({ updateOperations: this.routeDiscovery }));
+                }
                 return Promise.all(updateActions);
             })
             .then(() => this._createAndUpdateStateObject({
@@ -318,18 +328,22 @@ class FailoverClient {
 
         this.localAddresses = addresses.localAddresses;
         this.failoverAddresses = addresses.failoverAddresses;
-
-        return Promise.all([
-            this.cloudProvider.updateAddresses({
+        const updateActions = [];
+        if (this.isAddressOperationsEnabled) {
+            updateActions.push(this.cloudProvider.updateAddresses({
                 localAddresses: this.localAddresses,
                 failoverAddresses: this.failoverAddresses,
                 discoverOnly: true
-            }),
-            this.cloudProvider.updateRoutes({
+            }));
+        }
+        if (this.isRouteOperationsEnabled) {
+            updateActions.push(this.cloudProvider.updateRoutes({
                 localAddresses: this.localAddresses,
                 discoverOnly: true
-            })
-        ])
+            }));
+        }
+
+        return Promise.all(updateActions)
             .catch(err => Promise.reject(err));
     }
 
@@ -362,6 +376,25 @@ class FailoverClient {
             .catch(err => Promise.reject(err));
     }
 
+    /**
+     * Get operations enabled state
+     *
+     * @param {Object} parentConfigKey - the config parent key
+     *
+     * @returns {boolean}
+     */
+    _getOperationEnabledState(parentConfigKey) {
+        // if parent config key does not exist
+        if (util.getDataByKey(this.config, `${parentConfigKey}`) == null) {
+            return false;
+        }
+        // if parent config key does exist, but does not have "enabled" key
+        if (util.getDataByKey(this.config, `${parentConfigKey}.enabled`) == null) {
+            return true; // backwards compatibility requires this
+        }
+        // if parent config key and "enabled" key exists
+        return util.getDataByKey(this.config, `${parentConfigKey}.enabled`);
+    }
 
     /**
      * Create state object

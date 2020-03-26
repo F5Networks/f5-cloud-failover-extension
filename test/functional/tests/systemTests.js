@@ -21,7 +21,7 @@ const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
-const packageDetails = utils.getPackageDetails();
+const packageDetails = funcUtils.getPackageDetails();
 const packageFile = packageDetails.name;
 const packagePath = packageDetails.path;
 
@@ -59,19 +59,19 @@ clusterMembers.forEach((dut) => {
 
         it('should uninstall package (if exists)', () => {
             const packageName = constants.PKG_NAME;
-            return utils.queryPackages(dutHost, dutPort, authToken)
+            return funcUtils.queryPackages(dutHost, dutPort, authToken)
                 .then((data) => {
                     data = data.queryResponse || [];
                     return Promise.resolve(data.filter(pkg => pkg.packageName.includes(packageName)));
                 })
                 .then(pkgs => Promise.all(pkgs
-                    .map(pkg => utils.uninstallPackage(dutHost, dutPort, authToken, pkg.packageName))))
+                    .map(pkg => funcUtils.uninstallPackage(dutHost, dutPort, authToken, pkg.packageName))))
                 .catch(err => Promise.reject(err));
         });
 
         it(`should install package: ${packageFile}`, () => {
             const fullPath = `${packagePath}/${packageFile}`;
-            return utils.installPackage(dutHost, dutPort, authToken, fullPath)
+            return funcUtils.installPackage(dutHost, dutPort, authToken, fullPath)
                 .catch(err => Promise.reject(err));
         });
 

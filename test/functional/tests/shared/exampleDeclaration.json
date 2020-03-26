@@ -11,11 +11,13 @@
       }
     },
     "failoverAddresses": {
+      "enabled": true,
       "scopingTags": {
         "f5_cloud_failover_label": "{{deploymentId}}"
       }
     },
     "failoverRoutes": {
+      "enabled": true,
       "scopingTags": {
         "f5_cloud_failover_label": "{{deploymentId}}"
       },

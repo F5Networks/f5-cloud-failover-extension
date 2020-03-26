@@ -74,6 +74,9 @@
             "description": "Addresses this deployment will manage.",
             "type": "object",
             "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
                 "scopingTags": {
                     "type": "object",
                     "additionalProperties": true
@@ -88,6 +91,9 @@
             "description": "Route(s) this deployment will manage.",
             "type": "object",
             "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
                 "scopingTags": {
                     "type": "object",
                     "additionalProperties": true

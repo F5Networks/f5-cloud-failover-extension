@@ -11,6 +11,7 @@
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const constants = require('../constants.js');
+const util = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 
@@ -129,25 +130,34 @@ describe('Failover', () => {
         options = options || {};
         const localAddresses = options.localAddresses || ['1.1.1.1'];
         const failoverAddresses = options.failoverAddresses || ['2.2.2.2'];
-        // the updateAddresses function will only be invoked if there are traffic groups in the hostname
-        // verify that cloudProvider.updateAddresses method gets called - discover
-        const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
-        assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
-        assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
-        assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+        // if options does not specify isAddressOperationsEnabled or isRouteOperationsEnabled,
+        // then assign it to be true to enabled testing failover ip addresses and routes
+        const isAddressOperationsEnabled = options.isAddressOperationsEnabled !== false;
+        const isRouteOperationsEnabled = options.isRouteOperationsEnabled !== false;
 
-        // verify that cloudProvider.updateRoutes method gets called - discover
-        const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
-        assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, localAddresses);
-        assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+        if (isAddressOperationsEnabled) {
+            // the updateAddresses function will only be invoked if there are traffic groups in the hostname
+            // verify that cloudProvider.updateAddresses method gets called - discover
+            const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+            assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
+            assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
+            assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
 
-        // verify that cloudProvider.updateAddresses method gets called - update
-        const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
-        assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
+            // verify that cloudProvider.updateAddresses method gets called - update
+            const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
+            assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
+        }
 
-        // verify that cloudProvider.updateRoutes method gets called - update
-        const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
-        assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+        if (isRouteOperationsEnabled) {
+            // verify that cloudProvider.updateRoutes method gets called - discover
+            const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
+            assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, localAddresses);
+            assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+
+            // verify that cloudProvider.updateRoutes method gets called - update
+            const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
+            assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+        }
     }
 
     it('should execute failover', () => config.init()
@@ -156,6 +166,53 @@ describe('Failover', () => {
         .then(() => failover.execute())
         .then(() => {
             validateFailover();
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should execute failover with only ip address enabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable routes failover
+            decl.failoverRoutes.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isRouteOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should execute failover with only route enabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable ip address failover
+            decl.failoverAddresses.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isAddressOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should not update ip addresses and routes when disabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable ip address failover
+            decl.failoverAddresses.enabled = false;
+            decl.failoverRoutes.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isAddressOperationsEnabled: false, isRouteOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
+            assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
         })
         .catch(err => Promise.reject(err)));
 
