@@ -24,11 +24,59 @@ const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
 const EXAMPLE_DECLARATIONS = {
     basic: {
         class: 'Cloud_Failover',
-        environment: 'azure'
+        environment: 'azure',
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        }
     },
     basicWithLogging: {
         class: 'Cloud_Failover',
         environment: 'azure',
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        },
         controls: {
             class: 'Controls',
             logLevel: 'info'

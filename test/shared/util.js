@@ -8,9 +8,7 @@
 
 'use strict';
 
-const fs = require('fs');
 const request = require('request');
-const icrdk = require('icrdk'); // eslint-disable-line import/no-extraneous-dependencies
 
 const constants = require('../constants.js');
 
@@ -43,31 +41,6 @@ module.exports = {
      */
     deepCopy(obj) {
         return JSON.parse(JSON.stringify(obj));
-    },
-
-    /**
-     * Get package details
-     *
-     * @returns {Object} { name: 'foo.rpm', path: '/tmp/foo.rpm' }
-     */
-    getPackageDetails() {
-        const dir = `${__dirname}/../../dist/new_build`;
-        const distFiles = fs.readdirSync(dir);
-        const packageFiles = distFiles.filter(f => f.endsWith('.rpm'));
-
-        // get latest rpm file (by timestamp since epoch)
-        // note: this might not work if the artifact resets the timestamps
-        const latest = { file: null, time: 0 };
-        packageFiles.forEach((f) => {
-            const fStats = fs.lstatSync(`${dir}/${f}`);
-            if (fStats.birthtimeMs >= latest.time) {
-                latest.file = f;
-                latest.time = fStats.birthtimeMs;
-            }
-        });
-        const packageFile = latest.file;
-
-        return { name: packageFile, path: dir };
     },
 
     /**
@@ -152,96 +125,5 @@ module.exports = {
                 const msg = `getAuthToken: ${err}`;
                 throw new Error(msg);
             });
-    },
-
-    /**
-     * Query installed ILX packages
-     *
-     * @param {String} host      - host
-     * @param {String} port      - port
-     * @param {String} authToken - auth token
-     *
-     * @returns {Promise} Returns promise resolved upon completion
-     */
-    queryPackages(host, port, authToken) {
-        const opts = {
-            HOST: host,
-            PORT: port,
-            AUTH_TOKEN: authToken,
-            // below should not be required, there is a bug in icrdk
-            // https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/lib/util.js#L322
-            headers: {
-                'x-f5-auth-token': authToken
-            }
-        };
-
-        return new Promise((resolve, reject) => {
-            icrdk.queryInstalledPackages(opts, (err, results) => {
-                if (err) {
-                    reject(err);
-                }
-                resolve(results);
-            });
-        });
-    },
-
-    /**
-     * Install ILX package
-     *
-     * @param {String} host      - host
-     * @param {String} port      - port
-     * @param {String} authToken - auth token
-     * @param {String} file      - local file (RPM) to install
-     *
-     * @returns {Promise} Returns promise resolved upon completion
-     */
-    installPackage(host, port, authToken, file) {
-        const opts = {
-            HOST: host,
-            PORT: port,
-            AUTH_TOKEN: authToken
-        };
-
-        return new Promise((resolve, reject) => {
-            icrdk.deployToBigIp(opts, file, (err) => {
-                if (err) {
-                    if (/already installed/.test(err)) {
-                        resolve();
-                    } else {
-                        reject(err);
-                    }
-                } else {
-                    resolve();
-                }
-            });
-        });
-    },
-
-    /**
-     * Uninstall ILX package
-     *
-     * @param {String} host      - host
-     * @param {String} port      - port
-     * @param {String} authToken - auth token
-     * @param {String} pkg       - package to remove from device
-     *
-     * @returns {Promise} Returns promise resolved upon completion
-     */
-    uninstallPackage(host, port, authToken, pkg) {
-        const opts = {
-            HOST: host,
-            PORT: port,
-            AUTH_TOKEN: authToken
-        };
-
-        return new Promise((resolve, reject) => {
-            icrdk.uninstallPackage(opts, pkg, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
     }
 };
