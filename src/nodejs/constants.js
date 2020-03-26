@@ -91,6 +91,7 @@ module.exports = {
     NIC_TAG: 'f5_cloud_failover_nic_map',
     ROUTE_NEXT_HOP_ADDRESS_TAG: 'f5_self_ips',
     GCP_LABEL_NAME: 'f5_cloud_failover_labels',
+    GCP_FWD_RULE_PAIR_LABEL: 'f5_target_instance_pair',
     AWS_VIPS_TAG: 'VIPS',
     MAX_RETRIES: 20,
     RETRY_INTERVAL: 10000,

@@ -14,6 +14,7 @@ const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
+const util = require('../../shared/util.js');
 
 const cloud = 'gcp';
 let provider;
@@ -50,7 +51,9 @@ const mockVms = [
         ]
     }
 ];
+
 const description = 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
+const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName, testInstanceName02"}';
 
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
@@ -199,10 +202,41 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate updateAddresses method', () => {
+
+    it('validate updateAddresses method with forwarding rule tags', () => {
+        sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockVms));
+        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2', description: fwdRuleDescription }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{
+            name: 'testInstanceName', instance: 'compute/testInstanceName'
+        }]);
+
+        const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+
+        provider.instanceName = 'testInstanceName';
+
+        const localAddresses = ['1.1.1.1', '4.4.4.4'];
+        const failoverAddresses = ['10.0.2.1'];
+
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(() => {
+                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
+                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
+                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
+                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+
+    it('validate updateAddresses method without forwarding rule tags', () => {
         sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
         sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
-        sinon.stub(provider, '_getTargetInstances').resolves([{ instance: 'compute/testInstanceName' }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{
+            name: 'testInstanceName',
+            instance: 'compute/testInstanceName'
+        }]);
 
         const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
 
