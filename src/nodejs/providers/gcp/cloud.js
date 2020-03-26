@@ -23,6 +23,7 @@ const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
+const GCP_FWD_RULE_PAIR_LABEL = require('../../constants').GCP_FWD_RULE_PAIR_LABEL;
 const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
@@ -729,12 +730,22 @@ class Cloud extends AbstractCloud {
                 const ourTargetInstance = ourTargetInstances[0];
 
                 this.fwdRules.forEach((rule) => {
+                    let targetInstanceToUse = ourTargetInstance;
                     const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    const fwdRuleDefinedTargetInstances = this._getFwdRulesTargetInstancesFromLabel(rule);
+                    if (fwdRuleDefinedTargetInstances) {
+                        const fwdRuleTargetInstances = getOurTargetInstance(
+                            this.instanceName, fwdRuleDefinedTargetInstances
+                        );
+                        if (fwdRuleDefinedTargetInstances.length) {
+                            targetInstanceToUse = fwdRuleTargetInstances[0];
+                        }
+                    }
                     if (match.length) {
                         this.logger.silly('updateFwdRules matched rule:', rule);
 
-                        if (rule.target.indexOf(ourTargetInstance.name) === -1) {
-                            fwdRulesToUpdate.push([rule.name, ourTargetInstance.selfLink]);
+                        if (rule.target.indexOf(targetInstanceToUse.name) === -1) {
+                            fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
                         }
                     }
                 });
@@ -968,6 +979,25 @@ class Cloud extends AbstractCloud {
                 return operation.promise();
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Finds target pair label on forwarding rule and returns the target
+     * instances that match the target pair names
+     *
+     * @param rule               - Forwarding rule
+     * @return {null|Array}      - Array of target instances
+     * @private
+     */
+
+    _getFwdRulesTargetInstancesFromLabel(rule) {
+        const targetInstanceNames = gcpLabelParse(rule.description)[GCP_FWD_RULE_PAIR_LABEL];
+        if (targetInstanceNames) {
+            return this.targetInstances.filter(
+                targetInstance => targetInstanceNames.split(/[ ,]+/).indexOf(targetInstance.name) !== -1
+            );
+        }
+        return null;
     }
 }
 
