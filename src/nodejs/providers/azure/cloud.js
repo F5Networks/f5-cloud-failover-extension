@@ -93,6 +93,9 @@ class Cloud extends AbstractCloud {
                 );
                 return this._initStorageAccountContainer(storageContainerName);
             })
+            .then(() => {
+                this.logger.silly('Cloud Provider initialization complete');
+            })
             .catch(err => Promise.reject(err));
     }
 

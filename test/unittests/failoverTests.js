@@ -435,14 +435,27 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('should retrieve the taskstate file', () => config.init()
+    it('should retrieve a task state of "pass"', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then(() => failover.init())
         .then(() => failover.getTaskStateFile())
         .then((result) => {
-            assert(result);
+            assert.strictEqual(result.taskState, constants.FAILOVER_STATES.PASS);
         })
         .catch(err => Promise.reject(err)));
+
+    it('should retrieve a task state of "never run"', () => {
+        downloadDataFromStorageMock.onCall(0).resolves({});
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.getTaskStateFile())
+            .then((result) => {
+                assert.strictEqual(result.taskState, constants.FAILOVER_STATES.NEVER_RUN);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('should get current HA status and mapped cloud objects', () => config.init()
         .then(() => config.processConfigRequest(declaration))
