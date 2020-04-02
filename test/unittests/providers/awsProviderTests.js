@@ -539,7 +539,7 @@ describe('Provider - AWS', () => {
             {
                 Tags: [
                     {
-                        Key: 'VIPS',
+                        Key: 'f5_cloud_failover_vips',
                         Value: '2.3.4.5,2.3.4.6,2.3.4.7'
                     }
                 ],
@@ -551,7 +551,7 @@ describe('Provider - AWS', () => {
             {
                 Tags: [
                     {
-                        Key: 'VIPS',
+                        Key: 'f5_cloud_failover_vips',
                         Value: '3.4.5.6,3.4.5.7,3.4.5.8'
                     }
                 ],
@@ -877,73 +877,76 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should validate public address gets reassociated (using across-net VIPS tag)', () => {
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        PrivateIpAddress: '10.10.10.11',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: [
-                            {
-                                Key: 'VIPS',
-                                Value: '10.10.10.10,10.10.10.11'
-                            }
-                        ]
-                    }
-                ]
-            };
-            const describeNetworkInterfacesResponse = {
-                NetworkInterfaces: [
-                    {
-                        NetworkInterfaceId: 'eni-1',
-                        PrivateIpAddresses: [
-                            {
-                                Primary: false,
-                                PrivateIpAddress: '10.10.10.10'
-                            }
-                        ],
-                        TagSet: []
-                    },
-                    {
-                        NetworkInterfaceId: 'eni-2',
-                        PrivateIpAddresses: [
-                            {
-                                Primary: false,
-                                PrivateIpAddress: '10.10.10.100'
-                            }
-                        ],
-                        TagSet: []
-                    }
-                ]
-            };
-            provider.ec2.describeAddresses = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                });
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
-                    }
-                });
+        // validate
+        ['f5_cloud_failover_vips', 'VIPS'].forEach((vipTagName) => {
+            it(`should validate public address gets reassociated (using ${vipTagName} tag)`, () => {
+                const describeAddressesResponse = {
+                    Addresses: [
+                        {
+                            PublicIp: '2.2.2.2',
+                            PrivateIpAddress: '10.10.10.11',
+                            AssociationId: 'association-id',
+                            AllocationId: 'allocation-id',
+                            Tags: [
+                                {
+                                    Key: vipTagName,
+                                    Value: '10.10.10.10,10.10.10.11'
+                                }
+                            ]
+                        }
+                    ]
+                };
+                const describeNetworkInterfacesResponse = {
+                    NetworkInterfaces: [
+                        {
+                            NetworkInterfaceId: 'eni-1',
+                            PrivateIpAddresses: [
+                                {
+                                    Primary: false,
+                                    PrivateIpAddress: '10.10.10.10'
+                                }
+                            ],
+                            TagSet: []
+                        },
+                        {
+                            NetworkInterfaceId: 'eni-2',
+                            PrivateIpAddresses: [
+                                {
+                                    Primary: false,
+                                    PrivateIpAddress: '10.10.10.100'
+                                }
+                            ],
+                            TagSet: []
+                        }
+                    ]
+                };
+                provider.ec2.describeAddresses = sinon.stub()
+                    .returns({
+                        promise() {
+                            return Promise.resolve(describeAddressesResponse);
+                        }
+                    });
+                provider.ec2.describeNetworkInterfaces = sinon.stub()
+                    .returns({
+                        promise() {
+                            return Promise.resolve(describeNetworkInterfacesResponse);
+                        }
+                    });
 
-            return provider.updateAddresses({ discoverOnly: true })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
-                .then(() => {
-                    // assert public address gets reassociated properly
-                    assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
-                    assert.deepStrictEqual(actualParams.assign.public, [{
-                        AllocationId: 'allocation-id',
-                        NetworkInterfaceId: 'eni-1',
-                        PrivateIpAddress: '10.10.10.10',
-                        AllowReassociation: true
-                    }]);
-                })
-                .catch(err => Promise.reject(err));
+                return provider.updateAddresses({ discoverOnly: true })
+                    .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                    .then(() => {
+                        // assert public address gets reassociated properly
+                        assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
+                        assert.deepStrictEqual(actualParams.assign.public, [{
+                            AllocationId: 'allocation-id',
+                            NetworkInterfaceId: 'eni-1',
+                            PrivateIpAddress: '10.10.10.10',
+                            AllowReassociation: true
+                        }]);
+                    })
+                    .catch(err => Promise.reject(err));
+            });
         });
     });
 

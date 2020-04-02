@@ -767,7 +767,7 @@ class Cloud extends AbstractCloud {
     _generatePublicAddressOperations(eips, privateInstanceIPs) {
         const updatedState = {};
         eips.forEach((eip) => {
-            const vipsTag = eip.Tags.find(tag => tag.Key === constants.AWS_VIPS_TAG);
+            const vipsTag = eip.Tags.find(tag => constants.AWS_VIPS_TAGS.indexOf(tag.Key) !== -1);
             const targetAddresses = vipsTag ? vipsTag.Value.split(',') : [];
             targetAddresses.forEach((targetAddress) => {
                 // Check if the target address is present on local BIG-IP, and if the EIP isn't already associated
