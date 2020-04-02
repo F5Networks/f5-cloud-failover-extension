@@ -15,7 +15,8 @@ const assert = require('assert');
 const constants = require('../../constants.js');
 const utils = require('../../shared/util.js');
 const funcUtils = require('./shared/util.js');
-const version = require('../../../package.json').version;
+
+const version = constants.PKG_VERSION;
 
 const duts = funcUtils.getHostInfo();
 const dutPrimary = duts.filter(dut => dut.primary)[0];

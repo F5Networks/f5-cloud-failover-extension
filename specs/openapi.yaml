@@ -176,7 +176,7 @@ paths:
               example:
                   taskState: FAILED
                   message: Failover Unexpected Error
-                  code: 400
+                  code: 500
     get:
       summary: Running failover task state
       tags:
@@ -212,7 +212,7 @@ paths:
                     routes: {}
                     addresses: {}
                   code: 200
-        "400":
+        "500":
           description: Failover task failed
           content:
             "application/json; charset=UTF-8":
@@ -226,7 +226,7 @@ paths:
                   failoverOperations:
                     routes: {}
                     addresses: {}
-                  code: 400
+                  code: 500
         default:
           description: Unexpected Error
           content:
@@ -236,7 +236,7 @@ paths:
               example:
                   taskState: FAILED
                   message: Failover Unexpected Error
-                  code: 400
+                  code: 500
   /reset:
     post:
       summary: Reset failover state file

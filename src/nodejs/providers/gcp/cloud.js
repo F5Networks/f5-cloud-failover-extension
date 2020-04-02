@@ -89,8 +89,7 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = vmsData[1] || [];
                 this.targetInstances = vmsData[2] || [];
 
-                this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
-                return Promise.resolve();
+                this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
     }

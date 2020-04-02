@@ -54,6 +54,8 @@ class Cloud extends AbstractCloud {
             })
             .then((bucketName) => {
                 this.s3BucketName = bucketName;
+
+                this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
     }

@@ -22,7 +22,7 @@ const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
 const Device = require('../device.js');
 const TelemetryClient = require('../telemetry.js').TelemetryClient;
-const baseSchema = require('../schema/base_schema.json');
+const schemaUtils = require('../schema/schemaUtils.js');
 
 const telemetry = new TelemetryClient();
 const device = new Device();
@@ -242,8 +242,14 @@ function processRequest(restOperation) {
                     case failoverStates.PASS:
                         taskState.code = 200;
                         break;
+                    case failoverStates.NEVER_RUN:
+                        taskState.code = 200;
+                        break;
+                    case failoverStates.FAIL:
+                        taskState.code = 500;
+                        break;
                     default:
-                        taskState.code = 400;
+                        taskState.code = 500;
                         break;
                     }
                     util.restOperationResponder(restOperation, taskState.code, taskState);
@@ -289,8 +295,8 @@ function processRequest(restOperation) {
         util.restOperationResponder(restOperation, 200, {
             version: constants.VERSION,
             release: constants.VERSION.split('.').reverse()[0],
-            schemaCurrent: baseSchema.properties.schemaVersion.enum[0],
-            schemaMinimum: baseSchema.properties.schemaVersion.enum.reverse()[0]
+            schemaCurrent: schemaUtils.getCurrentVersion(),
+            schemaMinimum: schemaUtils.getMinimumVersion()
         });
         break;
     default:

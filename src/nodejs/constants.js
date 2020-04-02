@@ -80,6 +80,7 @@ module.exports = {
     STORAGE_FOLDER_NAME: 'f5cloudfailover',
     STATE_FILE_NAME: 'f5cloudfailoverstate.json',
     FAILOVER_STATES: {
+        NEVER_RUN: 'NEVER_RUN',
         PASS: 'SUCCEEDED',
         FAIL: 'FAILED',
         RUN: 'RUNNING'

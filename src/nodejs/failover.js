@@ -54,23 +54,27 @@ class FailoverClient {
      * Get Config from configWorker and initialize this.cloudProvider using the config
      */
     init() {
-        logger.debug('Initializing failover class');
+        logger.debug('Performing failover - initialization');
 
         return configWorker.getConfig()
             .then((data) => {
                 logger.debug(`config: ${util.stringify(data)}`);
+
                 this.config = data;
-                if (!this.config) {
-                    logger.debug('Can\'t find config.environment');
-                    return Promise.reject(new Error('Environment not provided'));
+                if (!this.config || !this.config.environment) {
+                    const errorMessage = 'Environment information has not been provided';
+                    return Promise.reject(new Error(errorMessage));
                 }
 
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
                 return this.cloudProvider.init(this._parseConfig());
             })
             .then(() => this.device.init())
+            .then(() => {
+                logger.silly('Failover initialization complete');
+            })
             .catch((err) => {
-                const errorMessage = `Cloud provider initialization failed: ${util.stringify(err.message)}`;
+                const errorMessage = `Failover initialization failed: ${util.stringify(err.message)}`;
                 logger.error(`${errorMessage} ${util.stringify(err.stack)}`);
                 return Promise.reject(new Error(errorMessage));
             });
@@ -424,7 +428,7 @@ class FailoverClient {
      * @param {String} [options.failoverOperations] - failover operations
      * @param {String} [options.message]            - task state message
      *
-     * @returns {Promise}
+     * @returns {Promise} - resolves with the state object uploaded
      */
     _createAndUpdateStateObject(options) {
         const taskState = options.taskState || failoverStates.PASS;
@@ -433,6 +437,7 @@ class FailoverClient {
         const stateObject = this._createStateObject({ taskState, failoverOperations, message });
 
         return this.cloudProvider.uploadDataToStorage(stateFileName, stateObject)
+            .then(() => Promise.resolve(stateObject))
             .catch((err) => {
                 logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
@@ -448,6 +453,15 @@ class FailoverClient {
         return this.cloudProvider.downloadDataFromStorage(stateFileName)
             .then((data) => {
                 logger.silly(`Download stateFile: ${util.stringify(data)}`);
+
+                // initial case - failover has never occurred
+                if (!data || !data.taskState) {
+                    return this._createAndUpdateStateObject({
+                        taskState: failoverStates.NEVER_RUN,
+                        message: 'Failover has never been triggered'
+                    });
+                }
+
                 return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
@@ -463,8 +477,12 @@ class FailoverClient {
             .then((data) => {
                 logger.silly('State file data: ', data);
 
-                // initial case - simply create state object in next step
+                // initial case - simply return empty object
                 if (!data || !data.taskState) {
+                    return Promise.resolve({ recoverPreviousTask: false, state: data });
+                }
+                // never run - no need to wait for task
+                if (data.taskState === failoverStates.NEVER_RUN) {
                     return Promise.resolve({ recoverPreviousTask: false, state: data });
                 }
                 // success - no need to wait for task
