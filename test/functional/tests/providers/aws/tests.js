@@ -438,13 +438,13 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                     expectedResult.addresses.push({
                         publicIpAddress: address.PublicIp,
                         privateIpAddress: address.PrivateIpAddress,
-                        associationId: address.AssociationId,
                         networkInterfaceId: address.NetworkInterfaceId
                     });
                 });
                 results[1].forEach((route) => {
                     expectedResult.routes.push({
                         routeTableId: route.RouteTableId,
+                        routeTableName: null,
                         networkId: route.VpcId
                     });
                 });

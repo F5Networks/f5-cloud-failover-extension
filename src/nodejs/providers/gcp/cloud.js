@@ -577,20 +577,28 @@ class Cloud extends AbstractCloud {
      *
      * @param {Object} failoverAddresses - failover addresses
      *
-     * @returns {Promise} { nics: [], fwdRules: [] }
+     * @returns {Promise} { publicAddresses: [], interfaces: [], loadBalancerAddresses: [] }
      *
      */
     _discoverAddressOperations(failoverAddresses) {
         if (!failoverAddresses || !failoverAddresses.length) {
             this.logger.debug('No failoverAddresses to discover');
-            return Promise.resolve({ nics: [], fwdRules: [] });
+            return Promise.resolve({
+                publicAddresses: [],
+                interfaces: [],
+                loadBalancerAddresses: []
+            });
         }
 
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
             this._discoverFwdRuleOperations(failoverAddresses)
         ])
-            .then(operations => Promise.resolve({ nics: operations[0], fwdRules: operations[1] }))
+            .then(operations => Promise.resolve({
+                publicAddresses: {},
+                interfaces: operations[0],
+                loadBalancerAddresses: operations[1]
+            }))
             .catch(err => Promise.reject(err));
     }
 
@@ -684,7 +692,6 @@ class Cloud extends AbstractCloud {
                 }
             });
         });
-
         return Promise.resolve({ disassociate, associate });
     }
 
@@ -793,16 +800,16 @@ class Cloud extends AbstractCloud {
     * Update addresses (given NIC and/or fwdRule operations)
     *
     * @param {Object} options            - function options
-    * @param {Object} [options.nics]     - nic operations
-    * @param {Object} [options.fwdRules] - forwarding rule operations
+    * @param {Object} [options.interfaces]     - interfaces for nic operations
+    * @param {Object} [options.loadBalancerAddresses] - load balancer addresses for forwarding rule operations
     *
     * @returns {Promise}
     */
     _updateAddresses(options) {
         options = options || {};
 
-        const nicOperations = options.nics || {};
-        const fwdRuleOperations = options.fwdRules || {};
+        const nicOperations = options.interfaces || {};
+        const fwdRuleOperations = options.loadBalancerAddresses || {};
 
         if (!options || Object.keys(options).length === 0) {
             this.logger.info('No address operations to run');

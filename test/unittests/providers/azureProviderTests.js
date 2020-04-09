@@ -215,7 +215,7 @@ describe('Provider - Azure', () => {
     });
 
     it('should validate updateAddresses does not throw error if update operations is empty', () => {
-        const opts = { updateOperations: {} };
+        const opts = { updateOperations: { interfaces: {} } };
         return provider.updateAddresses(opts)
             .catch(err => Promise.reject(err));
     });
@@ -726,7 +726,8 @@ describe('Provider - Azure', () => {
                 addresses: [
                     {
                         privateIpAddress: '1.1.1.1',
-                        publicIpAddress: '100.100.100.100'
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: null
                     }
                 ],
                 routes: [
@@ -748,7 +749,8 @@ describe('Provider - Azure', () => {
                                 privateIpAddress: '1.1.1.1',
                                 publicIpAddress: '100.100.100.100'
                             }]
-                        }
+                        },
+                        macAddress: '000000070FD1'
                     }]
                 }
 
@@ -799,7 +801,8 @@ describe('Provider - Azure', () => {
                 addresses: [
                     {
                         privateIpAddress: '1.1.1.1',
-                        publicIpAddress: '100.100.100.100'
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: null
                     }
                 ],
                 routes: []
@@ -815,7 +818,8 @@ describe('Provider - Azure', () => {
                                 privateIpAddress: '1.1.1.1',
                                 publicIpAddress: '100.100.100.100'
                             }]
-                        }
+                        },
+                        macAddress: '000000070FD1'
                     }]
                 }
             };
