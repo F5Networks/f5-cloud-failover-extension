@@ -16,6 +16,8 @@ These are the basic prerequisites for setting up CFE in AWS:
 
 Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
 
+.. include:: /_static/reuse/initial-config.rst
+
 .. table:: Task Summary
 
    =======  ===================================================================

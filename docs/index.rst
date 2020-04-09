@@ -52,15 +52,13 @@ User Guide Index
    userguide/faq
    userguide/quickstart
    userguide/installation
-   userguide/azure
-   userguide/aws
-   userguide/gcp
+   userguide/configuration
+   userguide/apidocs
    userguide/example-declarations
    userguide/postman-collection
    userguide/logging
    userguide/update-revert
    userguide/troubleshooting
-   userguide/apidocs
    revision-history
 
 

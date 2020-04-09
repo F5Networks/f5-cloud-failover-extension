@@ -2,7 +2,7 @@ openapi: "3.0.0"
 info:
   version: 1.1.0
   title: Cloud Failover (CF) Extension
-  description: F5 Cloud Failover (CF) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the TS Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
+  description: F5 Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CFE Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
     name: Apache License 2.0
 servers:
