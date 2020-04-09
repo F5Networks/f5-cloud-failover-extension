@@ -282,8 +282,11 @@ paths:
                 addresses:
                   - privateIpAddress: "1.1.1.1"
                     publicIpAddress: "40.40.40.40"
+                    networkInterfaceId: "000AAA"
                 routes:
-                  - routeTableId: '123'
+                  - routeTableId: "123"
+                    routeTableName: "ABC"
+                    networkId: "123"
                 hostName: "failover1.local"
                 deviceStatus: "active"
                 trafficGroup:

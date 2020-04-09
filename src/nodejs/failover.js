@@ -383,20 +383,17 @@ class FailoverClient {
     /**
      * Get operations enabled state
      *
-     * @param {Object} parentConfigKey - the config parent key
+     * @param {String} parentConfigKey - the config parent key
      *
      * @returns {boolean}
      */
     _getOperationEnabledState(parentConfigKey) {
-        // if parent config key does not exist
         if (util.getDataByKey(this.config, `${parentConfigKey}`) == null) {
             return false;
         }
-        // if parent config key does exist, but does not have "enabled" key
         if (util.getDataByKey(this.config, `${parentConfigKey}.enabled`) == null) {
             return true; // backwards compatibility requires this
         }
-        // if parent config key and "enabled" key exists
         return util.getDataByKey(this.config, `${parentConfigKey}.enabled`);
     }
 

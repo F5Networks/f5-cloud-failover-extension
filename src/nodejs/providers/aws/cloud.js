@@ -198,13 +198,13 @@ class Cloud extends AbstractCloud {
                     data.addresses.push({
                         publicIpAddress: address.PublicIp,
                         privateIpAddress: address.PrivateIpAddress,
-                        associationId: address.AssociationId,
                         networkInterfaceId: address.NetworkInterfaceId
                     });
                 });
                 result[1].forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
+                        routeTableName: null, // add routeTableName here to normalize response across clouds
                         networkId: route.VpcId
                     });
                 });
@@ -294,7 +294,8 @@ class Cloud extends AbstractCloud {
             })
             .then(operations => Promise.resolve({
                 publicAddresses: operations[0],
-                interfaces: operations[1]
+                interfaces: operations[1],
+                loadBalancerAddresses: {}
             }))
             .catch(err => Promise.reject(err));
     }

@@ -124,12 +124,14 @@ class Cloud extends AbstractCloud {
                 .catch(err => Promise.reject(err));
         }
         if (updateOperations) {
-            return this._updateAddresses(updateOperations.disassociate, updateOperations.associate)
+            return this._updateAddresses(updateOperations.interfaces.disassociate,
+                updateOperations.interfaces.associate)
                 .catch(err => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
-            .then(operations => this._updateAddresses(operations.disassociate, operations.associate))
+            .then(operations => this._updateAddresses(operations.interfaces.disassociate,
+                operations.interfaces.associate))
             .catch(err => Promise.reject(err));
     }
 
@@ -241,7 +243,9 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Fetching instance metadata');
                 data.instance = metadata.compute.vmId;
                 metadata.network.interface.forEach((nic) => {
-                    data.addresses.push(nic.ipv4.ipAddress[0]);
+                    const addresses = nic.ipv4.ipAddress[0];
+                    addresses.networkInterfaceId = null;
+                    data.addresses.push(addresses);
                     localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
                 });
             })
@@ -530,7 +534,11 @@ class Cloud extends AbstractCloud {
         if (!localAddresses || Object.keys(localAddresses).length === 0
             || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No localAddresses/failoverAddresses to discover');
-            return Promise.resolve({ disassociate: [], associate: [] });
+            return Promise.resolve({
+                publicAddresses: {},
+                interfaces: { disassociate: [], associate: [] },
+                loadBalancerAddresses: {}
+            });
         }
 
         return this._listNics({ tags: this.tags || null })
@@ -583,7 +591,11 @@ class Cloud extends AbstractCloud {
                         }
                     }
                 }
-                return Promise.resolve({ disassociate, associate });
+                return Promise.resolve({
+                    publicAddresses: {},
+                    interfaces: { disassociate, associate },
+                    loadBalancerAddresses: {}
+                });
             })
             .catch(err => Promise.reject(err));
     }

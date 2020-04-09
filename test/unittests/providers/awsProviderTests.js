@@ -1266,13 +1266,13 @@ describe('Provider - AWS', () => {
                     {
                         publicIpAddress: '1.1.1.1',
                         privateIpAddress: '1.1.1.1',
-                        associationId: '123',
                         networkInterfaceId: '123'
                     }
                 ],
                 routes: [
                     {
                         routeTableId: '123',
+                        routeTableName: null,
                         networkId: '123'
                     }
                 ]
@@ -1283,13 +1283,13 @@ describe('Provider - AWS', () => {
                         Addresses: [{
                             PublicIp: '1.1.1.1',
                             PrivateIpAddress: '1.1.1.1',
-                            AssociationId: '123',
                             NetworkInterfaceId: '123'
                         }]
                     });
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
+                            routeTableName: null,
                             VpcId: '123'
                         }
                     ]);
@@ -1308,7 +1308,6 @@ describe('Provider - AWS', () => {
                     {
                         publicIpAddress: '1.1.1.1',
                         privateIpAddress: '1.1.1.1',
-                        associationId: '123',
                         networkInterfaceId: '123'
                     }
                 ],
@@ -1320,7 +1319,6 @@ describe('Provider - AWS', () => {
                         Addresses: [{
                             PublicIp: '1.1.1.1',
                             PrivateIpAddress: '1.1.1.1',
-                            AssociationId: '123',
                             NetworkInterfaceId: '123'
                         }]
                     });
