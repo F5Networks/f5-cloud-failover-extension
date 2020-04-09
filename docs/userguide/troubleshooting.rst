@@ -33,8 +33,8 @@ If you are receiving this error, it means either you did not install Cloud Failo
 
 If you receive this error, see :doc:`installation` to install or re-install Cloud Failover Extension.
 
-I'm receiving a **400* error when I try to post a declaration with no additional helpful message
-````````````````````````````````````````````````````````````````````````````````````````````````
+I'm receiving a **400** error when I try to post a declaration with no additional helpful message
+`````````````````````````````````````````````````````````````````````````````````````````````````
 
 If you are receiving this error, it typically means the provider prerequisites have not been met and there is an issue performing initialization operations.  Please review the provider prerequisites sections for more information.
 

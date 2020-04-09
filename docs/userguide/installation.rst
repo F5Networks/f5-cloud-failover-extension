@@ -97,16 +97,7 @@ If you want to use cURL to install Cloud Failover Extension, use the following c
 
        curl -kvu $CREDS "https://$IP/mgmt/shared/iapp/package-management-tasks" -H "Origin: https://$IP" -H 'Content-Type: application/json;charset=UTF-8' --data $DATA
 
-|
 
-What's Next
------------
-
-Choose the cloud environment you are working in to continue implementing CFE.
-
-- :ref:`azure`
-- :ref:`aws`
-- :ref:`gcp`
 
 |
 

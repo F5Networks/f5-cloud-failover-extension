@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.3
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Added a section on configuration.
+        - 03-05-20
+
       * - 1.2
         - Updated the documentation for Cloud Failover Extension v1.1.0 with the following changes: |br| • Updated page layout for all clouds to include a task summary. |br| • Added information about tagging GCP routes (see :ref:`gcp-tag-routes`). |br| • Updated ARM template link for :ref:`azure`. |br| • Updated the failover event diagrams for all clouds. |br| • Added a section explaining the :ref:`declaration-components`. |br| • Updated the :ref:`faq`.
         - 03-05-20
