@@ -347,6 +347,7 @@ class Cloud extends AbstractCloud {
                     });
                     return Promise.resolve(filteredStorageAccounts);
                 }
+                this.logger.silly('Filtered Storage Accounts', storageAccounts);
                 return Promise.resolve(storageAccounts);
             })
             .catch(err => Promise.reject(err));
@@ -531,6 +532,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { associate: {}, disassociate: {} }
     */
     _discoverAddressOperations(localAddresses, failoverAddresses) {
+        this.logger.debug('_discoverAddressOperations localAddresses: ', localAddresses);
+        this.logger.debug('_discoverAddressOperations failoverAddresses : ', failoverAddresses);
         if (!localAddresses || Object.keys(localAddresses).length === 0
             || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No localAddresses/failoverAddresses to discover');
@@ -540,13 +543,14 @@ class Cloud extends AbstractCloud {
                 loadBalancerAddresses: {}
             });
         }
-
+        this.logger.info('Discover Address operations using localAddresses', localAddresses, 'failoverAddresses', failoverAddresses, 'to discover');
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];
                 const associate = [];
 
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+                this.logger.silly('Parsed Network interfaces', parsedNics);
                 const myNics = parsedNics.myNics;
                 const theirNics = parsedNics.theirNics;
                 const failoverNicTag = constants.NIC_TAG;
@@ -609,8 +613,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(disassociate, associate) {
-        this.logger.debug('updateAddresses disassociate operations: ', disassociate);
-        this.logger.debug('updateAddresses associate operations: ', associate);
+        this.logger.silly('updateAddresses disassociate operations: ', disassociate);
+        this.logger.silly('updateAddresses associate operations: ', associate);
 
         if (!disassociate || Object.keys(disassociate).length === 0
             || !associate || Object.keys(associate).length === 0) {
@@ -660,6 +664,7 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 // filter route tables based on tag(s)
                 routeTables = this._filterRouteTablesByTag(routeTables, tags);
+                this.logger.silly('Filtered Route tables:', routeTables);
                 return Promise.resolve(routeTables);
             })
             .catch(err => Promise.reject(err));
@@ -700,10 +705,10 @@ class Cloud extends AbstractCloud {
     _discoverRouteOperations(localAddresses) {
         return this._getRouteTables({ tags: this.routeTags })
             .then((routeTables) => {
-                this.logger.silly('Route tables', routeTables);
                 const operations = [];
                 // for each route table go through routes and discover any necessary updates
                 routeTables.forEach((routeTable) => {
+                    this.logger.silly('Discovering updates for route table', routeTable.name);
                     routeTable.routes.forEach((route) => {
                         const matchedAddressRange = this._matchRouteToAddressRange(route.addressPrefix);
                         if (matchedAddressRange) {
@@ -712,6 +717,7 @@ class Cloud extends AbstractCloud {
                                 routeTable.tags,
                                 matchedAddressRange.routeNextHopAddresses
                             );
+                            this.logger.silly('Discovered nextHopAddress', nextHopAddress);
                             if (nextHopAddress && route.nextHopIpAddress !== nextHopAddress) {
                                 route.nextHopIpAddress = nextHopAddress;
                                 const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
@@ -720,6 +726,7 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 });
+                this.logger.silly('Operations found during route operations', operations);
                 return Promise.resolve({ operations });
             })
             .catch(err => Promise.reject(err));

@@ -88,7 +88,9 @@ class Cloud extends AbstractCloud {
                 this.vms = vmsData[0] || [];
                 this.fwdRules = vmsData[1] || [];
                 this.targetInstances = vmsData[2] || [];
-
+                this.logger.debug('Cloud provider found vms:', this.vms);
+                this.logger.debug('Cloud provider found fwdRules:', this.fwdRules);
+                this.logger.debug('Cloud provider found targetInstances:', this.targetInstances);
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
@@ -581,6 +583,7 @@ class Cloud extends AbstractCloud {
      *
      */
     _discoverAddressOperations(failoverAddresses) {
+        this.logger.debug('Failover addresses to discover', failoverAddresses);
         if (!failoverAddresses || !failoverAddresses.length) {
             this.logger.debug('No failoverAddresses to discover');
             return Promise.resolve({
@@ -733,6 +736,7 @@ class Cloud extends AbstractCloud {
                     const message = `Unable to locate our target instance: ${this.instanceName}`;
                     return Promise.reject(new Error(message));
                 }
+                this.logger.silly('Discovered our target instances ', ourTargetInstances);
                 const ourTargetInstance = ourTargetInstances[0];
 
                 this.fwdRules.forEach((rule) => {
@@ -774,7 +778,7 @@ class Cloud extends AbstractCloud {
         const operations = [];
         return this._getRoutes({ tags: this.routeTags })
             .then((routes) => {
-                this.logger.silly('Routes: ', routes);
+                this.logger.silly('Discovered routes: ', routes);
                 routes.forEach((route) => {
                     const matchedAddressRange = this._matchRouteToAddressRange(route.destRange);
                     if (matchedAddressRange) {
@@ -786,6 +790,7 @@ class Cloud extends AbstractCloud {
                         // check if route should be updated and if next hop is our address,
                         // if not we need to update it
                         if (nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                            this.logger.silly('Route to be updated', route);
                             route.nextHopIp = nextHopAddress;
                             operations.push(route);
                         }
@@ -807,7 +812,6 @@ class Cloud extends AbstractCloud {
     */
     _updateAddresses(options) {
         options = options || {};
-
         const nicOperations = options.interfaces || {};
         const fwdRuleOperations = options.loadBalancerAddresses || {};
 
@@ -815,7 +819,8 @@ class Cloud extends AbstractCloud {
             this.logger.info('No address operations to run');
             return Promise.resolve();
         }
-
+        this.logger.silly('_updateAddresses interface operations: ', nicOperations);
+        this.logger.silly('_updateAddresses forwarding rules operations: ', fwdRuleOperations);
         return Promise.all([
             this._updateNics(nicOperations.disassociate, nicOperations.associate),
             this._updateFwdRules(fwdRuleOperations.operations)
@@ -832,8 +837,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateNics(disassociate, associate) {
-        this.logger.debug('updateAddresses disassociate operations: ', disassociate);
-        this.logger.debug('updateAddresses associate operations: ', associate);
+        this.logger.silly('updateAddresses disassociate operations: ', disassociate);
+        this.logger.silly('updateAddresses associate operations: ', associate);
 
         if (!disassociate || !associate) {
             this.logger.info('No associations to update.');
@@ -910,6 +915,7 @@ class Cloud extends AbstractCloud {
 
         return Promise.all(deletePromises)
             .then((response) => {
+                this.logger.debug('Deleted routes successfully');
                 const operationPromises = [];
                 response.forEach((item) => {
                     const operation = this.compute.operation(item.name);
@@ -925,7 +931,7 @@ class Cloud extends AbstractCloud {
                 return Promise.all(createPromises);
             })
             .then(() => {
-                this.logger.info('Update routes successful.');
+                this.logger.info('Updated routes successfully');
             })
             .catch(err => Promise.reject(err));
     }
