@@ -286,7 +286,9 @@ class Cloud extends AbstractCloud {
                 const eips = results[0].Addresses;
                 const secondaryPrivateIps = results[1];
                 const nics = results[2];
-
+                this.logger.debug('Discover address operations found Elastic IPs:', eips);
+                this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
+                this.logger.debug('Discover address operations found Nics', nics);
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
                     this._generateAddressOperations(nics, localAddresses, failoverAddresses)
@@ -312,6 +314,7 @@ class Cloud extends AbstractCloud {
             this.logger.debug('No update address operations to perform');
             return Promise.resolve();
         }
+        this.logger.debug('Update address operations to perform', operations);
 
         return Promise.all([
             this._reassociatePublicAddresses(operations.publicAddresses),
@@ -361,7 +364,7 @@ class Cloud extends AbstractCloud {
             route
         ) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
-                this.logger.silly('Found networkInterfaceId ', networkInterfaceId);
+                this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
                 const updateNotRequired = !(routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
                         && route.NetworkInterfaceId !== networkInterfaceId);
                 this.logger.silly('Update not required?', updateNotRequired, ' for route cidr block ', this._resolveRouteCidrBlock(route).cidrBlock);
@@ -568,7 +571,7 @@ class Cloud extends AbstractCloud {
         operations = operations || {};
         const disassociatePromises = [];
         const associatePromises = [];
-
+        this.logger.debug('Starting disassociating Elastic IP', disassociatePromises);
         Object.keys(operations).forEach((eipKeys) => {
             const AssociationId = operations[eipKeys].current.AssociationId;
             // Disassociate EIP only if it is currently associated
@@ -686,8 +689,8 @@ class Cloud extends AbstractCloud {
         operations = operations || {};
         const disassociate = operations.disassociate || [];
         const associate = operations.associate || [];
-
         let promises = [];
+        this.logger.debug('Starting reassociating addresses using operations', operations);
         disassociate.forEach((association) => {
             const args = [association.networkInterfaceId, association.addresses];
             promises.push(this._retrier(this._disassociateAddressFromNic, args));
@@ -793,6 +796,7 @@ class Cloud extends AbstractCloud {
                 }
             });
         });
+        this.logger.debug('Generated Public Address Operations', updatedState);
         return updatedState;
     }
 
@@ -895,6 +899,7 @@ class Cloud extends AbstractCloud {
             associate: []
         };
         const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+        this.logger.debug('parsedNics', parsedNics);
         if (!parsedNics.mine || !parsedNics.theirs) {
             this.logger.error('Could not determine network interfaces.');
         }
@@ -919,7 +924,7 @@ class Cloud extends AbstractCloud {
                 }
             }
         }
-
+        this.logger.debug('Generated Address Operations', operations);
         return Promise.resolve(operations);
     }
 

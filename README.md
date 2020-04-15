@@ -1,6 +1,6 @@
 # f5-cloud-failover
-[![Releases](https://img.shields.io/github/release/f5devcentral/f5-cloud-failover-extension.svg)](https://github.com/f5devcentral/f5-cloud-failover-extension/releases)
-[![Issues](https://img.shields.io/github/issues/f5devcentral/f5-cloud-failover-extension.svg)](https://github.com/f5devcentral/f5-cloud-failover-extension/issues)
+[![Releases](https://img.shields.io/github/release/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/releases)
+[![Issues](https://img.shields.io/github/issues/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/issues)
 
 ## Introduction
 
@@ -24,7 +24,7 @@ Using Cloud Failover Extension has three main benefits:
 
 ### Where can I download Cloud Failover Extension?
 
-Cloud Failover Extension RPM and checksum files can be found in the [Releases section](https://github.com/f5devcentral/f5-cloud-failover-extension/releases), under Assets.
+Cloud Failover Extension RPM and checksum files can be found in the [Releases section](https://github.com/f5networks/f5-cloud-failover-extension/releases), under Assets.
 
 ## Documentation
 
@@ -32,9 +32,9 @@ For the documentation on Cloud Failover, including download, installation, and u
 
 ## Filing Issues and Getting Help
 
-If you come across a bug or other issue when using Cloud Failover, use [GitHub Issues](https://github.com/f5devcentral/f5-cloud-failover-extension/issues) to submit an issue for our team.  You can also see the current known issues on that page, which are tagged with a purple Known Issue label.  
+If you come across a bug or other issue when using Cloud Failover, use [GitHub Issues](https://github.com/f5networks/f5-cloud-failover-extension/issues) to submit an issue for our team.  You can also see the current known issues on that page, which are tagged with a purple Known Issue label.  
 
-F5 Cloud Failover Extension is community-supported. For more information, see the [Support page](SUPPORT.md).
+For more information, see the [Support page](SUPPORT.md).
 
 ## Copyright
 
