@@ -720,7 +720,13 @@ class Cloud extends AbstractCloud {
                     result.push({ name: tgt.name, selfLink: tgt.selfLink });
                 }
             });
-            return result;
+
+            if (!tgtInstances.length) {
+                return Promise.reject(
+                    new Error(`Unable to locate our target instance: ${this.instanceName}`)
+                );
+            }
+            return result[0];
         };
 
         return Promise.all([
@@ -731,36 +737,31 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = data[0] || [];
                 this.targetInstances = data[1] || [];
 
-                const ourTargetInstances = getOurTargetInstance(this.instanceName, this.targetInstances);
-                if (!ourTargetInstances.length) {
-                    const message = `Unable to locate our target instance: ${this.instanceName}`;
-                    return Promise.reject(new Error(message));
-                }
-                this.logger.silly('Discovered our target instances ', ourTargetInstances);
-                const ourTargetInstance = ourTargetInstances[0];
-
                 this.fwdRules.forEach((rule) => {
-                    let targetInstanceToUse = ourTargetInstance;
                     const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    if (!match.length) {
+                        return; // continue with next iteration
+                    }
+
+                    this.logger.silly('updateFwdRules matched rule:', rule);
+
+                    let targetInstanceToUse = getOurTargetInstance(this.instanceName, this.targetInstances);
+                    // the target instance to use may also be provided on the fwd rules object
+                    // itself, check there if necessary
                     const fwdRuleDefinedTargetInstances = this._getFwdRulesTargetInstancesFromLabel(rule);
                     if (fwdRuleDefinedTargetInstances) {
-                        const fwdRuleTargetInstances = getOurTargetInstance(
+                        targetInstanceToUse = getOurTargetInstance(
                             this.instanceName, fwdRuleDefinedTargetInstances
                         );
-                        if (fwdRuleDefinedTargetInstances.length) {
-                            targetInstanceToUse = fwdRuleTargetInstances[0];
-                        }
                     }
-                    if (match.length) {
-                        this.logger.silly('updateFwdRules matched rule:', rule);
+                    this.logger.silly('Discovered our target instance ', targetInstanceToUse);
 
-                        if (rule.target.indexOf(targetInstanceToUse.name) === -1) {
-                            fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
-                        }
+                    if (rule.target && rule.target.indexOf(targetInstanceToUse.name) === -1) {
+                        fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
                     }
                 });
-
                 this.logger.silly('fwdRulesToUpdate: ', fwdRulesToUpdate);
+
                 return Promise.resolve({ operations: fwdRulesToUpdate });
             })
             .catch(err => Promise.reject(err));
