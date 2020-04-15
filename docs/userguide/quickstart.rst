@@ -98,11 +98,11 @@ If the declaration is successful, you will receive a response from Postman that 
 
 .. |github| raw:: html
 
-   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
 
    
 .. |known-issues| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a>
 
 
