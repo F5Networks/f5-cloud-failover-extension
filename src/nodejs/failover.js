@@ -85,7 +85,9 @@ class FailoverClient {
      */
     execute() {
         this.isAddressOperationsEnabled = this._getOperationEnabledState('failoverAddresses');
+        logger.debug('Address operations enabled? ', this.isAddressOperationsEnabled);
         this.isRouteOperationsEnabled = this._getOperationEnabledState('failoverRoutes');
+        logger.debug('Route operations enabled? ', this.isRouteOperationsEnabled);
         if (!this.isAddressOperationsEnabled && !this.isRouteOperationsEnabled) {
             logger.info('failoverAddresses and failoverRoutes is not enabled. Will not perform failover execute');
             return Promise.resolve();
@@ -329,9 +331,11 @@ class FailoverClient {
                 this.virtualAddresses, this.snatAddresses, this.natAddresses, trafficGroups
             )
         );
-
         this.localAddresses = addresses.localAddresses;
+        logger.debug('Retrieved local addresses', this.localAddresses);
         this.failoverAddresses = addresses.failoverAddresses;
+        logger.debug('Retrieved failover addresses ', this.failoverAddresses);
+
         const updateActions = [];
         if (this.isAddressOperationsEnabled) {
             updateActions.push(this.cloudProvider.updateAddresses({
@@ -618,7 +622,7 @@ class FailoverClient {
     _getFailoverAddresses(selfAddresses, floatingAddresses) {
         const localAddresses = [];
         const failoverAddresses = [];
-
+        logger.debug('Getting failover addresses using selfAddresses ', selfAddresses, ' and floatingAddresses ', floatingAddresses);
         // go through all self addresses and add address to appropriate array
         selfAddresses.forEach((item) => {
             if (item.trafficGroupMatch) {
