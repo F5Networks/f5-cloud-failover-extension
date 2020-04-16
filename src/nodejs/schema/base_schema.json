@@ -4,7 +4,31 @@
     "title": "Cloud Failover",
     "description": "Top level schema for enabling cloud failover for BIG-IP",
     "type": "object",
-    "definitions": {},
+    "definitions": {
+        "nextHopAddresses": {
+            "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
+            "type": "object",
+            "properties": {
+                "discoveryType": {
+                    "type": "string",
+                    "enum": [
+                        "static",
+                        "routeTag"
+                    ],
+                    "default": "routeTag"
+                },
+                "items": {
+                    "$comment": "Certain discovery types will require an array of items, those can be provided using this property.",
+                    "type": "array",
+                    "maxItems": 10
+                }
+            },
+            "required": [
+                "discoveryType"
+            ]
+        }
+
+    },
     "required": [
         "class",
         "environment"
@@ -24,11 +48,12 @@
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
             "enum": [
+                "1.2.0",
                 "1.1.0",
                 "1.0.0",
                 "0.9.1"
             ],
-            "default": "1.1.0"
+            "default": "1.2.0"
         },
         "$schema": {
             "title": "Schema",
@@ -50,6 +75,9 @@
             "description": "Addresses this deployment will manage.",
             "type": "object",
             "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
                 "scopingTags": {
                     "type": "object",
                     "additionalProperties": true
@@ -64,6 +92,9 @@
             "description": "Route(s) this deployment will manage.",
             "type": "object",
             "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
                 "scopingTags": {
                     "type": "object",
                     "additionalProperties": true
@@ -77,37 +108,20 @@
                             "range": {
                                 "type": "string",
                                 "format": "ipAddressWithCidr"
-                            }
-                        }
-                    }
-                },
-                "defaultNextHopAddresses": {
-                    "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
-                    "type": "object",
-                    "properties": {
-                        "discoveryType": {
-                            "type": "string",
-                            "enum": [
-                                "static",
-                                "routeTag"
-                            ],
-                            "default": "routeTag"
-                        },
-                        "items": {
-                            "$comment": "Certain discovery types will require an array of items, those can be provided using this property.",
-                            "type": "array",
-                            "maxItems": 10
+                            },
+                            "nextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
                         }
                     },
                     "required": [
-                        "discoveryType"
+                        "range",
+                        "nextHopAddresses"
                     ]
-                }
+                },
+                "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
             },
             "required": [
                 "scopingTags",
-                "scopingAddressRanges",
-                "defaultNextHopAddresses"
+                "scopingAddressRanges"
             ]
         },
         "externalStorage": {

@@ -14,7 +14,9 @@ These are the basic prerequisites for setting up CFE in AWS:
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+
+.. include:: /_static/reuse/initial-config.rst
 
 .. table:: Task Summary
 
@@ -259,7 +261,7 @@ If provisioning Across Network Topology, you will need to:
 #. Create two sets of tags for Elastic IP addresses:
 
    - a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-   - a special key called ``VIPS`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
+   - a special key called ``f5_cloud_failover_vips`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
 
 
 .. _aws-tag-routes:

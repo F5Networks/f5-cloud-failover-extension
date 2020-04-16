@@ -214,6 +214,12 @@ describe('Provider - Azure', () => {
             });
     });
 
+    it('should validate updateAddresses does not throw error if update operations is empty', () => {
+        const opts = { updateOperations: { interfaces: {} } };
+        return provider.updateAddresses(opts)
+            .catch(err => Promise.reject(err));
+    });
+
     it('should validate updateAddresses performs discovery', () => {
         const localAddresses = ['2.2.2.2'];
         const failoverAddresses = ['10.10.10.10'];
@@ -549,7 +555,7 @@ describe('Provider - Azure', () => {
     });
 
     describe('function updateRoutes should', () => {
-        const localAddresses = ['10.0.1.11'];
+        const localAddresses = ['10.0.1.11', '10.0.1.13'];
 
         let providerRouteUpdateSpy;
 
@@ -569,24 +575,48 @@ describe('Provider - Azure', () => {
                         addressPrefix: '192.0.0.0/24',
                         nextHopType: 'VirtualAppliance',
                         nextHopIpAddress: '10.0.1.10'
-                    }
-                ]
+                    }]
+            };
+            const routeTable02 = {
+                id: '/foo/foo/foo/rg01/id_rt02',
+                name: 'rt02',
+                provisioningState: 'Succeeded',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.12,10.0.1.13'
+                },
+                routes: [
+                    {
+                        id: 'id_route02',
+                        name: 'route02',
+                        addressPrefix: '192.0.0.1/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.12'
+                    }]
             };
 
             provider.networkClient = sinon.stub();
             provider.networkClient.routeTables = sinon.stub();
-            provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable01]);
+            provider.networkClient.routeTables.listAll = sinon.stub().yields(null, [routeTable01, routeTable02]);
             provider.networkClient.routes = sinon.stub();
 
             providerRouteUpdateSpy = sinon.stub().yields(null, []);
             provider.networkClient.routes.beginCreateOrUpdate = providerRouteUpdateSpy;
 
             provider.routeTags = { F5_LABEL: 'foo' };
-            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
-            provider.routeNextHopAddresses = {
-                type: 'routeTag',
-                tag: 'F5_SELF_IPS'
-            };
+            provider.routeAddressRanges = [{
+                routeAddresses: ['192.0.0.0/24'],
+                routeNextHopAddresses: {
+                    type: 'routeTag',
+                    tag: 'F5_SELF_IPS'
+                }
+            }];
+        });
+
+        it('not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
+                .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({ localAddresses, discoverOnly: true })
@@ -597,7 +627,7 @@ describe('Provider - Azure', () => {
             .catch(err => Promise.reject(err)));
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['10.0.1.10', '10.0.1.11']
             };
@@ -610,8 +640,34 @@ describe('Provider - Azure', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('update multiple routes using next hop discovery method: static', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.0.0/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.10', '10.0.1.11']
+                    }
+                },
+                {
+                    routeAddresses: ['192.0.0.1/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.10', '10.0.1.11']
+                    }
+                }];
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.strictEqual(providerRouteUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    assert.strictEqual(providerRouteUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: []
             };
@@ -670,7 +726,8 @@ describe('Provider - Azure', () => {
                 addresses: [
                     {
                         privateIpAddress: '1.1.1.1',
-                        publicIpAddress: '100.100.100.100'
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: null
                     }
                 ],
                 routes: [
@@ -692,7 +749,8 @@ describe('Provider - Azure', () => {
                                 privateIpAddress: '1.1.1.1',
                                 publicIpAddress: '100.100.100.100'
                             }]
-                        }
+                        },
+                        macAddress: '000000070FD1'
                     }]
                 }
 
@@ -723,11 +781,13 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
-            provider.routeNextHopAddresses = {
-                type: 'routeTag',
-                tag: 'F5_SELF_IPS'
-            };
-
+            provider.routeAddressRanges = [{
+                routeAddresses: ['192.0.0.0/24'],
+                routeNextHopAddresses: {
+                    type: 'routeTag',
+                    tag: 'F5_SELF_IPS'
+                }
+            }];
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -741,7 +801,8 @@ describe('Provider - Azure', () => {
                 addresses: [
                     {
                         privateIpAddress: '1.1.1.1',
-                        publicIpAddress: '100.100.100.100'
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: null
                     }
                 ],
                 routes: []
@@ -757,7 +818,8 @@ describe('Provider - Azure', () => {
                                 privateIpAddress: '1.1.1.1',
                                 publicIpAddress: '100.100.100.100'
                             }]
-                        }
+                        },
+                        macAddress: '000000070FD1'
                     }]
                 }
             };

@@ -30,7 +30,10 @@ describe('Provider - AWS', () => {
         routeTags: {
             F5_CLOUD_FAILOVER_LABEL: 'foo'
         },
-        routeAddresses: [{ range: '192.0.2.0/24' }],
+        routeAddressRanges: [
+            {
+                routeAddresses: ['192.0.2.0/24']
+            }],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -536,7 +539,7 @@ describe('Provider - AWS', () => {
             {
                 Tags: [
                     {
-                        Key: 'VIPS',
+                        Key: 'f5_cloud_failover_vips',
                         Value: '2.3.4.5,2.3.4.6,2.3.4.7'
                     }
                 ],
@@ -548,7 +551,7 @@ describe('Provider - AWS', () => {
             {
                 Tags: [
                     {
-                        Key: 'VIPS',
+                        Key: 'f5_cloud_failover_vips',
                         Value: '3.4.5.6,3.4.5.7,3.4.5.8'
                     }
                 ],
@@ -786,6 +789,12 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('should not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateAddresses(opts)
+                .catch(err => Promise.reject(err));
+        });
+
         it('should validate private+public address gets reassociated', () => {
             const describeNetworkInterfacesResponse = {
                 NetworkInterfaces: [
@@ -868,73 +877,76 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('should validate public address gets reassociated (using across-net VIPS tag)', () => {
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        PrivateIpAddress: '10.10.10.11',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: [
-                            {
-                                Key: 'VIPS',
-                                Value: '10.10.10.10,10.10.10.11'
-                            }
-                        ]
-                    }
-                ]
-            };
-            const describeNetworkInterfacesResponse = {
-                NetworkInterfaces: [
-                    {
-                        NetworkInterfaceId: 'eni-1',
-                        PrivateIpAddresses: [
-                            {
-                                Primary: false,
-                                PrivateIpAddress: '10.10.10.10'
-                            }
-                        ],
-                        TagSet: []
-                    },
-                    {
-                        NetworkInterfaceId: 'eni-2',
-                        PrivateIpAddresses: [
-                            {
-                                Primary: false,
-                                PrivateIpAddress: '10.10.10.100'
-                            }
-                        ],
-                        TagSet: []
-                    }
-                ]
-            };
-            provider.ec2.describeAddresses = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                });
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
-                    }
-                });
+        // validate
+        ['f5_cloud_failover_vips', 'VIPS'].forEach((vipTagName) => {
+            it(`should validate public address gets reassociated (using ${vipTagName} tag)`, () => {
+                const describeAddressesResponse = {
+                    Addresses: [
+                        {
+                            PublicIp: '2.2.2.2',
+                            PrivateIpAddress: '10.10.10.11',
+                            AssociationId: 'association-id',
+                            AllocationId: 'allocation-id',
+                            Tags: [
+                                {
+                                    Key: vipTagName,
+                                    Value: '10.10.10.10,10.10.10.11'
+                                }
+                            ]
+                        }
+                    ]
+                };
+                const describeNetworkInterfacesResponse = {
+                    NetworkInterfaces: [
+                        {
+                            NetworkInterfaceId: 'eni-1',
+                            PrivateIpAddresses: [
+                                {
+                                    Primary: false,
+                                    PrivateIpAddress: '10.10.10.10'
+                                }
+                            ],
+                            TagSet: []
+                        },
+                        {
+                            NetworkInterfaceId: 'eni-2',
+                            PrivateIpAddresses: [
+                                {
+                                    Primary: false,
+                                    PrivateIpAddress: '10.10.10.100'
+                                }
+                            ],
+                            TagSet: []
+                        }
+                    ]
+                };
+                provider.ec2.describeAddresses = sinon.stub()
+                    .returns({
+                        promise() {
+                            return Promise.resolve(describeAddressesResponse);
+                        }
+                    });
+                provider.ec2.describeNetworkInterfaces = sinon.stub()
+                    .returns({
+                        promise() {
+                            return Promise.resolve(describeNetworkInterfacesResponse);
+                        }
+                    });
 
-            return provider.updateAddresses({ discoverOnly: true })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
-                .then(() => {
-                    // assert public address gets reassociated properly
-                    assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
-                    assert.deepStrictEqual(actualParams.assign.public, [{
-                        AllocationId: 'allocation-id',
-                        NetworkInterfaceId: 'eni-1',
-                        PrivateIpAddress: '10.10.10.10',
-                        AllowReassociation: true
-                    }]);
-                })
-                .catch(err => Promise.reject(err));
+                return provider.updateAddresses({ discoverOnly: true })
+                    .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                    .then(() => {
+                        // assert public address gets reassociated properly
+                        assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
+                        assert.deepStrictEqual(actualParams.assign.public, [{
+                            AllocationId: 'allocation-id',
+                            NetworkInterfaceId: 'eni-1',
+                            PrivateIpAddress: '10.10.10.10',
+                            AllowReassociation: true
+                        }]);
+                    })
+                    .catch(err => Promise.reject(err));
+            });
         });
     });
 
@@ -1041,6 +1053,14 @@ describe('Provider - AWS', () => {
                         Origin: 'CreateRoute',
                         State: 'active'
                     },
+                    {
+                        DestinationCidrBlock: '192.0.2.1/24',
+                        InstanceId: 'i-123',
+                        InstanceOwnerId: '123',
+                        NetworkInterfaceId: 'eni-123',
+                        Origin: 'CreateRoute',
+                        State: 'active'
+                    },
                     // IPv6
                     {
                         DestinationIpv6CidrBlock: '::/0',
@@ -1077,12 +1097,11 @@ describe('Provider - AWS', () => {
                 ]
             };
 
-            const thisMockInitData = Object.assign({
-                routeNextHopAddresses: {
-                    type: 'routeTag',
-                    tag: 'F5_SELF_IPS'
-                }
-            }, mockInitData);
+            const thisMockInitData = mockInitData;
+            thisMockInitData.routeAddressRanges[0].routeNextHopAddresses = {
+                type: 'routeTag',
+                tag: 'F5_SELF_IPS'
+            };
 
 
             return provider.init(thisMockInitData)
@@ -1105,9 +1124,14 @@ describe('Provider - AWS', () => {
                                 return Promise.resolve({});
                             }
                         });
-
                     createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
                 .catch(err => Promise.reject(err));
         });
 
@@ -1123,7 +1147,7 @@ describe('Provider - AWS', () => {
             .catch(err => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
-            provider.routeAddresses = [{ range: '192.0.100.0/24' }];
+            provider.routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
@@ -1133,9 +1157,12 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: ['10.0.1.211', '10.0.11.52']
+            provider.routeAddressRanges[0] = {
+                routeAddresses: ['192.0.2.0/24'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: ['10.0.1.211', '10.0.11.52']
+                }
             };
 
             return provider.updateRoutes({ localAddresses })
@@ -1146,13 +1173,55 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
-        it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
-            provider.routeAddresses = [{ range: '::/0' }];
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
-            };
+        it('update routes using multiple next hop discovery method: static', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.2.0/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.211', '10.0.11.52']
+                    }
+                },
+                {
+                    routeAddresses: ['::/0'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
 
+                    }
+                },
+                {
+                    routeAddresses: ['192.0.2.1/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['10.0.1.211', '10.0.11.52']
+                    }
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses: ['10.0.1.211', '2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
+                .then(() => {
+                    assert(provider.ec2.describeNetworkInterfaces.calledThrice);
+                    assert(provider.ec2.describeNetworkInterfaces.args[0][0].Filters[2].Name === 'private-ip-address');
+                    assert(provider.ec2.describeNetworkInterfaces.args[1][0].Filters[2].Name === 'private-ip-address');
+                    assert(provider.ec2.describeNetworkInterfaces.args[2][0].Filters[2].Name === 'ipv6-addresses.ipv6-address');
+                    assert(createRouteSpy.calledThrice);
+                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
+                    assert(createRouteSpy.calledWith('192.0.2.1/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['::/0'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221', '2600:1f13:12f:a804:5d15:e0e:1af9:8222']
+                    }
+                }];
             return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
                     assert(createRouteSpy.calledOnce);
@@ -1162,9 +1231,12 @@ describe('Provider - AWS', () => {
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeNextHopAddresses = {
-                type: 'static',
-                items: []
+            provider.routeAddressRanges[0] = {
+                routeAddresses: ['::/0'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: []
+                }
             };
 
             return provider.updateRoutes({ localAddresses })
@@ -1175,9 +1247,9 @@ describe('Provider - AWS', () => {
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = [{
                 type: 'foo'
-            };
+            }];
 
             return provider.updateRoutes({ localAddresses })
                 .catch((err) => {
@@ -1194,13 +1266,13 @@ describe('Provider - AWS', () => {
                     {
                         publicIpAddress: '1.1.1.1',
                         privateIpAddress: '1.1.1.1',
-                        associationId: '123',
                         networkInterfaceId: '123'
                     }
                 ],
                 routes: [
                     {
                         routeTableId: '123',
+                        routeTableName: null,
                         networkId: '123'
                     }
                 ]
@@ -1211,13 +1283,13 @@ describe('Provider - AWS', () => {
                         Addresses: [{
                             PublicIp: '1.1.1.1',
                             PrivateIpAddress: '1.1.1.1',
-                            AssociationId: '123',
                             NetworkInterfaceId: '123'
                         }]
                     });
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
+                            routeTableName: null,
                             VpcId: '123'
                         }
                     ]);
@@ -1236,7 +1308,6 @@ describe('Provider - AWS', () => {
                     {
                         publicIpAddress: '1.1.1.1',
                         privateIpAddress: '1.1.1.1',
-                        associationId: '123',
                         networkInterfaceId: '123'
                     }
                 ],
@@ -1248,7 +1319,6 @@ describe('Provider - AWS', () => {
                         Addresses: [{
                             PublicIp: '1.1.1.1',
                             PrivateIpAddress: '1.1.1.1',
-                            AssociationId: '123',
                             NetworkInterfaceId: '123'
                         }]
                     });

@@ -3,7 +3,7 @@
     "environment": "{{environment}}",
     "controls": {
       "class": "Controls",
-      "logLevel": "debug"
+      "logLevel": "info"
     },
     "externalStorage": {
       "scopingTags": {
@@ -11,20 +11,46 @@
       }
     },
     "failoverAddresses": {
+      "enabled": true,
       "scopingTags": {
         "f5_cloud_failover_label": "{{deploymentId}}"
       }
     },
     "failoverRoutes": {
+      "enabled": true,
       "scopingTags": {
         "f5_cloud_failover_label": "{{deploymentId}}"
       },
       "scopingAddressRanges": [
         {
-          "range": "192.0.2.0/24"
+          "range": "192.0.2.0/24",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              "{{nextHopAddress1}}",
+              "{{nextHopAddress2}}"
+            ]
+          }
         },
         {
-          "range": "2001:db8:2:2::/64"
+          "range": "2001:db8:2:2::/64",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              "{{nextHopAddress1_IPv6}}",
+              "{{nextHopAddress2_IPv6}}"
+            ]
+          }
+        },
+        {
+          "range": "192.0.3.0/24",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              "{{nextHopAddress1}}",
+              "{{nextHopAddress2}}"
+            ]
+          }
         }
       ],
       "defaultNextHopAddresses": {
@@ -32,8 +58,8 @@
         "items": [
           "{{nextHopAddress1}}",
           "{{nextHopAddress2}}",
-          "{{nextHopAddress3}}",
-          "{{nextHopAddress4}}"
+          "{{nextHopAddress1_IPv6}}",
+          "{{nextHopAddress2_IPv6}}"
         ]
       }
     }

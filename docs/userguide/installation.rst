@@ -26,7 +26,7 @@ You can get a checksum for a particular RPM by running one of the following comm
 
 - Windows using CertUtil: ``CertUtil –hashfile <path_to_rpm> SHA256``
 
-You can compare the checksum produced by that command against the **.sha256** file (https://github.com/f5devcentral/f5-cloud-failover-extension/releases). 
+You can compare the checksum produced by that command against the **.sha256** file (https://github.com/F5Networks/f5-cloud-failover-extension/releases). 
 
 .. WARNING:: Do not continue if the hash does not match.
 
@@ -97,16 +97,7 @@ If you want to use cURL to install Cloud Failover Extension, use the following c
 
        curl -kvu $CREDS "https://$IP/mgmt/shared/iapp/package-management-tasks" -H "Origin: https://$IP" -H 'Content-Type: application/json;charset=UTF-8' --data $DATA
 
-|
 
-What's Next
------------
-
-Choose the cloud environment you are working in to continue implementing CFE.
-
-- :ref:`azure`
-- :ref:`aws`
-- :ref:`gcp`
 
 |
 
@@ -116,8 +107,8 @@ Choose the cloud environment you are working in to continue implementing CFE.
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
 
 .. |release| raw:: html
 
-   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">Release section</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">Release section</a>

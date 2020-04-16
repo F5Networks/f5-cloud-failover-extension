@@ -15,9 +15,9 @@ You can use a RESTful API client like |postman| to configure F5 Cloud Failover E
 
 .. |postman_collection_download| raw:: html
 
-   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases/latest/" target="_blank">in the release assets on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases/latest/" target="_blank">in the release assets on GitHub</a>
 
 
 .. |postman-zip| image:: /images/postman.png
-   :target: https://github.com/f5devcentral/f5-cloud-failover-extension/releases/latest/download/postman-collection.zip
+   :target: https://github.com/F5Networks/f5-cloud-failover-extension/releases/latest/download/postman-collection.zip
    :alt: postman

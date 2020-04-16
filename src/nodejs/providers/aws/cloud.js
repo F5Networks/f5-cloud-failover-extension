@@ -17,11 +17,13 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const IPAddressLib = require('ip-address');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 const constants = require('../../constants');
+
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -52,6 +54,8 @@ class Cloud extends AbstractCloud {
             })
             .then((bucketName) => {
                 this.s3BucketName = bucketName;
+
+                this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
     }
@@ -194,13 +198,13 @@ class Cloud extends AbstractCloud {
                     data.addresses.push({
                         publicIpAddress: address.PublicIp,
                         privateIpAddress: address.PrivateIpAddress,
-                        associationId: address.AssociationId,
                         networkInterfaceId: address.NetworkInterfaceId
                     });
                 });
                 result[1].forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
+                        routeTableName: null, // add routeTableName here to normalize response across clouds
                         networkId: route.VpcId
                     });
                 });
@@ -282,7 +286,9 @@ class Cloud extends AbstractCloud {
                 const eips = results[0].Addresses;
                 const secondaryPrivateIps = results[1];
                 const nics = results[2];
-
+                this.logger.debug('Discover address operations found Elastic IPs:', eips);
+                this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
+                this.logger.debug('Discover address operations found Nics', nics);
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
                     this._generateAddressOperations(nics, localAddresses, failoverAddresses)
@@ -290,7 +296,8 @@ class Cloud extends AbstractCloud {
             })
             .then(operations => Promise.resolve({
                 publicAddresses: operations[0],
-                interfaces: operations[1]
+                interfaces: operations[1],
+                loadBalancerAddresses: {}
             }))
             .catch(err => Promise.reject(err));
     }
@@ -303,10 +310,12 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(operations) {
-        if (!operations || Object.keys(operations).length === 0) {
-            this.logger.info('No reassociated addresses to update.');
+        if (!operations || !Object.keys(operations).length) {
+            this.logger.debug('No update address operations to perform');
             return Promise.resolve();
         }
+        this.logger.debug('Update address operations to perform', operations);
+
         return Promise.all([
             this._reassociatePublicAddresses(operations.publicAddresses),
             this._reassociateAddresses(operations.interfaces)
@@ -348,46 +357,54 @@ class Cloud extends AbstractCloud {
     _discoverRouteOperations(localAddresses) {
         localAddresses = localAddresses || [];
 
-        const _getUpdateOperationObject = (address, routeTable) => this._getNetworkInterfaceId(address)
+        const _getUpdateOperationObject = (
+            routeAddresses,
+            address,
+            routeTable,
+            route
+        ) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
-                const updateNotRequired = routeTable.Routes.every((route) => {
-                    if (this.routeAddresses.map(i => i.range)
-                        .indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
-                        && route.NetworkInterfaceId !== networkInterfaceId) {
-                        return false;
-                    }
-                    return true;
-                });
-
+                this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
+                const updateNotRequired = !(routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
+                        && route.NetworkInterfaceId !== networkInterfaceId);
+                this.logger.silly('Update not required?', updateNotRequired, ' for route cidr block ', this._resolveRouteCidrBlock(route).cidrBlock);
                 // if an update is not required just return an empty object
                 if (updateNotRequired) {
                     return Promise.resolve({});
                 }
                 // return information required for update later
-                return Promise.resolve({ routeTable, networkInterfaceId });
+                return Promise.resolve({ routeTable, networkInterfaceId, routeAddresses });
             })
             .catch(err => Promise.reject(err));
 
         return this._getRouteTables({ tags: this.routeTags })
             .then((routeTables) => {
                 const promises = [];
-
                 routeTables.forEach((routeTable) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        routeTable.Tags,
-                        this.routeNextHopAddresses
-                    );
-
-                    if (nextHopAddress) {
-                        promises.push(_getUpdateOperationObject(nextHopAddress, routeTable));
-                    }
+                    routeTable.Routes.forEach((route) => {
+                        const matchedAddressRange = this._matchRouteToAddressRange(
+                            this._resolveRouteCidrBlock(route).cidrBlock
+                        );
+                        if (matchedAddressRange) {
+                            const nextHopAddress = this._discoverNextHopAddress(
+                                localAddresses,
+                                routeTable.Tags,
+                                matchedAddressRange.routeNextHopAddresses
+                            );
+                            if (nextHopAddress) {
+                                promises.push(_getUpdateOperationObject(
+                                    matchedAddressRange.routeAddresses, nextHopAddress, routeTable, route
+                                ));
+                            }
+                        }
+                    });
                 });
                 return Promise.all(promises);
             })
             .then(routesToUpdate => Promise.resolve(routesToUpdate.filter(route => Object.keys(route).length)))
             .catch(err => Promise.reject(err));
     }
+
 
     /**
     * Update addresses - given reassociate operation(s)
@@ -397,15 +414,18 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateRoutes(operations) {
-        const promises = [];
-
-        if (!operations || Object.keys(operations).length === 0) {
+        if (!operations || !operations.length) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }
 
+        const promises = [];
         operations.forEach((operation) => {
-            promises.push(this._updateRouteTable(operation.routeTable, operation.networkInterfaceId));
+            promises.push(this._updateRouteTable(
+                operation.routeTable,
+                operation.networkInterfaceId,
+                operation.routeAddresses
+            ));
         });
         return Promise.all(promises)
             .then(() => {
@@ -419,14 +439,15 @@ class Cloud extends AbstractCloud {
      *
      * @param {Object} routeTable - Route table with routes
      * @param {String} networkInterfaceId - Network interface that the route if to be updated to
+     * @param {Array} routeAddressRange - Route Address Range whose destination needs to be updated
      *
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
-    _updateRouteTable(routeTable, networkInterfaceId) {
+    _updateRouteTable(routeTable, networkInterfaceId, routeAddressRange) {
         const promises = [];
         routeTable.Routes.forEach((route) => {
             const routeCidrInfo = this._resolveRouteCidrBlock(route);
-            if (this.routeAddresses.map(i => i.range).indexOf(routeCidrInfo.cidrBlock) !== -1) {
+            if (routeAddressRange.indexOf(routeCidrInfo.cidrBlock) !== -1) {
                 promises.push(this._replaceRoute(
                     routeCidrInfo.cidrBlock,
                     networkInterfaceId,
@@ -449,7 +470,18 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves with the network interface id associated with the private Ip or rejects
      */
     _getNetworkInterfaceId(privateIp) {
-        return this._listNics({ tags: this.tags, privateAddress: privateIp })
+        const options = {
+            tags: this.tags
+        };
+        const address = new IPAddressLib.Address4(privateIp);
+        if (address.isValid()) {
+            this.logger.debug('Using IPv4 filtering for to get nics', privateIp);
+            options.privateAddress = privateIp;
+        } else {
+            this.logger.debug('Using IPv6 filtering for to get nics', privateIp);
+            options.ipv6Address = privateIp;
+        }
+        return this._listNics(options)
             .then(nics => Promise.resolve(nics[0].NetworkInterfaceId))
             .catch(err => Promise.reject(err));
     }
@@ -536,9 +568,10 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects with status of moving the EIP
      */
     _reassociatePublicAddresses(operations) {
+        operations = operations || {};
         const disassociatePromises = [];
         const associatePromises = [];
-
+        this.logger.debug('Starting disassociating Elastic IP', disassociatePromises);
         Object.keys(operations).forEach((eipKeys) => {
             const AssociationId = operations[eipKeys].current.AssociationId;
             // Disassociate EIP only if it is currently associated
@@ -653,10 +686,11 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves when all addresses are reassociated or rejects if an error occurs
      */
     _reassociateAddresses(operations) {
+        operations = operations || {};
         const disassociate = operations.disassociate || [];
         const associate = operations.associate || [];
-
         let promises = [];
+        this.logger.debug('Starting reassociating addresses using operations', operations);
         disassociate.forEach((association) => {
             const args = [association.networkInterfaceId, association.addresses];
             promises.push(this._retrier(this._disassociateAddressFromNic, args));
@@ -739,7 +773,7 @@ class Cloud extends AbstractCloud {
     _generatePublicAddressOperations(eips, privateInstanceIPs) {
         const updatedState = {};
         eips.forEach((eip) => {
-            const vipsTag = eip.Tags.find(tag => tag.Key === constants.AWS_VIPS_TAG);
+            const vipsTag = eip.Tags.find(tag => constants.AWS_VIPS_TAGS.indexOf(tag.Key) !== -1);
             const targetAddresses = vipsTag ? vipsTag.Value.split(',') : [];
             targetAddresses.forEach((targetAddress) => {
                 // Check if the target address is present on local BIG-IP, and if the EIP isn't already associated
@@ -762,6 +796,7 @@ class Cloud extends AbstractCloud {
                 }
             });
         });
+        this.logger.debug('Generated Public Address Operations', updatedState);
         return updatedState;
     }
 
@@ -864,6 +899,7 @@ class Cloud extends AbstractCloud {
             associate: []
         };
         const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+        this.logger.debug('parsedNics', parsedNics);
         if (!parsedNics.mine || !parsedNics.theirs) {
             this.logger.error('Could not determine network interfaces.');
         }
@@ -888,7 +924,7 @@ class Cloud extends AbstractCloud {
                 }
             }
         }
-
+        this.logger.debug('Generated Address Operations', operations);
         return Promise.resolve(operations);
     }
 
@@ -932,7 +968,8 @@ class Cloud extends AbstractCloud {
      *
      * @param {Object} options                  - function options
      * @param {Object} [options.tags]           - object containing tags to filter on: { 'key': 'value' }
-     * @param {String} [options.privateAddress] - String containing private address to filter on
+     * @param {String} [options.privateAddress] - String containing private address to filter
+     * @param {String} [options.ipv6Address]    - String containing ipv6 address to filter
      *
      * @returns {Promise} - A Promise that will be resolved with thearray of NICs,
      * or rejected if an error occurs.  Example response:
@@ -948,6 +985,7 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const tags = options.tags || null;
         const privateAddress = options.privateAddress || null;
+        const ipv6Address = options.ipv6Address || null;
 
         let params = {
             Filters: []
@@ -959,6 +997,10 @@ class Cloud extends AbstractCloud {
         }
         if (privateAddress) {
             params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
+        }
+
+        if (ipv6Address) {
+            params = this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address);
         }
 
         return this.ec2.describeNetworkInterfaces(params).promise()

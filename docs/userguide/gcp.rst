@@ -17,7 +17,9 @@ These are the basic prerequisites for setting up CFE in Google Cloud Platform:
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+
+.. include:: /_static/reuse/initial-config.rst
 
 .. table:: Task Summary
 
@@ -237,6 +239,7 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
 .. code-block:: json
    :caption: What the route section of the declaration should look like
 
+   {
     "failoverRoutes": {
         "scopingTags": {
             "f5_cloud_failover_label": "mydeployment"
@@ -253,6 +256,7 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
                 "192.0.2.11"
             ]
         }
+   }
 
 
 |

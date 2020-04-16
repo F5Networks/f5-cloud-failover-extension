@@ -14,6 +14,7 @@ const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
+const util = require('../../shared/util.js');
 
 const cloud = 'gcp';
 let provider;
@@ -50,7 +51,9 @@ const mockVms = [
         ]
     }
 ];
+
 const description = 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
+const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName, testInstanceName02"}';
 
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
@@ -193,10 +196,47 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('validate updateAddresses method', () => {
+    it('should validate updateAddresses does not throw error if update operations is empty', () => {
+        const opts = { updateOperations: {} };
+        return provider.updateAddresses(opts)
+            .catch(err => Promise.reject(err));
+    });
+
+
+    it('validate updateAddresses method with forwarding rule tags', () => {
+        sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockVms));
+        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2', description: fwdRuleDescription }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{
+            name: 'testInstanceName', instance: 'compute/testInstanceName'
+        }]);
+
+        const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+
+        provider.instanceName = 'testInstanceName';
+
+        const localAddresses = ['1.1.1.1', '4.4.4.4'];
+        const failoverAddresses = ['10.0.2.1'];
+
+        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(() => {
+                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
+                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
+                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
+                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+
+    it('validate updateAddresses method without forwarding rule tags', () => {
         sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
         sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
-        sinon.stub(provider, '_getTargetInstances').resolves([{ instance: 'compute/testInstanceName' }]);
+        sinon.stub(provider, '_getTargetInstances').resolves([{
+            name: 'testInstanceName',
+            instance: 'compute/testInstanceName'
+        }]);
 
         const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
 
@@ -254,6 +294,15 @@ describe('Provider - GCP', () => {
                     selfLink: 'https://test-self-link',
                     nextHopIp: '1.1.1.2',
                     destRange: '192.0.0.0/24'
+                },
+                {
+                    kind: 'test-route-2',
+                    description,
+                    id: 'some-test-2-id',
+                    creationTimestamp: '101010101010',
+                    selfLink: 'https://test-self-2-link',
+                    nextHopIp: '1.1.1.4',
+                    destRange: '192.0.0.1/24'
                 }
             ];
             sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
@@ -271,11 +320,21 @@ describe('Provider - GCP', () => {
                 };
             });
 
-            provider.routeAddresses = [{ range: '192.0.0.0/24' }];
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.0.0/24']
+                }];
+        });
+
+
+        it('not throw error if update operations is empty', () => {
+            const opts = { updateOperations: {} };
+            return provider.updateRoutes(opts)
+                .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'f5_self_ips'
             };
@@ -291,7 +350,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeNextHopAddresses = {
+            provider.routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['1.1.1.1', '2.2.2.2']
             };
@@ -302,6 +361,42 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update multiple routes using next hop discovery method', () => {
+            provider.routeAddressRanges = [
+                {
+                    routeAddresses: ['192.0.0.0/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['1.1.1.1', '2.2.2.2']
+                    }
+                },
+                {
+                    routeAddresses: ['192.0.0.1/24'],
+                    routeNextHopAddresses: {
+                        type: 'static',
+                        items: ['1.1.1.1', '2.2.2.2']
+                    }
+                }
+            ];
+            providerSendRequestMock.onCall(1).resolves({
+                name: 'test-name-2'
+            });
+            providerSendRequestMock.onCall(3).resolves();
+            providerSendRequestMock.onCall(4).resolves();
+
+            return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
                 .catch(err => Promise.reject(err));
         });

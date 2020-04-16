@@ -11,6 +11,7 @@
 const assert = require('assert');
 const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
 const constants = require('../constants.js');
+const util = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 
@@ -129,25 +130,34 @@ describe('Failover', () => {
         options = options || {};
         const localAddresses = options.localAddresses || ['1.1.1.1'];
         const failoverAddresses = options.failoverAddresses || ['2.2.2.2'];
-        // the updateAddresses function will only be invoked if there are traffic groups in the hostname
-        // verify that cloudProvider.updateAddresses method gets called - discover
-        const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
-        assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
-        assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
-        assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+        // if options does not specify isAddressOperationsEnabled or isRouteOperationsEnabled,
+        // then assign it to be true to enabled testing failover ip addresses and routes
+        const isAddressOperationsEnabled = options.isAddressOperationsEnabled !== false;
+        const isRouteOperationsEnabled = options.isRouteOperationsEnabled !== false;
 
-        // verify that cloudProvider.updateRoutes method gets called - discover
-        const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
-        assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, localAddresses);
-        assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+        if (isAddressOperationsEnabled) {
+            // the updateAddresses function will only be invoked if there are traffic groups in the hostname
+            // verify that cloudProvider.updateAddresses method gets called - discover
+            const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+            assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
+            assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
+            assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
 
-        // verify that cloudProvider.updateAddresses method gets called - update
-        const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
-        assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
+            // verify that cloudProvider.updateAddresses method gets called - update
+            const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
+            assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
+        }
 
-        // verify that cloudProvider.updateRoutes method gets called - update
-        const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
-        assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+        if (isRouteOperationsEnabled) {
+            // verify that cloudProvider.updateRoutes method gets called - discover
+            const updateRoutesDiscoverCall = spyOnUpdateRoutes.getCall(0).args[0];
+            assert.deepStrictEqual(updateRoutesDiscoverCall.localAddresses, localAddresses);
+            assert.strictEqual(updateRoutesDiscoverCall.discoverOnly, true);
+
+            // verify that cloudProvider.updateRoutes method gets called - update
+            const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
+            assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
+        }
     }
 
     it('should execute failover', () => config.init()
@@ -156,6 +166,53 @@ describe('Failover', () => {
         .then(() => failover.execute())
         .then(() => {
             validateFailover();
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should execute failover with only ip address enabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable routes failover
+            decl.failoverRoutes.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isRouteOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should execute failover with only route enabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable ip address failover
+            decl.failoverAddresses.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isAddressOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should not update ip addresses and routes when disabled', () => config.init()
+        .then(() => {
+            const decl = util.deepCopy(declaration);
+            // disable ip address failover
+            decl.failoverAddresses.enabled = false;
+            decl.failoverRoutes.enabled = false;
+            config.processConfigRequest(decl);
+        })
+        .then(() => failover.init())
+        .then(() => failover.execute())
+        .then(() => {
+            validateFailover({ isAddressOperationsEnabled: false, isRouteOperationsEnabled: false });
+            assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
+            assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
         })
         .catch(err => Promise.reject(err)));
 
@@ -290,7 +347,7 @@ describe('Failover', () => {
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
                 assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
-                assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Completed Successfully');
+                assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Complete');
             })
             .catch(err => Promise.reject(err));
     });
@@ -378,14 +435,27 @@ describe('Failover', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('should retrieve the taskstate file', () => config.init()
+    it('should retrieve a task state of "pass"', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then(() => failover.init())
         .then(() => failover.getTaskStateFile())
         .then((result) => {
-            assert(result);
+            assert.strictEqual(result.taskState, constants.FAILOVER_STATES.PASS);
         })
         .catch(err => Promise.reject(err)));
+
+    it('should retrieve a task state of "never run"', () => {
+        downloadDataFromStorageMock.onCall(0).resolves({});
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.getTaskStateFile())
+            .then((result) => {
+                assert.strictEqual(result.taskState, constants.FAILOVER_STATES.NEVER_RUN);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('should get current HA status and mapped cloud objects', () => config.init()
         .then(() => config.processConfigRequest(declaration))
@@ -404,4 +474,75 @@ describe('Failover', () => {
                 ]
             }, data);
         }));
+
+    it('should reject with a helpful error message on empty recovery operations', () => {
+        downloadDataFromStorageMock.onCall(0).resolves({
+            taskState: constants.FAILOVER_STATES.FAIL,
+            failoverOperations: {
+                addresses: null,
+                routes: null
+            }
+        });
+
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                assert.fail('Expected error');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'Recovery operations are empty, advise reset via the API');
+            });
+    });
+
+    it('should parse config for default next hop addresses', () => {
+        const defaultNextHopAddressDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            failoverRoutes: {
+                scopingTags: {
+                    f5_cloud_failover_label: 'mydeployment'
+                },
+                scopingAddressRanges: [
+                    {
+                        range: '192.168.1.0/24'
+                    },
+                    {
+                        range: '192.168.1.0/24',
+                        nextHopAddresses: {
+                            discoveryType: 'static',
+                            items: [
+                                '192.0.2.10',
+                                '192.0.2.11'
+                            ]
+                        }
+                    }
+                ],
+                defaultNextHopAddresses: {
+                    discoveryType: 'static',
+                    items: [
+                        '192.0.2.10',
+                        '192.0.2.11'
+                    ]
+                }
+            }
+        };
+        const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+        return config.init()
+            .then(() => config.processConfigRequest(defaultNextHopAddressDeclaration))
+            .then(() => failover.init())
+            .then(() => {
+                const callArg = spyOnCloudProviderInit.lastCall.lastArg;
+                assert(callArg.routeAddressRanges[0].routeAddresses
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[0].range);
+                assert(callArg.routeAddressRanges[0].routeNextHopAddresses.type
+                    === defaultNextHopAddressDeclaration.failoverRoutes.defaultNextHopAddresses.discoveryType);
+                assert(callArg.routeAddressRanges[1].routeAddresses
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1].range);
+                assert(callArg.routeAddressRanges[1].routeNextHopAddresses.type
+                    === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1]
+                        .nextHopAddresses.discoveryType);
+            });
+    });
 });

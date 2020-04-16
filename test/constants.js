@@ -16,17 +16,68 @@
 
 'use strict';
 
+const path = require('path');
+
+const PKG_JSON = require('../package.json');
 const constants = require('../src/nodejs/constants.js');
 
 const BASE_ENDPOINT = '/mgmt/shared/cloud-failover';
 const EXAMPLE_DECLARATIONS = {
     basic: {
         class: 'Cloud_Failover',
-        environment: 'azure'
+        environment: 'azure',
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        }
     },
     basicWithLogging: {
         class: 'Cloud_Failover',
         environment: 'azure',
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        },
         controls: {
             class: 'Controls',
             logLevel: 'info'
@@ -40,6 +91,10 @@ const EXAMPLE_DECLARATIONS = {
  * @module
  */
 module.exports = {
+    PKG_NAME: PKG_JSON.name,
+    PKG_VERSION: PKG_JSON.version,
+    PKG_MIN_VERSION: '0.9.1',
+    ARTIFACTS_LOGS_DIR: path.join(process.cwd(), 'logs'),
     declarations: EXAMPLE_DECLARATIONS,
     DATA_GROUP_OBJECT: {
         name: 'f5-cloud-failover-store',
@@ -62,7 +117,6 @@ module.exports = {
     TRIGGER_ENDPOINT: `${BASE_ENDPOINT}/trigger`,
     RESET_ENDPOINT: `${BASE_ENDPOINT}/reset`,
     INSPECT_ENDPOINT: `${BASE_ENDPOINT}/inspect`,
-    PKG_NAME: 'f5-cloud-failover',
     DEPLOYMENT_FILE_VAR: 'CF_DEPLOYMENT_FILE',
     DEPLOYMENT_FILE: 'deployment_info.json',
     FAILOVER_STATES: constants.FAILOVER_STATES,

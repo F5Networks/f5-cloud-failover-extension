@@ -8,9 +8,11 @@
 
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const mustache = require('mustache'); /* eslint-disable-line import/no-extraneous-dependencies */
 
+const icrdk = require('icrdk'); // eslint-disable-line import/no-extraneous-dependencies
 const utils = require('../../../shared/util.js');
 const constants = require('../../../constants.js');
 
@@ -85,13 +87,15 @@ module.exports = {
         const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
-            nextHopAddress1: environmentInfo.nextHopAddresses[0],
-            nextHopAddress2: environmentInfo.nextHopAddresses[1]
+            nextHopAddress1: environmentInfo.nextHopAddresses[0]
         };
         // Added for AWS ipv6 route failover support
         if (environmentInfo.nextHopAddresses.length === 4) {
-            declarationData.nextHopAddress3 = environmentInfo.nextHopAddresses[2];
-            declarationData.nextHopAddress4 = environmentInfo.nextHopAddresses[3];
+            declarationData.nextHopAddress1_IPv6 = environmentInfo.nextHopAddresses[1];
+            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[2];
+            declarationData.nextHopAddress2_IPv6 = environmentInfo.nextHopAddresses[3];
+        } else {
+            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[1];
         }
         return JSON.parse(mustache.render(utils.stringify(declaration), declarationData));
     },
@@ -191,5 +195,137 @@ module.exports = {
         httpOptions.method = 'GET';
         httpOptions.port = options.port;
         return utils.makeRequest(host, uri, httpOptions);
+    },
+
+    /**
+     * Install ILX package
+     *
+     * @param {String} host      - host
+     * @param {String} port      - port
+     * @param {String} authToken - auth token
+     * @param {String} file      - local file (RPM) to install
+     *
+     * @returns {Promise} Returns promise resolved upon completion
+     */
+    installPackage(host, port, authToken, file) {
+        const opts = {
+            HOST: host,
+            PORT: port,
+            AUTH_TOKEN: authToken
+        };
+
+        return new Promise((resolve, reject) => {
+            icrdk.deployToBigIp(opts, file, (err) => {
+                if (err) {
+                    if (/already installed/.test(err)) {
+                        resolve();
+                    } else {
+                        reject(err);
+                    }
+                } else {
+                    resolve();
+                }
+            });
+        });
+    },
+
+    /**
+     * Uninstall ILX package
+     *
+     * @param {String} host      - host
+     * @param {String} port      - port
+     * @param {String} authToken - auth token
+     * @param {String} pkg       - package to remove from device
+     *
+     * @returns {Promise} Returns promise resolved upon completion
+     */
+    uninstallPackage(host, port, authToken, pkg) {
+        const opts = {
+            HOST: host,
+            PORT: port,
+            AUTH_TOKEN: authToken
+        };
+
+        return new Promise((resolve, reject) => {
+            icrdk.uninstallPackage(opts, pkg, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    },
+    /**
+     * Query installed ILX packages
+     *
+     * @param {String} host      - host
+     * @param {String} port      - port
+     * @param {String} authToken - auth token
+     *
+     * @returns {Promise} Returns promise resolved upon completion
+     */
+    queryPackages(host, port, authToken) {
+        const opts = {
+            HOST: host,
+            PORT: port,
+            AUTH_TOKEN: authToken,
+            // below should not be required, there is a bug in icrdk
+            // https://github.com/f5devcentral/f5-icontrollx-dev-kit/blob/master/lib/util.js#L322
+            headers: {
+                'x-f5-auth-token': authToken
+            }
+        };
+
+        return new Promise((resolve, reject) => {
+            icrdk.queryInstalledPackages(opts, (err, results) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve(results);
+            });
+        });
+    },
+
+    /**
+     * Get package details
+     *
+     * @returns {Object} { name: 'foo.rpm', path: '/tmp/foo.rpm' }
+     */
+    getPackageDetails() {
+        const dir = `${__dirname}/../../../../dist/new_build`;
+        const distFiles = fs.readdirSync(dir);
+        const packageFiles = distFiles.filter(f => f.endsWith('.rpm'));
+
+        // get latest rpm file (by timestamp since epoch)
+        // note: this might not work if the artifact resets the timestamps
+        const latest = { file: null, time: 0 };
+        packageFiles.forEach((f) => {
+            const fStats = fs.lstatSync(`${dir}/${f}`);
+            if (fStats.birthtimeMs >= latest.time) {
+                latest.file = f;
+                latest.time = fStats.birthtimeMs;
+            }
+        });
+        const packageFile = latest.file;
+
+        return { name: packageFile, path: dir };
+    },
+
+
+    /** Create directory
+     *
+     * @param {String} path - file path
+     */
+    createDirectory(_path) {
+        if (!fs.existsSync(_path)) {
+            try {
+                fs.mkdirSync(_path);
+            } catch (err) {
+                if (err.code !== 'EEXIST') {
+                    throw err;
+                }
+            }
+        }
     }
 };

@@ -93,6 +93,9 @@ class Cloud extends AbstractCloud {
                 );
                 return this._initStorageAccountContainer(storageContainerName);
             })
+            .then(() => {
+                this.logger.silly('Cloud Provider initialization complete');
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -109,8 +112,8 @@ class Cloud extends AbstractCloud {
     */
     updateAddresses(options) {
         options = options || {};
-        const localAddresses = options.localAddresses;
-        const failoverAddresses = options.failoverAddresses;
+        const localAddresses = options.localAddresses || [];
+        const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
@@ -120,13 +123,15 @@ class Cloud extends AbstractCloud {
             return this._discoverAddressOperations(localAddresses, failoverAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.disassociate && updateOperations.associate) {
-            return this._updateAddresses(updateOperations.disassociate, updateOperations.associate)
+        if (updateOperations) {
+            return this._updateAddresses(updateOperations.interfaces.disassociate,
+                updateOperations.interfaces.associate)
                 .catch(err => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
-            .then(operations => this._updateAddresses(operations.disassociate, operations.associate))
+            .then(operations => this._updateAddresses(operations.interfaces.disassociate,
+                operations.interfaces.associate))
             .catch(err => Promise.reject(err));
     }
 
@@ -136,7 +141,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-    * @param {Boolean} [options.updateOperations] - skip discovery and perform 'these' update operations
+    * @param {Object} [options.updateOperations] - skip discovery and perform 'these' update operations
     *
     * @returns {Promise}
     */
@@ -144,7 +149,7 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses || [];
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         this.logger.silly('updateRoutes: ', options);
 
@@ -152,7 +157,7 @@ class Cloud extends AbstractCloud {
             return this._discoverRouteOperations(localAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.operations) {
+        if (updateOperations) {
             return this._updateRoutes(updateOperations.operations)
                 .catch(err => Promise.reject(err));
         }
@@ -238,7 +243,9 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Fetching instance metadata');
                 data.instance = metadata.compute.vmId;
                 metadata.network.interface.forEach((nic) => {
-                    data.addresses.push(nic.ipv4.ipAddress[0]);
+                    const addresses = nic.ipv4.ipAddress[0];
+                    addresses.networkInterfaceId = null;
+                    data.addresses.push(addresses);
                     localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
                 });
             })
@@ -246,19 +253,23 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 this.logger.info('Fetching instance route tables');
                 routeTables.forEach((routeTable) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        routeTable.tags,
-                        this.routeNextHopAddresses
-                    );
                     routeTable.routes.forEach((route) => {
-                        if (route.nextHopIpAddress === nextHopAddress) {
-                            this.logger.info('this is an associated route', routeTable);
-                            data.routes.push({
-                                routeTableId: routeTable.id,
-                                routeTableName: routeTable.name,
-                                networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
-                            });
+                        const matchedAddressRange = this._matchRouteToAddressRange(route.addressPrefix);
+                        if (matchedAddressRange) {
+                            const nextHopAddress = this._discoverNextHopAddress(
+                                localAddresses,
+                                routeTable.tags,
+                                matchedAddressRange.routeNextHopAddresses
+                            );
+
+                            if (nextHopAddress && nextHopAddress === route.nextHopIpAddress) {
+                                this.logger.silly('this is an associated route', routeTable);
+                                data.routes.push({
+                                    routeTableId: routeTable.id,
+                                    routeTableName: routeTable.name,
+                                    networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
+                                });
+                            }
                         }
                     });
                 });
@@ -336,6 +347,7 @@ class Cloud extends AbstractCloud {
                     });
                     return Promise.resolve(filteredStorageAccounts);
                 }
+                this.logger.silly('Filtered Storage Accounts', storageAccounts);
                 return Promise.resolve(storageAccounts);
             })
             .catch(err => Promise.reject(err));
@@ -520,18 +532,25 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { associate: {}, disassociate: {} }
     */
     _discoverAddressOperations(localAddresses, failoverAddresses) {
+        this.logger.debug('_discoverAddressOperations localAddresses: ', localAddresses);
+        this.logger.debug('_discoverAddressOperations failoverAddresses : ', failoverAddresses);
         if (!localAddresses || Object.keys(localAddresses).length === 0
             || !failoverAddresses || Object.keys(failoverAddresses).length === 0) {
             this.logger.info('No localAddresses/failoverAddresses to discover');
-            return Promise.resolve();
+            return Promise.resolve({
+                publicAddresses: {},
+                interfaces: { disassociate: [], associate: [] },
+                loadBalancerAddresses: {}
+            });
         }
-
+        this.logger.info('Discover Address operations using localAddresses', localAddresses, 'failoverAddresses', failoverAddresses, 'to discover');
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
                 const disassociate = [];
                 const associate = [];
 
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+                this.logger.silly('Parsed Network interfaces', parsedNics);
                 const myNics = parsedNics.myNics;
                 const theirNics = parsedNics.theirNics;
                 const failoverNicTag = constants.NIC_TAG;
@@ -576,7 +595,11 @@ class Cloud extends AbstractCloud {
                         }
                     }
                 }
-                return Promise.resolve({ disassociate, associate });
+                return Promise.resolve({
+                    publicAddresses: {},
+                    interfaces: { disassociate, associate },
+                    loadBalancerAddresses: {}
+                });
             })
             .catch(err => Promise.reject(err));
     }
@@ -590,8 +613,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateAddresses(disassociate, associate) {
-        this.logger.debug('updateAddresses disassociate operations: ', disassociate);
-        this.logger.debug('updateAddresses associate operations: ', associate);
+        this.logger.silly('updateAddresses disassociate operations: ', disassociate);
+        this.logger.silly('updateAddresses associate operations: ', associate);
 
         if (!disassociate || Object.keys(disassociate).length === 0
             || !associate || Object.keys(associate).length === 0) {
@@ -641,6 +664,7 @@ class Cloud extends AbstractCloud {
             .then((routeTables) => {
                 // filter route tables based on tag(s)
                 routeTables = this._filterRouteTablesByTag(routeTables, tags);
+                this.logger.silly('Filtered Route tables:', routeTables);
                 return Promise.resolve(routeTables);
             })
             .catch(err => Promise.reject(err));
@@ -681,27 +705,28 @@ class Cloud extends AbstractCloud {
     _discoverRouteOperations(localAddresses) {
         return this._getRouteTables({ tags: this.routeTags })
             .then((routeTables) => {
-                this.logger.silly('Route tables', routeTables);
                 const operations = [];
-
                 // for each route table go through routes and discover any necessary updates
                 routeTables.forEach((routeTable) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        routeTable.tags,
-                        this.routeNextHopAddresses
-                    );
-                    if (nextHopAddress) {
-                        routeTable.routes.forEach((route) => {
-                            if (this.routeAddresses.map(i => i.range).indexOf(route.addressPrefix)
-                                !== -1 && route.nextHopIpAddress !== nextHopAddress) {
+                    this.logger.silly('Discovering updates for route table', routeTable.name);
+                    routeTable.routes.forEach((route) => {
+                        const matchedAddressRange = this._matchRouteToAddressRange(route.addressPrefix);
+                        if (matchedAddressRange) {
+                            const nextHopAddress = this._discoverNextHopAddress(
+                                localAddresses,
+                                routeTable.tags,
+                                matchedAddressRange.routeNextHopAddresses
+                            );
+                            this.logger.silly('Discovered nextHopAddress', nextHopAddress);
+                            if (nextHopAddress && route.nextHopIpAddress !== nextHopAddress) {
                                 route.nextHopIpAddress = nextHopAddress;
                                 const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
                                 operations.push(parameters);
                             }
-                        });
-                    }
+                        }
+                    });
                 });
+                this.logger.silly('Operations found during route operations', operations);
                 return Promise.resolve({ operations });
             })
             .catch(err => Promise.reject(err));

@@ -76,6 +76,9 @@ class Device {
                     product: this.product
                 }
             ))
+            .then(() => {
+                logger.silly('Device initialization complete');
+            })
             .catch(err => Promise.reject(err));
     }
 

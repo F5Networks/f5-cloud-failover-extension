@@ -227,7 +227,7 @@ Specifying the `f5_self_ips` tag on the route object itself creates a circular d
 .. _faq-persistent-config:
 
 Does CFE configuration persist after a reboot?
-````````````````````````````````````````````````````````````````````````````````````
+``````````````````````````````````````````````
 Yes, when configuration is provided using the CFE `declare` API endpoint it will be saved to the persistent BIG-IP configuration store which is loaded on reboot.
 
 
@@ -259,12 +259,12 @@ You can use |issues| to submit feature requests or problems with Cloud Failover 
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension" target="_blank">GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">GitHub</a>
 
 
 .. |issues| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issues</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issues</a>
 
 
 .. |as3| raw:: html
@@ -273,4 +273,4 @@ You can use |issues| to submit feature requests or problems with Cloud Failover 
 
 .. |releases| raw:: html
 
-   <a href="https://github.com/f5devcentral/f5-cloud-failover-extension/releases" target="_blank">Releases</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">Releases</a>

@@ -19,7 +19,9 @@ These are the basic prerequisites for setting up CFE in Microsoft Azure.
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Devcentral/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+
+.. include:: /_static/reuse/initial-config.rst
 
 .. table:: Task Summary
 
@@ -71,6 +73,7 @@ In the diagram, the IP configuration has a secondary private address that matche
 Example Azure Declaration
 -------------------------
 This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration.
+
 
 .. literalinclude:: ../../examples/declarations/azure.json
    :language: json

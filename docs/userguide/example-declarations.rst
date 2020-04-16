@@ -15,7 +15,7 @@ For backwards compatability, you can tag the route itself within the cloud envir
 .. literalinclude:: ../../examples/declarations/routeFailoverUsesRouteTags.json
    :language: json
    :tab-width: 4
-   :emphasize-lines: 24
+   :emphasize-lines: 26
 
 :fonticon:`fa fa-download` :download:`routeFailoverUsesRouteTags.json <../../examples/declarations/routeFailoverUsesRouteTags.json>`
 
@@ -27,7 +27,7 @@ AWS IPv6 Route Failover
 .. literalinclude:: ../../examples/declarations/ipv6RouteFailover.json
    :language: json
    :tab-width: 4
-   :emphasize-lines: 31-32
+   :emphasize-lines: 33-34
 
 :fonticon:`fa fa-download` :download:`ipv6RouteFailover.json <../../examples/declarations/ipv6RouteFailover.json>`
 
@@ -40,7 +40,7 @@ You set the log level in the controls class. To see more information about editi
 .. literalinclude:: ../../examples/declarations/settingLogLevel.json
    :language: json
    :tab-width: 4
-   :emphasize-lines: 31-33
+   :emphasize-lines: 33-35
 
 :fonticon:`fa fa-download` :download:`settingLogLevel.json <../../examples/declarations/settingLogLevel.json>`
 

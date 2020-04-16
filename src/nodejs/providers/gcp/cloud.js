@@ -23,6 +23,7 @@ const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
+const GCP_FWD_RULE_PAIR_LABEL = require('../../constants').GCP_FWD_RULE_PAIR_LABEL;
 const storageContainerName = require('../../constants').STORAGE_FOLDER_NAME;
 const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
@@ -84,12 +85,13 @@ class Cloud extends AbstractCloud {
                 ]);
             })
             .then((vmsData) => {
-                this.vms = vmsData[0];
-                this.fwdRules = vmsData[1];
-                this.targetInstances = vmsData[2];
-
-                this.logger.silly('GCP resources have been collected; gcp provider initialization is completed.');
-                return Promise.resolve();
+                this.vms = vmsData[0] || [];
+                this.fwdRules = vmsData[1] || [];
+                this.targetInstances = vmsData[2] || [];
+                this.logger.debug('Cloud provider found vms:', this.vms);
+                this.logger.debug('Cloud provider found fwdRules:', this.fwdRules);
+                this.logger.debug('Cloud provider found targetInstances:', this.targetInstances);
+                this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
     }
@@ -157,7 +159,7 @@ class Cloud extends AbstractCloud {
     */
     updateAddresses(options) {
         options = options || {};
-        const failoverAddresses = options.failoverAddresses;
+        const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
@@ -166,7 +168,7 @@ class Cloud extends AbstractCloud {
         // update this.vms property prior to discovery/update
         return this._getVmsByTags(this.tags)
             .then((vms) => {
-                this.vms = vms;
+                this.vms = vms || [];
 
                 // discover only logic
                 if (discoverOnly === true) {
@@ -197,13 +199,13 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses || [];
         const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations || {};
+        const updateOperations = options.updateOperations;
 
         if (discoverOnly === true) {
             return this._discoverRouteOperations(localAddresses)
                 .catch(err => Promise.reject(err));
         }
-        if (updateOperations && updateOperations.operations) {
+        if (updateOperations) {
             return this._updateRoutes(updateOperations.operations)
                 .catch(err => Promise.reject(err));
         }
@@ -577,20 +579,29 @@ class Cloud extends AbstractCloud {
      *
      * @param {Object} failoverAddresses - failover addresses
      *
-     * @returns {Promise} { nics: [], fwdRules: [] }
+     * @returns {Promise} { publicAddresses: [], interfaces: [], loadBalancerAddresses: [] }
      *
      */
     _discoverAddressOperations(failoverAddresses) {
-        if (!failoverAddresses || Object.keys(failoverAddresses).length === 0) {
-            this.logger.info('No failoverAddresses to discover');
-            return Promise.resolve({ nics: [], fwdRules: [] });
+        this.logger.debug('Failover addresses to discover', failoverAddresses);
+        if (!failoverAddresses || !failoverAddresses.length) {
+            this.logger.debug('No failoverAddresses to discover');
+            return Promise.resolve({
+                publicAddresses: [],
+                interfaces: [],
+                loadBalancerAddresses: []
+            });
         }
 
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
             this._discoverFwdRuleOperations(failoverAddresses)
         ])
-            .then(operations => Promise.resolve({ nics: operations[0], fwdRules: operations[1] }))
+            .then(operations => Promise.resolve({
+                publicAddresses: {},
+                interfaces: operations[0],
+                loadBalancerAddresses: operations[1]
+            }))
             .catch(err => Promise.reject(err));
     }
 
@@ -684,7 +695,6 @@ class Cloud extends AbstractCloud {
                 }
             });
         });
-
         return Promise.resolve({ disassociate, associate });
     }
 
@@ -701,6 +711,7 @@ class Cloud extends AbstractCloud {
 
         const getOurTargetInstance = (instanceName, tgtInstances) => {
             const result = [];
+
             tgtInstances.forEach((tgt) => {
                 const tgtInstance = tgt.instance.split('/');
                 const tgtInstanceName = tgtInstance[tgtInstance.length - 1];
@@ -717,23 +728,34 @@ class Cloud extends AbstractCloud {
             this._getTargetInstances()
         ])
             .then((data) => {
-                this.fwdRules = data[0];
-                this.targetInstances = data[1];
+                this.fwdRules = data[0] || [];
+                this.targetInstances = data[1] || [];
 
                 const ourTargetInstances = getOurTargetInstance(this.instanceName, this.targetInstances);
                 if (!ourTargetInstances.length) {
                     const message = `Unable to locate our target instance: ${this.instanceName}`;
                     return Promise.reject(new Error(message));
                 }
+                this.logger.silly('Discovered our target instances ', ourTargetInstances);
                 const ourTargetInstance = ourTargetInstances[0];
 
                 this.fwdRules.forEach((rule) => {
+                    let targetInstanceToUse = ourTargetInstance;
                     const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    const fwdRuleDefinedTargetInstances = this._getFwdRulesTargetInstancesFromLabel(rule);
+                    if (fwdRuleDefinedTargetInstances) {
+                        const fwdRuleTargetInstances = getOurTargetInstance(
+                            this.instanceName, fwdRuleDefinedTargetInstances
+                        );
+                        if (fwdRuleDefinedTargetInstances.length) {
+                            targetInstanceToUse = fwdRuleTargetInstances[0];
+                        }
+                    }
                     if (match.length) {
                         this.logger.silly('updateFwdRules matched rule:', rule);
 
-                        if (rule.target.indexOf(ourTargetInstance.name) === -1) {
-                            fwdRulesToUpdate.push([rule.name, ourTargetInstance.selfLink]);
+                        if (rule.target.indexOf(targetInstanceToUse.name) === -1) {
+                            fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
                         }
                     }
                 });
@@ -752,26 +774,28 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} { operations: [] }
     */
     _discoverRouteOperations(localAddresses) {
+        localAddresses = localAddresses || [];
+        const operations = [];
         return this._getRoutes({ tags: this.routeTags })
             .then((routes) => {
-                this.logger.silly('Routes: ', routes);
-
-                const operations = [];
+                this.logger.silly('Discovered routes: ', routes);
                 routes.forEach((route) => {
-                    const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
-                        gcpLabelParse(route.description),
-                        this.routeNextHopAddresses
-                    );
-                    // check if route should be updated and if next hop is our address,
-                    // if not we need to update it
-                    if (this.routeAddresses.map(i => i.range).indexOf(route.destRange)
-                        !== -1 && nextHopAddress && route.nextHopIp !== nextHopAddress) {
-                        route.nextHopIp = nextHopAddress;
-                        operations.push(route);
+                    const matchedAddressRange = this._matchRouteToAddressRange(route.destRange);
+                    if (matchedAddressRange) {
+                        const nextHopAddress = this._discoverNextHopAddress(
+                            localAddresses,
+                            gcpLabelParse(route.description),
+                            matchedAddressRange.routeNextHopAddresses
+                        );
+                        // check if route should be updated and if next hop is our address,
+                        // if not we need to update it
+                        if (nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                            this.logger.silly('Route to be updated', route);
+                            route.nextHopIp = nextHopAddress;
+                            operations.push(route);
+                        }
                     }
                 });
-
                 return Promise.resolve({ operations });
             })
             .catch(err => Promise.reject(err));
@@ -781,22 +805,22 @@ class Cloud extends AbstractCloud {
     * Update addresses (given NIC and/or fwdRule operations)
     *
     * @param {Object} options            - function options
-    * @param {Object} [options.nics]     - nic operations
-    * @param {Object} [options.fwdRules] - forwarding rule operations
+    * @param {Object} [options.interfaces]     - interfaces for nic operations
+    * @param {Object} [options.loadBalancerAddresses] - load balancer addresses for forwarding rule operations
     *
     * @returns {Promise}
     */
     _updateAddresses(options) {
         options = options || {};
-
-        const nicOperations = options.nics;
-        const fwdRuleOperations = options.fwdRules;
+        const nicOperations = options.interfaces || {};
+        const fwdRuleOperations = options.loadBalancerAddresses || {};
 
         if (!options || Object.keys(options).length === 0) {
             this.logger.info('No address operations to run');
             return Promise.resolve();
         }
-
+        this.logger.silly('_updateAddresses interface operations: ', nicOperations);
+        this.logger.silly('_updateAddresses forwarding rules operations: ', fwdRuleOperations);
         return Promise.all([
             this._updateNics(nicOperations.disassociate, nicOperations.associate),
             this._updateFwdRules(fwdRuleOperations.operations)
@@ -813,8 +837,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateNics(disassociate, associate) {
-        this.logger.debug('updateAddresses disassociate operations: ', disassociate);
-        this.logger.debug('updateAddresses associate operations: ', associate);
+        this.logger.silly('updateAddresses disassociate operations: ', disassociate);
+        this.logger.silly('updateAddresses associate operations: ', associate);
 
         if (!disassociate || !associate) {
             this.logger.info('No associations to update.');
@@ -871,7 +895,7 @@ class Cloud extends AbstractCloud {
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
 
-        if (!operations || Object.keys(operations).length === 0) {
+        if (!operations || !operations.length) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }
@@ -891,6 +915,7 @@ class Cloud extends AbstractCloud {
 
         return Promise.all(deletePromises)
             .then((response) => {
+                this.logger.debug('Deleted routes successfully');
                 const operationPromises = [];
                 response.forEach((item) => {
                     const operation = this.compute.operation(item.name);
@@ -906,7 +931,7 @@ class Cloud extends AbstractCloud {
                 return Promise.all(createPromises);
             })
             .then(() => {
-                this.logger.info('Update routes successful.');
+                this.logger.info('Updated routes successfully');
             })
             .catch(err => Promise.reject(err));
     }
@@ -966,6 +991,25 @@ class Cloud extends AbstractCloud {
                 return operation.promise();
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Finds target pair label on forwarding rule and returns the target
+     * instances that match the target pair names
+     *
+     * @param rule               - Forwarding rule
+     * @return {null|Array}      - Array of target instances
+     * @private
+     */
+
+    _getFwdRulesTargetInstancesFromLabel(rule) {
+        const targetInstanceNames = gcpLabelParse(rule.description)[GCP_FWD_RULE_PAIR_LABEL];
+        if (targetInstanceNames) {
+            return this.targetInstances.filter(
+                targetInstance => targetInstanceNames.split(/[ ,]+/).indexOf(targetInstance.name) !== -1
+            );
+        }
+        return null;
     }
 }
 
