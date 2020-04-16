@@ -8,6 +8,6 @@ For information about support policies, see http://www.f5.com/about/guidelines-p
 
 **Cloud Failover Extension (CFE) Software Lifecycle**:
 * CFE releases are intended to be delivered on a 6-week basis
-* Formal F5 Support is available for CFE version 1.2 and later
+* Formal F5 Support is available for CFE version 1.2.0 and later
 
 See the [Release notes](https://github.com/f5networks/f5-cloud-failover-extension/releases) and [Cloud Failover Extension documentation](https://clouddocs.f5.com/products/extensions/f5-telemetry-streaming/latest/userguide/revision-history.html) for new features and issues resolved for each release.
