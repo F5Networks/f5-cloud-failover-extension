@@ -163,7 +163,7 @@ Tag the Network Interfaces in Azure
 Within Azure, go to **NIC > Tags** to create two distinct tags:
 
 - **Deployment scoping tag**: the example below uses ``f5_cloud_failover_label:mydeployment`` but the name and value can be anything. 
-- **NIC mapping tag**: the name is static but the value is user-provided (``f5_cloud_failover_nic_map:<your value>``) and must match the corresponding NIC on the secondary BIG-IP. The example below uses ``f5_cloud_failover_nic_map:external``. This name/value tag will correspond to the name/value tag you use in the `failoverAddresses.scopingTags` section of the CFE declaration.
+- **NIC mapping tag**: the name is static but the value is user-provided (``f5_cloud_failover_nic_map:<your value>``) and must match the corresponding NIC on the secondary BIG-IP. The example below uses ``f5_cloud_failover_nic_map:external``.
 
 
 .. image:: ../images/azure/AzureNICTags.png
