@@ -125,6 +125,15 @@ Yes, Cloud Failover Extension supports AWS Same-AZ failover. See the :ref:`aws` 
 
 -----------------------------------------
 
+.. _faq-multi-az-gcp:
+
+Does CFE support GCP instances in separate Availability Zones?
+``````````````````````````````````````````````````````````````
+Yes, Cloud Failover Extension supports instances being placed in separate availability zones within a given region.
+
+
+-----------------------------------------
+
 
 .. _faq-azure-api:
 

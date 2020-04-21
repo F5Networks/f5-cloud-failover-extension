@@ -27,10 +27,34 @@ const testPayload = {
         key01: 'value01'
     }
 };
-const mockVms = [
+const mockSingleZoneVms = [
     {
         name: 'testInstanceName01',
         zone: 'projects/1111/zones/us-west1-a',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: []
+            }
+        ]
+    },
+    {
+        name: 'testInstanceName02',
+        zone: 'projects/1111/zones/us-west1-a',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: [
+                    '10.0.2.1/24'
+                ]
+            }
+        ]
+    }
+];
+const mockMultipleZoneVms = [
+    {
+        name: 'testInstanceName01',
+        zone: 'projects/1111/zones/us-west1-b',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -204,12 +228,15 @@ describe('Provider - GCP', () => {
         let getFwdRulesStub;
         let getTargetInstancesStub;
 
-        function validateAliasIpOperations(spy) {
+        function validateAliasIpOperations(spy, options) {
+            options = options || {};
+            const expectedZone = options.zone || 'us-west1-b';
+
             assert.deepEqual(spy.args[0][0], 'testInstanceName02');
             assert.deepEqual(spy.args[0][2].aliasIpRanges, []);
             assert.deepEqual(spy.args[1][0], 'testInstanceName01');
             assert.deepEqual(spy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
-            assert.deepEqual(spy.args[1][3].zone, 'us-west1-a');
+            assert.deepEqual(spy.args[1][3].zone, expectedZone);
         }
 
         function validateFwdRuleOperations(spy) {
@@ -218,7 +245,7 @@ describe('Provider - GCP', () => {
         }
 
         beforeEach(() => {
-            getVmsByTagsStub = sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockVms));
+            getVmsByTagsStub = sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockMultipleZoneVms));
             getFwdRulesStub = sinon.stub(provider, '_getFwdRules').resolves([
                 {
                     name: 'testFwdRule',
@@ -341,6 +368,20 @@ describe('Provider - GCP', () => {
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateFwdRuleOperations(updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover with all instances in a single zone', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
                 })
                 .catch(err => Promise.reject(err));
         });
