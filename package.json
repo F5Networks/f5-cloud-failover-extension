@@ -10,8 +10,8 @@
     "scripts": {
         "install-production": "npm install --production --no-optional",
         "lint": "eslint src test specs",
-        "test-only": "mocha --recursive \"./test/unittests/**/*.js\" --opts ./test/.mocha.opts",
-        "test-only-node-4": "mocha --recursive \"./test/unittests/**/*.js\" --exclude ./test/unittests/providers/gcpProviderTests.js --exclude ./test/unittests/providers/cloudFactoryTests.js --opts ./test/.mocha.opts",
+        "test-only": "mocha --recursive \"./test/unit/**/*.js\" --opts ./test/.mocha.opts",
+        "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --opts ./test/.mocha.opts",
         "test": "nyc npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
