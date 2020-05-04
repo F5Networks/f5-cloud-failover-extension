@@ -6,7 +6,7 @@ Welcome to the F5 Cloud Failover Extension User Guide.
 Introduction
 ------------
 
-The F5 Cloud Failover Extension (CFE) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). CFE uses a declarative model, meaning you provide a JSON declaration using a single REST API call rather than a set of imperative commands. The declaration then configures the BIG-IP system with all the required settings for cloud failover. At a high level, to use CFE, you will `download the RPM from GitHub <https://github.com/F5Devcentral/f5-cloud-failover-extension>`_, upload the RPM to BIG-IP, tag or label your cloud resources, and then Post your declaration.
+The F5 Cloud Failover Extension (CFE) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). CFE uses a declarative model, meaning you provide a JSON declaration using a single REST API call rather than a set of imperative commands. The declaration then configures the BIG-IP system with all the required settings for cloud failover. At a high level, to use CFE, you will `download the RPM from GitHub <https://github.com/F5Networks/f5-cloud-failover-extension>`_, upload the RPM to BIG-IP, tag or label your cloud resources, and then Post your declaration.
 
 .. image:: images/extension-steps.png
   :width: 800
@@ -69,4 +69,4 @@ User Guide Index
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Devcentral/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
