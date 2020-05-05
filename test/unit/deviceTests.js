@@ -166,6 +166,16 @@ describe('Device', () => {
         })
         .catch(err => Promise.reject(err)));
 
+    it('validate getVirtualAddresses with "any" address', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([[{ address: 'any6' }]]);
+            return device.getVirtualAddresses();
+        })
+        .then((virtualAddresses) => {
+            assert.deepStrictEqual(virtualAddresses, [{ address: '::/0' }]);
+        })
+        .catch(err => Promise.reject(err)));
+
     it('validate getSnatTranslationAddresses', () => device.init()
         .then(() => {
             const expectedValue = mockResults['/tm/ltm/snat-translation'];
