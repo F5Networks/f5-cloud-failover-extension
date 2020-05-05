@@ -527,7 +527,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -554,11 +554,54 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate _getRoutes method execution with page token', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes/');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        name: 'notOurRoute'
+                    }
+                ],
+                nextPageToken: 'token'
+            });
+        });
+
+        providerSendRequestMock.onCall(1).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes?pageToken=token');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        name: 'alsoNotOurRoute',
+                        description: 'foo'
+                    },
+                    {
+                        name: 'ourRoute',
+                        description
+                    }
+                ]
+            });
+        });
+
+        return provider._getRoutes({ tags: provider.routeTags })
+            .then((data) => {
+                assert.strictEqual(data[0].name, 'ourRoute');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('validate _getRoutes method execution when routeTags do not match', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -581,7 +624,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -602,7 +645,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.reject();
         });
@@ -730,7 +773,35 @@ describe('Provider - GCP', () => {
 
         return provider._getFwdRules()
             .then((data) => {
-                assert.strictEqual(data, 'test_data');
+                assert.strictEqual(data[0], 'test_data');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate _getFwdRules returned promise even with pageTokens', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        provider.region = 'region';
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules');
+
+            return Promise.resolve({
+                items: 'test_data',
+                nextPageToken: 'token'
+            });
+        });
+        providerSendRequestMock.onCall(1).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+
+            return Promise.resolve({
+                items: 'test_data2'
+            });
+        });
+        return provider._getFwdRules()
+            .then((data) => {
+                assert.strictEqual(data[0], 'test_data');
+                assert.strictEqual(data[1], 'test_data2');
             })
             .catch(err => Promise.reject(err));
     });

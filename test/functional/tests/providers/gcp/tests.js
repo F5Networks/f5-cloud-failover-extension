@@ -234,7 +234,7 @@ describe('Provider: GCP', () => {
                     }
                 });
                 if (!testFwdRuleFlag) {
-                    assert.fail('Forwarding rules not found', fwdRules);
+                    assert.fail(`Forwarding rules not found ${fwdRules}`);
                 }
             })
             .catch(err => Promise.reject(err));
