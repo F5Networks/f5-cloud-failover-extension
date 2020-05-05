@@ -198,7 +198,16 @@ class Device {
         return this.getConfig([
             '/tm/ltm/virtual-address'
         ])
-            .then(results => Promise.resolve(results[0]))
+            .then((results) => {
+                const virtualAddresses = [];
+                results[0].forEach((result) => {
+                    if (result.address === 'any') {
+                        result.address = '0.0.0.0/0';
+                    }
+                    virtualAddresses.push(result);
+                });
+                return Promise.resolve(virtualAddresses);
+            })
             .catch(err => Promise.reject(err));
     }
 
