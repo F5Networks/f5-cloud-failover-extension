@@ -203,6 +203,8 @@ class Device {
                 results[0].forEach((result) => {
                     if (result.address === 'any') {
                         result.address = '0.0.0.0/0';
+                    } else if (result.address === 'any6') {
+                        result.address = '::/0';
                     }
                     virtualAddresses.push(result);
                 });
