@@ -418,12 +418,36 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} A promise which will be resolved with an array of forwarding rules
      *
      */
-    _getFwdRules() {
-        return this._sendRequest(
-            'GET',
-            `regions/${this.region}/forwardingRules`
-        )
-            .then(data => Promise.resolve(data.items))
+    _getFwdRules(options) {
+        options = options || {};
+        const pageToken = options.pageToken || '';
+        const initFwdRulesList = [];
+        const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
+            this.logger.silly(`getFwdRules called with nextPageToken ${nextPageToken}`);
+            return new Promise((resolve, reject) => {
+                let list = fwdRulesList || [];
+                let path = `regions/${this.region}/forwardingRules`;
+                if (nextPageToken !== '') {
+                    path = `regions/${this.region}/forwardingRules?pageToken=${nextPageToken}`;
+                }
+                this._sendRequest('GET', path)
+                    .then((pagedRulesList) => {
+                        list = list.concat(pagedRulesList.items);
+                        if (pagedRulesList.nextPageToken) {
+                            getRulesWithNextPageToken(list, pagedRulesList.nextPageToken)
+                                .then((rList) => {
+                                    this.logger.silly('Fwd Rules: resolving for next page');
+                                    resolve(rList);
+                                });
+                        } else {
+                            resolve(list);
+                        }
+                    })
+                    .catch(err => reject(err));
+            });
+        };
+        return getRulesWithNextPageToken(initFwdRulesList, pageToken)
+            .then(foundFwdRules => Promise.resolve(foundFwdRules))
             .catch(err => Promise.reject(err));
     }
 
@@ -469,15 +493,37 @@ class Cloud extends AbstractCloud {
     _getRoutes(options) {
         options = options || {};
         const tags = options.tags || {};
-
-        return this._sendRequest(
-            'GET',
-            'global/routes'
-        )
-            .then((routesList) => {
-                const ourRoutes = routesList.items.filter((item) => {
+        const pageToken = options.pageToken || '';
+        const routesList = [];
+        const getRoutesWithNextPageToken = (routeList, nextPageToken) => {
+            this.logger.silly(`getRoutes called with nextPageToken ${nextPageToken}`);
+            return new Promise((resolve, reject) => {
+                let list = routeList || [];
+                let path = 'global/routes/';
+                if (nextPageToken !== '') {
+                    path = `global/routes?pageToken=${nextPageToken}`;
+                }
+                this._sendRequest('GET', path)
+                    .then((pagedRoutesList) => {
+                        list = list.concat(pagedRoutesList.items);
+                        if (pagedRoutesList.nextPageToken) {
+                            getRoutesWithNextPageToken(list, pagedRoutesList.nextPageToken)
+                                .then((rList) => {
+                                    this.logger.silly('Resolving for next page');
+                                    resolve(rList);
+                                })
+                                .catch(err => reject(err));
+                        } else {
+                            resolve(list);
+                        }
+                    })
+                    .catch(err => reject(err));
+            });
+        };
+        return getRoutesWithNextPageToken(routesList, pageToken)
+            .then((foundRoutesList) => {
+                const ourRoutes = foundRoutesList.filter((item) => {
                     const itemTags = gcpLabelParse(item.description);
-
                     let matchedTags = 0;
                     const tagKeys = Object.keys(tags);
                     tagKeys.forEach((key) => {
@@ -487,10 +533,12 @@ class Cloud extends AbstractCloud {
                     });
                     return tagKeys.length === matchedTags;
                 });
+                this.logger.debug(`Filtered Routes ${ourRoutes}`);
                 return Promise.resolve(ourRoutes);
             })
             .catch(err => Promise.reject(err));
     }
+
 
     /**
      * Match IPs against a filter set of IPs
