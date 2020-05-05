@@ -505,18 +505,20 @@ class Cloud extends AbstractCloud {
     _matchIps(ips, ipsFilter) {
         const matched = [];
         ips.forEach((ip) => {
+            let match = false;
+
             // Each IP should contain CIDR suffix
             let ipAddr = ip && ip.ipCidrRange !== undefined ? ip.ipCidrRange : ip;
             ipAddr = ipAddr.indexOf('/') === -1 ? `${ipAddr}/32` : ipAddr;
-            const ipAddrParsed = ipaddr.parseCIDR(ipAddr);
-            let match = false;
+            const ipAddrParsed = ipaddr.parse(ipAddr.split('/')[0]);
+            const ipAddrParsedCidr = ipaddr.parseCIDR(ipAddr);
 
             ipsFilter.forEach((ipFilter) => {
                 // IP in filter array within range will constitute match
                 let ipFilterAddr = ipFilter.address !== undefined ? ipFilter.address : ipFilter;
                 ipFilterAddr = ipFilterAddr.split('/')[0];
                 const ipFilterAddrParsed = ipaddr.parse(ipFilterAddr);
-                if (ipFilterAddrParsed.match(ipAddrParsed)) {
+                if (ipAddrParsed.kind() === ipFilterAddrParsed.kind() && ipFilterAddrParsed.match(ipAddrParsedCidr)) {
                     match = true;
                 }
             });
