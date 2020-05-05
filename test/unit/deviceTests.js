@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ describe('Device', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('validate getVirtualAddresses with "any" address', () => device.init()
+    it('validate getVirtualAddresses with "any6" address', () => device.init()
         .then(() => {
             device.getConfig = sinon.stub().resolves([[{ address: 'any6' }]]);
             return device.getVirtualAddresses();
