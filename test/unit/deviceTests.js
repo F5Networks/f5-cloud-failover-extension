@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 F5 Networks, Inc.
+ * Copyright 2020 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ const mockResults = {
     '/tm/sys/global-settings': ['globalSettings'],
     '/tm/cm/traffic-group/stats': ['trafficGroups'],
     '/tm/net/self': ['selfAddresses'],
-    '/tm/ltm/virtual-address': ['virtualAddresses'],
+    '/tm/ltm/virtual-address': [{ address: '10.10.10.10/24' }],
     '/tm/ltm/snat-translation': ['snatTranslationAddress'],
     '/tm/ltm/nat': ['natAddress'],
     '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT]
@@ -148,12 +148,31 @@ describe('Device', () => {
 
     it('validate getVirtualAddresses', () => device.init()
         .then(() => {
-            const expectedValue = mockResults['/tm/ltm/virtual-address'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
+            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/virtual-address']]);
             return device.getVirtualAddresses();
         })
         .then((virtualAddresses) => {
-            assert.strictEqual(virtualAddresses, 'virtualAddresses');
+            assert.deepStrictEqual(virtualAddresses, mockResults['/tm/ltm/virtual-address']);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate getVirtualAddresses with "any" address', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([[{ address: 'any' }]]);
+            return device.getVirtualAddresses();
+        })
+        .then((virtualAddresses) => {
+            assert.deepStrictEqual(virtualAddresses, [{ address: '0.0.0.0/0' }]);
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('validate getVirtualAddresses with "any6" address', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([[{ address: 'any6' }]]);
+            return device.getVirtualAddresses();
+        })
+        .then((virtualAddresses) => {
+            assert.deepStrictEqual(virtualAddresses, [{ address: '::/0' }]);
         })
         .catch(err => Promise.reject(err)));
 
