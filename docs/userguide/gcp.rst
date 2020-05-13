@@ -260,6 +260,18 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
 
 |
 
+.. _gcp-shared-vpc:
+
+Shared VPC Configuration
+------------------------
+
+A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multuple projects to a common VPC, CFE works with Shared VPC in the following topologies.
+
+- BIG-IP cluster deployed in the Shard VPC Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the host project will continue to failover per normal conditions.
+- BIG-IP cluster deployed in a Shared VPC Service project where NIC 0 is attached to a Shared VPC in the Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the service project will continue to failover per normal conditions.  However any objects in the Shared VPC Host project will not be discovered/updated during a failover event.
+
+|
+
 .. include:: /_static/reuse/feedback.rst
 
 

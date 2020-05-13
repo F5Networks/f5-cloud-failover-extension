@@ -447,7 +447,6 @@ class Cloud extends AbstractCloud {
             });
         };
         return getRulesWithNextPageToken(initFwdRulesList, pageToken)
-            .then(foundFwdRules => Promise.resolve(foundFwdRules))
             .catch(err => Promise.reject(err));
     }
 
@@ -718,8 +717,17 @@ class Cloud extends AbstractCloud {
                             });
                         });
 
-                        theirNic.aliasIpRanges = theirAliasIps;
-                        disassociate.push([vm.name, nic.name, theirNic, { zone: this._parseZone(vm.zone) }]);
+                        disassociate.push([
+                            vm.name,
+                            nic.name,
+                            {
+                                aliasIpRanges: theirAliasIps,
+                                fingerprint: theirNic.fingerprint
+                            },
+                            {
+                                zone: this._parseZone(vm.zone)
+                            }
+                        ]);
                     }
                 }
             });
@@ -741,7 +749,17 @@ class Cloud extends AbstractCloud {
                     }
                 });
                 if (match) {
-                    associate.push([vm.name, myNic.name, myNic, { zone: this._parseZone(vm.zone) }]);
+                    associate.push([
+                        vm.name,
+                        myNic.name,
+                        {
+                            aliasIpRanges: myNic.aliasIpRanges,
+                            fingerprint: myNic.fingerprint
+                        },
+                        {
+                            zone: this._parseZone(vm.zone)
+                        }
+                    ]);
                 }
             });
         });
