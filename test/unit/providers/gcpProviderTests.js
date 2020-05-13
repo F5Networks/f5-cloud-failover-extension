@@ -34,7 +34,12 @@ const mockSingleZoneVms = [
         networkInterfaces: [
             {
                 name: 'testNic',
-                aliasIpRanges: []
+                aliasIpRanges: [],
+                accessConfigs: [
+                    {
+                        name: 'ONE_TO_ONE_NAT'
+                    }
+                ]
             }
         ]
     },
@@ -46,6 +51,11 @@ const mockSingleZoneVms = [
                 name: 'testNic',
                 aliasIpRanges: [
                     '10.0.2.1/24'
+                ],
+                accessConfigs: [
+                    {
+                        name: 'ONE_TO_ONE_NAT'
+                    }
                 ]
             }
         ]
@@ -382,6 +392,22 @@ describe('Provider - GCP', () => {
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover does not attempt to update access configs', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
+                    assert.strictEqual(updateNicSpy.args[0][2].accessConfigs, undefined);
+                    assert.strictEqual(updateNicSpy.args[1][2].accessConfigs, undefined);
                 })
                 .catch(err => Promise.reject(err));
         });
