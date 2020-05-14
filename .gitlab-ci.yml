@@ -42,6 +42,7 @@ variables:
     GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
     # debug vars
     F5_SDK_LOG_LEVEL: "INFO"
+    F5_DISABLE_CERT_VERIFY: "true"
     PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
     # topology var
     CF_ENV_NETWORK_TOPOLOGY: 'same_network'
