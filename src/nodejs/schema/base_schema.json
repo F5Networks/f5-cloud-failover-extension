@@ -110,12 +110,11 @@
                                 "format": "ipAddressWithCidr"
                             },
                             "nextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
-                        }
-                    },
-                    "required": [
-                        "range",
-                        "nextHopAddresses"
-                    ]
+                        },
+                        "required": [
+                            "range"
+                        ]
+                    }
                 },
                 "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
             },
