@@ -29,7 +29,8 @@ const mockResults = {
     '/tm/ltm/virtual-address': [{ address: '10.10.10.10/24' }],
     '/tm/ltm/snat-translation': ['snatTranslationAddress'],
     '/tm/ltm/nat': ['natAddress'],
-    '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT]
+    '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT],
+    '/tm/cm/device': [{ name: 'some_device_name' }]
 };
 
 describe('Device', () => {
@@ -265,4 +266,14 @@ describe('Device', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('validate getCMDeviceInfo', () => device.init()
+        .then(() => {
+            device.getConfig = sinon.stub().resolves([mockResults['/tm/cm/device']]);
+            return device.getCMDeviceInfo();
+        })
+        .then((cmDeviceInfo) => {
+            assert.deepStrictEqual(cmDeviceInfo, mockResults['/tm/cm/device']);
+        })
+        .catch(err => Promise.reject(err)));
 });

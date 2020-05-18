@@ -151,6 +151,19 @@ class Device {
     }
 
     /**
+    * Intended for getting CM device information
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getCMDeviceInfo() {
+        return this.getConfig([
+            '/tm/cm/device'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
     * Intended for getting global settings config object
     *
     * @returns {Promise} resolved promise with REST response
