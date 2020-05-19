@@ -232,7 +232,10 @@ describe('Provider - Azure', () => {
                         privateIPAddress: '1.1.1.1'
                     },
                     {
-                        privateIPAddress: '10.10.10.10'
+                        privateIPAddress: '10.10.10.10',
+                        subnet: {
+                            id: 'my-subnet-resource-location'
+                        }
                     }
                 ],
                 name: 'nic01',
@@ -276,6 +279,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(associateArgs[1], 'nic02');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
                 assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
+                assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].subnet.id, 'my-subnet-resource-location');
             })
             .catch(err => Promise.reject(err));
     });

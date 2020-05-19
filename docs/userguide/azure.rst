@@ -88,7 +88,7 @@ This example declaration shows the minimum information needed to update the clou
 
 Create and assign a Managed Service Identity (MSI)
 --------------------------------------------------
-In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP VNet as well as any route tables that will be updated. Read more about managed identities |managed-identity|.
+In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP instances, VNET, route tables, etc. that will be updated. Read more about managed identities |managed-identity|.
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. The following example shows a system-assigned MSI.
 
 #. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
@@ -133,6 +133,8 @@ Below is an example Azure role definition with permissions required by CFE.
 - Microsoft.Resources/subscriptions/resourceGroups/read
 - Microsoft.Storage/storageAccounts/read
 - Microsoft.Storage/storageAccounts/listKeys/action
+
+.. IMPORTANT:: Certain resources such as the virtual network are commonly deployed in a seperate resource group, ensure the correct scopes are applied to all applicable resource groups.
 
 |
 

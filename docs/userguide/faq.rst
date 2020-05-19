@@ -134,6 +134,14 @@ Yes, Cloud Failover Extension supports instances being placed in separate availa
 
 -----------------------------------------
 
+.. _faq-azure-vnet-separate-resource-group:
+
+Can the BIG-IP instances be deployed in a different resource group than the virtual network?
+````````````````````````````````````````````````````````````````````````````````````````````
+Yes, the BIG-IP instances and related instance objects, such as network interfaces, need to be deployed in the same resource group. However, the virtual network can be deployed in any resource group as long as the appropriate permissions are put in place.
+
+
+-----------------------------------------
 
 .. _faq-azure-api:
 
@@ -165,7 +173,6 @@ As of CFE version 1.1, CFE disables the existing failover scripts installed by t
 
 
 -----------------------------------------
-
 
 .. _faq-info-store:
 
