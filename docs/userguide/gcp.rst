@@ -12,9 +12,8 @@ Google CFE Prerequisites
 These are the basic prerequisites for setting up CFE in Google Cloud Platform:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can find an example GDM Template |gdmtemplate|. Any configuration tool can be used to provision the resources.
-- **Virtual addresses** created in a floating traffic group and matching Alias IP addresses on the instance serving application traffic.
-- **Forwarding rules(s)** configured with targets that match a virtual address or floating self IP on the instance serving application traffic. 
-
+- **Virtual addresses** or **Self IPs** created in a floating traffic group on the instances serving application traffic which will match either an Alias IP  or Forwarding Rule.
+- **Target Instance Pair** created where each target instance is pointing at a BIG-IP instance.  Note that this is only required if failover of any forwarding rules is desired.
 |
 
 Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
@@ -258,6 +257,18 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
         }
    }
 
+
+|
+
+.. _gcp-shared-vpc:
+
+Shared VPC Configuration
+------------------------
+
+A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multuple projects to a common VPC, CFE works with Shared VPC in the following topologies.
+
+- BIG-IP cluster deployed in the Shard VPC Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the host project will continue to failover per normal conditions.
+- BIG-IP cluster deployed in a Shared VPC Service project where NIC 0 is attached to a Shared VPC in the Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the service project will continue to failover per normal conditions.  However any objects in the Shared VPC Host project will not be discovered/updated during a failover event.
 
 |
 

@@ -27,10 +27,44 @@ const testPayload = {
         key01: 'value01'
     }
 };
-const mockVms = [
+const mockSingleZoneVms = [
     {
-        name: 'testInstanceName',
+        name: 'testInstanceName01',
         zone: 'projects/1111/zones/us-west1-a',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: [],
+                accessConfigs: [
+                    {
+                        name: 'ONE_TO_ONE_NAT'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        name: 'testInstanceName02',
+        zone: 'projects/1111/zones/us-west1-a',
+        networkInterfaces: [
+            {
+                name: 'testNic',
+                aliasIpRanges: [
+                    '10.0.2.1/24'
+                ],
+                accessConfigs: [
+                    {
+                        name: 'ONE_TO_ONE_NAT'
+                    }
+                ]
+            }
+        ]
+    }
+];
+const mockMultipleZoneVms = [
+    {
+        name: 'testInstanceName01',
+        zone: 'projects/1111/zones/us-west1-b',
         networkInterfaces: [
             {
                 name: 'testNic',
@@ -53,7 +87,7 @@ const mockVms = [
 ];
 
 const description = 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
-const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName, testInstanceName02"}';
+const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName01, testInstanceName02"}';
 
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
@@ -196,87 +230,200 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should validate updateAddresses does not throw error if update operations is empty', () => {
-        const opts = { updateOperations: {} };
-        return provider.updateAddresses(opts)
-            .catch(err => Promise.reject(err));
-    });
-
-
-    it('validate updateAddresses method with forwarding rule tags', () => {
-        sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockVms));
-        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2', description: fwdRuleDescription }]);
-        sinon.stub(provider, '_getTargetInstances').resolves([{
-            name: 'testInstanceName', instance: 'compute/testInstanceName'
-        }]);
-
-        const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
-
-        provider.instanceName = 'testInstanceName';
-
+    describe('updateAddresses should', () => {
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
+        const failoverAddresses = ['10.0.2.1', '2.2.2.2'];
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
-            .then(() => {
-                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
-                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
-                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
-                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
-                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
-            })
-            .catch(err => Promise.reject(err));
-    });
+        let getVmsByTagsStub;
+        let getFwdRulesStub;
+        let getTargetInstancesStub;
 
+        function validateAliasIpOperations(spy, options) {
+            options = options || {};
+            const expectedZone = options.zone || 'us-west1-b';
 
-    it('validate updateAddresses method without forwarding rule tags', () => {
-        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
-        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
-        sinon.stub(provider, '_getTargetInstances').resolves([{
-            name: 'testInstanceName',
-            instance: 'compute/testInstanceName'
-        }]);
+            assert.deepEqual(spy.args[0][0], 'testInstanceName02');
+            assert.deepEqual(spy.args[0][2].aliasIpRanges, []);
+            assert.deepEqual(spy.args[1][0], 'testInstanceName01');
+            assert.deepEqual(spy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
+            assert.deepEqual(spy.args[1][3].zone, expectedZone);
+        }
 
-        const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+        function validateFwdRuleOperations(spy) {
+            assert.deepEqual(spy.args[0][0][0][0], 'testFwdRule');
+            assert.deepEqual(spy.args[0][0][0][1], 'selfLink/testInstanceName01');
+        }
 
-        provider.instanceName = 'testInstanceName';
+        beforeEach(() => {
+            getVmsByTagsStub = sinon.stub(provider, '_getVmsByTags').resolves(util.deepCopy(mockMultipleZoneVms));
+            getFwdRulesStub = sinon.stub(provider, '_getFwdRules').resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+            getTargetInstancesStub = sinon.stub(provider, '_getTargetInstances').resolves([
+                {
+                    name: 'testInstanceName01',
+                    instance: 'compute/testInstanceName01',
+                    selfLink: 'selfLink/testInstanceName01'
+                }
+            ]);
 
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
+            provider.instanceName = 'testInstanceName01';
+        });
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
-            .then(() => {
-                assert.deepEqual(updateNicSpy.args[0][0], 'testInstanceName02');
-                assert.deepEqual(updateNicSpy.args[0][2].aliasIpRanges, []);
-                assert.deepEqual(updateNicSpy.args[1][0], 'testInstanceName');
-                assert.deepEqual(updateNicSpy.args[1][2].aliasIpRanges, ['10.0.2.1/24']);
-                assert.deepEqual(updateNicSpy.args[1][3].zone, 'us-west1-a');
-            })
-            .catch(err => Promise.reject(err));
-    });
+        it('should validate method does not throw error if update operations is empty', () => {
+            return provider.updateAddresses({ updateOperations: {} })
+                .catch(err => Promise.reject(err));
+        });
 
-    it('validate updateAddresses method, promise rejection', () => {
-        sinon.stub(provider, '_getVmsByTags').resolves(mockVms);
-        sinon.stub(provider, '_getFwdRules').resolves([{ name: 'testFwdRule', IPAddress: '2.2.2.2' }]);
-        sinon.stub(provider, '_getTargetInstances').resolves([{ instance: 'compute/testInstanceName' }]);
+        it('validate address failover', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
-        sinon.stub(provider, '_updateNic').rejects(new Error('rejection'));
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                    validateFwdRuleOperations(updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
 
-        provider.instanceName = 'testInstanceName';
+        it('validate address failover with forwarding rules provided via label', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
-        const localAddresses = ['1.1.1.1', '4.4.4.4'];
-        const failoverAddresses = ['10.0.2.1'];
+            getFwdRulesStub.resolves([
+                {
+                    name: 'testFwdRule',
+                    description: fwdRuleDescription,
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
-            .then(() => {
-                assert.ok(false, 'Expected an error');
-            })
-            .catch(() => {
-                assert.ok(true);
-            });
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                    validateFwdRuleOperations(updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate alias IP failover (without any fwd rules or target instances)', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+
+            getFwdRulesStub.resolves([]);
+            getTargetInstancesStub.resolves(null);
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate alias IP failover (with unrelated fwd rule and no target instances)', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+
+            getFwdRulesStub.resolves([
+                {
+                    name: 'randomFwdRule',
+                    IPAddress: '3.3.3.3',
+                    target: 'compute/randomTestInstance'
+                }
+            ]);
+            getTargetInstancesStub.resolves(null);
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate fwd rule failover (without any alias IPs)', () => {
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getVmsByTagsStub.resolves([
+                {
+                    name: 'testInstanceName01',
+                    zone: 'projects/1111/zones/us-west1-a',
+                    networkInterfaces: [
+                        {
+                            name: 'testNic',
+                            aliasIpRanges: []
+                        }
+                    ]
+                },
+                {
+                    name: 'testInstanceName02',
+                    zone: 'projects/1111/zones/us-west1-a',
+                    networkInterfaces: [
+                        {
+                            name: 'testNic',
+                            aliasIpRanges: []
+                        }
+                    ]
+                }
+            ]);
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateFwdRuleOperations(updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover with all instances in a single zone', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover does not attempt to update access configs', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
+                    assert.strictEqual(updateNicSpy.args[0][2].accessConfigs, undefined);
+                    assert.strictEqual(updateNicSpy.args[1][2].accessConfigs, undefined);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate updateAddresses method, promise rejection', () => {
+            getVmsByTagsStub.rejects(new Error('rejection'));
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    assert.ok(false, 'Expected an error');
+                })
+                .catch(() => {
+                    assert.ok(true);
+                });
+        });
     });
 
     describe('updateRoutes should', () => {
@@ -325,7 +472,6 @@ describe('Provider - GCP', () => {
                     routeAddresses: ['192.0.0.0/24']
                 }];
         });
-
 
         it('not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
@@ -407,7 +553,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -434,11 +580,54 @@ describe('Provider - GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate _getRoutes method execution with page token', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes/');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        name: 'notOurRoute'
+                    }
+                ],
+                nextPageToken: 'token'
+            });
+        });
+
+        providerSendRequestMock.onCall(1).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'global/routes?pageToken=token');
+
+            return Promise.resolve({
+                name: 'test-name',
+                items: [
+                    {
+                        name: 'alsoNotOurRoute',
+                        description: 'foo'
+                    },
+                    {
+                        name: 'ourRoute',
+                        description
+                    }
+                ]
+            });
+        });
+
+        return provider._getRoutes({ tags: provider.routeTags })
+            .then((data) => {
+                assert.strictEqual(data[0].name, 'ourRoute');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('validate _getRoutes method execution when routeTags do not match', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -461,7 +650,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -482,7 +671,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes');
+            assert.strictEqual(path, 'global/routes/');
 
             return Promise.reject();
         });
@@ -610,7 +799,35 @@ describe('Provider - GCP', () => {
 
         return provider._getFwdRules()
             .then((data) => {
-                assert.strictEqual(data, 'test_data');
+                assert.strictEqual(data[0], 'test_data');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate _getFwdRules returned promise even with pageTokens', () => {
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        provider.region = 'region';
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules');
+
+            return Promise.resolve({
+                items: 'test_data',
+                nextPageToken: 'token'
+            });
+        });
+        providerSendRequestMock.onCall(1).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+
+            return Promise.resolve({
+                items: 'test_data2'
+            });
+        });
+        return provider._getFwdRules()
+            .then((data) => {
+                assert.strictEqual(data[0], 'test_data');
+                assert.strictEqual(data[1], 'test_data2');
             })
             .catch(err => Promise.reject(err));
     });

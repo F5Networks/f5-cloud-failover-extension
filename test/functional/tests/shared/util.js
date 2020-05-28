@@ -71,7 +71,7 @@ module.exports = {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            zone: deploymentInfo.zone || null, // optional: used by GCP
+            zones: deploymentInfo.instances.map(i => i.zone), // optional: used by GCP
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
             nextHopAddresses
         };

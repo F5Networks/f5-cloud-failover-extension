@@ -30,6 +30,8 @@ describe('Failover', () => {
     let deviceGetVirtualAddressesMock;
     let deviceGetNatAddressesMock;
     let deviceGetSnatTranslationAddressesMock;
+    let deviceGetCMDeviceInfoMock;
+
     let cloudProviderMock;
     let downloadDataFromStorageMock;
 
@@ -38,12 +40,12 @@ describe('Failover', () => {
     let uploadDataToStorageSpy;
     let setConfigSpy;
 
-    const globalSettingsMockResponse = {
+    const trafficGroupStatsMockResponse = {
         entries: {
             key01: {
                 nestedStats: {
                     entries: {
-                        deviceName: { description: 'some_hostname' },
+                        deviceName: { description: 'some_device_name' },
                         failoverState: { description: 'active' },
                         trafficGroup: { description: 'traffic-group-1' }
                     }
@@ -51,6 +53,12 @@ describe('Failover', () => {
             }
         }
     };
+    const cmDeviceInfoMockResponse = [
+        {
+            name: 'some_device_name',
+            selfDevice: 'true'
+        }
+    ];
 
     beforeEach(() => {
         config = require('../../src/nodejs/config.js');
@@ -68,6 +76,7 @@ describe('Failover', () => {
         deviceGetVirtualAddressesMock = sinon.stub(Device.prototype, 'getVirtualAddresses');
         deviceGetSnatTranslationAddressesMock = sinon.stub(Device.prototype, 'getSnatTranslationAddresses');
         deviceGetNatAddressesMock = sinon.stub(Device.prototype, 'getNatAddresses');
+        deviceGetCMDeviceInfoMock = sinon.stub(Device.prototype, 'getCMDeviceInfo');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
@@ -84,7 +93,8 @@ describe('Failover', () => {
         sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
 
         deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
-        deviceGetTrafficGroupsMock.returns(globalSettingsMockResponse);
+        deviceGetTrafficGroupsMock.returns(trafficGroupStatsMockResponse);
+        deviceGetCMDeviceInfoMock.returns(cmDeviceInfoMockResponse);
 
         deviceGetSelfAddressesMock.returns([
             {
@@ -295,7 +305,7 @@ describe('Failover', () => {
                 key01: {
                     nestedStats: {
                         entries: {
-                            deviceName: { description: 'some_hostname' },
+                            deviceName: { description: 'some_device_name' },
                             failoverState: { description: 'active' },
                             trafficGroup: { description: 'some-other-traffic-group' }
                         }

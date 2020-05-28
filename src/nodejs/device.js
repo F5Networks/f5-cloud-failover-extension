@@ -151,6 +151,19 @@ class Device {
     }
 
     /**
+    * Intended for getting CM device information
+    *
+    * @returns {Promise} resolved promise with REST response
+    */
+    getCMDeviceInfo() {
+        return this.getConfig([
+            '/tm/cm/device'
+        ])
+            .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
     * Intended for getting global settings config object
     *
     * @returns {Promise} resolved promise with REST response
@@ -198,7 +211,18 @@ class Device {
         return this.getConfig([
             '/tm/ltm/virtual-address'
         ])
-            .then(results => Promise.resolve(results[0]))
+            .then((results) => {
+                const virtualAddresses = [];
+                results[0].forEach((result) => {
+                    if (result.address === 'any') {
+                        result.address = '0.0.0.0/0';
+                    } else if (result.address === 'any6') {
+                        result.address = '::/0';
+                    }
+                    virtualAddresses.push(result);
+                });
+                return Promise.resolve(virtualAddresses);
+            })
             .catch(err => Promise.reject(err));
     }
 

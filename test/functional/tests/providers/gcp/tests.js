@@ -35,10 +35,6 @@ const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[netwo
 const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];
 const storageTagValue = declaration.externalStorage.scopingTags[storageTagKey];
 
-
-let request = {};
-
-// Helper functions
 function configureAuth() {
     // To run this in local environment, make sure to export the environmental variable
     // GOOGLE_CREDENTIALS and CI_PROJECT_DIR
@@ -52,153 +48,6 @@ function configureAuth() {
     }
     return Promise.reject(new Error('gcloud creds are not provided via env variable titled as GOOGLE_CREDENTIALS'));
 }
-function checkAliasIPs(hostname, virtualAddresses) {
-    return new Promise((resolve, reject) => {
-        compute.instances.list(request, (err, response) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(response);
-            }
-        });
-    })
-        .then((data) => {
-            const instances = data.data.items || [];
-            let match = false;
-
-            instances.forEach((vm) => {
-                if (vm.labels) {
-                    if (Object.values(vm.labels)
-                        .indexOf(networkInterfaceTagValue) !== -1
-                        && Object.keys(vm.labels)
-                            .indexOf(storageTagKey) !== -1) {
-                        if (vm.name.indexOf(hostname) !== -1) {
-                            if (virtualAddresses.indexOf(
-                                vm.networkInterfaces[0].aliasIpRanges[0].ipCidrRange.split('/')[0]
-                            ) !== -1) {
-                                match = true;
-                            }
-                        }
-                    }
-                }
-            });
-            if (!match) {
-                assert.fail('Matching alias IP not found');
-            }
-        })
-        .catch(err => Promise.reject(err));
-}
-function checkForwardingRules(hostname) {
-    return new Promise((resolve, reject) => {
-        compute.forwardingRules.list(request, (err, response) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(response);
-            }
-        });
-    })
-        .then((data) => {
-            const fwdRules = data.data.items || [];
-            let testFwdRuleFlag = false;
-
-            if (fwdRules) {
-                fwdRules.forEach((fwdRule) => {
-                    if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
-                        testFwdRuleFlag = fwdRule.target.indexOf(
-                            `${hostname.split('-')[3]}-${hostname.split('-')[4]}`
-                        ) !== -1;
-                    }
-                });
-            }
-            if (!testFwdRuleFlag) {
-                assert.fail('Forwarding rules not found');
-            }
-        })
-        .catch(err => Promise.reject(err));
-}
-function checkRoutes(selfIps) {
-    return new Promise((resolve, reject) => {
-        compute.routes.list(request, (err, response) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(response);
-            }
-        });
-    })
-        .then((data) => {
-            const routes = data.data.items || [];
-            let testRouteFlag = false;
-
-            if (routes) {
-                routes.forEach((route) => {
-                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1) {
-                        testRouteFlag = selfIps.indexOf(route.nextHopIp) !== -1;
-                    }
-                });
-            }
-            if (!testRouteFlag) {
-                assert.fail('Route not found');
-            }
-        })
-        .catch(err => Promise.reject(err));
-}
-function getVms(hostname) {
-    return new Promise((resolve, reject) => {
-        compute.instances.list(request, (err, response) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(response);
-            }
-        });
-    })
-        .then((data) => {
-            const instances = data.data.items || [];
-            const vms = [];
-            instances.forEach((vm) => {
-                if (vm.labels) {
-                    if (Object.values(vm.labels)
-                        .indexOf(networkInterfaceTagValue) !== -1
-                        && Object.keys(vm.labels)
-                            .indexOf(storageTagKey) !== -1) {
-                        if (vm.name.indexOf(hostname) !== -1) {
-                            vms.push(vm);
-                        }
-                    }
-                }
-            });
-            return Promise.resolve(vms);
-        })
-        .catch(err => Promise.reject(err));
-}
-
-function getRoutes(selfIps) {
-    return new Promise((resolve, reject) => {
-        compute.routes.list(request, (err, response) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(response);
-            }
-        });
-    })
-        .then((data) => {
-            const routes = data.data.items || [];
-            const result = [];
-            if (routes) {
-                routes.forEach((route) => {
-                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1
-                        && selfIps.indexOf(route.nextHopIp) !== -1) {
-                        result.push(route);
-                    }
-                });
-            }
-            return Promise.resolve(result);
-        })
-        .catch(err => Promise.reject(err));
-}
 
 describe('Provider: GCP', () => {
     let primarySelfIps = [];
@@ -206,14 +55,11 @@ describe('Provider: GCP', () => {
     let virtualAddresses = [];
     const vms = [];
 
+    let authClient;
+
     before(() => configureAuth()
-        .then((authClient) => {
-            request = {
-                project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
-                auth: authClient,
-                region: deploymentInfo.region,
-                zone: deploymentInfo.zone
-            };
+        .then((createdAuthClient) => {
+            authClient = createdAuthClient;
             return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password);
         })
         .then((data) => {
@@ -256,33 +102,176 @@ describe('Provider: GCP', () => {
         });
     });
 
+    function listInstances() {
+        const zonePromises = [];
+
+        deploymentInfo.zones.forEach((zone) => {
+            zonePromises.push(compute.instances.list({
+                project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
+                auth: authClient,
+                region: deploymentInfo.region,
+                zone
+            }));
+        });
+        return Promise.all(zonePromises)
+            .then((zones) => {
+                const instances = [];
+
+                zones.forEach((zoneInstances) => {
+                    zoneInstances.data.items.forEach((instance) => {
+                        instances.push(instance);
+                    });
+                });
+                return Promise.resolve(instances);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function listFwdRules() {
+        const zonePromises = [];
+
+        deploymentInfo.zones.forEach((zone) => {
+            zonePromises.push(compute.forwardingRules.list({
+                project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
+                auth: authClient,
+                region: deploymentInfo.region,
+                zone
+            }));
+        });
+        return Promise.all(zonePromises)
+            .then((zones) => {
+                const objects = [];
+
+                zones.forEach((zoneObjects) => {
+                    zoneObjects.data.items.forEach((object) => {
+                        objects.push(object);
+                    });
+                });
+                return Promise.resolve(objects);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function listRoutes() {
+        return compute.routes.list({
+            project: JSON.parse(process.env.GOOGLE_CREDENTIALS).project_id,
+            auth: authClient,
+            region: deploymentInfo.region
+        })
+            .then(routes => Promise.resolve(routes.data.items))
+            .catch(err => Promise.reject(err));
+    }
+
+    function getVmByHostname(hostname) {
+        return listInstances()
+            .then((instances) => {
+                const results = [];
+
+                instances.forEach((vm) => {
+                    if (vm.labels) {
+                        if (Object.values(vm.labels)
+                            .indexOf(networkInterfaceTagValue) !== -1
+                            && Object.keys(vm.labels)
+                                .indexOf(storageTagKey) !== -1) {
+                            if (vm.name.indexOf(hostname) !== -1) {
+                                results.push(vm);
+                            }
+                        }
+                    }
+                });
+                return Promise.resolve(results[0]);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function getRoutes(selfIps) {
+        return listRoutes()
+            .then((routes) => {
+                const result = [];
+
+                routes.forEach((route) => {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1
+                        && selfIps.indexOf(route.nextHopIp) !== -1) {
+                        result.push(route);
+                    }
+                });
+                return Promise.resolve(result);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function checkAliasIPs(hostname, _virtualAddresses) {
+        return getVmByHostname(hostname)
+            .then((instance) => {
+                let match = false;
+
+                const primaryNetworkInterface = instance.networkInterfaces[0];
+                const aliasIpRanges = primaryNetworkInterface.aliasIpRanges || [];
+
+                aliasIpRanges.forEach((aliasIpRange) => {
+                    const ipCidrRange = aliasIpRange.ipCidrRange || '';
+                    if (_virtualAddresses.indexOf(ipCidrRange.split('/')[0]) !== -1) {
+                        match = true;
+                    }
+                });
+                if (!match) {
+                    assert.fail('Matching alias IPs not found', aliasIpRanges);
+                }
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function checkForwardingRules(hostname) {
+        return listFwdRules()
+            .then((fwdRules) => {
+                let testFwdRuleFlag = false;
+
+                fwdRules.forEach((fwdRule) => {
+                    if (fwdRule.name.indexOf(deploymentInfo.deploymentId) !== -1) {
+                        testFwdRuleFlag = fwdRule.target.indexOf(
+                            `${hostname.split('-')[3]}-${hostname.split('-')[4]}`
+                        ) !== -1;
+                    }
+                });
+                if (!testFwdRuleFlag) {
+                    assert.fail(`Forwarding rules not found ${fwdRules}`);
+                }
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    function checkRoutes(selfIps) {
+        return listRoutes()
+            .then((routes) => {
+                let testRouteFlag = false;
+
+                routes.forEach((route) => {
+                    if (route.name.indexOf(deploymentInfo.deploymentId) !== -1) {
+                        testRouteFlag = selfIps.indexOf(route.nextHopIp) !== -1;
+                    }
+                });
+                if (!testRouteFlag) {
+                    assert.fail('Route not found');
+                }
+            })
+            .catch(err => Promise.reject(err));
+    }
+
     it('validate Google Primary VM IP Addresess', function () {
         this.retries(RETRIES.SHORT);
 
-        return new Promise((resolve, reject) => {
-            compute.instances.list(request, (err, response) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(response);
-                }
-            });
-        })
-            .then((data) => {
-                const instances = data.data.items || [];
+        return listInstances()
+            .then((instances) => {
+                instances.forEach((vm) => {
+                    const labels = vm.labels || [];
+                    if (Object.values(labels)
+                        .indexOf(storageTagValue) !== -1
+                    && Object.keys(labels)
+                        .indexOf(storageTagKey) !== -1) {
+                        vms.push(vm);
+                    }
+                });
 
-                if (instances) {
-                    instances.forEach((vm) => {
-                        if (vm.labels) {
-                            if (Object.values(vm.labels)
-                                .indexOf(storageTagValue) !== -1
-                            && Object.keys(vm.labels)
-                                .indexOf(storageTagKey) !== -1) {
-                                vms.push(vm);
-                            }
-                        }
-                    });
-                }
                 const networkIp = [];
                 vms.forEach((vm) => {
                     vm.networkInterfaces.forEach((nic) => {
@@ -306,6 +295,10 @@ describe('Provider: GCP', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
+        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+    ));
 
     it('should check network interface alias IP(s) contains virtual addresses (primary)', function () {
         this.retries(RETRIES.LONG);
@@ -395,6 +388,7 @@ describe('Provider: GCP', () => {
     // ));
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
+
         return new Promise(
             resolve => setTimeout(resolve, 5000)
         )
@@ -417,6 +411,7 @@ describe('Provider: GCP', () => {
 
     it('wait until taskState is running on standby BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
+
         return new Promise(
             resolve => setTimeout(resolve, 1000)
         )
@@ -439,6 +434,7 @@ describe('Provider: GCP', () => {
 
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
+
         return new Promise(
             resolve => setTimeout(resolve, 5000)
         )
@@ -478,32 +474,35 @@ describe('Provider: GCP', () => {
 
     it('Should retrieve addresses and routes for primary BIG-IP', function () {
         this.retries(RETRIES.SHORT);
+
         const expectedResult = {
             instance: dutPrimary.hostname,
             addresses: [],
             routes: []
         };
         return Promise.all([
-            getVms(dutPrimary.hostname),
+            getVmByHostname(dutPrimary.hostname),
             getRoutes(primarySelfIps)
         ])
             .then((results) => {
+                const instance = results[0];
+                const routes = results[1];
+
                 const privateIps = [];
-                results[0].forEach((vm) => {
-                    vm.networkInterfaces.forEach((address) => {
-                        let vmPublicIp = null;
-                        if (address.accessConfigs) {
-                            vmPublicIp = address.accessConfigs[0].natIP;
-                        }
-                        privateIps.push(address.networkIP);
-                        expectedResult.addresses.push({
-                            publicIpAddress: vmPublicIp,
-                            privateIpAddress: address.networkIP,
-                            networkInterfaceId: address.name
-                        });
+
+                instance.networkInterfaces.forEach((address) => {
+                    let vmPublicIp = null;
+                    if (address.accessConfigs) {
+                        vmPublicIp = address.accessConfigs[0].natIP;
+                    }
+                    privateIps.push(address.networkIP);
+                    expectedResult.addresses.push({
+                        publicIpAddress: vmPublicIp,
+                        privateIpAddress: address.networkIP,
+                        networkInterfaceId: address.name
                     });
                 });
-                results[1].forEach((route) => {
+                routes.forEach((route) => {
                     if (privateIps.includes(route.nextHopIp)) {
                         expectedResult.routes.push({
                             routeTableId: route.id,
@@ -532,26 +531,28 @@ describe('Provider: GCP', () => {
             addresses: []
         };
         return Promise.all([
-            getVms(dutSecondary.hostname),
+            getVmByHostname(dutSecondary.hostname),
             getRoutes(secondarySelfIps)
         ])
             .then((results) => {
+                const instance = results[0];
+                const routes = results[1];
+
                 const privateIps = [];
-                results[0].forEach((vm) => {
-                    vm.networkInterfaces.forEach((address) => {
-                        let vmPublicIp = null;
-                        if (address.accessConfigs) {
-                            vmPublicIp = address.accessConfigs[0].natIP;
-                        }
-                        privateIps.push(address.networkIP);
-                        expectedResult.addresses.push({
-                            publicIpAddress: vmPublicIp,
-                            privateIpAddress: address.networkIP,
-                            networkInterfaceId: address.name
-                        });
+
+                instance.networkInterfaces.forEach((address) => {
+                    let vmPublicIp = null;
+                    if (address.accessConfigs) {
+                        vmPublicIp = address.accessConfigs[0].natIP;
+                    }
+                    privateIps.push(address.networkIP);
+                    expectedResult.addresses.push({
+                        publicIpAddress: vmPublicIp,
+                        privateIpAddress: address.networkIP,
+                        networkInterfaceId: address.name
                     });
                 });
-                assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
+                assert(routes.length === 0, 'Expect no routes to be associated with standby device');
             })
             .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
                 {

@@ -418,12 +418,35 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} A promise which will be resolved with an array of forwarding rules
      *
      */
-    _getFwdRules() {
-        return this._sendRequest(
-            'GET',
-            `regions/${this.region}/forwardingRules`
-        )
-            .then(data => Promise.resolve(data.items))
+    _getFwdRules(options) {
+        options = options || {};
+        const pageToken = options.pageToken || '';
+        const initFwdRulesList = [];
+        const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
+            this.logger.silly(`getFwdRules called with nextPageToken ${nextPageToken}`);
+            return new Promise((resolve, reject) => {
+                let list = fwdRulesList || [];
+                let path = `regions/${this.region}/forwardingRules`;
+                if (nextPageToken !== '') {
+                    path = `regions/${this.region}/forwardingRules?pageToken=${nextPageToken}`;
+                }
+                this._sendRequest('GET', path)
+                    .then((pagedRulesList) => {
+                        list = list.concat(pagedRulesList.items);
+                        if (pagedRulesList.nextPageToken) {
+                            getRulesWithNextPageToken(list, pagedRulesList.nextPageToken)
+                                .then((rList) => {
+                                    this.logger.silly('Fwd Rules: resolving for next page');
+                                    resolve(rList);
+                                });
+                        } else {
+                            resolve(list);
+                        }
+                    })
+                    .catch(err => reject(err));
+            });
+        };
+        return getRulesWithNextPageToken(initFwdRulesList, pageToken)
             .catch(err => Promise.reject(err));
     }
 
@@ -469,15 +492,37 @@ class Cloud extends AbstractCloud {
     _getRoutes(options) {
         options = options || {};
         const tags = options.tags || {};
-
-        return this._sendRequest(
-            'GET',
-            'global/routes'
-        )
-            .then((routesList) => {
-                const ourRoutes = routesList.items.filter((item) => {
+        const pageToken = options.pageToken || '';
+        const routesList = [];
+        const getRoutesWithNextPageToken = (routeList, nextPageToken) => {
+            this.logger.silly(`getRoutes called with nextPageToken ${nextPageToken}`);
+            return new Promise((resolve, reject) => {
+                let list = routeList || [];
+                let path = 'global/routes/';
+                if (nextPageToken !== '') {
+                    path = `global/routes?pageToken=${nextPageToken}`;
+                }
+                this._sendRequest('GET', path)
+                    .then((pagedRoutesList) => {
+                        list = list.concat(pagedRoutesList.items);
+                        if (pagedRoutesList.nextPageToken) {
+                            getRoutesWithNextPageToken(list, pagedRoutesList.nextPageToken)
+                                .then((rList) => {
+                                    this.logger.silly('Resolving for next page');
+                                    resolve(rList);
+                                })
+                                .catch(err => reject(err));
+                        } else {
+                            resolve(list);
+                        }
+                    })
+                    .catch(err => reject(err));
+            });
+        };
+        return getRoutesWithNextPageToken(routesList, pageToken)
+            .then((foundRoutesList) => {
+                const ourRoutes = foundRoutesList.filter((item) => {
                     const itemTags = gcpLabelParse(item.description);
-
                     let matchedTags = 0;
                     const tagKeys = Object.keys(tags);
                     tagKeys.forEach((key) => {
@@ -487,10 +532,12 @@ class Cloud extends AbstractCloud {
                     });
                     return tagKeys.length === matchedTags;
                 });
+                this.logger.debug(`Filtered Routes ${ourRoutes}`);
                 return Promise.resolve(ourRoutes);
             })
             .catch(err => Promise.reject(err));
     }
+
 
     /**
      * Match IPs against a filter set of IPs
@@ -505,18 +552,20 @@ class Cloud extends AbstractCloud {
     _matchIps(ips, ipsFilter) {
         const matched = [];
         ips.forEach((ip) => {
+            let match = false;
+
             // Each IP should contain CIDR suffix
             let ipAddr = ip && ip.ipCidrRange !== undefined ? ip.ipCidrRange : ip;
             ipAddr = ipAddr.indexOf('/') === -1 ? `${ipAddr}/32` : ipAddr;
-            const ipAddrParsed = ipaddr.parseCIDR(ipAddr);
-            let match = false;
+            const ipAddrParsed = ipaddr.parse(ipAddr.split('/')[0]);
+            const ipAddrParsedCidr = ipaddr.parseCIDR(ipAddr);
 
             ipsFilter.forEach((ipFilter) => {
                 // IP in filter array within range will constitute match
                 let ipFilterAddr = ipFilter.address !== undefined ? ipFilter.address : ipFilter;
                 ipFilterAddr = ipFilterAddr.split('/')[0];
                 const ipFilterAddrParsed = ipaddr.parse(ipFilterAddr);
-                if (ipFilterAddrParsed.match(ipAddrParsed)) {
+                if (ipAddrParsed.kind() === ipFilterAddrParsed.kind() && ipFilterAddrParsed.match(ipAddrParsedCidr)) {
                     match = true;
                 }
             });
@@ -668,8 +717,17 @@ class Cloud extends AbstractCloud {
                             });
                         });
 
-                        theirNic.aliasIpRanges = theirAliasIps;
-                        disassociate.push([vm.name, nic.name, theirNic, { zone: this._parseZone(vm.zone) }]);
+                        disassociate.push([
+                            vm.name,
+                            nic.name,
+                            {
+                                aliasIpRanges: theirAliasIps,
+                                fingerprint: theirNic.fingerprint
+                            },
+                            {
+                                zone: this._parseZone(vm.zone)
+                            }
+                        ]);
                     }
                 }
             });
@@ -691,7 +749,17 @@ class Cloud extends AbstractCloud {
                     }
                 });
                 if (match) {
-                    associate.push([vm.name, myNic.name, myNic, { zone: this._parseZone(vm.zone) }]);
+                    associate.push([
+                        vm.name,
+                        myNic.name,
+                        {
+                            aliasIpRanges: myNic.aliasIpRanges,
+                            fingerprint: myNic.fingerprint
+                        },
+                        {
+                            zone: this._parseZone(vm.zone)
+                        }
+                    ]);
                 }
             });
         });
@@ -720,7 +788,13 @@ class Cloud extends AbstractCloud {
                     result.push({ name: tgt.name, selfLink: tgt.selfLink });
                 }
             });
-            return result;
+
+            if (!tgtInstances.length) {
+                return Promise.reject(
+                    new Error(`Unable to locate our target instance: ${this.instanceName}`)
+                );
+            }
+            return result[0];
         };
 
         return Promise.all([
@@ -731,36 +805,31 @@ class Cloud extends AbstractCloud {
                 this.fwdRules = data[0] || [];
                 this.targetInstances = data[1] || [];
 
-                const ourTargetInstances = getOurTargetInstance(this.instanceName, this.targetInstances);
-                if (!ourTargetInstances.length) {
-                    const message = `Unable to locate our target instance: ${this.instanceName}`;
-                    return Promise.reject(new Error(message));
-                }
-                this.logger.silly('Discovered our target instances ', ourTargetInstances);
-                const ourTargetInstance = ourTargetInstances[0];
-
                 this.fwdRules.forEach((rule) => {
-                    let targetInstanceToUse = ourTargetInstance;
                     const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    if (!match.length) {
+                        return; // continue with next iteration
+                    }
+
+                    this.logger.silly('updateFwdRules matched rule:', rule);
+
+                    let targetInstanceToUse = getOurTargetInstance(this.instanceName, this.targetInstances);
+                    // the target instance to use may also be provided on the fwd rules object
+                    // itself, check there if necessary
                     const fwdRuleDefinedTargetInstances = this._getFwdRulesTargetInstancesFromLabel(rule);
                     if (fwdRuleDefinedTargetInstances) {
-                        const fwdRuleTargetInstances = getOurTargetInstance(
+                        targetInstanceToUse = getOurTargetInstance(
                             this.instanceName, fwdRuleDefinedTargetInstances
                         );
-                        if (fwdRuleDefinedTargetInstances.length) {
-                            targetInstanceToUse = fwdRuleTargetInstances[0];
-                        }
                     }
-                    if (match.length) {
-                        this.logger.silly('updateFwdRules matched rule:', rule);
+                    this.logger.silly('Discovered our target instance ', targetInstanceToUse);
 
-                        if (rule.target.indexOf(targetInstanceToUse.name) === -1) {
-                            fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
-                        }
+                    if (rule.target && rule.target.indexOf(targetInstanceToUse.name) === -1) {
+                        fwdRulesToUpdate.push([rule.name, targetInstanceToUse.selfLink]);
                     }
                 });
-
                 this.logger.silly('fwdRulesToUpdate: ', fwdRulesToUpdate);
+
                 return Promise.resolve({ operations: fwdRulesToUpdate });
             })
             .catch(err => Promise.reject(err));
