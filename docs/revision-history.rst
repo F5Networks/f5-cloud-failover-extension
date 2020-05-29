@@ -11,9 +11,13 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.5
+        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • Added a new section to the FAQ (see :ref:`faq-auto-phone-home`).
+        - 06-25-20
+
       * - 1.4
         - Updated the documentation for Cloud Failover Extension v1.3.0 with the following changes: |br| • Added a new section to the FAQ (see :ref:`faq-azure-vnet-separate-resource-group`) and corresponding notes to the :ref:`azure` page.
-        - 06-25-20
+        - 05-28-20
 
       * - 1.3
         - Updated the documentation for Cloud Failover Extension v1.2.0 with the following changes: |br| • CFE is now fully supported. |br| • Added a new section (see :ref:`configure`).

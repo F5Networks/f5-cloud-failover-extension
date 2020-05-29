@@ -20,6 +20,7 @@ Index
 - :ref:`faq-existing-cluster`
 - :ref:`faq-info-store`
 - :ref:`faq-telemetry`
+- :ref:`faq-auto-phone-home`
 - :ref:`faq-routetag`
 - :ref:`faq-report`
 
@@ -196,6 +197,7 @@ Cloud Failover Extension stores the BIG-IP failover IP address and routes in the
 
 -----------------------------------------
 
+
 .. _faq-telemetry:
 
 Does CFE collect telemetry data?
@@ -228,6 +230,16 @@ F5 collects non-personal telemetry data to help improve the Cloud Failover Exten
         ]
     }
 
+
+-----------------------------------------
+
+.. _faq-auto-phone-home:
+
+How do I disable Automatic Phone Home?
+``````````````````````````````````````
+
+- For more information on how to disable Automatic Phone Home, see this `Overview of the Automatic Update Check and Automatic Phone Home features <https://support.f5.com/csp/article/K15000#1>`_.
+- If you are using Declarative Onboarding (DO), you can `disable the autoPhonehome property <https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/schema-reference.html#system>`_. 
 
 -----------------------------------------
 
