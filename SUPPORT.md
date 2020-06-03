@@ -20,4 +20,4 @@ Currently supported versions:
 | CFE 1.2.0        | Feature       |  16-Apr-2020        | 16-Jul-2020     |
 
 
-See the [Release notes](https://github.com/f5networks/f5-cloud-failover-extension/releases) and [Cloud Failover Extension documentation](https://clouddocs.f5.com/products/extensions/f5-telemetry-streaming/latest/userguide/revision-history.html) for new features and issues resolved for each release.
+See the [Release notes](https://github.com/f5networks/f5-cloud-failover-extension/releases) and [Cloud Failover Extension documentation](https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/revision-history.html) for new features and issues resolved for each release.
