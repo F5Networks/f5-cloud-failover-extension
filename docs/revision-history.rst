@@ -12,7 +12,7 @@ Document Revision History
         - Date
 
       * - 1.5
-        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • Added a new section to the FAQ (see :ref:`faq-auto-phone-home`).
+        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • Added a new section to the FAQ: :ref:`faq-auto-phone-home` |br| • Added a new section to the FAQ: :ref:`faq-cfe-caveats`
         - 06-25-20
 
       * - 1.4
