@@ -8,6 +8,7 @@ Index
 
 - :ref:`faq-what-is`
 - :ref:`faq-when-is`
+- :ref:`faq-cfe-caveats`
 - :ref:`faq-where-download`
 - :ref:`faq-which-version`
 - :ref:`faq-support-ipv6`
@@ -58,6 +59,29 @@ When is CFE a good fit and when it is not?
 *Cloud Failover may not be a good fit where:*
 
 - You are using more than one traffic group. For example, devices are in Active/Active or Active/Active/Standby configuration.
+
+
+-----------------------------------------
+
+.. _faq-cfe-caveats:
+
+What are some of the caveats of failover in Cloud environments?
+```````````````````````````````````````````````````````````````
+.. seealso::
+   :class: sidebar
+
+   - `Overview of connection and persistence mirroring (11.x - 12.x) <https://support.f5.com/csp/article/K13478>`_
+   - `BIG-IP ASM-enabled virtual servers do not support connection mirroring <https://support.f5.com/csp/article/K8637>`_
+
+
+- Traditional connection or session mirroring does not work in SDN based clouds because:
+
+  - In Same AZ, IP failover via API takes longer than typical TCP connection timers allow.
+  - In Across AZ, IPs cannot float.
+  
+- The persistence strategies are limited to `stateless` strategies like HTTP Cookie/CARP. You do not need to mirror TCP connections with HTTP because the HTTP protocol allows individual connections to fail without losing the entire session. In a failover scenario, connections are dropped but the clients can re-initiate connections to the same IP on the new instance without needing a DNS update.
+
+|
 
 
 -----------------------------------------
