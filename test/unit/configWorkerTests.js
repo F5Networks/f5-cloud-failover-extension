@@ -11,7 +11,8 @@
 /* eslint-disable global-require */
 
 const assert = require('assert');
-const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
+const sinon = require('sinon');
+
 const constants = require('../constants.js');
 
 const declaration = constants.declarations.basic;

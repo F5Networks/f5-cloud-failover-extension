@@ -16,40 +16,27 @@
 
 'use strict';
 
-const sinon = require('sinon'); /* eslint-disable-line import/no-extraneous-dependencies */
+const sinon = require('sinon');
+const nock = require('nock');
 const assert = require('assert');
-const constants = require('../constants.js');
 
+const constants = require('../constants.js');
 const Device = require('../../src/nodejs/device');
 
-const mockResults = {
-    '/tm/sys/global-settings': ['globalSettings'],
-    '/tm/cm/traffic-group/stats': ['trafficGroups'],
-    '/tm/net/self': ['selfAddresses'],
-    '/tm/ltm/virtual-address': [{ address: '10.10.10.10/24' }],
-    '/tm/ltm/snat-translation': ['snatTranslationAddress'],
-    '/tm/ltm/nat': ['natAddress'],
-    '/tm/ltm/data-group/internal': [constants.DATA_GROUP_OBJECT],
-    '/tm/cm/device': [{ name: 'some_device_name' }]
-};
 
 describe('Device', () => {
     let device;
-    let deviceGetConfig;
-
-    let connectAddressMock;
 
     beforeEach(() => {
-        device = new Device();
-        deviceGetConfig = device.getConfig;
-
-        device.bigip.init = sinon.stub().resolves();
-
-        connectAddressMock = sinon.stub(Device.prototype, '_connectAddress')
-            .resolves({ connected: true, port: 443 });
+        device = new Device({ hostname: 'localhost', mgmtPort: 443 });
+        device.bigip.ready = sinon.stub().resolves();
     });
     afterEach(() => {
         sinon.restore();
+        if (!nock.isDone()) {
+            throw new Error(`Not all nock interceptors were used: ${nock.pendingMocks()}`);
+        }
+        nock.cleanAll();
     });
 
     it('validate constructor', () => {
@@ -68,15 +55,27 @@ describe('Device', () => {
         })
         .catch(err => Promise.reject(err)));
 
-    it('validate initialize using discover mgmt port', () => device.init()
-        .then(() => {
-            assert.strictEqual(device.mgmtPort, 443);
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate initialize using discover mgmt port', () => {
+        sinon.stub(Device.prototype, '_connectAddress')
+            .resolves({ connected: true, port: 443 });
+
+        device = new Device({ hostname: 'localhost' });
+        device.bigip.ready = sinon.stub().resolves();
+
+        return device.init()
+            .then(() => {
+                assert.strictEqual(device.mgmtPort, 443);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('validate initialize using discover mgmt port discovers 8443', () => {
+        const connectAddressMock = sinon.stub(Device.prototype, '_connectAddress');
         connectAddressMock.onCall(0).resolves({ connected: false, port: 443 });
         connectAddressMock.onCall(1).resolves({ connected: true, port: 8443 });
+
+        device = new Device({ hostname: 'localhost' });
+        device.bigip.ready = sinon.stub().resolves();
 
         return device.init()
             .then(() => {
@@ -86,10 +85,12 @@ describe('Device', () => {
     });
 
     it('validate getConfig', () => {
-        device.getConfig = deviceGetConfig;
-        device.bigip.list = sinon.stub().resolves('foo');
+        nock('https://localhost')
+            .get('/mgmt/foo')
+            .reply(200, 'foo');
 
-        return device.getConfig(['/foo'])
+        return device.init()
+            .then(() => device.getConfig(['/foo']))
             .then((data) => {
                 assert.deepStrictEqual('foo', data[0]);
             })
@@ -97,183 +98,205 @@ describe('Device', () => {
     });
 
     it('validate executeBigIpBashCmd', () => {
-        const command = 'ls -la';
-        device.bigip = sinon.stub();
-        device.bigip.create = sinon.stub((path, commandBody, iControlOptions, retries) => {
-            assert.strictEqual(path, '/tm/util/bash');
-            assert.strictEqual(commandBody.command, 'run');
-            assert.strictEqual(commandBody.utilCmdArgs, '-c ls -la');
-            assert.strictEqual(iControlOptions, undefined);
-            assert.strictEqual(retries.maxRetries, 0);
-            assert.strictEqual(retries.retryIntervalMs, 0);
-            return Promise.resolve({
-                commandResult: ''
+        nock('https://localhost')
+            .post('/mgmt/tm/util/bash')
+            .reply(200, {
+                commandResult: 'foo'
             });
-        });
-        return device.executeBigIpBashCmd(command);
+
+        return device.init()
+            .then(() => device.executeBigIpBashCmd('ls -la'))
+            .then((data) => {
+                assert.strictEqual(data, 'foo');
+            })
+            .catch(err => Promise.reject(err));
     });
 
 
-    it('validate getGlobalSettings', () => device.init()
-        .then(() => {
-            const expectedValue = mockResults['/tm/sys/global-settings'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
-            return device.getGlobalSettings();
-        })
-        .then((globalSettings) => {
-            assert.strictEqual(globalSettings, 'globalSettings');
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getGlobalSettings', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/sys/global-settings')
+            .reply(200, 'globalSettings');
 
-    it('validate getTrafficGroupsStats', () => device.init()
-        .then(() => {
-            const expectedValue = mockResults['/tm/cm/traffic-group/stats'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
-            return device.getTrafficGroupsStats();
-        })
-        .then((trafficGroupsStats) => {
-            assert.strictEqual(trafficGroupsStats, 'trafficGroups');
-        })
-        .catch(err => Promise.reject(err)));
+        return device.init()
+            .then(() => device.getGlobalSettings())
+            .then((globalSettings) => {
+                assert.strictEqual(globalSettings, 'globalSettings');
+            })
+            .catch(err => Promise.reject(err));
+    });
 
-    it('validate getSelfAddresses', () => device.init()
-        .then(() => {
-            const expectedValue = mockResults['/tm/net/self'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
-            return device.getSelfAddresses();
-        })
-        .then((selfAddresses) => {
-            assert.strictEqual(selfAddresses, 'selfAddresses');
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getTrafficGroupsStats', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/cm/traffic-group/stats')
+            .reply(200, 'trafficGroupStats');
 
-    it('validate getVirtualAddresses', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/virtual-address']]);
-            return device.getVirtualAddresses();
-        })
-        .then((virtualAddresses) => {
-            assert.deepStrictEqual(virtualAddresses, mockResults['/tm/ltm/virtual-address']);
-        })
-        .catch(err => Promise.reject(err)));
+        return device.init()
+            .then(() => device.getTrafficGroupsStats())
+            .then((trafficGroupStats) => {
+                assert.strictEqual(trafficGroupStats, 'trafficGroupStats');
+            })
+            .catch(err => Promise.reject(err));
+    });
 
-    it('validate getVirtualAddresses with "any" address', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([[{ address: 'any' }]]);
-            return device.getVirtualAddresses();
-        })
-        .then((virtualAddresses) => {
-            assert.deepStrictEqual(virtualAddresses, [{ address: '0.0.0.0/0' }]);
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getSelfAddresses', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/net/self')
+            .reply(200, 'selfAddresses');
 
-    it('validate getVirtualAddresses with "any6" address', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([[{ address: 'any6' }]]);
-            return device.getVirtualAddresses();
-        })
-        .then((virtualAddresses) => {
-            assert.deepStrictEqual(virtualAddresses, [{ address: '::/0' }]);
-        })
-        .catch(err => Promise.reject(err)));
+        return device.init()
+            .then(() => device.getSelfAddresses())
+            .then((selfAddresses) => {
+                assert.strictEqual(selfAddresses, 'selfAddresses');
+            })
+            .catch(err => Promise.reject(err));
+    });
 
-    it('validate getSnatTranslationAddresses', () => device.init()
-        .then(() => {
-            const expectedValue = mockResults['/tm/ltm/snat-translation'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
-            return device.getSnatTranslationAddresses();
-        })
-        .then((snatTranslationAddresses) => {
-            assert.strictEqual(snatTranslationAddresses, 'snatTranslationAddress');
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getVirtualAddresses', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/virtual-address')
+            .reply(200, [{ address: '10.10.10.10/24' }]);
 
-    it('validate getNatAddresses', () => device.init()
-        .then(() => {
-            const expectedValue = mockResults['/tm/ltm/nat'];
-            device.getConfig = sinon.stub().resolves(expectedValue);
-            return device.getNatAddresses();
-        })
-        .then((snatTranslationAddresses) => {
-            assert.strictEqual(snatTranslationAddresses, 'natAddress');
-        })
-        .catch(err => Promise.reject(err)));
+        return device.init()
+            .then(() => device.getVirtualAddresses())
+            .then((virtualAddresses) => {
+                assert.deepStrictEqual(virtualAddresses, [{ address: '10.10.10.10/24' }]);
+            })
+            .catch(err => Promise.reject(err));
+    });
 
-    it('validate getDataGroups', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
-            return device.getDataGroups();
-        })
-        .then((dataGroups) => {
-            assert.deepStrictEqual(dataGroups, [constants.DATA_GROUP_OBJECT]);
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getVirtualAddresses with "any" address', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/virtual-address')
+            .reply(200, [{ address: 'any' }]);
 
-    it('validate getDataGroups with optional name', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
-            return device.getDataGroups({ name: constants.DATA_GROUP_OBJECT.name });
-        })
-        .then((dataGroups) => {
-            assert.deepStrictEqual(dataGroups, { exists: true, data: constants.DATA_GROUP_OBJECT });
-        })
-        .catch(err => Promise.reject(err)));
+        return device.init()
+            .then(() => device.getVirtualAddresses())
+            .then((virtualAddresses) => {
+                assert.deepStrictEqual(virtualAddresses, [{ address: '0.0.0.0/0' }]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate getVirtualAddresses with "any6" address', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/virtual-address')
+            .reply(200, [{ address: 'any6' }]);
+
+        return device.init()
+            .then(() => device.getVirtualAddresses())
+            .then((virtualAddresses) => {
+                assert.deepStrictEqual(virtualAddresses, [{ address: '::/0' }]);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate getSnatTranslationAddresses', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/snat-translation')
+            .reply(200, 'snatTranslationAddresses');
+
+        return device.init()
+            .then(() => device.getSnatTranslationAddresses())
+            .then((snatTranslationAddresses) => {
+                assert.strictEqual(snatTranslationAddresses, 'snatTranslationAddresses');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate getNatAddresses', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/nat')
+            .reply(200, 'natAddresses');
+
+        return device.init()
+            .then(() => device.getNatAddresses())
+            .then((natAddresses) => {
+                assert.strictEqual(natAddresses, 'natAddresses');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate getDataGroups', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/data-group/internal')
+            .reply(200, 'dataGroups');
+
+        return device.init()
+            .then(() => device.getDataGroups())
+            .then((dataGroups) => {
+                assert.strictEqual(dataGroups, 'dataGroups');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate getDataGroups with optional name', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/data-group/internal')
+            .reply(200, [constants.DATA_GROUP_OBJECT]);
+
+        return device.init()
+            .then(() => device.getDataGroups({ name: constants.DATA_GROUP_OBJECT.name }))
+            .then((dataGroups) => {
+                assert.deepStrictEqual(dataGroups, { exists: true, data: constants.DATA_GROUP_OBJECT });
+            })
+            .catch(err => Promise.reject(err));
+    });
 
     it('validate createDataGroup creates data group and saves config', () => {
-        device.getConfig = sinon.stub().resolves([[]]);
-        device.bigip.create = sinon.stub().resolves();
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/data-group/internal')
+            .reply(200, [])
+            .post('/mgmt/tm/ltm/data-group/internal',
+                {
+                    name: constants.DATA_GROUP_OBJECT.name,
+                    type: 'string',
+                    records: constants.DATA_GROUP_OBJECT.records
+                })
+            .reply(200, [constants.DATA_GROUP_OBJECT])
+            .post('/mgmt/tm/sys/config', { command: 'save' })
+            .reply(200, {});
 
         return device.init()
             .then(() => device.createDataGroup(
                 constants.DATA_GROUP_OBJECT.name,
                 constants.DATA_GROUP_OBJECT.records
             ))
-            .then(() => {
-                const createArgs = device.bigip.create.getCall(0).args;
-                assert.deepStrictEqual(createArgs[0], '/tm/ltm/data-group/internal');
-                assert.deepStrictEqual(createArgs[1].name, constants.DATA_GROUP_OBJECT.name);
-
-                // validate configuration is saved
-                const saveArgs = device.bigip.create.getCall(1).args;
-                assert.deepStrictEqual(saveArgs[0], '/tm/sys/config');
-                assert.deepStrictEqual(saveArgs[1], { command: 'save' });
-            })
             .catch(err => Promise.reject(err));
     });
 
     it('validate createDataGroup updates existing data group and saves config', () => {
-        device.getConfig = sinon.stub().resolves([mockResults['/tm/ltm/data-group/internal']]);
-        device.bigip.create = sinon.stub().resolves();
-        device.bigip.modify = sinon.stub().resolves();
+        nock('https://localhost')
+            .get('/mgmt/tm/ltm/data-group/internal')
+            .reply(200, [constants.DATA_GROUP_OBJECT])
+            .patch(`/mgmt/tm/ltm/data-group/internal/${constants.DATA_GROUP_OBJECT.name}`,
+                {
+                    name: constants.DATA_GROUP_OBJECT.name,
+                    type: 'string',
+                    records: constants.DATA_GROUP_OBJECT.records
+                })
+            .reply(200, [constants.DATA_GROUP_OBJECT])
+            .post('/mgmt/tm/sys/config', { command: 'save' })
+            .reply(200, {});
 
         return device.init()
             .then(() => device.createDataGroup(
                 constants.DATA_GROUP_OBJECT.name,
                 constants.DATA_GROUP_OBJECT.records
             ))
-            .then(() => {
-                const updateArgs = device.bigip.modify.getCall(0).args;
-                assert.deepStrictEqual(
-                    updateArgs[0],
-                    `/tm/ltm/data-group/internal/${constants.DATA_GROUP_OBJECT.name}`
-                );
-                assert.deepStrictEqual(updateArgs[1].name, constants.DATA_GROUP_OBJECT.name);
-
-                // validate configuration is saved
-                const saveArgs = device.bigip.create.getCall(0).args;
-                assert.deepStrictEqual(saveArgs[0], '/tm/sys/config');
-                assert.deepStrictEqual(saveArgs[1], { command: 'save' });
-            })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate getCMDeviceInfo', () => device.init()
-        .then(() => {
-            device.getConfig = sinon.stub().resolves([mockResults['/tm/cm/device']]);
-            return device.getCMDeviceInfo();
-        })
-        .then((cmDeviceInfo) => {
-            assert.deepStrictEqual(cmDeviceInfo, mockResults['/tm/cm/device']);
-        })
-        .catch(err => Promise.reject(err)));
+    it('validate getCMDeviceInfo', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/cm/device')
+            .reply(200, 'cmDeviceInfo');
+
+        return device.init()
+            .then(() => device.getCMDeviceInfo())
+            .then((cmDeviceInfo) => {
+                assert.strictEqual(cmDeviceInfo, 'cmDeviceInfo');
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

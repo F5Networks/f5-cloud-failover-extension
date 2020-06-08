@@ -11,7 +11,8 @@
 /* eslint-disable global-require */
 
 const assert = require('assert');
-const sinon = require('sinon'); // eslint-disable-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
 const util = require('../../shared/util.js');
