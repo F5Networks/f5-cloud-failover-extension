@@ -60,7 +60,7 @@ class Device {
         if (this.mgmtPort === mgmtPortDiscovery) {
             portPromise = this.discoverMgmtPort();
         } else {
-            portPromise = Promise.resolve();
+            portPromise = Promise.resolve(this.mgmtPort);
         }
 
         return portPromise
