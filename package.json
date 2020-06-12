@@ -70,7 +70,7 @@
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^7.2.0",
         "mustache": "^3.0.1",
-        "nyc": "^14.1.1",
+        "nyc": "^15.1.0",
         "sinon": "7.4.1",
         "ssh2": "^0.8.2",
         "nock": "^9.6.1"
