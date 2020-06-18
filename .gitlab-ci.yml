@@ -182,12 +182,28 @@ test_functional_init_aws_across_net:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
 
+# run functional tests: aws - across network topology for 1nic
+test_functional_init_aws_across_net_1nic:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_NIC_COUNT: 1
+
 # run functional tests: aws - same network topology
 test_functional_init_aws:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
+
+# run functional tests: aws - same network topology for 1nic
+test_functional_init_aws_1nic:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_NIC_COUNT: 1
 
 # run functional tests: gcp
 test_functional_init_gcp:
@@ -255,6 +271,17 @@ test_functional_execute_aws_across_net:
         - test_functional_init_aws_across_net
         - build_package
 
+# run functional tests: aws - across network topology for 1nic
+test_functional_execute_aws_across_net_1nic:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_NIC_COUNT: 1
+    dependencies:
+        - test_functional_init_aws_across_net_1nic
+        - build_package
+
 # run functional tests: aws - same network topology
 test_functional_execute_aws:
     <<: *test_functional_execute_generic
@@ -263,6 +290,17 @@ test_functional_execute_aws:
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
     dependencies:
         - test_functional_init_aws
+        - build_package
+
+# run functional tests: aws - same network topology for 1nic
+test_functional_execute_aws_1nic:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_NIC_COUNT: 1
+    dependencies:
+        - test_functional_init_aws_1nic
         - build_package
 
 # run functional tests: gcp
@@ -321,6 +359,16 @@ test_functional_cleanup_aws_across_net:
     dependencies:
         - test_functional_init_aws_across_net
 
+# run functional tests: aws - across network topology for 1nic
+test_functional_cleanup_aws_across_net_1nic:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_NIC_COUNT: 1
+    dependencies:
+        - test_functional_init_aws_across_net_1nic
+
 # run functional tests: aws - same network topology
 test_functional_cleanup_aws:
     <<: *test_functional_cleanup_generic
@@ -329,6 +377,16 @@ test_functional_cleanup_aws:
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
     dependencies:
         - test_functional_init_aws
+
+# run functional tests: aws - same network topology for 1nic
+test_functional_cleanup_aws_1nic:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_NIC_COUNT: 1
+    dependencies:
+        - test_functional_init_aws_1nic
 
 # run functional tests: gcp
 test_functional_cleanup_gcp:
