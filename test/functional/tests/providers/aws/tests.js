@@ -23,9 +23,14 @@ const dutPrimary = duts.filter(dut => dut.primary)[0];
 const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
+const exampleDeclarationIPv4 = require('../../shared/exampleDeclaration.json');
 const exampleDeclarationIPv6 = require('../../shared/exampleDeclarationIPv6.json');
 
-const deploymentDeclaration = funcUtils.getDeploymentDeclaration(exampleDeclarationIPv6);
+// Note: DO currently has a bug for AWS 1 NIC in supporting IPv6.
+// We will use IPv4 declaration for now until DO resolves that bug.
+const deploymentDeclaration = dutPrimary.port === 8443
+    ? funcUtils.getDeploymentDeclaration(exampleDeclarationIPv4)
+    : funcUtils.getDeploymentDeclaration(exampleDeclarationIPv6);
 
 // Helper functions
 function matchElasticIpToInstance(privateIp, instances, instance) {
@@ -250,23 +255,25 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     }
 
     // Functional tests
-
-    it('should post IPv6 declaration', () => {
-        const uri = constants.DECLARE_ENDPOINT;
-        const options = {
-            method: 'POST',
-            body: deploymentDeclaration,
-            headers: {
-                'x-f5-auth-token': dutPrimary.authData.token
-            }
-        };
-        return utils.makeRequest(dutPrimary.ip, uri, options)
-            .then((data) => {
-                data = data || {};
-                assert.strictEqual(data.message, 'success');
-            })
-            .catch(err => Promise.reject(err));
-    });
+    // Skip IPv6 test for 1nic (port 8443) until DO resolves bug to configure IPv6 for mgmt interface
+    if (dutPrimary.port !== 8443) {
+        it('should post IPv6 declaration', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            const options = {
+                method: 'POST',
+                body: deploymentDeclaration,
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                }
+            };
+            return utils.makeRequest(dutPrimary.ip, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
@@ -375,7 +382,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 {
                     taskStates: [constants.FAILOVER_STATES.RUN, constants.FAILOVER_STATES.PASS],
                     authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname
+                    hostname: dutSecondary.hostname,
+                    port: dutSecondary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
@@ -396,7 +404,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 {
                     taskState: constants.FAILOVER_STATES.PASS,
                     authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname
+                    hostname: dutPrimary.hostname,
+                    port: dutPrimary.port
                 }))
             .then((data) => {
                 assert(data.boolean, data);
