@@ -8,6 +8,7 @@ Index
 
 - :ref:`faq-what-is`
 - :ref:`faq-when-is`
+- :ref:`faq-active-active`
 - :ref:`faq-cfe-caveats`
 - :ref:`faq-where-download`
 - :ref:`faq-which-version`
@@ -15,6 +16,13 @@ Index
 - :ref:`faq-track-features`
 - :ref:`faq-as3`
 - :ref:`faq-same-network`
+- :ref:`faq-snat`
+- :ref:`faq-ilx`
+- :ref:`faq-s3-bucket`
+- :ref:`faq-tg-none`
+- :ref:`faq-components`
+- :ref:`faq-routes-updated`
+- :ref:`faq-default-route`
 - :ref:`faq-same-az`
 - :ref:`faq-azure-api`
 - :ref:`faq-tag`
@@ -23,6 +31,7 @@ Index
 - :ref:`faq-telemetry`
 - :ref:`faq-auto-phone-home`
 - :ref:`faq-routetag`
+- :ref:`faq-troubleshoot`
 - :ref:`faq-report`
 
 
@@ -59,6 +68,20 @@ When is CFE a good fit and when it is not?
 *Cloud Failover may not be a good fit where:*
 
 - You are using more than one traffic group. For example, devices are in Active/Active or Active/Active/Standby configuration.
+
+
+-----------------------------------------
+
+.. _faq-active-active:
+
+Why isn't CFE recommended for Active/Active configurations?
+```````````````````````````````````````````````````````````
+There are several contexts to consider with Active/Active configurations. By leveraging Traffic Group 'None', the HA Across AZ topology is technically All-Active on a service level because the VIPs are active on each instance and will handle traffic as soon as they receive it, regardless of Active or Standby status. This limits service interuption.
+
+- Implementing Active/Active in the **topology** context can imply there is no-remapping required. For example, the All-Active solution can use DNS to send traffic to set of Standalone BIG-IPs.
+- Implementing Active/Active in the **cluster** context (ScaleN or multiple traffic-groups) implies increasing service density by having some instances be active for a set of resources (IPs in this case) and standby for others.
+
+ScaleN is not currently supported for the sake of simplicity. ScaleN is a powerful feature but adds significant complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The collective Instance Level Active/Standby status (provided at the prompt or GUI) is leveraged to provide an easy visual queue to where the NAT(EIPs) or routes `should` be pointing, even though each unit will actively pass traffic. However, if you have each instance be active for a set of traffic groups and standby for another set, and if the resource re-mapping `OR` the active/status passing fails, there is the potential for additional mismatches. For example, if active/standby status is transferred but the re-mapping fails or vice versa, you now have a standby status on an instance taking on traffic. 
 
 
 -----------------------------------------
@@ -136,7 +159,82 @@ Yes, Cloud Failover Extension can be used with |as3| declarations. AS3 leverages
 
 Does it matter if I use CFE in same network or across network?
 ``````````````````````````````````````````````````````````````
+
+.. seealso::
+   :class: sidebar
+
+   `Deploying BIG-IP High Availability Across AWS Availability Zones <https://www.f5.com/pdf/deployment-guides/f5-aws-ha-dg.pdf>`_. 
+
 Cloud Failover Extension is agnostic to same-network and across-network topologies.
+
+
+
+-----------------------------------------
+
+.. _faq-snat:
+
+On routing, the only way I can think of to make HA across AZs work is with a SNATpool or SNAT automap. What is the use case for route updates? What assumptions are made about Web server routing/default gateways?
+```````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
+Important: No floating addresses. Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active. Note: If BIG-IP systems are used to manage outbound traffic, the only address traffic-group-1 might have is a wildcard (0.0.0.0) address used for a forwarding virtual server. The lack of floating addresses has implications on the BIG-IP system’s SNAT (Source Network Address Translation) functionality. If using SNAT on the virtual servers (for example, the BIG-IP systems are not the default gateway/route for your application servers), SNAT Auto Map is the only supported SNAT method. SNAT Auto Map uses the unique Self IP of each BIG-IP system for the source address instead of the traditional floating Self IP. 
+
+
+------------------------------------------
+
+.. _faq-ilx:
+
+Is iLX installation required?
+`````````````````````````````
+Yes.
+
+
+------------------------------------------
+
+.. _faq-s3-bucket:
+ 
+Can CFE share the same S3 bucket as the one created by the CFT?
+```````````````````````````````````````````````````````````````
+Yes.
+
+
+------------------------------------------
+
+.. _faq-tg-none:
+
+Why does the failover diagram show that VIPs must be in traffic group 'none'?
+`````````````````````````````````````````````````````````````````````````````
+See Active/Active explanation above: :ref:`faq-active-active`
+
+
+------------------------------------------
+
+.. _faq-components:
+
+What does discoveryType = "static" mean? What is scopingAddressRange?
+`````````````````````````````````````````````````````````````````````
+In the case where BIG-IP has multiple Self IPs/NICs, CFE needs to know what Self-IP(s) or NICs to re-map the routes to. You can either define the exact Self-IPs you want to point them at in tags on the route table and have the CFE discover those tags with Self-IPs, or you can configure them statically in the CFE configuration itself. NOTE: In the static config method, you will still need the Tags to know which route table to manaage, you just don't need the additional tags with Self-IP mappings.
+
+See more information in the :ref:`declaration-components` section.
+
+
+------------------------------------------
+
+.. _faq-routes-updated:
+
+What route(s) are to be updated? The Big-IPs can be in different subnets.
+`````````````````````````````````````````````````````````````````````````
+The routes can be in any route table to which you attach a matching tag from your CFE configuration. In HA Across AZ, the route tables are remote (for example, in an application subnet versus directly connected subnet to BIG-IP).
+
+
+------------------------------------------
+
+.. _faq-default-route:
+
+Must the web servers' default route be pointed at the BIG-IPs internal interface?
+`````````````````````````````````````````````````````````````````````````````````
+This depends on the solution:
+
+- For Same AZ clusters, if you point Webservers default gateway at BIG-IP, you do not have to SNAT. 
+- For HA-Across-AZ clusters, you have to SNAT incoming traffic anyway so you do not need to point the default route to BIG-IP. You would only do it for outbound traffic (if you want to direct traffic initiated by webserver to go through the BIG-IP system)
 
 
 -----------------------------------------
@@ -281,6 +379,14 @@ Specifying the `f5_self_ips` tag on the route object itself creates a circular d
 Does CFE configuration persist after a reboot?
 ``````````````````````````````````````````````
 Yes, when configuration is provided using the CFE `declare` API endpoint it will be saved to the persistent BIG-IP configuration store which is loaded on reboot.
+
+-----------------------------------------
+
+.. _faq-troubleshoot:
+
+How do I troubleshoot CFE?
+``````````````````````````
+You can troubleshoot CFE by examining the restnoded failure log at ``/var/log/restnoded/restnoded.log``. For more information see the :ref:`troubleshooting` section.
 
 
 -----------------------------------------
