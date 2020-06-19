@@ -1,3 +1,5 @@
+.. _troubleshooting:
+
 Troubleshooting
 ===============
 Use this section to read about known issues and for common troubleshooting steps. To provide feedback on this documentation, you can file a |github|.
