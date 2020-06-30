@@ -17,8 +17,6 @@ Index
 - :ref:`faq-as3`
 - :ref:`faq-same-network`
 - :ref:`faq-snat`
-- :ref:`faq-ilx`
-- :ref:`faq-s3-bucket`
 - :ref:`faq-tg-none`
 - :ref:`faq-components`
 - :ref:`faq-routes-updated`
@@ -74,14 +72,12 @@ When is CFE a good fit and when it is not?
 
 .. _faq-active-active:
 
-Why isn't CFE recommended for Active/Active configurations?
-```````````````````````````````````````````````````````````
-There are several contexts to consider with Active/Active configurations. By leveraging Traffic Group 'None', the HA Across AZ topology is technically All-Active on a service level because the VIPs are active on each instance and will handle traffic as soon as they receive it, regardless of Active or Standby status. This limits service interuption.
+Is Active/Active supported?
+```````````````````````````
+Active/Active or ScaleN (multiple traffic groups) is not supported at this time. CFE is currently not multiple-traffic-group-aware. ScaleN is powerful feature to increase service density (each instance owns a particular set of IP addresses known as traffic groups) but can add more complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The global instance level Active/Standby status (provided at the CLI prompt or GUI) is leveraged to provide an easy visual queue for which instance the NATs and/or routes should be pointing. 
 
-- Implementing Active/Active in the **topology** context can imply there is no-remapping required. For example, the All-Active solution can use DNS to send traffic to set of Standalone BIG-IPs.
-- Implementing Active/Active in the **cluster** context (ScaleN or multiple traffic-groups) implies increasing service density by having some instances be active for a set of resources (IPs in this case) and standby for others.
+.. Note:: VIPs can be placed in ``traffic-group-none`` so `each` instance can actively process traffic regardless of the Active/Standby status. This is done to reduce service interruption during cloud resource re-mapping. However, on the cloud side, NATs/routes are only mapped to the single Active instance.
 
-ScaleN is not currently supported for the sake of simplicity. ScaleN is a powerful feature but adds significant complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The collective Instance Level Active/Standby status (provided at the prompt or GUI) is leveraged to provide an easy visual queue to where the NAT(EIPs) or routes `should` be pointing, even though each unit will actively pass traffic. However, if you have each instance be active for a set of traffic groups and standby for another set, and if the resource re-mapping `OR` the active/status passing fails, there is the potential for additional mismatches. For example, if active/standby status is transferred but the re-mapping fails or vice versa, you now have a standby status on an instance taking on traffic. 
 
 
 -----------------------------------------
@@ -173,27 +169,15 @@ Cloud Failover Extension is agnostic to same-network and across-network topologi
 
 .. _faq-snat:
 
-On routing, the only way I can think of to make HA across AZs work is with a SNATpool or SNAT automap. What is the use case for route updates? What assumptions are made about Web server routing/default gateways?
-```````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
-Important: No floating addresses. Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active. Note: If BIG-IP systems are used to manage outbound traffic, the only address traffic-group-1 might have is a wildcard (0.0.0.0) address used for a forwarding virtual server. The lack of floating addresses has implications on the BIG-IP system’s SNAT (Source Network Address Translation) functionality. If using SNAT on the virtual servers (for example, the BIG-IP systems are not the default gateway/route for your application servers), SNAT Auto Map is the only supported SNAT method. SNAT Auto Map uses the unique Self IP of each BIG-IP system for the source address instead of the traditional floating Self IP. 
+Is SNAT required?
+`````````````````
+SNAT is not required if your application server’s default route points through the BIG-IPs NICs. If you are using SNAT in AWS HA Across AZ, please see :ref:`aws-tag-addresses-acrossnet`.
 
+Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active.
 
-------------------------------------------
+.. Note:: If BIG-IP systems are used to manage outbound traffic, the only address traffic-group-1 might have is a wildcard (0.0.0.0) address used for a forwarding virtual server. 
 
-.. _faq-ilx:
-
-Is iLX installation required?
-`````````````````````````````
-Yes.
-
-
-------------------------------------------
-
-.. _faq-s3-bucket:
- 
-Can CFE share the same S3 bucket as the one created by the CFT?
-```````````````````````````````````````````````````````````````
-Yes.
+The lack of floating addresses has implications on the BIG-IP system’s SNAT (Source Network Address Translation) functionality. If using SNAT on the virtual servers (for example, the BIG-IP systems are not the default gateway/route for your application servers), SNAT Auto Map is the only supported SNAT method. SNAT Auto Map uses the unique Self IP of each BIG-IP system for the source address instead of the traditional floating Self IP. If `NOT` using SNAT, you need the BIG-IP systems to be the default gateway/route for your applications. In this case, you need to configure Route Management. For more information about SNAT Auto Map, see `this article <https://support.f5.com/kb/en-us/solutions/public/7000/300/sol7336.html>`_. 
 
 
 ------------------------------------------
