@@ -230,7 +230,7 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
 .. code-block:: python
    :caption: Example of a gcloud compute command to create a route
 
-    gcloud compute routes create example-route --destination-range=192.168.1.0/24/24 --network=example-network --next-hop-address=192.0.2.10 --description='f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}'
+    gcloud compute routes create example-route --destination-range=192.168.1.0/24 --network=example-network --next-hop-address=192.0.2.10 --description='f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}'
 
 
 |

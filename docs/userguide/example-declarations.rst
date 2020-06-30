@@ -3,6 +3,21 @@
 Example Declarations
 ====================
 
+
+Multiple Next Hop addresses
+---------------------------
+This example shows a declaration for Route Failover using Multiple Route Tables and routes pointing at different BIG-IP interfaces/Self-IP nexthops. In the example below, both an external and internal route table are tagged with the same tag (``f5_cloud_failover_label":"mydeployment``) to provide scoping for the deployment (BIG-IP instance or cluster). 
+
+
+.. literalinclude:: ../../examples/declarations/multipleRoutingTables.json
+   :language: json
+   :caption: Multiple Next Hop Addresses
+   :tab-width: 4
+   :linenos:
+
+:fonticon:`fa fa-download` :download:`multipleNextHopAddresses.json <../../examples/declarations/multipleRoutingTables.json>`
+
+
 .. _example-route-tag:
 
 Route Failover Using Route Tags
@@ -35,20 +50,6 @@ AWS IPv6 Route Failover
 
 :fonticon:`fa fa-download` :download:`ipv6RouteFailover.json <../../examples/declarations/ipv6RouteFailover.json>`
 
-
-Multiple Next Hop addresses
----------------------------
-This example shows a declaration that you would use in scanarios with more that one pair of Next Hop IP addresses. For example, you need to update two different route tables: one with External Self IPs and one with Internal Self IPs.
-
-
-.. literalinclude:: ../../examples/declarations/multipleNextHopAddresses.json
-   :language: json
-   :caption: Multiple Next Hop Addresses
-   :tab-width: 4
-   :linenos:
-   :emphasize-lines: 29-30
-
-:fonticon:`fa fa-download` :download:`multipleNextHopAddresses.json <../../examples/declarations/multipleNextHopAddresses.json>`
 
 
 Example Declaration Setting the Log Level
