@@ -365,15 +365,20 @@ class Cloud extends AbstractCloud {
         ) => this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
-                const updateNotRequired = !(routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
+                const updateRequired = (routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
                         && route.NetworkInterfaceId !== networkInterfaceId);
-                this.logger.silly('Update not required?', updateNotRequired, ' for route cidr block ', this._resolveRouteCidrBlock(route).cidrBlock);
+                this.logger.silly(`Update required (${updateRequired}) for route cidr block ${this._resolveRouteCidrBlock(route).cidrBlock}`);
                 // if an update is not required just return an empty object
-                if (updateNotRequired) {
+                if (!updateRequired) {
                     return Promise.resolve({});
                 }
                 // return information required for update later
-                return Promise.resolve({ routeTable, networkInterfaceId, routeAddresses });
+                return Promise.resolve({
+                    routeTableId: routeTable.RouteTableId,
+                    networkInterfaceId,
+                    routeAddress: this._resolveRouteCidrBlock(route).cidrBlock,
+                    ipVersion: this._resolveRouteCidrBlock(route).ipVersion
+                });
             })
             .catch(err => Promise.reject(err));
 
@@ -422,9 +427,10 @@ class Cloud extends AbstractCloud {
         const promises = [];
         operations.forEach((operation) => {
             promises.push(this._updateRouteTable(
-                operation.routeTable,
+                operation.routeTableId,
                 operation.networkInterfaceId,
-                operation.routeAddresses
+                operation.routeAddress,
+                operation.ipVersion
             ));
         });
         return Promise.all(promises)
@@ -437,28 +443,22 @@ class Cloud extends AbstractCloud {
     /**
      * _updateRouteTable iterates through the routes and calls _replaceRoute if expected route exists
      *
-     * @param {Object} routeTable - Route table with routes
+     * @param {Object} routeTable         - Route table with routes
      * @param {String} networkInterfaceId - Network interface that the route if to be updated to
-     * @param {Array} routeAddressRange - Route Address Range whose destination needs to be updated
+     * @param {Array} routeAddressRange   - Route Address Range whose destination needs to be updated
+     * @param {String} ipVersion          - IP Version of the route ('4' or '6')
      *
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
-    _updateRouteTable(routeTable, networkInterfaceId, routeAddressRange) {
-        const promises = [];
-        routeTable.Routes.forEach((route) => {
-            const routeCidrInfo = this._resolveRouteCidrBlock(route);
-            if (routeAddressRange.indexOf(routeCidrInfo.cidrBlock) !== -1) {
-                promises.push(this._replaceRoute(
-                    routeCidrInfo.cidrBlock,
-                    networkInterfaceId,
-                    routeTable.RouteTableId,
-                    {
-                        ipVersion: routeCidrInfo.ipVersion
-                    }
-                ));
+    _updateRouteTable(routeTableId, networkInterfaceId, routeAddressRange, ipVersion) {
+        return this._replaceRoute(
+            routeAddressRange,
+            networkInterfaceId,
+            routeTableId,
+            {
+                ipVersion
             }
-        });
-        return Promise.all(promises)
+        )
             .catch(err => Promise.reject(err));
     }
 
@@ -550,13 +550,8 @@ class Cloud extends AbstractCloud {
             params.DestinationCidrBlock = destCidr;
         }
 
-        return new Promise((resolve, reject) => {
-            this.ec2.replaceRoute(params).promise()
-                .then((data) => {
-                    resolve(data);
-                })
-                .catch(err => reject(err));
-        });
+        return this.ec2.replaceRoute(params).promise()
+            .catch(err => Promise.reject(err));
     }
 
     /**

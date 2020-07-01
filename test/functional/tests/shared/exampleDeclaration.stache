@@ -22,44 +22,26 @@
         "f5_cloud_failover_label": "{{deploymentId}}"
       },
       "scopingAddressRanges": [
+        {{#scopingAddressRanges}}
         {
-          "range": "192.0.2.0/24",
+          "range": "{{range}}",
           "nextHopAddresses": {
             "discoveryType": "static",
             "items": [
-              "{{nextHopAddress1}}",
-              "{{nextHopAddress2}}"
+              {{#nextHopAddresses}}
+              "{{address}}"{{^last}},{{/last}}
+              {{/nextHopAddresses}}
             ]
           }
-        },
-        {
-          "range": "2001:db8:2:2::/64",
-          "nextHopAddresses": {
-            "discoveryType": "static",
-            "items": [
-              "{{nextHopAddress1_IPv6}}",
-              "{{nextHopAddress2_IPv6}}"
-            ]
-          }
-        },
-        {
-          "range": "192.0.3.0/24",
-          "nextHopAddresses": {
-            "discoveryType": "static",
-            "items": [
-              "{{nextHopAddress1}}",
-              "{{nextHopAddress2}}"
-            ]
-          }
-        }
+        }{{^last}},{{/last}}
+        {{/scopingAddressRanges}}
       ],
       "defaultNextHopAddresses": {
         "discoveryType": "static",
         "items": [
-          "{{nextHopAddress1}}",
-          "{{nextHopAddress2}}",
-          "{{nextHopAddress1_IPv6}}",
-          "{{nextHopAddress2_IPv6}}"
+          {{#nextHopAddresses}}
+          "{{address}}"{{^last}},{{/last}}
+          {{/nextHopAddresses}}
         ]
       }
     }

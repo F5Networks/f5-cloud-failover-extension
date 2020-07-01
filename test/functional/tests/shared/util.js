@@ -1,5 +1,5 @@
 /*
- * Copyright 2019. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -18,6 +18,10 @@ const constants = require('../../../constants.js');
 
 const deploymentFile = process.env[constants.DEPLOYMENT_FILE_VAR]
     || path.join(process.cwd(), constants.DEPLOYMENT_FILE);
+
+const declarationLocation = path.join(__dirname, './exampleDeclaration.stache');
+
+mustache.escape = function (text) { return text; }; // disable HTML escaping (default in mustache.js)
 
 module.exports = {
     /**
@@ -58,6 +62,7 @@ module.exports = {
     getEnvironmentInfo() {
         // eslint-disable-next-line import/no-dynamic-require, global-require
         const deploymentInfo = require(deploymentFile);
+        // Populate next hop addresses from route tables
         const nextHopAddresses = [];
         deploymentInfo.instances.forEach((instance) => {
             if (instance.next_hop_address) {
@@ -73,7 +78,8 @@ module.exports = {
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
             zones: deploymentInfo.instances.map(i => i.zone), // optional: used by GCP
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
-            nextHopAddresses
+            nextHopAddresses,
+            routeTables: deploymentInfo.routeTables
         };
     },
 
@@ -82,22 +88,24 @@ module.exports = {
      *
      * @returns {Object} Returns rendered example declaration
      */
-    getDeploymentDeclaration(declaration) {
+    getDeploymentDeclaration() {
         const environmentInfo = this.getEnvironmentInfo();
+
+        const collapsedRoutes = Array.prototype.concat.apply(
+            [], environmentInfo.routeTables.map(routeTable => routeTable.routes)
+        ).filter(route => route !== '');
         const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
-            nextHopAddress1: environmentInfo.nextHopAddresses[0]
+            nextHopAddresses: environmentInfo.nextHopAddresses.map((nextHopAddress, idx) => ({
+                address: nextHopAddress,
+                last: environmentInfo.nextHopAddresses.length - 1 === idx
+            })),
+            scopingAddressRanges: collapsedRoutes.map((route, idx) => ({
+                range: route, last: collapsedRoutes.length - 1 === idx
+            }))
         };
-        // Added for AWS ipv6 route failover support
-        if (environmentInfo.nextHopAddresses.length === 4) {
-            declarationData.nextHopAddress1_IPv6 = environmentInfo.nextHopAddresses[1];
-            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[2];
-            declarationData.nextHopAddress2_IPv6 = environmentInfo.nextHopAddresses[3];
-        } else {
-            declarationData.nextHopAddress2 = environmentInfo.nextHopAddresses[1];
-        }
-        return JSON.parse(mustache.render(utils.stringify(declaration), declarationData));
+        return JSON.parse(mustache.render(fs.readFileSync(declarationLocation).toString(), declarationData));
     },
 
     /**
@@ -170,7 +178,7 @@ module.exports = {
         return utils.makeRequest(host, uri, httpOptions)
             .then((data) => {
                 if (taskStates.indexOf(data.taskState) === -1
-                    || data.instance.indexOf(options.hostname) === -1) {
+                    || (options.hostname && data.instance.indexOf(options.hostname) === -1)) {
                     return Promise.resolve({ boolean: false, taskStateResponse: data });
                 }
                 return Promise.resolve({ boolean: true, taskStateResponse: data });

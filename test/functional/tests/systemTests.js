@@ -1,5 +1,5 @@
 /*
- * Copyright 2019. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -28,7 +28,6 @@ const packagePath = packageDetails.path;
 
 const clusterMembers = [dutPrimary, dutSecondary];
 const clusterMemberIps = clusterMembers.map(member => member.ip);
-const exampleDeclaration = require('./shared/exampleDeclaration.json');
 
 clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
@@ -107,7 +106,7 @@ clusterMembers.forEach((dut) => {
         it('should post declaration', () => {
             const uri = constants.DECLARE_ENDPOINT;
             options.method = 'POST';
-            options.body = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+            options.body = funcUtils.getDeploymentDeclaration();
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
@@ -173,8 +172,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
     });
 
     describe('Should sync configuration', () => {
-        const originalBody = funcUtils.getDeploymentDeclaration(exampleDeclaration);
-        const modifiedBody = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+        const originalBody = funcUtils.getDeploymentDeclaration();
+        const modifiedBody = funcUtils.getDeploymentDeclaration();
         modifiedBody.failoverAddresses.scopingTags = { foo: 'bar' };
 
         it('should post modified declaration (primary)', () => {

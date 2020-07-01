@@ -1,4 +1,0 @@
-# mocha.opts
-  --timeout 300000
-  --slow 180000
-  --retries 30
