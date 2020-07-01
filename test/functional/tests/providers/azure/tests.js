@@ -1,5 +1,5 @@
 /*
- * Copyright 2019. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -27,9 +27,8 @@ const dutSecondary = duts.filter(dut => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const rgName = deploymentInfo.deploymentId;
-const exampleDeclaration = require('../../shared/exampleDeclaration.json');
 
-const declaration = funcUtils.getDeploymentDeclaration(exampleDeclaration);
+const declaration = funcUtils.getDeploymentDeclaration();
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
