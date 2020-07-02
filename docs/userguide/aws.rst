@@ -263,6 +263,8 @@ If provisioning Across Network Topology, you will need to:
    - a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
    - a special key called ``f5_cloud_failover_vips`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
 
+#. Create a NIC mapping tag: a key-value pair where the key is static but the value is user-provided (for example, ``f5_cloud_failover_nic_map:<your value>``). This tag must match the corresponding NIC on the secondary BIG-IP. 
+
 
 .. _aws-tag-routes:
 
