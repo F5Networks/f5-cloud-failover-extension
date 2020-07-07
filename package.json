@@ -8,8 +8,9 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "scripts": {
+        "audit": "npm audit --json > .auditReport.json; node scripts/auditProcessor.js",
         "install-production": "npm install --production --no-optional",
-        "lint": "eslint src test specs",
+        "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
         "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --timeout 300000",
         "test": "nyc npm run test-only",
@@ -73,7 +74,8 @@
         "nyc": "^15.1.0",
         "sinon": "7.4.1",
         "ssh2": "^0.8.2",
-        "nock": "^9.6.1"
+        "nock": "^9.6.1",
+        "yargs": "^15.4.0"
     },
     "optionalDependencies": {
         "mermaid.cli": "^0.5.1",
@@ -97,5 +99,8 @@
     "mocha": {
         "timeout": 300000,
         "bail": true
+    },
+    "auditProcessor": {
+        "whitelist": ["1523"]
     }
 }
