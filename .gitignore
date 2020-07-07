@@ -13,6 +13,9 @@ redoc-static.html
 coverage/
 .nyc_output/
 
+# audit report
+.auditReport.json
+
 # local test directory/files
 logs/
 test/functional/logs/
