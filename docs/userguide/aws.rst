@@ -9,7 +9,7 @@ AWS CFE Prerequisites
 ---------------------
 These are the basic prerequisites for setting up CFE in AWS:
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example AWS Cloudformation template |cloudformation|. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
 
 
 |
@@ -240,7 +240,12 @@ If provisioning Same Network Topology, you will need to:
 #. Create two sets of tags for Network Interfaces:
 
    - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-   - **NIC mapping tag**: a key-value pair where the key is static but the value is user-provided (for example, ``f5_cloud_failover_nic_map:<your value>``). This tag must match the corresponding NIC on the secondary BIG-IP.
+
+     .. NOTE:: If you use our AWS declaration example, the key-value tag should be ``"f5_cloud_failover_label":"mydeployment"``
+
+   - **NIC mapping tag**: a key-value pair with the reserved key called ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``). 
+   
+     .. IMPORTANT:: This tag must match the corresponding NIC on the second BIG-IP. This key/value tag should correspond to each pair of BIG-IPs where addresses should be mapped.
 
 #. Disable the built-in scripts (``/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh``) from a BIG-IP shell, either manually or using automation:
 
@@ -261,7 +266,10 @@ If provisioning Across Network Topology, you will need to:
 #. Create two sets of tags for Elastic IP addresses:
 
    - a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-   - a special key called ``f5_cloud_failover_vips`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``10.0.0.10,10.0.0.11``
+
+     .. NOTE:: If you use our declaration example, the key-value tag should be ``"f5_cloud_failover_label":"mydeployment"
+
+   - a key-value pair with the reserved key called ``f5_cloud_failover_vips`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``:f5_cloud_failover_vips":"10.0.10.21,10.110.22"``
 
 #. Create a NIC mapping tag: a key-value pair where the key is static but the value is user-provided (for example, ``f5_cloud_failover_nic_map:<your value>``). This tag must match the corresponding NIC on the secondary BIG-IP. 
 
@@ -270,9 +278,22 @@ If provisioning Across Network Topology, you will need to:
 
 Tag the User-Defined routes in AWS
 ``````````````````````````````````
-.. include:: /_static/reuse/discovery-type-note.rst
 
-If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to tag the route(s) in a route table with a key-value pair that will correspond to the key-value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
+In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the configuration OR in an additional cloud tag on the route table and have CFE discover them via tag. 
+
+- If you use ``static``, you will need to provide the Self-IPs in the items area of the CFE configuration. For example:
+
+   .. code-block:: json
+
+      "defaultNextHopAddresses": { 
+            "discoveryType": "static", 
+            "items": [ 
+                "10.0.20.11", 
+                "10.0.120.12" 
+            ] 
+        } 
+
+- If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.20.11,10.0.120.12"``. See :ref:`example-route-tag` for an example declaration.
   
 
 

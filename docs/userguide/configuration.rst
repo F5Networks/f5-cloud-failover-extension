@@ -18,9 +18,9 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 
 #. Copy one of the :ref:`example-declarations` which best matches the configuration you want to use. See each provider section for additional details and requirements.
 
-   - :ref:`azure`
    - :ref:`aws`
    - :ref:`gcp`
+   - :ref:`azure`
 
 
 #. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
@@ -63,7 +63,7 @@ The first few lines of your declaration are a part of the base components and de
 
     {
         "class": "Cloud_Failover",
-        "environment": "azure",
+        "environment": "aws",
         "externalStorage": {
              "scopingTags": {
                  "f5_cloud_failover_label": "mydeployment"
@@ -79,7 +79,7 @@ The first few lines of your declaration are a part of the base components and de
 +====================+================================+==============================================================================================================================================================================+
 | class              | Cloud_Failover                 | Describes top-level Cloud Failover options. Do not change this value.                                                                                                        |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| environment        | aws, azure, gcp                | This value defines which cloud environment you are using. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details.                                        |
+| environment        | aws, gcp, azure                | This value defines which cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                        |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | externalStorage    | -                              | This is a json object. Do not change this value.                                                                                                                             |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -132,25 +132,28 @@ The next lines of the declaration sets the failover routes. The scoping address 
    :linenos:
    :lineno-start: 14
 
-      {
-        "failoverRoutes": {
-		    "scopingTags": {
-			    "f5_cloud_failover_label": "mydeployment"
-		    },
-		    "scopingAddressRanges": [
-			    {
-				    "range": "192.168.1.0/24"
-			    }
-		    ],
-		    "defaultNextHopAddresses": {
-			    "discoveryType": "static",
-			    "items": [
-				    "192.0.2.10",
-				    "192.0.2.11"
-			    ]
-		    }
-        }
-      }
+       },
+         "failoverRoutes": {
+            "enabled": true,
+            "scopingTags": {
+               "f5_cloud_failover_label": "mydeployment"
+            },
+            "scopingAddressRanges": [
+               {
+                  "range": "192.168.1.0/24"
+               }
+            ],
+            "defaultNextHopAddresses": {
+               "discoveryType": "static",
+               "items": [
+                  "192.0.2.10",
+                  "192.0.2.11"
+               ]
+            }
+         }
+
+
+
 
 
 
@@ -164,16 +167,16 @@ The next lines of the declaration sets the failover routes. The scoping address 
    ======================== ======================= ===================================================================
    failoverRoutes           -                       This is a json object. Do not change this value.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   scopingTags              -                       These key/value pairs have to be the same as the tags you assign to the addresses in your cloud environment.
+   scopingTags              -                       These key/value pairs have to be the same as the tags you assign to the route table(s) in your cloud environment. NOTE: The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings).
    ------------------------ ----------------------- -------------------------------------------------------------------
    scopingAddressRanges     -                       A list of the destination routes to update in the event of failover.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   defaultNextHopAddresses  -                       This json object is the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. 
+   defaultNextHopAddresses  -                       This json object is the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration using multiple routing tables pointing to different nexthops.
    ------------------------ ----------------------- -------------------------------------------------------------------
    discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self-IPs associated with those NICs. You can either define the Self-IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
                                                      
-                                                     - If you use ``static``, you will need to provide the Self-IPs in the ``items`` area of the CFE configuration. 
-                                                     - If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_key_ips``. For example, ``f5_self_ips:192.0.2.10,192.0.2.11``. See :ref:`example-route-tag` for an example declaration.
+                                                    - If you use ``static``, you will need to provide the Self-IPs in the ``items`` area of the CFE configuration. 
+                                                    - If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_key_ips``. For example, ``f5_self_ips:192.0.2.10,192.0.2.11``. See :ref:`example-route-tag` for an example declaration.
    
    ------------------------ ----------------------- -------------------------------------------------------------------
    items                    -                       List the Self IP address of each instance. This is only required when discoveryType is ``static``.    
@@ -194,9 +197,9 @@ Choose the cloud environment you are working in to continue implementing CFE:
    :includehidden:
    :glob:
 
-   azure
    aws
    gcp
+   azure
 
 
 

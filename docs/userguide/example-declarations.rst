@@ -3,6 +3,7 @@
 Example Declarations
 ====================
 
+.. _example-multiple-next-hop:
 
 Multiple Next Hop addresses
 ---------------------------
@@ -32,7 +33,6 @@ For backwards compatability, you can tag the route itself within the cloud envir
    :caption: Route Failover using Route Tags
    :tab-width: 4
    :linenos:
-   :emphasize-lines: 26
 
 :fonticon:`fa fa-download` :download:`routeFailoverUsesRouteTags.json <../../examples/declarations/routeFailoverUsesRouteTags.json>`
 
