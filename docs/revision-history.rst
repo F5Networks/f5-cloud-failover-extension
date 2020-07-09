@@ -12,8 +12,8 @@ Document Revision History
         - Date
 
       * - 1.5
-        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • Added many new entires to the :ref:`faq` including :ref:`faq-auto-phone-home` and :ref:`faq-cfe-caveats`
-        - 06-25-20
+        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • More information added to AWS sections covering :ref:`aws-tag-addresses-samenet` and :ref:`aws-tag-addresses-acrossnet`. |br| • Added :ref:`example-multiple-next-hop` to the example declarations section.  |br| • Added many new entires to the :ref:`faq` including :ref:`faq-auto-phone-home` and :ref:`faq-cfe-caveats`
+        - 07-09-20
 
       * - 1.4
         - Updated the documentation for Cloud Failover Extension v1.3.0 with the following changes: |br| • Added a new section to the FAQ (see :ref:`faq-azure-vnet-separate-resource-group`) and corresponding notes to the :ref:`azure` page.
