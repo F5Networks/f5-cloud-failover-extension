@@ -38,13 +38,6 @@
             ]
           }
         }
-      ],
-      "defaultNextHopAddresses": {
-        "discoveryType": "static",
-        "items": [
-          "192.0.2.10",
-          "192.0.2.11"
-        ]
-      }
+      ]
     }
 }
