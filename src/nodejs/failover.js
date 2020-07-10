@@ -22,6 +22,7 @@ const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 const constants = require('./constants.js');
+const TelemetryClient = require('./telemetry.js').TelemetryClient;
 
 const failoverStates = constants.FAILOVER_STATES;
 const deviceStatus = constants.BIGIP_STATUS;
@@ -34,6 +35,8 @@ const stateFileContents = {
     failoverOperations: {}
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
+
+const telemetry = new TelemetryClient();
 
 class FailoverClient {
     constructor() {
@@ -83,8 +86,15 @@ class FailoverClient {
 
     /**
      * Execute (primary function)
+     *
+     * @param {Object} [options] - function options
+     * @param {String} [options.callerAttributes] - caller attributes (use for telemetry)
+     *
      */
-    execute() {
+    execute(options) {
+        options = options || {};
+        this.callerAttributes = options.callerAttributes || {};
+        this.startTimestamp = new Date().toJSON();
         this.isAddressOperationsEnabled = this._getOperationEnabledState('failoverAddresses');
         logger.debug('Address operations enabled? ', this.isAddressOperationsEnabled);
         this.isRouteOperationsEnabled = this._getOperationEnabledState('failoverRoutes');
@@ -180,6 +190,15 @@ class FailoverClient {
             .then(() => {
                 logger.info('Failover Complete');
             })
+            .then(() => this._sendTelemetry({
+                result: failoverStates.PASS,
+                resultSummary: 'Failover Successful',
+                resourceCount: {
+                    addresses: Object.keys(this.addressDiscovery.publicAddresses || {}).length
+                                + (this.addressDiscovery.interfaces || { associate: [] }).associate.length,
+                    routes: this.routeDiscovery.length
+                }
+            }))
             .catch((err) => {
                 logger.error(`${util.stringify(err.message)} ${util.stringify(err.stack)}`);
                 return this._createAndUpdateStateObject({
@@ -190,6 +209,10 @@ class FailoverClient {
                         routes: this.routeDiscovery
                     }
                 })
+                    .then(() => this._sendTelemetry({
+                        result: failoverStates.FAIL,
+                        resultSummary: util.stringify(err.message)
+                    }))
                     .then(() => Promise.reject(err))
                     .catch(() => Promise.reject(err));
             });
@@ -646,6 +669,29 @@ class FailoverClient {
             localAddresses,
             failoverAddresses
         };
+    }
+
+    /**
+     * Send telemetry data
+     *
+     * @param {Object} [options] - function options
+     *
+     * @returns {Object}
+     */
+
+    _sendTelemetry(options) {
+        return telemetry.send(telemetry.createTelemetryData({
+            startTime: this.startTimestamp,
+            action: this.callerAttributes.httpMethod,
+            endpoint: this.callerAttributes.endpoint || '',
+            result: options.result,
+            resultSummary: options.resultSummary,
+            environment: this.config.environment,
+            ipFailover: this.isAddressOperationsEnabled,
+            routeFailover: this.isRouteOperationsEnabled,
+            resourceCount: options.resourceCount
+        }))
+            .catch(err => Promise.reject(err));
     }
 }
 

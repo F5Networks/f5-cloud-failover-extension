@@ -31,7 +31,7 @@ describe('Config Worker', () => {
     });
     beforeEach(() => {
         sinon.stub(Device.prototype, 'init').resolves();
-        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({ exists: true, data: constants.DATA_GROUP_OBJECT });
         sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
         sinon.spy(logger, 'setLogLevel');
         mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
@@ -99,7 +99,8 @@ describe('Config Worker', () => {
         .then(() => config.getConfig())
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
-        }));
+        })
+        .catch(err => Promise.reject(err)));
 
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';

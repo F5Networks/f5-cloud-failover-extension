@@ -49,11 +49,14 @@ module.exports = {
      * @param {Object} restOperation  - restOperation to complete
      * @param {String} status         - HTTP status code
      * @param {String} body           - HTTP body
+     *
+     * @returns {Promise} A promise which will be resolved once function resolves
      */
     restOperationResponder(restOperation, status, body) {
         restOperation.setStatusCode(status);
         restOperation.setBody(body);
         restOperation.complete();
+        return Promise.resolve({ status, body });
     },
 
     /**

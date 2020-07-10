@@ -112,7 +112,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
  * @param {Object} restOperation
  */
 Worker.prototype.onGet = function (restOperation) {
-    processRequest(restOperation);
+    return processRequest(restOperation);
 };
 
 /**
@@ -121,7 +121,7 @@ Worker.prototype.onGet = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPost = function (restOperation) {
-    processRequest(restOperation);
+    return processRequest(restOperation);
 };
 
 /**
@@ -130,7 +130,7 @@ Worker.prototype.onPost = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPut = function (restOperation) {
-    processRequest(restOperation);
+    return processRequest(restOperation);
 };
 
 /**
@@ -139,7 +139,7 @@ Worker.prototype.onPut = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPatch = function (restOperation) {
-    processRequest(restOperation);
+    return processRequest(restOperation);
 };
 
 /**
@@ -148,7 +148,7 @@ Worker.prototype.onPatch = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onDelete = function (restOperation) {
-    processRequest(restOperation);
+    return processRequest(restOperation);
 };
 
 
@@ -159,6 +159,7 @@ Worker.prototype.onDelete = function (restOperation) {
  * @param {Object} restOperation  - restOperation
  */
 function processRequest(restOperation) {
+    const startTimestamp = new Date().toJSON();
     const method = restOperation.method.toUpperCase();
     const pathName = restOperation.getUri().pathname.split('/')[3];
     const contentType = restOperation.getContentType().toLowerCase() || '';
@@ -171,8 +172,7 @@ function processRequest(restOperation) {
         } catch (err) {
             const message = 'Invalid request body. Content type should be application/json';
             logger.error(message);
-            util.restOperationResponder(restOperation, 400, { message });
-            return;
+            return util.restOperationResponder(restOperation, 400, { message });
         }
     }
 
@@ -184,33 +184,46 @@ function processRequest(restOperation) {
         switch (method) {
         case 'POST':
             // call failover init during config to ensure init succeeds prior to responding to the user
-            configWorker.processConfigRequest(body)
-                .then(config => Promise.all([config, failover.init(), telemetry.send(config)]))
-                .then((result) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: result[0] });
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-            break;
+            return configWorker.processConfigRequest(body)
+                .then(config => Promise.all([
+                    config,
+                    failover.init(),
+                    telemetry.send(telemetry.createTelemetryData({
+                        startTime: startTimestamp,
+                        result: 'SUCCESS',
+                        resultSummary: 'Configuration Successful',
+                        environment: config.environment,
+                        ipFailover: config.ipFailover,
+                        routeFailover: config.routeFailover
+                    }))
+                ]))
+                .then(result => util.restOperationResponder(restOperation, 200,
+                    {
+                        message: 'success',
+                        declaration: result[0]
+                    }))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         case 'GET':
-            configWorker.getConfig()
-                .then((config) => {
-                    util.restOperationResponder(restOperation, 200, { message: 'success', declaration: config });
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-            break;
+            return configWorker.getConfig()
+                .then(config => util.restOperationResponder(restOperation, 200,
+                    {
+                        message: 'success',
+                        declaration: config
+                    }))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         default:
-            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
-            break;
+            return util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
         }
-        break;
     case 'trigger':
         switch (method) {
         case 'POST':
-            failover.init()
+            return failover.init()
                 .then(() => Promise.all([
                     failover.getTaskStateFile(),
                     device.getGlobalSettings()
@@ -221,87 +234,79 @@ function processRequest(restOperation) {
                         logger.silly('Failover is already executing');
                         return Promise.resolve();
                     }
-                    return failover.execute();
+                    return failover.execute({ callerAttributes: { endpoint: pathName, httpMethod: method } });
                 })
                 .then(() => failover.getTaskStateFile())
-                .then((taskState) => {
-                    util.restOperationResponder(restOperation, taskState.code, taskState);
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-            break;
+                .then(taskState => util.restOperationResponder(
+                    restOperation,
+                    mapStatusToCode(taskState.taskState),
+                    taskState
+                ))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         case 'GET':
-            failover.init()
+            return failover.init()
                 .then(() => failover.getTaskStateFile())
-                .then((taskState) => {
-                    switch (taskState.taskState) {
-                    case failoverStates.RUN:
-                        taskState.code = 202;
-                        break;
-                    case failoverStates.PASS:
-                        taskState.code = 200;
-                        break;
-                    case failoverStates.NEVER_RUN:
-                        taskState.code = 200;
-                        break;
-                    case failoverStates.FAIL:
-                        taskState.code = 500;
-                        break;
-                    default:
-                        taskState.code = 500;
-                        break;
-                    }
-                    util.restOperationResponder(restOperation, taskState.code, taskState);
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-            break;
+                .then(taskState => util.restOperationResponder(
+                    restOperation,
+                    mapStatusToCode(taskState.taskState),
+                    taskState
+                ))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         default:
-            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
-            break;
+            return util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
         }
-        break;
     case 'reset':
         if (method === 'POST') {
-            failover.init()
+            return failover.init()
                 .then(() => failover.resetFailoverState(body))
-                .then((response) => {
-                    util.restOperationResponder(restOperation, 200, { message: response.message });
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-        } else {
-            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+                .then(response => util.restOperationResponder(restOperation, 200, { message: response.message }))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         }
-        break;
+        return util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
     case 'inspect':
         if (method === 'GET') {
-            failover.init()
+            return failover.init()
                 .then(() => failover.getFailoverStatusAndObjects())
-                .then((statusAndObjects) => {
-                    util.restOperationResponder(restOperation, 200, statusAndObjects);
-                })
-                .catch((err) => {
-                    util.restOperationResponder(restOperation, 500, { message: util.stringify(err.message) });
-                });
-        } else {
-            util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
+                .then(statusAndObjects => util.restOperationResponder(restOperation, 200, statusAndObjects))
+                .catch(err => util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    }));
         }
-        break;
+        return util.restOperationResponder(restOperation, 405, { message: 'Method Not Allowed' });
     case 'info':
-        util.restOperationResponder(restOperation, 200, {
+        return util.restOperationResponder(restOperation, 200, {
             version: constants.VERSION,
             release: constants.VERSION.split('.').reverse()[0],
             schemaCurrent: schemaUtils.getCurrentVersion(),
             schemaMinimum: schemaUtils.getMinimumVersion()
         });
-        break;
     default:
-        util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });
-        break;
+        return util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });
+    }
+}
+
+function mapStatusToCode(taskState) {
+    switch (taskState) {
+    case failoverStates.RUN:
+        return 202;
+    case failoverStates.PASS:
+        return 200;
+    case failoverStates.NEVER_RUN:
+        return 200;
+    case failoverStates.FAIL:
+        return 500;
+    default:
+        return 500;
     }
 }
 
