@@ -30,7 +30,7 @@ const DFL_OBJECT_IN_STATE = {
 
 class ConfigWorker {
     constructor() {
-        this.state = DFL_OBJECT_IN_STATE;
+        this.state = util.deepCopy(DFL_OBJECT_IN_STATE);
         this.validator = new Validator();
         this.device = new Device();
     }
@@ -88,7 +88,7 @@ class ConfigWorker {
      * @returns {Object} The parsed state object
      */
     _parseStateFromDataGroup(dataGroup) {
-        let state = DFL_OBJECT_IN_STATE;
+        let state = util.deepCopy(DFL_OBJECT_IN_STATE);
         try {
             if (dataGroup) {
                 state = JSON.parse(util.base64('decode', dataGroup.records[0].data));
@@ -107,7 +107,7 @@ class ConfigWorker {
     _loadStateFromStore() {
         return this.device.getDataGroups({ name: STATE_DATA_GROUP_NAME })
             .then((dataGroup) => {
-                if (dataGroup.exists === false) {
+                if (dataGroup.exists !== true) {
                     return Promise.resolve(DFL_OBJECT_IN_STATE);
                 }
                 return Promise.resolve(this._parseStateFromDataGroup(dataGroup.data));

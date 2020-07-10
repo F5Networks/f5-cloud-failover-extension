@@ -16,6 +16,7 @@ const util = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 
+
 /* eslint-disable global-require */
 
 describe('Failover', () => {
@@ -23,6 +24,7 @@ describe('Failover', () => {
     let Device;
     let CloudFactory;
     let FailoverClient;
+    let TelemetryClient;
     let failover;
 
     let deviceGlobalSettingsMock;
@@ -40,6 +42,7 @@ describe('Failover', () => {
     let spyOnUpdateRoutes;
     let uploadDataToStorageSpy;
     let setConfigSpy;
+    let telemetryClientSpy;
 
     const trafficGroupStatsMockResponse = {
         entries: {
@@ -66,6 +69,7 @@ describe('Failover', () => {
         Device = require('../../src/nodejs/device.js');
         CloudFactory = require('../../src/nodejs/providers/cloudFactory.js');
         FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
+        TelemetryClient = require('../../src/nodejs/telemetry.js').TelemetryClient;
 
         sinon.stub(Device.prototype, 'init').resolves();
         sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
@@ -87,11 +91,13 @@ describe('Failover', () => {
             uploadDataToStorage: () => Promise.resolve({}),
             getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] })
         };
+
         downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.PASS });
         spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
         spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
         sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
+        telemetryClientSpy = sinon.stub(TelemetryClient.prototype, 'send').resolves();
 
         deviceGlobalSettingsMock.returns({ hostname: 'some_hostname' });
         deviceGetTrafficGroupsMock.returns(trafficGroupStatsMockResponse);
@@ -493,6 +499,7 @@ describe('Failover', () => {
                 addresses: null,
                 routes: null
             }
+
         });
 
         return config.init()
@@ -554,6 +561,34 @@ describe('Failover', () => {
                 assert(callArg.routeAddressRanges[1].routeNextHopAddresses.type
                     === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1]
                         .nextHopAddresses.discoveryType);
+            });
+    });
+
+    it('should send telemetry on failover success', () => config.init()
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
+        .then(() => failover.execute({ callerAttributes: { endpoint: '/declare', httpMethod: 'POST' } }))
+        .then(() => {
+            assert.strictEqual(telemetryClientSpy.called, true);
+            const callArg = telemetryClientSpy.getCall(0).lastArg;
+            assert.strictEqual(callArg.product.environment, 'azure');
+            assert.strictEqual(callArg.operation.result, 'SUCCEEDED');
+            assert.strictEqual(callArg.operation.resultSummary, 'Failover Successful');
+        })
+        .catch(err => Promise.reject(err)));
+
+    it('should send telemetry on failover failure', () => {
+        spyOnUpdateAddresses.restore();
+        sinon.stub(cloudProviderMock, 'updateAddresses').throws('failover failed');
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute({ callerAttributes: { endpoint: '/declare', httpMethod: 'POST' } }))
+            .catch(() => {
+                assert.strictEqual(telemetryClientSpy.called, true);
+                const callArg = telemetryClientSpy.getCall(0).lastArg;
+                assert.strictEqual(callArg.product.environment, 'azure');
+                assert.strictEqual(callArg.operation.result, 'FAILED');
             });
     });
 });
