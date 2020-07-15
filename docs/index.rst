@@ -58,6 +58,7 @@ User Guide Index
    userguide/postman-collection
    userguide/logging
    userguide/update-revert
+   userguide/performance-sizing
    userguide/troubleshooting
    revision-history
 
