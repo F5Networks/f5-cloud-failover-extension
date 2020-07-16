@@ -9,7 +9,7 @@ AWS CFE Prerequisites
 ---------------------
 These are the basic prerequisites for setting up CFE in AWS:
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
 
 
 |
@@ -51,13 +51,14 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
    =======  ===================================================================
 
 
+.. _aws-diagram:
 
-Failover Event Diagram
-----------------------
+AWS Failover Event Diagram
+--------------------------
 
-This diagram shows a failover event with CFE implemented in AWS. You can see Elastic IP addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Failover Extension configuration are updated with the network interface of the active BIG-IP device.
+This diagram shows an example of an “Across Network” failover with 3NIC BIG-IPs (NOTE: Management NICs/Subnets are not shown). You can see Elastic IP (EIP) addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/aws/aws-diagram.gif
+.. image:: ../images/failover-across-az-multiple-vips.gif
   :width: 800
 
 |
@@ -75,7 +76,6 @@ This example declaration shows the minimum information needed to update the clou
 :fonticon:`fa fa-download` :download:`aws.json <../../examples/declarations/aws.json>`
 
 |
-
 
 .. _aws-iam:
 
@@ -201,8 +201,6 @@ Tag your AWS Network Infrastructure Objects
 
 Tag your infrastructure with the the keys and values that you will send in your CFE declaration.
 
-.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
-
 
 .. _aws-tag-storage:
 
@@ -224,28 +222,50 @@ Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/cre
 
 #. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
 
+|
 
 .. _aws-tag-addresses:
 
 Tag the Network Interfaces in AWS:
 ``````````````````````````````````
-Choose the set of instructions to follow based on whether you are provisioning for same network or across network.
 
-.. _aws-tag-addresses-samenet:
-
-For Same Network Topology
-`````````````````````````
-If provisioning Same Network Topology, you will need to: 
+.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
 
 #. Create two sets of tags for Network Interfaces:
 
    - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
-     .. NOTE:: If you use our AWS declaration example, the key-value tag should be ``"f5_cloud_failover_label":"mydeployment"``
+     .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
 
-   - **NIC mapping tag**: a key-value pair with the reserved key called ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``). 
+   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``. 
    
-     .. IMPORTANT:: This tag must match the corresponding NIC on the second BIG-IP. This key/value tag should correspond to each pair of BIG-IPs where addresses should be mapped.
+     .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. 
+
+
+Choose the set of additional instructions to follow based on whether you are provisioning for same network or across network.
+
+
+.. _aws-tag-addresses-acrossnet:
+
+For Across Network Topology
+```````````````````````````
+If provisioning Across Network Topology, you will also need to:
+
+#. Create two sets of tags for Elastic IP addresses:
+
+   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+     .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+   - **VIP mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_vips`` and value that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``"f5_cloud_failover_vips":"10.0.12.101,10.0.22.101"``
+
+
+.. _aws-tag-addresses-samenet:
+
+
+For Same Network Topology
+`````````````````````````
+If provisioning Same Network Topology, you will also need to: 
 
 #. Disable the built-in scripts (``/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh``) from a BIG-IP shell, either manually or using automation:
 
@@ -257,57 +277,46 @@ If provisioning Same Network Topology, you will need to:
       mount -o remount,ro /usr
 
 
-.. _aws-tag-addresses-acrossnet:
-
-For Across Network Topology
-```````````````````````````
-If provisioning Across Network Topology, you will need to:
-
-#. Create two sets of tags for Elastic IP addresses:
-
-   - a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-
-     .. NOTE:: If you use our declaration example, the key-value tag should be ``"f5_cloud_failover_label":"mydeployment"
-
-   - a key-value pair with the reserved key called ``f5_cloud_failover_vips`` that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``:f5_cloud_failover_vips":"10.0.10.21,10.110.22"``
-
-#. Create a NIC mapping tag: a key-value pair where the key is static but the value is user-provided (for example, ``f5_cloud_failover_nic_map:<your value>``). This tag must match the corresponding NIC on the secondary BIG-IP. 
-
+|
 
 .. _aws-tag-routes:
 
-Tag the User-Defined routes in AWS
-``````````````````````````````````
+Tag the Route Tables in AWS
+```````````````````````````
 
-In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the configuration OR in an additional cloud tag on the route table and have CFE discover them via tag. 
+If enabling route failover, tag the route tables containing the routes you want to manage. 
+
+1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+.. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
+     
+
+2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the cloud failover configuration OR by using an additional tag on the route table and have CFE discover the mapping via tag. 
 
 - If you use ``static``, you will need to provide the Self-IPs in the items area of the CFE configuration. For example:
 
-   .. code-block:: json
+.. code-block:: json
 
-      "defaultNextHopAddresses": { 
-            "discoveryType": "static", 
-            "items": [ 
-                "10.0.20.11", 
-                "10.0.120.12" 
-            ] 
-        } 
+    "failoverRoutes": {
+      "enabled": true,
+      "scopingTags": {
+        "f5_cloud_failover_label": "mydeployment"
+      },
+      "scopingAddressRanges": [
+        {
+          "range": "0.0.0.0/0",
+          "nextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+                "10.0.13.11",
+                "10.0.23.11"
+            ]
+          }
+        }
+      ]
+    }
 
-- If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.20.11,10.0.120.12"``. See :ref:`example-route-tag` for an example declaration.
+- If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``. See :ref:`example-route-tag` for an example declaration.
   
 
-
-
 .. include:: /_static/reuse/feedback.rst
-
-
-
-.. |github| raw:: html
-
-   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">GitHub</a>
-
-.. |cloudformation| raw:: html
-
-   <a href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/2nic/existing-stack/payg" target="_blank">here</a>
-
-   

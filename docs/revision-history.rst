@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.6
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated the :ref:`aws-diagram` and :ref:`aws-example`.
+        - 07-16-20
+
       * - 1.5
         - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • More information added to AWS sections covering :ref:`aws-tag-addresses-samenet` and :ref:`aws-tag-addresses-acrossnet`. |br| • Added :ref:`example-multiple-next-hop` to the example declarations section.  |br| • Added many new entires to the :ref:`faq` including :ref:`faq-auto-phone-home` and :ref:`faq-cfe-caveats`
         - 07-09-20
