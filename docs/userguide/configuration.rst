@@ -132,7 +132,7 @@ The next lines of the declaration sets the failover routes. The scoping address 
    :linenos:
    :lineno-start: 14
 
-       },
+      {
          "failoverRoutes": {
             "enabled": true,
             "scopingTags": {
@@ -151,6 +151,7 @@ The next lines of the declaration sets the failover routes. The scoping address 
                ]
             }
          }
+      }
 
 
 

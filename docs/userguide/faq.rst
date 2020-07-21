@@ -74,7 +74,7 @@ When is CFE a good fit and when it is not?
 
 Is Active/Active supported?
 ```````````````````````````
-Active/Active or ScaleN (multiple traffic groups) is not supported at this time. CFE is currently not multiple-traffic-group-aware. ScaleN is powerful feature to increase service density (each instance owns a particular set of IP addresses known as traffic groups) but can add more complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The global instance level Active/Standby status (provided at the CLI prompt or GUI) is leveraged to provide an easy visual queue for which instance the NATs and/or routes should be pointing. 
+Active/Active or ScaleN (multiple traffic groups) is not supported at this time. CFE is currently not multiple-traffic-group-aware. ScaleN is a powerful feature to increase service density (each instance owns a particular set of IP addresses known as traffic groups) but can add more complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The global instance level Active/Standby status (provided at the CLI prompt or GUI) is leveraged to provide an easy visual queue for which instance the NATs and/or routes should be pointing. 
 
 .. Note:: VIPs can be placed in ``traffic-group-none`` so `each` instance can actively process traffic regardless of the Active/Standby status. This is done to reduce service interruption during cloud resource re-mapping. However, on the cloud side, NATs/routes are only mapped to the single Active instance.
 

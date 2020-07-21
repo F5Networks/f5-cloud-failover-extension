@@ -40,10 +40,10 @@ I'm receiving a **400** error when I try to post a declaration with no additiona
 
 If you are receiving this error, it typically means the provider prerequisites have not been met and there is an issue performing initialization operations.  Please review the provider prerequisites sections for more information.
 
-I'm receiving a **recovery operations are empty** error when failover is triggered
-``````````````````````````````````````````````````````````````````````````````````
+I'm receiving a **recovery operations are empty** error when failover is triggered or I need to reset the state of my failover extension
+````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````
 
-If you receive this error, it means Cloud Failover Extension had a previous failure which left it in a bad state.  Recommended performing a reset of the state file using the `reset` endpoint, which is described in the API Reference documentation.
+If you receive this error, it means Cloud Failover Extension had a previous failure which left it in a bad state. F5 recommends performing a reset of the state file using the `/reset` endpoint, which is described in the `API Reference documentation <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Reset>`_.
 
 
 |
