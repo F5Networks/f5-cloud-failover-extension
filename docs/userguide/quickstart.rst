@@ -43,7 +43,7 @@ up and running with Cloud Failover.
     }
 
 
-#. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
+#. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`gcp`, :ref:`aws`, and :ref:`azure`.
 
 #. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
@@ -68,7 +68,7 @@ up and running with Cloud Failover.
 Quick Start Example
 -------------------
 
-Here is an example declaration for Microsoft Azure.
+Here is an example declaration for AWS.
 
 .. literalinclude:: ../../examples/declarations/quickstart.json
    :language: json

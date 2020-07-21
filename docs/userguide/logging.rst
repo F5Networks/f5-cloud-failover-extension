@@ -3,8 +3,8 @@
 Logging
 =======
 
-Cloud Failover Extension logs to **var/log/restnoded/restnoded.log **.
-The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'. The default value is **info**. This controls object is sent via a POST /declare.
+Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
+The logging level is set in the ``controls`` class with possible values of 'sillys', 'verbose', 'debug', 'info', 'warning', and 'error'. The default value is **info**. This controls object is sent via a POST /declare.
 
 .. code-block:: json
 
