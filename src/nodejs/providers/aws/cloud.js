@@ -1113,20 +1113,64 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get all S3 buckets in account, these buckets will later be filtered by tags
+     * Get all S3 buckets in account filtered by current region, however if no buckets are found in the region
+     * or any error occurs during region filtering this method returns all the s3 buckets.
+     * These buckets will later be filtered by tags
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
      *                          rejected if an error occurs
      */
     _getAllS3Buckets() {
+        let bucketNameList = [];
         const listAllBuckets = () => this.s3.listBuckets({}).promise()
             .then((data) => {
                 const bucketNames = data.Buckets.map(b => b.Name);
                 return Promise.resolve(bucketNames);
             })
+            .then((bucketNames) => {
+                const promises = [];
+                bucketNameList = bucketNames;
+                bucketNames.forEach((bucketName) => {
+                    promises.push(this._matchBucketLocationWithCurrentRegion(bucketName));
+                });
+                return Promise.all(promises);
+            })
+            .then((matchedBuckets) => {
+                const filteredBuckets = matchedBuckets.filter(matchedBucket => matchedBucket.matched === true);
+                return Promise.resolve(filteredBuckets.length === 0
+                    ? bucketNameList : filteredBuckets.map(b => b.name));
+            })
             .catch(err => Promise.reject(err));
 
         return this._retrier(listAllBuckets, []);
+    }
+
+    /**
+     * Get the region of a given S3 bucket
+     *
+     * @param   {String}    bucketName                    - name of the S3 bucket
+     *
+     * @returns {Promise}     - A Promise that will be resolved with a boolean value
+     *                          if the configured region matches the buckets region and bucket name.
+     *                          If an error occurs when getting the location the bucket will
+     *                          not be considered matched.
+     */
+    _matchBucketLocationWithCurrentRegion(bucketName) {
+        const bucketObject = {
+            name: bucketName,
+            matched: false
+        };
+        let bucketRegion = 'us-east-1'; // default since if region is null then the bucket is in us-east-1
+        return this.s3.getBucketLocation({ Bucket: bucketName }).promise()
+            .then((data) => {
+                bucketRegion = data.LocationConstraint || bucketRegion;
+                bucketObject.matched = bucketRegion === this.region;
+                return Promise.resolve(bucketObject);
+            })
+            .catch((err) => {
+                this.logger.debug(`Unable to get ${bucketName} region info. ${err}`);
+                return Promise.resolve(bucketObject);
+            });
     }
 
     /**
