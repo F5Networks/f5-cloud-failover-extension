@@ -278,6 +278,46 @@ describe('Provider - AWS', () => {
                 .catch(() => {
                     assert.fail();
                 }));
+
+            it('should return an array of bucket names filtered by region', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.listBuckets = sinon.stub()
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve(listBucketsSubResponse);
+                            }
+                        }));
+                    provider.region = 'us';
+                    const getBucketLocationStub = sinon.stub();
+                    getBucketLocationStub.onCall(0)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'ca' });
+                            }
+                        }));
+                    getBucketLocationStub.onCall(1)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'ca' });
+                            }
+                        }));
+                    getBucketLocationStub.onCall(2)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'us' });
+                            }
+                        }));
+                    provider.s3.getBucketLocation = getBucketLocationStub;
+                    provider._getAllS3Buckets = originalgetAllS3Buckets;
+                    return provider._getAllS3Buckets();
+                })
+                .then((response) => {
+                    assert.deepEqual(response, [_getAllS3BucketsStubResponse[2]]);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
         });
 
         describe('_getTags', () => {
