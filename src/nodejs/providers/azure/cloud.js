@@ -141,7 +141,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-    * @param {Object} [options.updateOperations] - skip discovery and perform 'these' update operations
+    * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
     * @returns {Promise}
     */
@@ -170,15 +170,22 @@ class Cloud extends AbstractCloud {
     /**
     * Upload data to storage (cloud)
     *
-    * @param {Object} fileName - file name where data should be uploaded
-    * @param {Object} data     - data to upload
+    * @param {Object} fileName                  - file name where data should be uploaded
+    * @param {Object} data                      - data to upload
+    * @param {Object}  options                  - Function options
+    * @param {Integer} [options.maxRetries]     - Number of times to retry on failure
+    * @param {Integer} [options.retryInterval]  - Milliseconds between retries
     *
     * @returns {Promise}
     */
-    uploadDataToStorage(fileName, data) {
+    uploadDataToStorage(fileName, data, options) {
+        options = options || {};
+        const maxRetriesValue = options.maxRetries;
+        const retryIntervalValue = options.retryInterval;
+
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
 
-        return new Promise(((resolve, reject) => {
+        const uploadObject = () => new Promise(((resolve, reject) => {
             this.storageOperationsClient.createBlockBlobFromText(
                 storageContainerName, fileName, JSON.stringify(data), (err) => {
                     if (err) {
@@ -190,17 +197,25 @@ class Cloud extends AbstractCloud {
             );
         }))
             .catch(err => Promise.reject(err));
+        return this._retrier(uploadObject, [],
+            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
     }
 
     /**
     * Download data from storage (cloud)
     *
-    * @param {Object} fileName - file name where data should be downloaded
+    * @param {Object} fileName                  - file name where data should be downloaded
+    * @param {Object}  options                  - Function options
+    * @param {Integer} [options.maxRetries]     - Number of times to retry on failure
+    * @param {Integer} [options.retryInterval]  - Milliseconds between retries
     *
     * @returns {Promise}
     */
-    downloadDataFromStorage(fileName) {
-        return new Promise(((resolve, reject) => {
+    downloadDataFromStorage(fileName, options) {
+        options = options || {};
+        const maxRetriesValue = options.maxRetries;
+        const retryIntervalValue = options.retryInterval;
+        const downloadObject = () => new Promise(((resolve, reject) => {
             this.storageOperationsClient.doesBlobExist(
                 storageContainerName, fileName, (err, data) => {
                     if (err) {
@@ -228,6 +243,8 @@ class Cloud extends AbstractCloud {
                 }));
             })
             .catch(err => Promise.reject(err));
+        return this._retrier(downloadObject, [],
+            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
     }
 
     /**

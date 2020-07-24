@@ -710,6 +710,25 @@ describe('Provider - Azure', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should execute downloadDataFromStorage and retry upon failure', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const retrierSpy = sinon.spy(provider, '_retrier');
+        const downloadDataFromStorageSpy = sinon.spy(provider, 'downloadDataFromStorage');
+
+        return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 })
+            .catch(() => {
+                assert.strictEqual(retrierSpy.calledOnce, true);
+                assert.strictEqual(downloadDataFromStorageSpy.calledOnce, true);
+                provider.storageOperationsClient.doesBlobExist = sinon.stub().yields(null, { exists: false });
+                return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 });
+            })
+            .then((data) => {
+                assert.deepStrictEqual(data, {});
+                assert.strictEqual(downloadDataFromStorageSpy.calledTwice, true);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should execute uploadDataToStorage', () => {
         provider.storageOperationsClient = sinon.stub();
         const createBlockBlobFromTextSpy = sinon.stub().yields(null);
@@ -719,6 +738,27 @@ describe('Provider - Azure', () => {
             .then(() => {
                 assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
                 assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should execute uploadDataToStorage and retry upon failure', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
+        const retrierSpy = sinon.spy(provider, '_retrier');
+        const uploadDataToStorageSpy = sinon.spy(provider, 'uploadDataToStorage');
+
+        return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 })
+            .catch(() => {
+                assert.strictEqual(retrierSpy.calledOnce, true);
+                assert.strictEqual(uploadDataToStorageSpy.calledOnce, true);
+                provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
+                return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 });
+            })
+            .then(() => {
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
+                assert.strictEqual(uploadDataToStorageSpy.calledTwice, true);
             })
             .catch(err => Promise.reject(err));
     });
