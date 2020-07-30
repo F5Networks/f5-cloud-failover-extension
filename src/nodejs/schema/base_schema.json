@@ -26,8 +26,17 @@
             "required": [
                 "discoveryType"
             ]
+        },
+        "resourceLocation": {
+            "$comment": "Resource location is a standard definition describing environment specific location information (Azure Subscription, AWS account, GCP project)",
+            "type": "object",
+            "properties": {
+                "subscriptionId": {
+                    "type": "string"
+                }
+            },
+            "required": []
         }
-
     },
     "required": [
         "class",
@@ -118,7 +127,13 @@
                         ]
                     }
                 },
-                "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
+                "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" },
+                "defaultResourceLocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/resourceLocation"
+                    }
+                }
             },
             "required": [
                 "scopingTags",

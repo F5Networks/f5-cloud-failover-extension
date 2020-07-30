@@ -37,43 +37,42 @@ class Cloud extends AbstractCloud {
         super(CLOUD_PROVIDERS.AZURE, options);
 
         this.resourceGroup = null;
-        this.subscriptionId = null;
-
-        this.networkClient = null;
+        this.primarySubscriptionId = null;
         this.storageClient = null;
         this.storageOperationsClient = null;
+        this.networkClients = {};
     }
 
     /**
     * See the parent class method for details
     */
     init(options) {
+        options = options || {};
         super.init(options);
-
-        let environment;
 
         return this._getInstanceMetadata()
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
-                this.subscriptionId = metadata.compute.subscriptionId;
+                this.primarySubscriptionId = metadata.compute.subscriptionId;
 
-                environment = this._getAzureEnvironment(metadata);
-                const msiOptions = {
-                    resource: environment.resourceManagerEndpointUrl,
+                this.environment = this._getAzureEnvironment(metadata);
+                const credentials = new msRestAzure.MSIVmTokenCredentials({
+                    resource: this.environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
-                };
-                const credentials = new msRestAzure.MSIVmTokenCredentials(msiOptions);
+                });
 
-                this.networkClient = new NetworkManagementClient(
-                    credentials,
-                    this.subscriptionId,
-                    environment.resourceManagerEndpointUrl
-                );
                 this.storageClient = new StorageManagementClient(
                     credentials,
-                    this.subscriptionId,
-                    environment.resourceManagerEndpointUrl
+                    this.primarySubscriptionId,
+                    this.environment.resourceManagerEndpointUrl
                 );
+                [this.primarySubscriptionId].concat(options.subscriptions || []).forEach((subscription) => {
+                    this.networkClients[subscription] = new NetworkManagementClient(
+                        credentials,
+                        subscription,
+                        this.environment.resourceManagerEndpointUrl
+                    );
+                });
                 return this._listStorageAccounts({ tags: this.storageTags });
             })
             .then((storageAccounts) => {
@@ -89,7 +88,7 @@ class Cloud extends AbstractCloud {
                 this.storageOperationsClient = Storage.createBlobService(
                     storageAccountInfo.name,
                     storageAccountInfo.key,
-                    `${storageAccountInfo.name}.blob${environment.storageEndpointSuffix}`
+                    `${storageAccountInfo.name}.blob${this.environment.storageEndpointSuffix}`
                 );
                 return this._initStorageAccountContainer(storageContainerName);
             })
@@ -420,14 +419,16 @@ class Cloud extends AbstractCloud {
 
         return new Promise(
             ((resolve, reject) => {
-                this.networkClient.networkInterfaces.list(this.resourceGroup,
+                this.networkClients[this.primarySubscriptionId].networkInterfaces.list(
+                    this.resourceGroup,
                     (error, data) => {
                         if (error) {
                             reject(error);
                         } else {
                             resolve(data);
                         }
-                    });
+                    }
+                );
             })
         )
             .then((nics) => {
@@ -481,7 +482,9 @@ class Cloud extends AbstractCloud {
             ((resolve, reject) => {
                 this.logger.debug(action, 'NIC: ', nicName);
 
-                this.networkClient.networkInterfaces.createOrUpdate(group, nicName,
+                this.networkClients[this.primarySubscriptionId].networkInterfaces.createOrUpdate(
+                    group,
+                    nicName,
                     nicParams,
                     (error, data) => {
                         if (error) {
@@ -489,7 +492,8 @@ class Cloud extends AbstractCloud {
                         } else {
                             resolve(data);
                         }
-                    });
+                    }
+                );
             })
         );
     }
@@ -669,21 +673,19 @@ class Cloud extends AbstractCloud {
     _getRouteTables(options) {
         const tags = options.tags || {};
 
-        return new Promise((resolve, reject) => {
-            this.networkClient.routeTables.listAll((error, data) => {
+        return Promise.all(Object.keys(this.networkClients).map(id => new Promise((resolve, reject) => {
+            this.networkClients[id].routeTables.listAll((error, data) => {
                 if (error) {
                     reject(error);
                 } else {
                     resolve(data);
                 }
             });
-        })
-            .then((routeTables) => {
-                // filter route tables based on tag(s)
-                routeTables = this._filterRouteTablesByTag(routeTables, tags);
-                this.logger.silly('Filtered Route tables:', routeTables);
-                return Promise.resolve(routeTables);
-            })
+        })))
+            .then(routeTablesBySubscription => Promise.resolve(this._filterRouteTablesByTag(
+                Array.prototype.concat.apply([], routeTablesBySubscription),
+                tags
+            )))
             .catch(err => Promise.reject(err));
     }
 
@@ -789,7 +791,9 @@ class Cloud extends AbstractCloud {
         this.logger.debug('Updating route table: ', routeTableName, routeName, routeOptions);
 
         return new Promise((resolve, reject) => {
-            this.networkClient.routes.beginCreateOrUpdate(
+            this.networkClients[
+                this._parseResourceId(routeOptions.id).subscriptionId
+            ].routes.beginCreateOrUpdate(
                 routeTableGroup, routeTableName, routeName, routeOptions,
                 (error, data) => {
                     if (error) {
@@ -800,6 +804,17 @@ class Cloud extends AbstractCloud {
                 }
             );
         });
+    }
+
+    /**
+    * Parse resource ID
+    *
+    * @returns {Object} { subscriptionId: '' }
+    */
+    _parseResourceId(resourceString) {
+        return {
+            subscriptionId: resourceString.split('/')[2]
+        };
     }
 }
 
