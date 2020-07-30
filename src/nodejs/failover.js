@@ -148,7 +148,8 @@ class FailoverClient {
             .then((updates) => {
                 this.addressDiscovery = updates[0] || {};
                 this.routeDiscovery = updates[1] || {};
-
+                logger.silly(`addressesDiscovered ${this.addressDiscovery}`);
+                logger.silly(`routesDiscovered ${this.routeDiscovery}`);
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running',
@@ -365,19 +366,15 @@ class FailoverClient {
         logger.debug('Retrieved failover addresses ', this.failoverAddresses);
 
         const updateActions = [];
-        if (this.isAddressOperationsEnabled) {
-            updateActions.push(this.cloudProvider.updateAddresses({
-                localAddresses: this.localAddresses,
-                failoverAddresses: this.failoverAddresses,
-                discoverOnly: true
-            }));
-        }
-        if (this.isRouteOperationsEnabled) {
-            updateActions.push(this.cloudProvider.updateRoutes({
-                localAddresses: this.localAddresses,
-                discoverOnly: true
-            }));
-        }
+        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
+            localAddresses: this.localAddresses,
+            failoverAddresses: this.failoverAddresses,
+            discoverOnly: true
+        }) : {});
+        updateActions.push(this.isRouteOperationsEnabled ? this.cloudProvider.updateRoutes({
+            localAddresses: this.localAddresses,
+            discoverOnly: true
+        }) : {});
 
         return Promise.all(updateActions)
             .catch(err => Promise.reject(err));

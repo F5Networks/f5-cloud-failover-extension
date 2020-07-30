@@ -213,6 +213,7 @@ describe('Failover', () => {
         .then(() => {
             validateFailover({ isAddressOperationsEnabled: false });
             assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
+            assert.deepStrictEqual(spyOnUpdateRoutes.calledTwice, true);
         })
         .catch(err => Promise.reject(err)));
 
