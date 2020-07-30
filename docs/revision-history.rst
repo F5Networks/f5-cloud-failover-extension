@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.7
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated the :ref:`troubleshooting` section.
+        - 07-30-20
+
       * - 1.6
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated the :ref:`aws-diagram` and :ref:`aws-example`.
         - 07-16-20
