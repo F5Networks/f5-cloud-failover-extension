@@ -112,6 +112,8 @@ To create and assign a Managed Service Identity (MSI) you must have a role of `U
    .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
      :width: 800
 
+.. NOTE:: Certain resources may be deployed in a separate subscription, add role assignments for each subscription where resources are located.
+
 
 .. _azure-rbac:
 
@@ -134,7 +136,9 @@ Below is an example Azure role definition with permissions required by CFE.
 - Microsoft.Storage/storageAccounts/read
 - Microsoft.Storage/storageAccounts/listKeys/action
 
-.. IMPORTANT:: Certain resources such as the virtual network are commonly deployed in a seperate resource group, ensure the correct scopes are applied to all applicable resource groups.
+.. IMPORTANT:: Certain resources such as the virtual network are commonly deployed in a separate resource group, ensure the correct scopes are applied to all applicable resource groups.
+
+.. IMPORTANT:: Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
 
 |
 

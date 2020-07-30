@@ -289,22 +289,19 @@ class FailoverClient {
      * Parses config from the declaration that is to be passed to cloud provider init
      */
     _parseConfig() {
-        const tags = util.getDataByKey(this.config, 'failoverAddresses.scopingTags');
-        const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags');
-        const scopingAddressRanges = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges') || [];
-        const routeAddressRanges = [];
-        const storageTags = util.getDataByKey(this.config, 'externalStorage.scopingTags');
-        for (let scopingAddressIndex = 0;
-            scopingAddressIndex < scopingAddressRanges.length;
-            scopingAddressIndex += 1) {
-            const addressRange = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges')[scopingAddressIndex];
-            routeAddressRanges.push({
-                routeAddresses: addressRange.range,
-                routeNextHopAddresses: this._nextHopAddressResolver(addressRange)
-            });
-        }
         return {
-            tags, routeTags, routeAddressRanges, storageTags
+            tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+            routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
+            routeAddressRanges: (util.getDataByKey(
+                this.config, 'failoverRoutes.scopingAddressRanges'
+            ) || []).map(range => ({
+                routeAddresses: range.range,
+                routeNextHopAddresses: this._nextHopAddressResolver(range)
+            })),
+            storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
+            subscriptions: (util.getDataByKey(
+                this.config, 'failoverRoutes.defaultResourceLocations'
+            ) || []).map(location => location.subscriptionId)
         };
     }
 

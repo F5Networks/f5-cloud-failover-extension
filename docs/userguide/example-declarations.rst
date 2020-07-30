@@ -51,6 +51,20 @@ AWS IPv6 Route Failover
 :fonticon:`fa fa-download` :download:`ipv6RouteFailover.json <../../examples/declarations/ipv6RouteFailover.json>`
 
 
+Azure Route Tables in Multiple Subscriptions
+--------------------------------------------
+
+This example shows a BIG-IP cluster managing route tables in multiple subscriptions. The identity (MSI) assigned to each BIG-IP instance must have appropriate access to the additional subscriptions, see :ref:`azure-msi` for more details.
+
+.. literalinclude:: ../../examples/declarations/azureRouteTablesInMutipleSubscriptions.json
+   :language: json
+   :caption: Azure Route Tables in Multiple Subscriptions
+   :tab-width: 4
+   :linenos:
+   :emphasize-lines: 32-36
+
+:fonticon:`fa fa-download` :download:`azureRouteTablesInMutipleSubscriptions.json <../../examples/declarations/azureRouteTablesInMutipleSubscriptions.json>`
+
 
 Example Declaration Setting the Log Level
 -----------------------------------------
