@@ -263,8 +263,7 @@ To failover cloud resource objects such as private IP addresses and route tables
 
 Why do my Azure IP configuration private/public mappings change on failover?
 `````````````````````````````````````````````````````````````````````````````
-IP configurations may reassociate with the NIC in a different order, but all private/public mappings should remain the same. If the mappings are changing, ensure each IP configuration is configured using Static allocation. Dynamic allocation is strongly discouraged, it should only be used for proof of concept or during initial deployment configuration.
-
+IP configurations may reassociate with the NIC in a different order, but all private/public mappings should remain the same. If the mappings are changing, ensure each IP configuration is configured using Static allocation. Dynamic allocation is sometimes leveraged for initial deployments but is discouraged for production deployments.
 
 -----------------------------------------
 
