@@ -23,6 +23,7 @@ Index
 - :ref:`faq-default-route`
 - :ref:`faq-same-az`
 - :ref:`faq-azure-api`
+- :ref:`faq-azure-static-allocation`
 - :ref:`faq-tag`
 - :ref:`faq-existing-cluster`
 - :ref:`faq-info-store`
@@ -255,6 +256,14 @@ Yes, the BIG-IP instances and related instance objects, such as network interfac
 Does CFE eliminate the delay time observed with previous failover templates when calling the Azure APIs?
 ````````````````````````````````````````````````````````````````````````````````````````````````````````
 To failover cloud resource objects such as private IP addresses and route tables, CFE does make calls to the Azure APIs. These calls may vary significantly in response time. 
+
+-----------------------------------------
+
+.. _faq-azure-static-allocation:
+
+Why do my Azure IP configuration private/public mappings change on failover?
+`````````````````````````````````````````````````````````````````````````````
+IP configurations may reassociate with the NIC in a different order, but all private/public mappings should remain the same. If the mappings are changing, ensure each IP configuration is configured using Static allocation. Dynamic allocation is strongly discouraged, it should only be used for proof of concept or during initial deployment configuration.
 
 
 -----------------------------------------
