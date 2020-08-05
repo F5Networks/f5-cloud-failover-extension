@@ -124,6 +124,7 @@ describe('Performance Tests', () => {
                 }))
             .then((data) => {
                 const taskStatus = data.taskStateResponse;
+                const privateAddressCount = funcUtils.privateAddressesCount(taskStatus);
                 fs.writeFileSync(
                     `${constants.ARTIFACTS_LOGS_DIR}/perfTest.json`,
                     utils.stringify({
@@ -132,10 +133,13 @@ describe('Performance Tests', () => {
                         timestampDeltaInSeconds: Math.ceil((
                             new Date(taskStatus.timestamp) - new Date(startTimestamp)
                         ) / 1000),
-                        routeOperationsCount: taskStatus.failoverOperations.routes.length,
+                        routeOperationsCount: taskStatus.failoverOperations.routes.operations
+                            ? taskStatus.failoverOperations.routes.operations.length
+                            : taskStatus.failoverOperations.routes.length,
                         publicAddressOperationsCount: Object.keys(
                             taskStatus.failoverOperations.addresses.publicAddresses
-                        ).length
+                        ).length,
+                        privateAddressOperationsCount: privateAddressCount
                     })
                 );
             })
