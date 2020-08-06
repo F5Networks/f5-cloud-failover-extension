@@ -24,15 +24,7 @@
       "scopingAddressRanges": [
         {{#scopingAddressRanges}}
         {
-          "range": "{{range}}",
-          "nextHopAddresses": {
-            "discoveryType": "static",
-            "items": [
-              {{#nextHopAddresses}}
-              "{{address}}"{{^last}},{{/last}}
-              {{/nextHopAddresses}}
-            ]
-          }
+          "range": "{{range}}"
         }{{^last}},{{/last}}
         {{/scopingAddressRanges}}
       ],
