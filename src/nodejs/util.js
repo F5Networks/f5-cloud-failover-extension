@@ -82,8 +82,8 @@ module.exports = {
         const thisArg = options.thisArg || this;
         const logger = options.logger || Logger;
 
-        if (maxRetries === undefined || maxRetries === 0) {
-            return Promise.reject(options.error || new Error('Unknown retrier error'));
+        if (maxRetries === undefined || maxRetries < 0) {
+            return Promise.reject(options.error || new Error('Retrier timed out with no error provided'));
         }
         return func.apply(thisArg, args)
             .catch((error) => {

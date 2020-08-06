@@ -441,7 +441,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * _updateRouteTable iterates through the routes and calls _replaceRoute if expected route exists
+     * Iterates through the routes and perfoms route replacement
      *
      * @param {Object} routeTable         - Route table with routes
      * @param {String} networkInterfaceId - Network interface that the route if to be updated to
@@ -451,14 +451,21 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
     _updateRouteTable(routeTableId, networkInterfaceId, routeAddressRange, ipVersion) {
-        return this._replaceRoute(
-            routeAddressRange,
-            networkInterfaceId,
-            routeTableId,
-            {
-                ipVersion
-            }
-        )
+        this.logger.silly('Updating route: ', routeTableId, networkInterfaceId);
+
+        const params = {
+            NetworkInterfaceId: networkInterfaceId,
+            RouteTableId: routeTableId
+        };
+
+        // check for IPv6, default to IPv4
+        if (ipVersion === '6') {
+            params.DestinationIpv6CidrBlock = routeAddressRange;
+        } else {
+            params.DestinationCidrBlock = routeAddressRange;
+        }
+
+        return this._replaceRoute(params)
             .catch(err => Promise.reject(err));
     }
 
@@ -511,46 +518,8 @@ class Cloud extends AbstractCloud {
             params = this._addFilterToParams(params, 'route.instance-id', instanceId);
         }
 
-        return new Promise((resolve, reject) => {
-            this.ec2.describeRouteTables(params)
-                .promise()
-                .then((routeTables) => {
-                    resolve(routeTables.RouteTables);
-                })
-                .catch(err => reject(err));
-        });
-    }
-
-    /**
-     * Replaces route in a route table
-     *
-     * @param {Object} destCidr            - Destination Cidr of the Route that is to be replaced
-     * @param {String} networkInterfaceId  - Network interface ID to update the route to
-     * @param {String} routeTableId        - Route table ID where the route is to be updated
-     *
-     * @param {Object} options             - function options
-     * @param {Object} [options.ipVersion] - IP version, such as '4' or '6'
-     *
-     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
-     */
-    _replaceRoute(destCidr, networkInterfaceId, routeTableId, options) {
-        this.logger.silly('Updating route: ', routeTableId, networkInterfaceId);
-
-        options = options || {};
-
-        const params = {
-            NetworkInterfaceId: networkInterfaceId,
-            RouteTableId: routeTableId
-        };
-
-        // check for IPv6, default to IPv4
-        if (options.ipVersion === '6') {
-            params.DestinationIpv6CidrBlock = destCidr;
-        } else {
-            params.DestinationCidrBlock = destCidr;
-        }
-
-        return this.ec2.replaceRoute(params).promise()
+        return this._describeRouteTables(params)
+            .then(routeTables => Promise.resolve(routeTables.RouteTables))
             .catch(err => Promise.reject(err));
     }
 
@@ -941,7 +910,7 @@ class Cloud extends AbstractCloud {
         };
         params = this._addFilterToParams(params, 'attachment.instance-id', this.instanceId);
 
-        return this.ec2.describeNetworkInterfaces(params).promise()
+        return this._describeNetworkInterfaces(params)
             .then((data) => {
                 const privateIps = {};
                 data.NetworkInterfaces.forEach((nic) => {
@@ -998,7 +967,7 @@ class Cloud extends AbstractCloud {
             params = this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address);
         }
 
-        return this.ec2.describeNetworkInterfaces(params).promise()
+        return this._describeNetworkInterfaces(params)
             .then((data) => {
                 const nics = [];
                 data.NetworkInterfaces.forEach((nic) => {
@@ -1200,6 +1169,48 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(); // resolving since ignoring permissions errors to extraneous buckets
             });
+    }
+
+    /**
+     * Describe EC2 network interfaces, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeNetworkInterfaces(params) {
+        const func = _params => this.ec2.describeNetworkInterfaces(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeRouteTables(params) {
+        const func = _params => this.ec2.describeRouteTables(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _replaceRoute(params) {
+        const func = _params => this.ec2.replaceRoute(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
     }
 }
 

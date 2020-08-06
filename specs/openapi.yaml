@@ -74,11 +74,6 @@ paths:
                   f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - range: "192.0.2.0/24"
-                  - nextHopAddresses:
-                      discoveryType: static
-                      items:
-                        - "192.0.2.10"
-                        - "192.0.2.11"
                 defaultNextHopAddresses:
                   discoveryType: static
                   items:
@@ -111,11 +106,6 @@ paths:
                       f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - range: "192.0.2.0/24"
-                      - nextHopAddresses:
-                          discoveryType: static
-                          items:
-                            - "192.0.2.10"
-                            - "192.0.2.11"
                     defaultNextHopAddresses:
                       discoveryType: static
                       items:
@@ -178,7 +168,7 @@ paths:
                   message: Failover Unexpected Error
                   code: 500
     get:
-      summary: Running failover task state
+      summary: Show triggered failover task status
       tags:
         - Trigger
       responses:
@@ -198,7 +188,7 @@ paths:
                     addresses: {}
                   code: 202
         "200":
-          description: Failover task was successful
+          description: Successful failover task
           content:
             "application/json; charset=UTF-8":
               schema:
@@ -213,7 +203,7 @@ paths:
                     addresses: {}
                   code: 200
         "500":
-          description: Failover task failed
+          description: Failed failover task
           content:
             "application/json; charset=UTF-8":
               schema:
@@ -338,16 +328,6 @@ components:
                 properties:
                   range:
                     type: string
-                  nextHopAddresses:
-                    type: object
-                    nullable: true
-                    properties:
-                      discoveryType:
-                        type: string
-                      items:
-                        type: array
-                        items:
-                          type: string
             defaultNextHopAddresses:
               type: object
               nullable: true

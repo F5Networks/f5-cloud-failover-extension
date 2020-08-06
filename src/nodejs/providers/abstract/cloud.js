@@ -19,8 +19,7 @@
 const Logger = require('../../logger.js');
 const utils = require('../../util.js');
 
-const MAX_RETRIES = require('../../constants').MAX_RETRIES;
-const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+const constants = require('../../constants');
 
 /**
  * Abstract Cloud class - defines cloud agnostic properties and methods
@@ -31,6 +30,10 @@ const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 class AbstractCloud {
     constructor(name, options) {
         this.environment = name;
+
+        this.maxRetries = constants.MAX_RETRIES;
+        this.retryInterval = constants.RETRY_INTERVAL;
+
 
         const logger = options ? options.logger : Logger;
         if (logger) {
@@ -182,8 +185,8 @@ class AbstractCloud {
         options = options || {};
 
         return utils.retrier(func, args, {
-            maxRetries: options.maxRetries || MAX_RETRIES,
-            retryInterval: options.retryInterval || RETRY_INTERVAL,
+            maxRetries: options.maxRetries || this.maxRetries,
+            retryInterval: options.retryInterval || this.retryInterval,
             thisArg: options.thisArg || this,
             logger: options.logger || this.logger
         })

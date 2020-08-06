@@ -142,6 +142,9 @@ describe('Provider - AWS', () => {
         provider.logger.silly = sinon.stub();
         provider.logger.warning = sinon.stub();
 
+        provider.maxRetries = 0;
+        provider.retryInterval = 100;
+
         provider.metadata.request = sinon.stub()
             .callsFake((path, callback) => {
                 metadataPathRequest = path;
@@ -1078,8 +1081,6 @@ describe('Provider - AWS', () => {
     describe('function updateRoutes should', () => {
         const localAddresses = ['10.0.1.211'];
 
-        let createRouteSpy;
-
         beforeEach(() => {
             const routeTable = {
                 RouteTableId: 'rtb-123',
@@ -1164,7 +1165,6 @@ describe('Provider - AWS', () => {
                                 return Promise.resolve({});
                             }
                         });
-                    createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1181,8 +1181,12 @@ describe('Provider - AWS', () => {
         })
             .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
-                assert(createRouteSpy.calledOnce);
-                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                assert(provider.ec2.replaceRoute.calledOnce);
+                assert(provider.ec2.replaceRoute.calledWith({
+                    DestinationCidrBlock: '192.0.2.0/24',
+                    NetworkInterfaceId: 'eni-345',
+                    RouteTableId: 'rtb-123'
+                }));
             })
             .catch(err => Promise.reject(err)));
 
@@ -1191,7 +1195,7 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.notCalled);
+                    assert(provider.ec2.replaceRoute.notCalled);
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1207,8 +1211,12 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.calledOnce);
-                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1245,10 +1253,22 @@ describe('Provider - AWS', () => {
                     assert(provider.ec2.describeNetworkInterfaces.args[0][0].Filters[2].Name === 'private-ip-address');
                     assert(provider.ec2.describeNetworkInterfaces.args[1][0].Filters[2].Name === 'private-ip-address');
                     assert(provider.ec2.describeNetworkInterfaces.args[2][0].Filters[2].Name === 'ipv6-addresses.ipv6-address');
-                    assert(createRouteSpy.calledThrice);
-                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
-                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
-                    assert(createRouteSpy.calledWith('192.0.2.1/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(provider.ec2.replaceRoute.calledThrice);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationIpv6CidrBlock: '::/0',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.1/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1264,8 +1284,48 @@ describe('Provider - AWS', () => {
                 }];
             return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
-                    assert(createRouteSpy.calledOnce);
-                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationIpv6CidrBlock: '::/0',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: static (with retries)', () => {
+            provider.routeAddressRanges[0] = {
+                routeAddresses: ['192.0.2.0/24'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: ['10.0.1.211', '10.0.11.52']
+                }
+            };
+            provider.ec2.replaceRoute = sinon.stub();
+            provider.ec2.replaceRoute
+                .onCall(0)
+                .returns({
+                    promise() {
+                        return Promise.reject(new Error('Request limit exceeded'));
+                    }
+                });
+            provider.ec2.replaceRoute
+                .returns({
+                    promise() {
+                        return Promise.resolve({});
+                    }
+                });
+            provider.maxRetries = 10;
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(provider.ec2.replaceRoute.calledTwice);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1281,7 +1341,7 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.notCalled);
+                    assert(provider.ec2.replaceRoute.notCalled);
                 })
                 .catch(err => Promise.reject(err));
         });
