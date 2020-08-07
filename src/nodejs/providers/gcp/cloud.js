@@ -675,7 +675,7 @@ class Cloud extends AbstractCloud {
             return Promise.resolve({ disassociate, associate });
         }
 
-        // Look through each VM and seperate us vs. them
+        // Look through each VM and separate us vs. them
         this.vms.forEach((vm) => {
             if (vm.name === this.instanceName) {
                 myVms.push(vm);

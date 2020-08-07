@@ -505,7 +505,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} localAddresses    - local addresses
     * @param {Object} failoverAddresses - failover addresses
     *
-    * @returns {Promise}
+    * @returns {Object} { 'mine': [], 'theirs': [] }
     */
     _parseNics(nics, localAddresses, failoverAddresses) {
         const myNics = [];
@@ -541,7 +541,7 @@ class Cloud extends AbstractCloud {
                 }
             }
         }
-        return { myNics, theirNics };
+        return { mine: myNics, theirs: theirNics };
     }
 
     /**
@@ -567,61 +567,15 @@ class Cloud extends AbstractCloud {
         this.logger.info('Discover Address operations using localAddresses', localAddresses, 'failoverAddresses', failoverAddresses, 'to discover');
         return this._listNics({ tags: this.tags || null })
             .then((nics) => {
-                const disassociate = [];
-                const associate = [];
-
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
-                this.logger.silly('Parsed Network interfaces', parsedNics);
-                const myNics = parsedNics.myNics;
-                const theirNics = parsedNics.theirNics;
-                const failoverNicTag = constants.NIC_TAG;
-
-                if (!myNics || !theirNics) {
-                    this.logger.error('Could not determine network interfaces.');
-                }
-
-                // go through 'their' nics and come up with disassociate/associate actions required
-                // to move ip configurations to 'my' nics, if any are required
-                for (let s = myNics.length - 1; s >= 0; s -= 1) {
-                    for (let h = theirNics.length - 1; h >= 0; h -= 1) {
-                        if (theirNics[h].nic.tags[failoverNicTag] === undefined
-                            || myNics[s].nic.tags[failoverNicTag] === undefined) {
-                            this.logger.warning(`${failoverNicTag} tag values do not match or doesn't exist for a interface`);
-                        } else if (theirNics[h].nic.tags[failoverNicTag] === myNics[s].nic.tags[failoverNicTag]) {
-                            const theirNic = theirNics[h].nic;
-                            const myNic = myNics[s].nic;
-                            const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
-                            const myNicIpConfigs = this._getIpConfigs(myNic.ipConfigurations);
-
-                            for (let i = theirNicIpConfigs.length - 1; i >= 0; i -= 1) {
-                                for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                                    if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
-                                        this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
-
-                                        myNicIpConfigs.push(theirNicIpConfigs[i]);
-                                        theirNicIpConfigs.splice(i, 1);
-                                        break;
-                                    }
-                                }
-                            }
-
-                            theirNic.ipConfigurations = theirNicIpConfigs;
-                            myNic.ipConfigurations = myNicIpConfigs;
-
-                            disassociate.push([this.resourceGroup, theirNic.name, theirNic,
-                                'Disassociate']);
-                            associate.push([this.resourceGroup, myNic.name, myNic,
-                                'Associate']);
-                            break;
-                        }
-                    }
-                }
-                return Promise.resolve({
-                    publicAddresses: {},
-                    interfaces: { disassociate, associate },
-                    loadBalancerAddresses: {}
-                });
+                return this._generateAddressOperations(localAddresses, failoverAddresses,
+                    parsedNics);
             })
+            .then(operations => Promise.resolve({
+                publicAddresses: {},
+                interfaces: operations,
+                loadBalancerAddresses: {}
+            }))
             .catch(err => Promise.reject(err));
     }
 
@@ -660,6 +614,48 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Associate NICs successful.');
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Check for any NIC operations required
+     *
+     * @param {Array} myNics             - 'my' NIC object
+     * @param {Object} theirNic          - 'their' NIC object
+     * @param {Object} failoverAddresses - failover addresses
+     *
+     * @returns {Object} { 'disasociate': [], 'association: [] }
+     */
+    _checkForNicOperations(myNic, theirNic, failoverAddresses) {
+        const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
+        const myNicIpConfigs = this._getIpConfigs(myNic.ipConfigurations);
+
+        for (let i = theirNicIpConfigs.length - 1; i >= 0; i -= 1) {
+            for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
+                if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
+                    this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
+
+                    myNicIpConfigs.push(theirNicIpConfigs[i]);
+                    theirNicIpConfigs.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        theirNic.ipConfigurations = theirNicIpConfigs;
+        myNic.ipConfigurations = myNicIpConfigs;
+        return {
+            disassociate: [
+                this.resourceGroup,
+                theirNic.name,
+                theirNic,
+                'Disassociate'
+            ],
+            associate: [
+                this.resourceGroup,
+                myNic.name,
+                myNic,
+                'Associate'
+            ]
+        };
     }
 
     /**

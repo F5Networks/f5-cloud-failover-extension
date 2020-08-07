@@ -80,6 +80,11 @@ class AbstractCloud {
         throw new Error('Method must be implemented in child class!');
     }
 
+    _checkForNicOperations() {
+        throw new Error('Method must be implemented in child class!');
+    }
+
+
     /**
     * Discover next hop address - support 'none' (static) and routeTag discovery types
     *
@@ -191,6 +196,51 @@ class AbstractCloud {
             logger: options.logger || this.logger
         })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Generate the configuration operations required to reassociate the addresses
+     *
+     * @param {Object} localAddresses    - local addresses
+     * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} parsedNics        - parsed NICs information
+     *
+     * @returns {Promise} - A Promise that is resolved with the operations, or rejected if an error occurs
+     */
+    _generateAddressOperations(localAddresses, failoverAddresses, parsedNics) {
+        const operations = {
+            disassociate: [],
+            associate: []
+        };
+        this.logger.debug('parsedNics', parsedNics);
+        if (!parsedNics.mine || !parsedNics.theirs) {
+            this.logger.error('Could not determine network interfaces.');
+        } else {
+            // go through 'their' nics and come up with disassociate/associate actions required
+            // to move addresses to 'my' nics, if any are required
+            for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
+                for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
+                    const theirNic = parsedNics.theirs[h].nic;
+                    const myNic = parsedNics.mine[s].nic;
+                    theirNic.tags = theirNic.tags ? theirNic.tags : this._normalizeTags(theirNic.TagSet);
+                    myNic.tags = myNic.tags ? myNic.tags : this._normalizeTags(myNic.TagSet);
+                    if (theirNic.tags[constants.NIC_TAG] === undefined || myNic.tags[constants.NIC_TAG] === undefined) {
+                        this.logger.warning(`${constants.NIC_TAG} tag values do not match or doesn't exist for a interface`);
+                    } else if (theirNic.tags[constants.NIC_TAG] && myNic.tags[constants.NIC_TAG]
+                        && theirNic.tags[constants.NIC_TAG] === myNic.tags[constants.NIC_TAG]) {
+                        const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
+
+                        if (nicOperations.disassociate && nicOperations.associate) {
+                            operations.disassociate.push(nicOperations.disassociate);
+                            operations.associate.push(nicOperations.associate);
+                        }
+                    }
+                }
+            }
+            this.logger.debug('Generated Address Operations', operations);
+        }
+
+        return Promise.resolve(operations);
     }
 }
 
