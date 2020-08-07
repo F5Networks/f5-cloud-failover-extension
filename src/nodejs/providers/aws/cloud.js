@@ -289,9 +289,12 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Discover address operations found Elastic IPs:', eips);
                 this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
                 this.logger.debug('Discover address operations found Nics', nics);
+                const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
-                    this._generateAddressOperations(nics, localAddresses, failoverAddresses)
+                    this._generateAddressOperations(localAddresses,
+                        failoverAddresses, parsedNics)
                 ]);
             })
             .then(operations => Promise.resolve({
@@ -846,50 +849,6 @@ class Cloud extends AbstractCloud {
                 addresses: addressesToTake
             }
         };
-    }
-
-    /**
-     * Generate the configuration operations required to reassociate the addresses
-     *
-     * @param {Array} nics               - array of NIC information
-     * @param {Object} localAddresses    - local addresses
-     * @param {Object} failoverAddresses - failover addresses
-     *
-     * @returns {Promise} - A Promise that is resolved with the operations, or rejected if an error occurs
-     */
-    _generateAddressOperations(nics, localAddresses, failoverAddresses) {
-        const operations = {
-            disassociate: [],
-            associate: []
-        };
-        const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
-        this.logger.debug('parsedNics', parsedNics);
-        if (!parsedNics.mine || !parsedNics.theirs) {
-            this.logger.error('Could not determine network interfaces.');
-        }
-
-        // go through 'their' nics and come up with disassociate/associate actions required
-        // to move addresses to 'my' nics, if any are required
-        for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
-            for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
-                const theirNic = parsedNics.theirs[h].nic;
-                const myNic = parsedNics.mine[s].nic;
-                const theirNicTags = this._normalizeTags(theirNic.TagSet);
-                const myNicTags = this._normalizeTags(myNic.TagSet);
-
-                if (theirNicTags[constants.NIC_TAG] && myNicTags[constants.NIC_TAG]
-                    && theirNicTags[constants.NIC_TAG] === myNicTags[constants.NIC_TAG]) {
-                    const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
-
-                    if (nicOperations.disassociate && nicOperations.associate) {
-                        operations.disassociate.push(nicOperations.disassociate);
-                        operations.associate.push(nicOperations.associate);
-                    }
-                }
-            }
-        }
-        this.logger.debug('Generated Address Operations', operations);
-        return Promise.resolve(operations);
     }
 
     /**
