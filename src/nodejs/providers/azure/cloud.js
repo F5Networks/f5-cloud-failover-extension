@@ -73,14 +73,14 @@ class Cloud extends AbstractCloud {
                         this.environment.resourceManagerEndpointUrl
                     );
                 });
-                return this._listStorageAccounts({ tags: this.storageTags });
+                return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }]);
             })
             .then((storageAccounts) => {
                 if (!storageAccounts.length) {
                     return Promise.reject(new Error('No storage account found!'));
                 }
                 const storageAccount = storageAccounts[0]; // only need one
-                return this._getStorageAccountKey(storageAccount.name);
+                return this._retrier(this._getStorageAccountKey, [storageAccount.name]);
             })
             .then((storageAccountInfo) => {
                 this.logger.silly('Storage Account Information: ', storageAccountInfo);
@@ -90,7 +90,7 @@ class Cloud extends AbstractCloud {
                     storageAccountInfo.key,
                     `${storageAccountInfo.name}.blob${this.environment.storageEndpointSuffix}`
                 );
-                return this._initStorageAccountContainer(storageContainerName);
+                return this._retrier(this._initStorageAccountContainer, [storageContainerName]);
             })
             .then(() => {
                 this.logger.silly('Cloud Provider initialization complete');
