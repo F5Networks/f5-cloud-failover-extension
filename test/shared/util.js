@@ -125,5 +125,24 @@ module.exports = {
                 const msg = `getAuthToken: ${err}`;
                 throw new Error(msg);
             });
+    },
+
+    /**
+     * Base64 encoder/decoder
+     *
+     * @param {String} action - decode|encode
+     * @param {String} data - data to process
+     *
+     * @returns {String} Returns processed data as a string
+     */
+    base64(action, data) {
+        // support decode|encode actions
+        if (action === 'decode') {
+            return Buffer.from(data, 'base64').toString().trim();
+        }
+        if (action === 'encode') {
+            return Buffer.from(data).toString('base64');
+        }
+        throw new Error('Unsupported action, try one of these: decode, encode');
     }
 };
