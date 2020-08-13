@@ -53,6 +53,23 @@ I'm receiving a **404** error after upgrading the BIG-IP version
 F5 is currently tracking this issue (929213). Workaround: f5-cloud-failover RPM needs to be re-uploaded.
 
 
+Failover objects are not mapped to the Active BIG-IP after a cluster reboot
+```````````````````````````````````````````````````````````````````````````
+After both BIG-IP VMs have been rebooted, sometimes failover objects are not mapped to the Active BIG-IP.
+
+#. BIG-IP 2 is Active (and has failover objects)
+#. Shutdown BIG-IP 1
+#. Shutdown BIG-IP 2
+#. Start BIG-IP 1
+#. Wait 1 minute
+#. Start BIG-IP 2
+#. BIG-IP 1 should be Active (and have failover objects)
+
+Failover under these conditions normally works as long as restnoded comes up before HA status is determined and tgactive is called.
+
+If, during a reboot, the objects are mapped to the wrong BIG-IP, you can force a failover event by POSTing to the `/trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ endpoint of the **currently active** BIG-IP.
+
+
 
 |
 
