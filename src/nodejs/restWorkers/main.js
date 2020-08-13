@@ -61,7 +61,6 @@ function Worker() {
  */
 Worker.prototype.onStart = function (success, error) {
     try {
-        logger.info('Created cloud failover worker');
         success();
     } catch (err) {
         const message = `Error creating cloud failover worker: ${err}`;
@@ -88,6 +87,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     }
 
     configWorker.init()
+        .then(() => device.init())
         .then(() => configWorker.getConfig())
         .then((config) => {
             // set log level if it has been provided in the configuration
@@ -95,7 +95,6 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
                 logger.setLogLevel(config.controls.logLevel);
             }
         })
-        .then(() => device.init())
         .then(() => {
             success();
         })

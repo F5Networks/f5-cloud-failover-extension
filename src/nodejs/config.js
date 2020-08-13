@@ -171,9 +171,23 @@ class ConfigWorker {
     _updateTriggerScript(scriptPath) {
         return this.device.executeBigIpBashCmd(`'cat ${scriptPath}'`)
             .then((contents) => {
-                // check if trigger command has already been written first
-                if (contents.indexOf(constants.TRIGGER_COMMENT) !== -1) {
+                // check if trigger command already exists (and is up to date)
+                if (contents.indexOf(`${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`) !== -1) {
                     return Promise.resolve();
+                }
+                // trigger command does not exist (or is out of date)
+                if (contents.indexOf(constants.TRIGGER_COMMENT) !== -1) {
+                    // out of date - replace everything from trigger comment to the next pair of
+                    //  new line characters or the end of the file, whichever comes first
+                    const startIndex = contents.indexOf(constants.TRIGGER_COMMENT);
+                    const endIndex = contents.indexOf('\n\n', startIndex) !== -1 ? contents.indexOf('\n\n', startIndex) : contents.length;
+                    contents = contents.replace(
+                        contents.slice(startIndex, endIndex),
+                        `${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`
+                    );
+                } else {
+                    // does not exist
+                    contents = contents.concat(`\n${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`);
                 }
                 // check if legacy failover script call needs to be disabled
                 constants.LEGACY_TRIGGER_COMMANDS.forEach((command) => {
@@ -184,9 +198,9 @@ class ConfigWorker {
                         );
                     }
                 });
-                // finally, insert failover trigger command
-                contents = contents.concat(`\n${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`);
-                return this.device.executeBigIpBashCmd(`'echo "${contents}" > ${scriptPath}'`);
+                return this.device.executeBigIpBashCmd(
+                    `'echo "${util.base64('encode', contents)}" | base64 --decode > ${scriptPath}'`
+                );
             })
             .catch(err => Promise.reject(err));
     }
