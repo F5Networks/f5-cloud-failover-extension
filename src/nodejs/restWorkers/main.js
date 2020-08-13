@@ -27,6 +27,8 @@ const schemaUtils = require('../schema/schemaUtils.js');
 const telemetry = new TelemetryClient();
 const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
+const errorMessageDetail = 'Also see cloud docs link for more help: '
+    + 'https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/troubleshooting.html';
 
 /**
  * @class Worker
@@ -204,7 +206,7 @@ function processRequest(restOperation) {
                     }))
                 .catch(err => util.restOperationResponder(restOperation, 500,
                     {
-                        message: util.stringify(err.message)
+                        message: util.stringify(`${err.message} -> ${errorMessageDetail}`)
                     }));
         case 'GET':
             return configWorker.getConfig()
