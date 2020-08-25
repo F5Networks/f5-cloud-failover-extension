@@ -316,7 +316,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getInstanceMetadata() {
-        return new Promise((resolve, reject) => {
+        const func = () => new Promise((resolve, reject) => {
             cloudLibsUtil.getDataFromUrl(
                 'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
                 {
@@ -329,9 +329,12 @@ class Cloud extends AbstractCloud {
                     resolve(metaData);
                 })
                 .catch((err) => {
-                    reject(err);
+                    const message = `Error getting instance metadata ${err.message}`;
+                    reject(new Error(message));
                 });
         });
+        return this._retrier(func, [])
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -784,7 +787,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
     _updateRoute(routeTableGroup, routeTableName, routeName, routeOptions) {
-        this.logger.debug('Updating route table: ', routeTableName, routeName, routeOptions);
+        this.logger.silly('Updating route table: ', routeTableName, routeName, routeOptions);
 
         return new Promise((resolve, reject) => {
             this.networkClients[
