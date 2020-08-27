@@ -310,6 +310,7 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const tags = options.tags || {};
 
+        this.logger.silly('Listing Storage Accounts');
         return this.storageClient.storageAccounts.list()
             .then((storageAccounts) => {
                 // if true, filter storage accounts based on 1+ tags
@@ -341,6 +342,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getStorageAccountKey(name) {
+        this.logger.silly('Listing Storage Keys');
         return this.storageClient.storageAccounts.listKeys(this.resourceGroup, name)
             .then((data) => {
                 // simply grab the first key, for now
@@ -359,6 +361,7 @@ class Cloud extends AbstractCloud {
     */
     _initStorageAccountContainer(name) {
         return new Promise(((resolve, reject) => {
+            this.logger.silly('Creating storage account container');
             this.storageOperationsClient.createContainerIfNotExists(name, (err) => {
                 if (err) {
                     reject(err);
@@ -380,9 +383,9 @@ class Cloud extends AbstractCloud {
     */
     _listNics(options) {
         const tags = options.tags || {};
-
         return new Promise(
             ((resolve, reject) => {
+                this.logger.silly('Listing Network Interfaces');
                 this.networkClients[this.primarySubscriptionId].networkInterfaces.list(
                     this.resourceGroup,
                     (error, data) => {
@@ -445,7 +448,7 @@ class Cloud extends AbstractCloud {
         return new Promise(
             ((resolve, reject) => {
                 this.logger.debug(action, 'NIC: ', nicName);
-
+                this.logger.silly('Updating Network Interfaces');
                 this.networkClients[this.primarySubscriptionId].networkInterfaces.createOrUpdate(
                     group,
                     nicName,

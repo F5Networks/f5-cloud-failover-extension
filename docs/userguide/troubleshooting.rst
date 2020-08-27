@@ -8,6 +8,7 @@ Cloud Failover Extension general troubleshooting tips
 -----------------------------------------------------
 
 - Examine the restnoded failure log at ``/var/log/restnoded/restnoded.log``. This is where Cloud Failover Extension records error messages.
+- To see all log messages, make sure to set the log level to silly.
 - Examine the REST response:
 
   - A 400-level response will carry an error message.
@@ -22,7 +23,7 @@ Use this section for specific troubleshooting help.
 I'm receiving a **path not registered** error when I try to post a declaration
 ``````````````````````````````````````````````````````````````````````````````
 
-If you are receiving this error, it means either you did not install Cloud Failover Extension, or it did not install properly. The error contains the following message:  
+If you are receiving this error, it means either you did not install Cloud Failover Extension, or it did not install properly. The error contains the following message:
 
 .. code-block:: shell
 
