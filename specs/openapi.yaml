@@ -318,26 +318,31 @@ components:
         failoverRoutes:
           type: object
           properties:
-            scopingTags:
-              type: object
-              additionalProperties: true
-            scopingAddressRanges:
+            enabled:
+              type: string
+            routeGroupDefinitions:
               type: array
-              items:
-                type: object
-                properties:
-                  range:
-                    type: string
-            defaultNextHopAddresses:
-              type: object
-              nullable: true
               properties:
-                discoveryType:
-                  type: string
-                items:
+                scopingTags:
+                  type: object
+                  additionalProperties: true
+                scopingAddressRanges:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    properties:
+                      range:
+                        type: string
+                defaultNextHopAddresses:
+                  type: object
+                  nullable: true
+                  properties:
+                    discoveryType:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
         controls:
           type: object
           properties:

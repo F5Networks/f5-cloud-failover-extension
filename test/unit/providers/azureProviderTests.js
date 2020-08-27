@@ -45,6 +45,9 @@ describe('Provider - Azure', () => {
         provider.logger.debug = sinon.stub();
         provider.logger.verbose = sinon.stub();
         provider.logger.silly = sinon.stub();
+
+        provider.maxRetries = 0;
+        provider.retryInterval = 100;
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -639,14 +642,18 @@ describe('Provider - Azure', () => {
             provider._initStorageAccountContainer = sinon.stub().resolves();
 
             return provider.init({
-                routeTags: { F5_LABEL: 'foo' },
-                routeAddressRanges: [
+                routeGroupDefinitions: [
                     {
-                        routeAddresses: ['192.0.0.0/24'],
-                        routeNextHopAddresses: {
-                            type: 'routeTag',
-                            tag: 'F5_SELF_IPS'
-                        }
+                        routeTags: { F5_LABEL: 'foo' },
+                        routeAddressRanges: [
+                            {
+                                routeAddresses: ['192.0.0.0/24'],
+                                routeNextHopAddresses: {
+                                    type: 'routeTag',
+                                    tag: 'F5_SELF_IPS'
+                                }
+                            }
+                        ]
                     }
                 ],
                 subscriptions: [secondarySubscriptionId]
@@ -682,7 +689,7 @@ describe('Provider - Azure', () => {
             .catch(err => Promise.reject(err)));
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['10.0.1.10', '10.0.1.11']
             };
@@ -697,7 +704,7 @@ describe('Provider - Azure', () => {
         });
 
         it('update multiple routes using next hop discovery method: static', () => {
-            provider.routeAddressRanges.push({
+            provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['192.0.1.0/24'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -716,7 +723,7 @@ describe('Provider - Azure', () => {
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: []
             };
@@ -731,7 +738,7 @@ describe('Provider - Azure', () => {
         });
 
         it('update routes across multiple subscriptions', () => {
-            provider.routeAddressRanges.push({
+            provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['192.0.10.0/24'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -746,6 +753,69 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
 
                     routeUpdateSpy = provider.networkClients[secondarySubscriptionId].routes.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using multiple route group definitions', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['10.0.1.10', '10.0.1.11']
+                            }
+                        }
+                    ]
+                },
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.1.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['10.0.1.10', '10.0.1.11']
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using route name', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'rt01',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['10.0.1.10', '10.0.1.11']
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                 })
                 .catch(err => Promise.reject(err));
@@ -892,13 +962,21 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
-            provider.routeAddressRanges = [{
-                routeAddresses: ['192.0.0.0/24'],
-                routeNextHopAddresses: {
-                    type: 'routeTag',
-                    tag: 'F5_SELF_IPS'
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'routeTag',
+                                tag: 'F5_SELF_IPS'
+                            }
+                        }
+                    ]
                 }
-            }];
+            ];
+
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -936,11 +1014,13 @@ describe('Provider - Azure', () => {
             };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadataStandby);
             provider._getRouteTables = sinon.stub().resolves([]);
-            provider.routeNextHopAddresses = {
-                type: 'routeTag',
-                tag: 'F5_SELF_IPS'
-            };
-
+            provider.routeGroupDefinitions = [
+                {
+                    routeNextHopAddresses: {
+                        type: 'routeTag',
+                        tag: 'F5_SELF_IPS'
+                    }
+                }];
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);

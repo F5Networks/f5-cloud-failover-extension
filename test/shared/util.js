@@ -144,5 +144,24 @@ module.exports = {
             return Buffer.from(data).toString('base64');
         }
         throw new Error('Unsupported action, try one of these: decode, encode');
+    },
+
+    /**
+     * Create data group object
+     *
+     * @param {Object} config
+     *
+     * @returns {Object} Returns formatted data group object
+     */
+    createDataGroupObject(config) {
+        return {
+            name: 'f5-cloud-failover-store',
+            records: [
+                {
+                    name: 'state',
+                    data: Buffer.from(JSON.stringify({ config })).toString('base64')
+                }
+            ]
+        };
     }
 };

@@ -1,10 +1,6 @@
 {
     "class": "Cloud_Failover",
     "environment": "aws",
-    "controls":{
-        "class":"Controls",
-        "logLevel":"silly"
-    },
     "externalStorage": {
       "scopingTags": {
         "f5_cloud_failover_label": "mydeployment"
@@ -27,8 +23,8 @@
           "nextHopAddresses": {
             "discoveryType": "static",
             "items": [
-                "10.0.13.11",
-                "10.0.23.11"
+                "192.0.2.10",
+                "192.0.2.11"
             ]
           }
         }

@@ -186,36 +186,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update routes
-    *
-    * @param {Object} options                     - function options
-    * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
-    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-    * @param {Boolean} [options.updateOperations] - skip discovery and perform 'these' update operations
-    *
-    * @returns {Promise}
-    */
-    updateRoutes(options) {
-        options = options || {};
-        const localAddresses = options.localAddresses || [];
-        const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations;
-
-        if (discoverOnly === true) {
-            return this._discoverRouteOperations(localAddresses)
-                .catch(err => Promise.reject(err));
-        }
-        if (updateOperations) {
-            return this._updateRoutes(updateOperations.operations)
-                .catch(err => Promise.reject(err));
-        }
-        // default - discover and update
-        return this._discoverRouteOperations(localAddresses)
-            .then(operations => this._updateRoutes(operations.operations))
-            .catch(err => Promise.reject(err));
-    }
-
-    /**
      * Send HTTP Request to GCP API (Compute)
      *
      * @returns {Promise} A promise which will be resolved upon complete response
@@ -480,20 +450,20 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Returns routes objects used for failover; method uses routes' description values
-     * to identify route objects to work with
+     * Collects routes (tables) from the provider
      *
-     * @param {Object} options        - function options
-     * @param {Object} [options.tags] - object containing 1+ tags to filter on { 'key': 'value' }
+     * @param {Object} options            - function options
+     * @param {Array} [options.pageToken] - Optionally provide a pagination token
      *
      * @returns {Promise} A promise which will provide list of routes which need to be updated
      *
      */
-    _getRoutes(options) {
+    _getRouteTables(options) {
         options = options || {};
-        const tags = options.tags || {};
+
         const pageToken = options.pageToken || '';
         const routesList = [];
+
         const getRoutesWithNextPageToken = (routeList, nextPageToken) => {
             this.logger.silly(`getRoutes called with nextPageToken ${nextPageToken}`);
             return new Promise((resolve, reject) => {
@@ -519,22 +489,8 @@ class Cloud extends AbstractCloud {
                     .catch(err => reject(err));
             });
         };
+
         return getRoutesWithNextPageToken(routesList, pageToken)
-            .then((foundRoutesList) => {
-                const ourRoutes = foundRoutesList.filter((item) => {
-                    const itemTags = gcpLabelParse(item.description);
-                    let matchedTags = 0;
-                    const tagKeys = Object.keys(tags);
-                    tagKeys.forEach((key) => {
-                        if (Object.keys(itemTags).indexOf(key) !== -1 && itemTags[key] === tags[key]) {
-                            matchedTags += 1;
-                        }
-                    });
-                    return tagKeys.length === matchedTags;
-                });
-                this.logger.debug(`Filtered Routes ${ourRoutes}`);
-                return Promise.resolve(ourRoutes);
-            })
             .catch(err => Promise.reject(err));
     }
 
@@ -587,7 +543,7 @@ class Cloud extends AbstractCloud {
         data.instance = this.instanceName;
         return Promise.all([
             this._getVmsByTags(this.tags),
-            this._getRoutes({ tags: this.routeTags })
+            this._getRouteTables()
         ])
             .then((result) => {
                 const privateIps = [];
@@ -607,16 +563,28 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 });
-                result[1].forEach((route) => {
-                    // only show route if the Big-IP instance is active
-                    // by matching the nextHopIp with privateIps of active Big-IP
-                    if (privateIps.includes(route.nextHopIp)) {
-                        data.routes.push({
-                            routeTableId: route.id,
-                            routeTableName: route.name,
-                            networkId: route.network
-                        });
-                    }
+                this.routeGroupDefinitions.forEach((routeGroup) => {
+                    const filteredRouteTables = this._filterRouteTables(
+                        result[1].map(routeTable => Object.assign(
+                            routeTable,
+                            { parsedTags: gcpLabelParse(routeTable.description || '') }
+                        )),
+                        {
+                            name: routeGroup.routeName,
+                            tags: routeGroup.routeTags
+                        }
+                    );
+                    filteredRouteTables.forEach((route) => {
+                        // only show route if the Big-IP instance is active
+                        // by matching the nextHopIp with privateIps of active Big-IP
+                        if (privateIps.includes(route.nextHopIp)) {
+                            data.routes.push({
+                                routeTableId: route.id,
+                                routeTableName: route.name,
+                                networkId: route.network
+                            });
+                        }
+                    });
                 });
                 return Promise.resolve(data);
             })
@@ -842,32 +810,39 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise} { operations: [] }
     */
-    _discoverRouteOperations(localAddresses) {
-        localAddresses = localAddresses || [];
+    _discoverRouteOperationsPerGroup(localAddresses, routeGroup, routeTables) {
         const operations = [];
-        return this._getRoutes({ tags: this.routeTags })
-            .then((routes) => {
-                this.logger.silly('Discovered routes: ', routes);
-                routes.forEach((route) => {
-                    const matchedAddressRange = this._matchRouteToAddressRange(route.destRange);
-                    if (matchedAddressRange) {
-                        const nextHopAddress = this._discoverNextHopAddress(
-                            localAddresses,
-                            gcpLabelParse(route.description),
-                            matchedAddressRange.routeNextHopAddresses
-                        );
-                        // check if route should be updated and if next hop is our address,
-                        // if not we need to update it
-                        if (nextHopAddress && route.nextHopIp !== nextHopAddress) {
-                            this.logger.silly('Route to be updated', route);
-                            route.nextHopIp = nextHopAddress;
-                            operations.push(route);
-                        }
-                    }
-                });
-                return Promise.resolve({ operations });
-            })
-            .catch(err => Promise.reject(err));
+        const filteredRouteTables = this._filterRouteTables(
+            routeTables.map(routeTable => Object.assign(
+                routeTable,
+                { parsedTags: gcpLabelParse(routeTable.description) }
+            )),
+            {
+                name: routeGroup.routeName,
+                tags: routeGroup.routeTags
+            }
+        );
+
+        // route table object "is" the route, there are no child route objects
+        filteredRouteTables.forEach((route) => {
+            const matchedAddressRange = this._matchRouteToAddressRange(
+                route.destRange,
+                routeGroup.routeAddressRanges
+            );
+            if (matchedAddressRange) {
+                const nextHopAddress = this._discoverNextHopAddress(
+                    localAddresses,
+                    gcpLabelParse(route.description),
+                    matchedAddressRange.routeNextHopAddresses
+                );
+                if (nextHopAddress && route.nextHopIp !== nextHopAddress) {
+                    this.logger.silly('Route to be updated: ', route);
+                    route.nextHopIp = nextHopAddress;
+                    operations.push(route);
+                }
+            }
+        });
+        return Promise.resolve(operations);
     }
 
     /**

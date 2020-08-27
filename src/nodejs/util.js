@@ -115,7 +115,7 @@ module.exports = {
             if (ret && typeof ret === 'object' && i in ret) {
                 ret = ret[i];
             } else {
-                ret = null;
+                ret = undefined;
             }
         });
         return ret;
