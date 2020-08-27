@@ -289,15 +289,34 @@ class FailoverClient {
      * Parses config from the declaration that is to be passed to cloud provider init
      */
     _parseConfig() {
+        let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
+        const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
+        const routeAddressRanges = (util.getDataByKey(
+            this.config, 'failoverRoutes.scopingAddressRanges'
+        ) || [{ range: 'all' }]).map(range => ({
+            routeAddresses: range.range,
+            routeNextHopAddresses: this._nextHopAddressResolver(range,
+                util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses') || [])
+        }));
+
+        if (routeGroupDefinitions.length === 0) {
+            routeGroupDefinitions = [{
+                routeTags,
+                routeAddressRanges
+            }];
+        } else {
+            routeGroupDefinitions = routeGroupDefinitions.map(routeGroupInfo => ({
+                routeName: routeGroupInfo.scopingName,
+                routeTags: routeGroupInfo.scopingTags,
+                routeAddressRanges: (routeGroupInfo.scopingAddressRanges || [{ range: 'all' }]).map(range => ({
+                    routeAddresses: range.range,
+                    routeNextHopAddresses: this._nextHopAddressResolver(range, routeGroupInfo.defaultNextHopAddresses)
+                }))
+            }));
+        }
         return {
             tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
-            routeTags: util.getDataByKey(this.config, 'failoverRoutes.scopingTags'),
-            routeAddressRanges: (util.getDataByKey(
-                this.config, 'failoverRoutes.scopingAddressRanges'
-            ) || []).map(range => ({
-                routeAddresses: range.range,
-                routeNextHopAddresses: this._nextHopAddressResolver(range)
-            })),
+            routeGroupDefinitions,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             subscriptions: (util.getDataByKey(
                 this.config, 'failoverRoutes.defaultResourceLocations'
@@ -308,7 +327,7 @@ class FailoverClient {
     /**
      * Resolves appropriate next hop addresses if no next hop address is provided and returns the default
      */
-    _nextHopAddressResolver(addressRange) {
+    _nextHopAddressResolver(addressRange, defaultNextHopAddresses) {
         if (addressRange.nextHopAddresses) {
             return {
                 // Note: type is set to provide default discovery type of 'routeTag' for backwards compatibility...
@@ -318,8 +337,8 @@ class FailoverClient {
             };
         }
         return {
-            type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
-            items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
+            type: defaultNextHopAddresses.discoveryType || 'routeTag',
+            items: defaultNextHopAddresses.items,
             tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
         };
     }

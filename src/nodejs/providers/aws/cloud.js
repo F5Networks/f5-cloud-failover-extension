@@ -151,41 +151,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Updates route tables, by using the next hop address discovery method to find the network interface the
-     * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     * Get Associated Address and Route Info - Returns associated and route table information
      *
-     * @param {Object} options                     - function options
-     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
-     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
-     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
-     *
-     * @returns {Promise} - Resolves or rejects with the status of updating the route table
+     * @returns {Object}
      */
-    updateRoutes(options) {
-        options = options || {};
-        const localAddresses = options.localAddresses;
-        const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations;
-
-        this.logger.silly('updateRoutes: ', options);
-
-        // discover only logic
-        if (discoverOnly === true) {
-            return this._discoverRouteOperations(localAddresses)
-                .catch(err => Promise.reject(err));
-        }
-        // update only logic
-        if (updateOperations) {
-            return this._updateRoutes(updateOperations)
-                .catch(err => Promise.reject(err));
-        }
-        // default - discover and update
-        return this._discoverRouteOperations(localAddresses)
-            .then(operations => this._updateRoutes(operations))
-            .catch(err => Promise.reject(err));
-    }
-
     getAssociatedAddressAndRouteInfo() {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
@@ -223,6 +192,11 @@ class Cloud extends AbstractCloud {
      * @returns {Object} - Modified parameters object
      */
     _addFilterToParams(params, filterName, filterValue) {
+        params = params || {};
+
+        if (!params.Filters) {
+            params.Filters = [];
+        }
         params.Filters.push(
             {
                 Name: filterName,
@@ -354,18 +328,59 @@ class Cloud extends AbstractCloud {
     * Discover route operations
     *
     * @param {Array} localAddresses - array containing local (self) addresses [ '192.0.2.1' ]
+    * @param {Object} routeGroup    - object containing group properties
+    * @param {Array} routeTables    - array of route tables
     *
     * @returns {Promise} [ { routeTable: {}, networkInterfaceId: 'foo' }]
     */
-    _discoverRouteOperations(localAddresses) {
-        localAddresses = localAddresses || [];
+    _discoverRouteOperationsPerGroup(localAddresses, routeGroup, routeTables) {
+        const operations = [];
+        const filteredRouteTables = this._filterRouteTables(
+            routeTables,
+            {
+                name: routeGroup.routeName,
+                tags: routeGroup.routeTags
+            }
+        );
 
-        const _getUpdateOperationObject = (
-            routeAddresses,
-            address,
-            routeTable,
-            route
-        ) => this._getNetworkInterfaceId(address)
+        filteredRouteTables.forEach((routeTable) => {
+            routeTable.Routes.forEach((route) => {
+                const matchedAddressRange = this._matchRouteToAddressRange(
+                    this._resolveRouteCidrBlock(route).cidrBlock,
+                    routeGroup.routeAddressRanges
+                );
+                if (matchedAddressRange) {
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.Tags,
+                        matchedAddressRange.routeNextHopAddresses
+                    );
+                    if (nextHopAddress) {
+                        operations.push(this._getUpdateOperationObject(
+                            matchedAddressRange.routeAddresses, nextHopAddress, routeTable, route
+                        ));
+                    }
+                }
+            });
+        });
+
+        return Promise.all(operations)
+            .then(routesToUpdate => routesToUpdate.filter(route => Object.keys(route).length))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get update operation
+    *
+    * @param {Array} routeAddresses - array of route addresses
+    * @param {String} address       - object containing group properties
+    * @param {Object} routeTable    - route table
+    * @param {Object} route         - route in route table
+    *
+    * @returns {Promise} { routeTable: {}, networkInterfaceId: '', routeAddress: '', ipVersion: '' }
+    */
+    _getUpdateOperationObject(routeAddresses, address, routeTable, route) {
+        return this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
                 const updateRequired = (routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
@@ -384,35 +399,7 @@ class Cloud extends AbstractCloud {
                 });
             })
             .catch(err => Promise.reject(err));
-
-        return this._getRouteTables({ tags: this.routeTags })
-            .then((routeTables) => {
-                const promises = [];
-                routeTables.forEach((routeTable) => {
-                    routeTable.Routes.forEach((route) => {
-                        const matchedAddressRange = this._matchRouteToAddressRange(
-                            this._resolveRouteCidrBlock(route).cidrBlock
-                        );
-                        if (matchedAddressRange) {
-                            const nextHopAddress = this._discoverNextHopAddress(
-                                localAddresses,
-                                routeTable.Tags,
-                                matchedAddressRange.routeNextHopAddresses
-                            );
-                            if (nextHopAddress) {
-                                promises.push(_getUpdateOperationObject(
-                                    matchedAddressRange.routeAddresses, nextHopAddress, routeTable, route
-                                ));
-                            }
-                        }
-                    });
-                });
-                return Promise.all(promises);
-            })
-            .then(routesToUpdate => Promise.resolve(routesToUpdate.filter(route => Object.keys(route).length)))
-            .catch(err => Promise.reject(err));
     }
-
 
     /**
     * Update addresses - given reassociate operation(s)
@@ -500,25 +487,15 @@ class Cloud extends AbstractCloud {
      * Fetches the route tables based on the provided tag
      *
      * @param {Object} options                  - function options
-     * @param {Object} [options.tags]           - object containing tags to filter on { 'key': 'value' }
      * @param {Object} [options.instanceId]     - object containing instanceId to filter on
      * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
      */
     _getRouteTables(options) {
-        const tags = options.tags || null;
-        const instanceId = options.instanceId || null;
+        options = options || {};
 
-        let params = {
-            Filters: []
-        };
-        if (tags) {
-            const tagKeys = Object.keys(tags);
-            tagKeys.forEach((tagKey) => {
-                params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
-            });
-        }
-        if (instanceId) {
-            params = this._addFilterToParams(params, 'route.instance-id', instanceId);
+        let params = {};
+        if (options.instanceId) {
+            params = this._addFilterToParams(params, 'route.instance-id', options.instanceId);
         }
 
         return this._describeRouteTables(params)

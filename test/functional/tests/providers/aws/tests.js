@@ -41,14 +41,14 @@ function matchElasticIpsToInstance(eips, instance) {
 }
 
 function matchRouteTables(routeTables, nics) {
-    const scopingAddressesRanges = deploymentDeclaration.failoverRoutes.scopingAddressRanges.map(i => i.range);
+    const routeGroupDefinitions = deploymentDeclaration.failoverRoutes.routeGroupDefinitions;
     const routes = Array.prototype.concat.apply(
         [], routeTables.map(routeTable => routeTable.Routes.map(route => route))
     );
 
     routes.forEach((route) => {
         const cidrBlock = route.DestinationCidrBlock || route.DestinationIpv6CidrBlock;
-        if (scopingAddressesRanges.includes(cidrBlock)) {
+        if (routeGroupDefinitions[0].scopingAddressRanges.map(i => i.range).includes(cidrBlock)) {
             assert.strictEqual(
                 nics.includes(route.NetworkInterfaceId),
                 true,

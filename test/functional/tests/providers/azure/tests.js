@@ -31,8 +31,8 @@ const rgName = deploymentInfo.deploymentId;
 const declaration = funcUtils.getDeploymentDeclaration();
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
-const routeTagKey = Object.keys(declaration.failoverRoutes.scopingTags)[0];
-const routeTagValue = declaration.failoverRoutes.scopingTags[routeTagKey];
+const routeTagKey = Object.keys(declaration.failoverRoutes.routeGroupDefinitions[0].scopingTags)[0];
+const routeTagValue = declaration.failoverRoutes.routeGroupDefinitions[0].scopingTags[routeTagKey];
 
 // helper functions
 function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {

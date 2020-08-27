@@ -27,13 +27,18 @@ describe('Provider - AWS', () => {
             key1: 'value1',
             key2: 'value2'
         },
-        routeTags: {
-            F5_CLOUD_FAILOVER_LABEL: 'foo'
-        },
-        routeAddressRanges: [
+        routeGroupDefinitions: [
             {
-                routeAddresses: ['192.0.2.0/24']
-            }],
+                routeTags: {
+                    F5_CLOUD_FAILOVER_LABEL: 'foo'
+                },
+                routeAddressRanges: [
+                    {
+                        routeAddresses: ['192.0.2.0/24']
+                    }
+                ]
+            }
+        ],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -1139,7 +1144,7 @@ describe('Provider - AWS', () => {
             };
 
             const thisMockInitData = mockInitData;
-            thisMockInitData.routeAddressRanges[0].routeNextHopAddresses = {
+            thisMockInitData.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };
@@ -1191,7 +1196,7 @@ describe('Provider - AWS', () => {
             .catch(err => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
-            provider.routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
@@ -1201,7 +1206,7 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeAddressRanges[0] = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
                 routeAddresses: ['192.0.2.0/24'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -1222,7 +1227,7 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using multiple next hop discovery method: static', () => {
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['192.0.2.0/24'],
                     routeNextHopAddresses: {
@@ -1274,7 +1279,7 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['::/0'],
                     routeNextHopAddresses: {
@@ -1295,7 +1300,7 @@ describe('Provider - AWS', () => {
         });
 
         it('update routes using next hop discovery method: static (with retries)', () => {
-            provider.routeAddressRanges[0] = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
                 routeAddresses: ['192.0.2.0/24'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -1330,8 +1335,36 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('update routes using route name', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'rtb-123',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.2.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['10.0.1.211', '10.0.11.52']
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeAddressRanges[0] = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
                 routeAddresses: ['::/0'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -1347,7 +1380,7 @@ describe('Provider - AWS', () => {
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = [{
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = [{
                 type: 'foo'
             }];
 

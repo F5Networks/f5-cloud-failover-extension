@@ -73,8 +73,8 @@ describe('Failover', () => {
 
         sinon.stub(Device.prototype, 'init').resolves();
         sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
-        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
-        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'getDataGroups').resolves(util.createDataGroupObject(declaration));
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(util.createDataGroupObject(declaration));
         deviceGlobalSettingsMock = sinon.stub(Device.prototype, 'getGlobalSettings');
         deviceGetTrafficGroupsMock = sinon.stub(Device.prototype, 'getTrafficGroupsStats');
         deviceGetSelfAddressesMock = sinon.stub(Device.prototype, 'getSelfAddresses');
@@ -175,6 +175,34 @@ describe('Failover', () => {
             const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(1).args[0];
             assert.deepStrictEqual(updateRoutesUpdateCall.updateOperations, {});
         }
+    }
+
+    /**
+     * Validate route properties
+     *
+     * @param {Object}  spy              - function options
+     * @param {Integer} localDeclaration - local addresses to validate against
+     * @param {Integer} range            - failover addresses to validate against
+     *
+     * @returns {Void}
+     */
+    function validateRouteProperties(spy, localDeclaration, range) {
+        const callArg = spy.lastCall.lastArg;
+        // check scoping name
+        assert.deepStrictEqual(
+            callArg.routeGroupDefinitions[0].routeName,
+            localDeclaration.failoverRoutes.routeGroupDefinitions[0].scopingName
+        );
+        // check scoping address ranges
+        assert.deepStrictEqual(
+            callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses,
+            range
+        );
+        // check next hop address items
+        assert.deepStrictEqual(
+            callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses.items,
+            localDeclaration.failoverRoutes.routeGroupDefinitions[0].defaultNextHopAddresses.items
+        );
     }
 
     it('should execute failover', () => config.init()
@@ -548,21 +576,157 @@ describe('Failover', () => {
             }
         };
         const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+
         return config.init()
             .then(() => config.processConfigRequest(defaultNextHopAddressDeclaration))
             .then(() => failover.init())
             .then(() => {
                 const callArg = spyOnCloudProviderInit.lastCall.lastArg;
-                assert(callArg.routeAddressRanges[0].routeAddresses
+                assert(callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses
                     === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[0].range);
-                assert(callArg.routeAddressRanges[0].routeNextHopAddresses.type
+                assert(callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses.type
                     === defaultNextHopAddressDeclaration.failoverRoutes.defaultNextHopAddresses.discoveryType);
-                assert(callArg.routeAddressRanges[1].routeAddresses
+                assert(callArg.routeGroupDefinitions[0].routeAddressRanges[1].routeAddresses
                     === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1].range);
-                assert(callArg.routeAddressRanges[1].routeNextHopAddresses.type
+                assert(callArg.routeGroupDefinitions[0].routeAddressRanges[1].routeNextHopAddresses.type
                     === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1]
                         .nextHopAddresses.discoveryType);
-            });
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should parse global route config into a single route group definition', () => {
+        const localDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            failoverAddresses: {
+                enabled: true,
+                scopingTags: {
+                    f5_cloud_failover_label: 'test'
+                }
+            },
+            failoverRoutes: {
+                enabled: true,
+                scopingTags: {
+                    f5_cloud_failover_label: 'mydeployment'
+                },
+                scopingAddressRanges: [
+                    {
+                        range: '192.168.1.0/24'
+                    }
+                ],
+                defaultNextHopAddresses: {
+                    discoveryType: 'static',
+                    items: [
+                        '192.0.2.10',
+                        '192.0.2.11'
+                    ]
+                }
+            }
+        };
+        const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+
+        return config.init()
+            .then(() => config.processConfigRequest(localDeclaration))
+            .then(() => failover.init())
+            .then(() => {
+                const callArg = spyOnCloudProviderInit.lastCall.lastArg;
+                // check scoping tags
+                assert.deepStrictEqual(
+                    callArg.routeGroupDefinitions[0].routeTags,
+                    localDeclaration.failoverRoutes.scopingTags
+                );
+                // check scoping address ranges
+                assert.deepStrictEqual(
+                    callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses,
+                    localDeclaration.failoverRoutes.scopingAddressRanges[0].range
+                );
+                // check next hop address items
+                assert.deepStrictEqual(
+                    callArg.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses.items,
+                    localDeclaration.failoverRoutes.defaultNextHopAddresses.items
+                );
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should parse config for specific route group definitions', () => {
+        const localDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            failoverAddresses: {
+                enabled: true,
+                scopingTags: {
+                    f5_cloud_failover_label: 'test'
+                }
+            },
+            failoverRoutes: {
+                enabled: true,
+                routeGroupDefinitions: [
+                    {
+                        scopingName: 'route-1',
+                        scopingAddressRanges: [
+                            {
+                                range: '192.0.2.0/24'
+                            }
+                        ],
+                        defaultNextHopAddresses: {
+                            discoveryType: 'static',
+                            items: [
+                                '192.0.2.10',
+                                '192.0.2.11'
+                            ]
+                        }
+                    }
+                ]
+            }
+        };
+        const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+
+        return config.init()
+            .then(() => config.processConfigRequest(localDeclaration))
+            .then(() => failover.init())
+            .then(() => {
+                validateRouteProperties(spyOnCloudProviderInit, localDeclaration, '192.0.2.0/24');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should parse config for route group definitions without scoping address ranges', () => {
+        const localDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'azure',
+            failoverAddresses: {
+                enabled: true,
+                scopingTags: {
+                    f5_cloud_failover_label: 'test'
+                }
+            },
+            failoverRoutes: {
+                enabled: true,
+                routeGroupDefinitions: [
+                    {
+                        scopingName: 'route-1',
+                        defaultNextHopAddresses: {
+                            discoveryType: 'static',
+                            items: [
+                                '192.0.2.10',
+                                '192.0.2.11'
+                            ]
+                        }
+                    }
+                ]
+            }
+        };
+        const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+
+        return config.init()
+            .then(() => config.processConfigRequest(localDeclaration))
+            .then(() => failover.init())
+            .then(() => {
+                validateRouteProperties(spyOnCloudProviderInit, localDeclaration, 'all');
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('should send telemetry on failover success', () => config.init()

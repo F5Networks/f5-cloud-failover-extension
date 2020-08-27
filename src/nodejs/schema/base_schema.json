@@ -5,6 +5,16 @@
     "description": "Top level schema for enabling cloud failover for BIG-IP",
     "type": "object",
     "definitions": {
+        "enabled": {
+            "type": "boolean"
+        },
+        "scopingName": {
+            "type": "string"
+        },
+        "scopingTags": {
+            "type": "object",
+            "additionalProperties": true
+        },
         "nextHopAddresses": {
             "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
             "type": "object",
@@ -27,15 +37,35 @@
                 "discoveryType"
             ]
         },
-        "resourceLocation": {
+        "scopingAddressRanges": {
+            "$comment": "This should be an array with each item as an object to allow support for multiple properties per item in the future.",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "range": {
+                        "type": "string",
+                        "format": "ipAddressWithCidr"
+                    },
+                    "nextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
+                },
+                "required": [
+                    "range"
+                ]
+            }
+        },
+        "resourceLocations": {
             "$comment": "Resource location is a standard definition describing environment specific location information (Azure Subscription, AWS account, GCP project)",
-            "type": "object",
-            "properties": {
-                "subscriptionId": {
-                    "type": "string"
-                }
-            },
-            "required": []
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "subscriptionId": {
+                        "type": "string"
+                    }
+                },
+                "required": []
+            }
         }
     },
     "required": [
@@ -101,43 +131,50 @@
         "failoverRoutes": {
             "title": "Failover Routes",
             "description": "Route(s) this deployment will manage.",
-            "type": "object",
-            "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "scopingTags": {
+            "allOf": [
+                {
                     "type": "object",
-                    "additionalProperties": true
+                    "properties": {
+                        "enabled": { "$ref": "#/definitions/enabled" },
+                        "defaultResourceLocations": { "$ref": "#/definitions/resourceLocations" }
+                    }
                 },
-                "scopingAddressRanges": {
-                    "$comment": "This should be an array with each item as an object to allow support for multiple properties per item in the future.",
-                    "type": "array",
-                    "items": {
+                {
+                    "if": { "required": [ "routeGroupDefinitions" ] },
+                    "then": {
                         "type": "object",
                         "properties": {
-                            "range": {
-                                "type": "string",
-                                "format": "ipAddressWithCidr"
-                            },
-                            "nextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
+                            "routeGroupDefinitions": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "scopingName": { "$ref": "#/definitions/scopingName" },
+                                        "scopingTags": { "$ref": "#/definitions/scopingTags" },
+                                        "scopingAddressRanges": { "$ref": "#/definitions/scopingAddressRanges" },
+                                        "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" }
+                                    },
+                                    "additionalProperties": false
+                                }
+                             }
                         },
                         "required": [
-                            "range"
+                            "routeGroupDefinitions"
+                        ]
+                    },
+                    "else": {
+                        "type": "object",
+                        "properties": {
+                            "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" },
+                            "scopingTags": { "$ref": "#/definitions/scopingTags" },
+                            "scopingAddressRanges": { "$ref": "#/definitions/scopingAddressRanges" }
+                        },
+                        "required": [
+                            "scopingTags",
+                            "scopingAddressRanges"
                         ]
                     }
-                },
-                "defaultNextHopAddresses": { "$ref": "#/definitions/nextHopAddresses" },
-                "defaultResourceLocations": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/resourceLocation"
-                    }
                 }
-            },
-            "required": [
-                "scopingTags",
-                "scopingAddressRanges"
             ]
         },
         "externalStorage": {
