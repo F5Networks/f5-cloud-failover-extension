@@ -503,10 +503,12 @@ class FailoverClient {
                         message: 'Failover has never been triggered'
                     });
                 }
-
                 return Promise.resolve(data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => {
+                logger.error(`getTaskStateFile error: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 
     /**
