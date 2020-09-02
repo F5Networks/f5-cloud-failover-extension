@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.8
+        - Updated the documentation for Cloud Failover Extension v1.5.0 with the following changes: |br| • Added :ref:`increase-memory` section to the Quickstart and Installation pages.
+        - 09-03-20        
+
       * - 1.7
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated the :ref:`troubleshooting` section.
         - 07-30-20

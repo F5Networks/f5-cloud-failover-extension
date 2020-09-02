@@ -23,7 +23,19 @@ up and running with Cloud Failover.
 
    - Select the downloaded file and click :guilabel:`Upload`
    - For complete instructions see :ref:`installgui-ref` or :ref:`installcurl-ref`
-    
+
+#. When using the BIG-IP API, F5 recommends increasing the memory allocated to the process called **restjavad**. Note that this process will cause service interruption. Add additional memory for restjavad using the following procedure:
+
+   - In the BIG-IP user interface, navigate to **System > Resource Provisioning**. Set Management provisioning to **Large**. 
+   - Modify sys db variables using following commands in the CLI (bash):
+
+     ``tmsh modify sys db provision.extramb value 1000``
+
+     ``tmsh modify sys db restjavad.useextramb value true``
+  
+   - Restart restjavad daemons:
+
+     ``bigstart restart restjavad restnoded``    
 
 #. Be sure to see the |known-issues| to review any known issues and other important information before you attempt to use Cloud Failover Extension.
 
@@ -43,7 +55,7 @@ up and running with Cloud Failover.
     }
 
 
-#. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`gcp`, :ref:`aws`, and :ref:`azure`.
+#. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`gcp`, :ref:`aws`, and :ref:`azure` as well as the :ref:`example-declarations` section.
 
 #. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
