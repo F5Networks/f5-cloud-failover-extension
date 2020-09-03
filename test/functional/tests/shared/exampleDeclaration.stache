@@ -18,14 +18,18 @@
     },
     "failoverRoutes": {
       "enabled": true,
-      "scopingTags": {
-        "f5_cloud_failover_label": "{{deploymentId}}"
-      },
-      "scopingAddressRanges": [
-        {{#scopingAddressRanges}}
-        {
-          "range": "{{range}}",
-          "nextHopAddresses": {
+      "routeGroupDefinitions": [{
+          "scopingTags": {
+            "f5_cloud_failover_label": "{{deploymentId}}"
+          },
+          "scopingAddressRanges": [
+            {{#scopingAddressRanges}}
+            {
+              "range": "{{range}}"
+            }{{^last}},{{/last}}
+            {{/scopingAddressRanges}}
+          ],
+          "defaultNextHopAddresses": {
             "discoveryType": "static",
             "items": [
               {{#nextHopAddresses}}
@@ -33,16 +37,7 @@
               {{/nextHopAddresses}}
             ]
           }
-        }{{^last}},{{/last}}
-        {{/scopingAddressRanges}}
-      ],
-      "defaultNextHopAddresses": {
-        "discoveryType": "static",
-        "items": [
-          {{#nextHopAddresses}}
-          "{{address}}"{{^last}},{{/last}}
-          {{/nextHopAddresses}}
-        ]
-      }
+        }]
     }
+
 }

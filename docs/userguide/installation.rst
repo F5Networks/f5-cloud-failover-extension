@@ -1,6 +1,6 @@
 .. _installation:
 
-Download and install Cloud Failover Extension
+Download and Install Cloud Failover Extension
 =============================================
 
 The Cloud Failover Extension package is an RPM file you download, and then upload to the BIG-IP system using the iControl/iApp LX framework. Alternatively, you can see the :doc:`quickstart` section.
@@ -97,7 +97,27 @@ If you want to use cURL to install Cloud Failover Extension, use the following c
 
        curl -kvu $CREDS "https://$IP/mgmt/shared/iapp/package-management-tasks" -H "Origin: https://$IP" -H 'Content-Type: application/json;charset=UTF-8' --data $DATA
 
+.. _increase-memory:
 
+Increase Memory Allocated to Restjavad
+``````````````````````````````````````
+When using the BIG-IP API, F5 recommends increasing the memory allocated to the process called **restjavad**. Note that this process will cause service interruption.
+
+Add additional memory for restjavad using following procedure:
+
+#. In the BIG-IP user interface, navigate to **System > Resource Provisioning**. Set Management provisioning to **Large**. 
+#. Modify sys db variables using following commands in the CLI (bash):
+
+   ``tmsh modify sys db provision.extramb value 1000``
+
+   ``tmsh modify sys db restjavad.useextramb value true``
+  
+
+#. Restart restjavad daemons:
+
+   ``bigstart restart restjavad restnoded``
+
+See `K26427018: Overview of Management provisioning <https://support.f5.com/csp/article/K26427018>`_ for more on the memory allocation.
 
 |
 

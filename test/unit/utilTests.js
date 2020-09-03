@@ -79,7 +79,7 @@ describe('Util', () => {
                     assert.fail(); // should reject
                 })
                 .catch(() => {
-                    assert.strictEqual(fakeFuncSpy.callCount, retryCount);
+                    assert.strictEqual(fakeFuncSpy.callCount, retryCount + 1);
                 });
         });
     });

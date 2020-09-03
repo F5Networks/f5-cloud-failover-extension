@@ -27,13 +27,18 @@ describe('Provider - AWS', () => {
             key1: 'value1',
             key2: 'value2'
         },
-        routeTags: {
-            F5_CLOUD_FAILOVER_LABEL: 'foo'
-        },
-        routeAddressRanges: [
+        routeGroupDefinitions: [
             {
-                routeAddresses: ['192.0.2.0/24']
-            }],
+                routeTags: {
+                    F5_CLOUD_FAILOVER_LABEL: 'foo'
+                },
+                routeAddressRanges: [
+                    {
+                        routeAddresses: ['192.0.2.0/24']
+                    }
+                ]
+            }
+        ],
         storageTags: {
             sKey1: 'storageKey1'
         }
@@ -141,6 +146,9 @@ describe('Provider - AWS', () => {
         provider.logger.error = sinon.stub();
         provider.logger.silly = sinon.stub();
         provider.logger.warning = sinon.stub();
+
+        provider.maxRetries = 0;
+        provider.retryInterval = 100;
 
         provider.metadata.request = sinon.stub()
             .callsFake((path, callback) => {
@@ -274,6 +282,46 @@ describe('Provider - AWS', () => {
                 })
                 .then((response) => {
                     assert.deepEqual(response, _getAllS3BucketsStubResponse);
+                })
+                .catch(() => {
+                    assert.fail();
+                }));
+
+            it('should return an array of bucket names filtered by region', () => provider.init(mockInitData)
+                .then(() => {
+                    // eslint-disable-next-line arrow-body-style
+                    provider.s3.listBuckets = sinon.stub()
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve(listBucketsSubResponse);
+                            }
+                        }));
+                    provider.region = 'us';
+                    const getBucketLocationStub = sinon.stub();
+                    getBucketLocationStub.onCall(0)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'ca' });
+                            }
+                        }));
+                    getBucketLocationStub.onCall(1)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'ca' });
+                            }
+                        }));
+                    getBucketLocationStub.onCall(2)
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'us' });
+                            }
+                        }));
+                    provider.s3.getBucketLocation = getBucketLocationStub;
+                    provider._getAllS3Buckets = originalgetAllS3Buckets;
+                    return provider._getAllS3Buckets();
+                })
+                .then((response) => {
+                    assert.deepEqual(response, [_getAllS3BucketsStubResponse[2]]);
                 })
                 .catch(() => {
                     assert.fail();
@@ -1038,8 +1086,6 @@ describe('Provider - AWS', () => {
     describe('function updateRoutes should', () => {
         const localAddresses = ['10.0.1.211'];
 
-        let createRouteSpy;
-
         beforeEach(() => {
             const routeTable = {
                 RouteTableId: 'rtb-123',
@@ -1098,7 +1144,7 @@ describe('Provider - AWS', () => {
             };
 
             const thisMockInitData = mockInitData;
-            thisMockInitData.routeAddressRanges[0].routeNextHopAddresses = {
+            thisMockInitData.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'F5_SELF_IPS'
             };
@@ -1124,7 +1170,6 @@ describe('Provider - AWS', () => {
                                 return Promise.resolve({});
                             }
                         });
-                    createRouteSpy = sinon.spy(provider, '_replaceRoute');
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1141,23 +1186,27 @@ describe('Provider - AWS', () => {
         })
             .then(operations => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
-                assert(createRouteSpy.calledOnce);
-                assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                assert(provider.ec2.replaceRoute.calledOnce);
+                assert(provider.ec2.replaceRoute.calledWith({
+                    DestinationCidrBlock: '192.0.2.0/24',
+                    NetworkInterfaceId: 'eni-345',
+                    RouteTableId: 'rtb-123'
+                }));
             })
             .catch(err => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
-            provider.routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.notCalled);
+                    assert(provider.ec2.replaceRoute.notCalled);
                 })
                 .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeAddressRanges[0] = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
                 routeAddresses: ['192.0.2.0/24'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -1167,14 +1216,18 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.calledOnce);
-                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
 
         it('update routes using multiple next hop discovery method: static', () => {
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['192.0.2.0/24'],
                     routeNextHopAddresses: {
@@ -1205,16 +1258,28 @@ describe('Provider - AWS', () => {
                     assert(provider.ec2.describeNetworkInterfaces.args[0][0].Filters[2].Name === 'private-ip-address');
                     assert(provider.ec2.describeNetworkInterfaces.args[1][0].Filters[2].Name === 'private-ip-address');
                     assert(provider.ec2.describeNetworkInterfaces.args[2][0].Filters[2].Name === 'ipv6-addresses.ipv6-address');
-                    assert(createRouteSpy.calledThrice);
-                    assert(createRouteSpy.calledWith('192.0.2.0/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
-                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
-                    assert(createRouteSpy.calledWith('192.0.2.1/24', 'eni-345', 'rtb-123', { ipVersion: '4' }));
+                    assert(provider.ec2.replaceRoute.calledThrice);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationIpv6CidrBlock: '::/0',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.1/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['::/0'],
                     routeNextHopAddresses: {
@@ -1224,14 +1289,82 @@ describe('Provider - AWS', () => {
                 }];
             return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
-                    assert(createRouteSpy.calledOnce);
-                    assert(createRouteSpy.calledWith('::/0', 'eni-345', 'rtb-123', { ipVersion: '6' }));
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationIpv6CidrBlock: '::/0',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using next hop discovery method: static (with retries)', () => {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
+                routeAddresses: ['192.0.2.0/24'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: ['10.0.1.211', '10.0.11.52']
+                }
+            };
+            provider.ec2.replaceRoute = sinon.stub();
+            provider.ec2.replaceRoute
+                .onCall(0)
+                .returns({
+                    promise() {
+                        return Promise.reject(new Error('Request limit exceeded'));
+                    }
+                });
+            provider.ec2.replaceRoute
+                .returns({
+                    promise() {
+                        return Promise.resolve({});
+                    }
+                });
+            provider.maxRetries = 10;
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(provider.ec2.replaceRoute.calledTwice);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using route name', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'rtb-123',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.2.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['10.0.1.211', '10.0.11.52']
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses })
+                .then(() => {
+                    assert(provider.ec2.replaceRoute.calledOnce);
+                    assert(provider.ec2.replaceRoute.calledWith({
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        NetworkInterfaceId: 'eni-345',
+                        RouteTableId: 'rtb-123'
+                    }));
                 })
                 .catch(err => Promise.reject(err));
         });
 
         it('not update routes when matching next hop address is not found', () => {
-            provider.routeAddressRanges[0] = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0] = {
                 routeAddresses: ['::/0'],
                 routeNextHopAddresses: {
                     type: 'static',
@@ -1241,13 +1374,13 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(createRouteSpy.notCalled);
+                    assert(provider.ec2.replaceRoute.notCalled);
                 })
                 .catch(err => Promise.reject(err));
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = [{
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = [{
                 type: 'foo'
             }];
 

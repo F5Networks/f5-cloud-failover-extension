@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -101,6 +101,6 @@
         "bail": true
     },
     "auditProcessor": {
-        "whitelist": ["1523"]
+        "whitelist": []
     }
 }

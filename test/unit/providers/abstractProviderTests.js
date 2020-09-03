@@ -30,7 +30,6 @@ describe('Provider - Abstract', () => {
         // check abstract methods that should throw
         const methods = [
             'updateAddresses',
-            'updateRoutes',
             'uploadDataToStorage',
             'downloadDataFromStorage'
         ];

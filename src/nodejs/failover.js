@@ -22,6 +22,7 @@ const util = require('./util.js');
 const configWorker = require('./config.js');
 const CloudFactory = require('./providers/cloudFactory.js');
 const constants = require('./constants.js');
+const TelemetryClient = require('./telemetry.js').TelemetryClient;
 
 const failoverStates = constants.FAILOVER_STATES;
 const deviceStatus = constants.BIGIP_STATUS;
@@ -34,6 +35,8 @@ const stateFileContents = {
     failoverOperations: {}
 };
 const RUNNING_TASK_MAX_MS = 10 * 60000; // 10 minutes
+
+const telemetry = new TelemetryClient();
 
 class FailoverClient {
     constructor() {
@@ -83,8 +86,15 @@ class FailoverClient {
 
     /**
      * Execute (primary function)
+     *
+     * @param {Object} [options] - function options
+     * @param {String} [options.callerAttributes] - caller attributes (use for telemetry)
+     *
      */
-    execute() {
+    execute(options) {
+        options = options || {};
+        this.callerAttributes = options.callerAttributes || {};
+        this.startTimestamp = new Date().toJSON();
         this.isAddressOperationsEnabled = this._getOperationEnabledState('failoverAddresses');
         logger.debug('Address operations enabled? ', this.isAddressOperationsEnabled);
         this.isRouteOperationsEnabled = this._getOperationEnabledState('failoverRoutes');
@@ -138,7 +148,8 @@ class FailoverClient {
             .then((updates) => {
                 this.addressDiscovery = updates[0] || {};
                 this.routeDiscovery = updates[1] || {};
-
+                logger.silly(`addressesDiscovered ${this.addressDiscovery}`);
+                logger.silly(`routesDiscovered ${this.routeDiscovery}`);
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running',
@@ -180,6 +191,15 @@ class FailoverClient {
             .then(() => {
                 logger.info('Failover Complete');
             })
+            .then(() => this._sendTelemetry({
+                result: failoverStates.PASS,
+                resultSummary: 'Failover Successful',
+                resourceCount: {
+                    addresses: Object.keys(this.addressDiscovery.publicAddresses || {}).length
+                                + (this.addressDiscovery.interfaces || { associate: [] }).associate.length,
+                    routes: this.routeDiscovery.length
+                }
+            }))
             .catch((err) => {
                 logger.error(`${util.stringify(err.message)} ${util.stringify(err.stack)}`);
                 return this._createAndUpdateStateObject({
@@ -190,6 +210,10 @@ class FailoverClient {
                         routes: this.routeDiscovery
                     }
                 })
+                    .then(() => this._sendTelemetry({
+                        result: failoverStates.FAIL,
+                        resultSummary: util.stringify(err.message)
+                    }))
                     .then(() => Promise.reject(err))
                     .catch(() => Promise.reject(err));
             });
@@ -265,29 +289,45 @@ class FailoverClient {
      * Parses config from the declaration that is to be passed to cloud provider init
      */
     _parseConfig() {
-        const tags = util.getDataByKey(this.config, 'failoverAddresses.scopingTags');
-        const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags');
-        const scopingAddressRanges = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges') || [];
-        const routeAddressRanges = [];
-        const storageTags = util.getDataByKey(this.config, 'externalStorage.scopingTags');
-        for (let scopingAddressIndex = 0;
-            scopingAddressIndex < scopingAddressRanges.length;
-            scopingAddressIndex += 1) {
-            const addressRange = util.getDataByKey(this.config, 'failoverRoutes.scopingAddressRanges')[scopingAddressIndex];
-            routeAddressRanges.push({
-                routeAddresses: addressRange.range,
-                routeNextHopAddresses: this._nextHopAddressResolver(addressRange)
-            });
+        let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
+        const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
+        const routeAddressRanges = (util.getDataByKey(
+            this.config, 'failoverRoutes.scopingAddressRanges'
+        ) || [{ range: 'all' }]).map(range => ({
+            routeAddresses: range.range,
+            routeNextHopAddresses: this._nextHopAddressResolver(range,
+                util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses') || [])
+        }));
+
+        if (routeGroupDefinitions.length === 0) {
+            routeGroupDefinitions = [{
+                routeTags,
+                routeAddressRanges
+            }];
+        } else {
+            routeGroupDefinitions = routeGroupDefinitions.map(routeGroupInfo => ({
+                routeName: routeGroupInfo.scopingName,
+                routeTags: routeGroupInfo.scopingTags,
+                routeAddressRanges: (routeGroupInfo.scopingAddressRanges || [{ range: 'all' }]).map(range => ({
+                    routeAddresses: range.range,
+                    routeNextHopAddresses: this._nextHopAddressResolver(range, routeGroupInfo.defaultNextHopAddresses)
+                }))
+            }));
         }
         return {
-            tags, routeTags, routeAddressRanges, storageTags
+            tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+            routeGroupDefinitions,
+            storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
+            subscriptions: (util.getDataByKey(
+                this.config, 'failoverRoutes.defaultResourceLocations'
+            ) || []).map(location => location.subscriptionId)
         };
     }
 
     /**
      * Resolves appropriate next hop addresses if no next hop address is provided and returns the default
      */
-    _nextHopAddressResolver(addressRange) {
+    _nextHopAddressResolver(addressRange, defaultNextHopAddresses) {
         if (addressRange.nextHopAddresses) {
             return {
                 // Note: type is set to provide default discovery type of 'routeTag' for backwards compatibility...
@@ -297,8 +337,8 @@ class FailoverClient {
             };
         }
         return {
-            type: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.discoveryType') || 'routeTag',
-            items: util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses.items'),
+            type: defaultNextHopAddresses.discoveryType || 'routeTag',
+            items: defaultNextHopAddresses.items,
             tag: constants.ROUTE_NEXT_HOP_ADDRESS_TAG
         };
     }
@@ -342,19 +382,15 @@ class FailoverClient {
         logger.debug('Retrieved failover addresses ', this.failoverAddresses);
 
         const updateActions = [];
-        if (this.isAddressOperationsEnabled) {
-            updateActions.push(this.cloudProvider.updateAddresses({
-                localAddresses: this.localAddresses,
-                failoverAddresses: this.failoverAddresses,
-                discoverOnly: true
-            }));
-        }
-        if (this.isRouteOperationsEnabled) {
-            updateActions.push(this.cloudProvider.updateRoutes({
-                localAddresses: this.localAddresses,
-                discoverOnly: true
-            }));
-        }
+        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
+            localAddresses: this.localAddresses,
+            failoverAddresses: this.failoverAddresses,
+            discoverOnly: true
+        }) : {});
+        updateActions.push(this.isRouteOperationsEnabled ? this.cloudProvider.updateRoutes({
+            localAddresses: this.localAddresses,
+            discoverOnly: true
+        }) : {});
 
         return Promise.all(updateActions)
             .catch(err => Promise.reject(err));
@@ -467,10 +503,12 @@ class FailoverClient {
                         message: 'Failover has never been triggered'
                     });
                 }
-
                 return Promise.resolve(data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => {
+                logger.error(`getTaskStateFile error: ${util.stringify(err.message)}`);
+                return Promise.reject(err);
+            });
     }
 
     /**
@@ -646,6 +684,29 @@ class FailoverClient {
             localAddresses,
             failoverAddresses
         };
+    }
+
+    /**
+     * Send telemetry data
+     *
+     * @param {Object} [options] - function options
+     *
+     * @returns {Object}
+     */
+
+    _sendTelemetry(options) {
+        return telemetry.send(telemetry.createTelemetryData({
+            startTime: this.startTimestamp,
+            action: this.callerAttributes.httpMethod,
+            endpoint: this.callerAttributes.endpoint || '',
+            result: options.result,
+            resultSummary: options.resultSummary,
+            environment: this.config.environment,
+            ipFailover: this.isAddressOperationsEnabled,
+            routeFailover: this.isRouteOperationsEnabled,
+            resourceCount: options.resourceCount
+        }))
+            .catch(err => Promise.reject(err));
     }
 }
 

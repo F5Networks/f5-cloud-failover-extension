@@ -49,11 +49,14 @@ module.exports = {
      * @param {Object} restOperation  - restOperation to complete
      * @param {String} status         - HTTP status code
      * @param {String} body           - HTTP body
+     *
+     * @returns {Promise} A promise which will be resolved once function resolves
      */
     restOperationResponder(restOperation, status, body) {
         restOperation.setStatusCode(status);
         restOperation.setBody(body);
         restOperation.complete();
+        return Promise.resolve({ status, body });
     },
 
     /**
@@ -79,8 +82,8 @@ module.exports = {
         const thisArg = options.thisArg || this;
         const logger = options.logger || Logger;
 
-        if (maxRetries === undefined || maxRetries === 0) {
-            return Promise.reject(options.error || new Error('Unknown retrier error'));
+        if (maxRetries === undefined || maxRetries < 0) {
+            return Promise.reject(options.error || new Error('Retrier timed out with no error provided'));
         }
         return func.apply(thisArg, args)
             .catch((error) => {
@@ -112,7 +115,7 @@ module.exports = {
             if (ret && typeof ret === 'object' && i in ret) {
                 ret = ret[i];
             } else {
-                ret = null;
+                ret = undefined;
             }
         });
         return ret;

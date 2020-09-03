@@ -1,6 +1,6 @@
 openapi: "3.0.0"
 info:
-  version: 1.4.0
+  version: 1.5.0
   title: Cloud Failover (CF) Extension
   description: F5 Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CFE Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
@@ -21,9 +21,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/InformationResponse"
               example:
-                version: "1.4.0"
+                version: "1.5.0"
                 release: "1"
-                schemaCurrent: "1.4.0"
+                schemaCurrent: "1.5.0"
                 schemaMinimum: "0.9.1"
         default:
           description: Unexpected Error
@@ -74,11 +74,6 @@ paths:
                   f5_cloud_failover_label: mydeployment
                 scopingAddressRanges:
                   - range: "192.0.2.0/24"
-                  - nextHopAddresses:
-                      discoveryType: static
-                      items:
-                        - "192.0.2.10"
-                        - "192.0.2.11"
                 defaultNextHopAddresses:
                   discoveryType: static
                   items:
@@ -111,11 +106,6 @@ paths:
                       f5_cloud_failover_label: mydeployment
                     scopingAddressRanges:
                       - range: "192.0.2.0/24"
-                      - nextHopAddresses:
-                          discoveryType: static
-                          items:
-                            - "192.0.2.10"
-                            - "192.0.2.11"
                     defaultNextHopAddresses:
                       discoveryType: static
                       items:
@@ -178,7 +168,7 @@ paths:
                   message: Failover Unexpected Error
                   code: 500
     get:
-      summary: Running failover task state
+      summary: Show triggered failover task status
       tags:
         - Trigger
       responses:
@@ -198,7 +188,7 @@ paths:
                     addresses: {}
                   code: 202
         "200":
-          description: Failover task was successful
+          description: Successful failover task
           content:
             "application/json; charset=UTF-8":
               schema:
@@ -213,7 +203,7 @@ paths:
                     addresses: {}
                   code: 200
         "500":
-          description: Failover task failed
+          description: Failed failover task
           content:
             "application/json; charset=UTF-8":
               schema:
@@ -328,36 +318,31 @@ components:
         failoverRoutes:
           type: object
           properties:
-            scopingTags:
-              type: object
-              additionalProperties: true
-            scopingAddressRanges:
+            enabled:
+              type: string
+            routeGroupDefinitions:
               type: array
-              items:
-                type: object
-                properties:
-                  range:
-                    type: string
-                  nextHopAddresses:
-                    type: object
-                    nullable: true
-                    properties:
-                      discoveryType:
-                        type: string
-                      items:
-                        type: array
-                        items:
-                          type: string
-            defaultNextHopAddresses:
-              type: object
-              nullable: true
               properties:
-                discoveryType:
-                  type: string
-                items:
+                scopingTags:
+                  type: object
+                  additionalProperties: true
+                scopingAddressRanges:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    properties:
+                      range:
+                        type: string
+                defaultNextHopAddresses:
+                  type: object
+                  nullable: true
+                  properties:
+                    discoveryType:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
         controls:
           type: object
           properties:
