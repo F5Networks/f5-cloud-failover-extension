@@ -335,5 +335,22 @@ module.exports = {
                 }
             }
         }
+    },
+
+    /**
+    * Private Addresses Count - which handles Azure associate private addresses count
+    *
+    * @param {Object} taskStatus  - taskStatus
+    *
+    * @returns {Object}
+    */
+    privateAddressesCount(taskStatus) {
+        let associatePrivateIP = 0;
+        taskStatus.failoverOperations.addresses.interfaces.associate[0].forEach((obj) => {
+            if (obj.ipConfigurations) {
+                associatePrivateIP = obj.ipConfigurations.length;
+            }
+        });
+        return associatePrivateIP;
     }
 };

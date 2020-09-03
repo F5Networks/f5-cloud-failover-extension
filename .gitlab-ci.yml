@@ -145,7 +145,7 @@ coverage:
         max: 1
     script:
         # deploy environment - required artifacts will be place in output folder
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}
+        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\"
     tags:
         - cm-official-docker-executor
     only:
@@ -162,80 +162,107 @@ coverage:
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
     artifacts:
         paths:
-            - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}
+            - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}
         when: always
         expire_in: 1 month
 
-# run functional tests: azure
+# init functional tests: azure
 test_functional_init_azure:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "azure"
+        CF_ENV_REGION: "westus"
     except:
         variables:
             - $TESTS_TIER == "2"
 
-# run functional tests: azure - 1nic
+# init functional tests: azure - 1nic
 test_functional_init_azure_1nic:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "azure"
+        CF_ENV_REGION: "westus"
         CF_ENV_NIC_COUNT: 1
     except:
         variables:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
-# run functional tests: aws - across network topology
+# init functional tests: aws - across network topology
 test_functional_init_aws_across_net:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_REGION: "us-west-2"
     except:
         variables:
             - $TESTS_TIER == "2"
 
-# run functional tests: aws - across network topology for 1nic
+# init functional tests: aws - across network topology for 1nic
 test_functional_init_aws_across_net_1nic:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     except:
         variables:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
-# run functional tests: aws - same network topology
+# init functional tests: aws - same network topology in us-west-2
 test_functional_init_aws:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-west-2"
     except:
         variables:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
-# run functional tests: aws - same network topology for 1nic
+# init functional tests: aws - same network topology in us-east-1
+test_functional_init_aws_east:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-east-1"
+    when:
+        manual
+
+# init functional tests: aws - same network topology in ca-central-1
+test_functional_init_aws_ca_central:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "ca-central-1"
+    when:
+        manual
+
+# init functional tests: aws - same network topology for 1nic
 test_functional_init_aws_1nic:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     except:
         variables:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
-# run functional tests: gcp
+# init functional tests: gcp
 test_functional_init_gcp:
     <<: *test_functional_init_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
     except:
         variables:
             - $TESTS_TIER == "2"
@@ -252,7 +279,7 @@ test_functional_init_gcp:
         - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
         # executing fuctional test
         - validate npm run functional-test
         # run API smoke tests
@@ -279,6 +306,7 @@ test_functional_execute_azure:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "azure"
+        CF_ENV_REGION: "westus"
     dependencies:
         - test_functional_init_azure
         - build_package
@@ -286,12 +314,13 @@ test_functional_execute_azure:
         variables:
             - $TESTS_TIER == "2"
 
-# run functional tests: azure
+# run functional tests: azure 1 nic
 test_functional_execute_azure_1nic:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "azure"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "westus"
     dependencies:
         - test_functional_init_azure_1nic
         - build_package
@@ -306,6 +335,7 @@ test_functional_execute_aws_across_net:
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_across_net
         - build_package
@@ -320,6 +350,7 @@ test_functional_execute_aws_across_net_1nic:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_across_net_1nic
         - build_package
@@ -334,6 +365,7 @@ test_functional_execute_aws:
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws
         - build_package
@@ -342,6 +374,33 @@ test_functional_execute_aws:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
+# run functional tests: aws - same network topology - us-east-1
+test_functional_execute_aws_east:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-east-1"
+    dependencies:
+        - test_functional_init_aws_east
+        - build_package
+    when:
+        manual
+
+# run functional tests: aws - same network topology - ca-central-1
+test_functional_execute_aws_ca_central:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "ca-central-1"
+    dependencies:
+        - test_functional_init_aws_ca_central
+        - build_package
+    when:
+        manual
+
+
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
     <<: *test_functional_execute_generic
@@ -349,6 +408,7 @@ test_functional_execute_aws_1nic:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_1nic
         - build_package
@@ -362,6 +422,7 @@ test_functional_execute_gcp:
     <<: *test_functional_execute_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
     dependencies:
         - test_functional_init_gcp
         - build_package
@@ -378,9 +439,9 @@ test_functional_execute_gcp:
     when: always
     script:
         # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}/. .
+        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
         # teardown environment
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete
+        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\"
     tags:
         - cm-official-docker-executor
     only:
@@ -398,6 +459,7 @@ test_functional_cleanup_azure:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "azure"
+        CF_ENV_REGION: "westus"
     dependencies:
         - test_functional_init_azure
     except:
@@ -410,6 +472,7 @@ test_functional_cleanup_azure_1nic:
     variables:
         CF_ENV_CLOUD: "azure"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "westus"
     dependencies:
         - test_functional_init_azure_1nic
     except:
@@ -423,6 +486,7 @@ test_functional_cleanup_aws_across_net:
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_across_net
     except:
@@ -436,6 +500,7 @@ test_functional_cleanup_aws_across_net_1nic:
         CF_ENV_CLOUD: "aws"
         CF_ENV_NETWORK_TOPOLOGY: "across_network"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_across_net_1nic
     except:
@@ -449,12 +514,37 @@ test_functional_cleanup_aws:
     variables:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws
     except:
         variables:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+
+# run functional tests: aws - same network topology - us-east-1
+test_functional_cleanup_aws_east:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "us-east-1"
+    dependencies:
+        - test_functional_init_aws_east
+    when:
+        manual
+
+# run functional tests: aws - same network topology - ca-central-1
+test_functional_cleanup_aws_ca_central:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "aws"
+        CF_ENV_USE_AVAILABILITY_ZONES: "false"
+        CF_ENV_REGION: "ca-central-1"
+    dependencies:
+        - test_functional_init_aws_ca_central
+    when:
+        manual
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_cleanup_aws_1nic:
@@ -463,6 +553,7 @@ test_functional_cleanup_aws_1nic:
         CF_ENV_CLOUD: "aws"
         CF_ENV_USE_AVAILABILITY_ZONES: "false"
         CF_ENV_NIC_COUNT: 1
+        CF_ENV_REGION: "us-west-2"
     dependencies:
         - test_functional_init_aws_1nic
     except:
@@ -475,6 +566,7 @@ test_functional_cleanup_gcp:
     <<: *test_functional_cleanup_generic
     variables:
         CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
     dependencies:
         - test_functional_init_gcp
     except:

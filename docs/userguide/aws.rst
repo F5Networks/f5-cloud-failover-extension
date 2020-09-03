@@ -10,11 +10,11 @@ AWS CFE Prerequisites
 These are the basic prerequisites for setting up CFE in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
-
+- **Disable "Src/Dst checking"** on the NICs if enabling routing or avoiding SNAT. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`.
 
 .. include:: /_static/reuse/initial-config.rst
 
@@ -56,22 +56,26 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
 AWS Failover Event Diagram
 --------------------------
 
-This diagram shows an example of an “Across Network” failover with 3NIC BIG-IPs (NOTE: Management NICs/Subnets are not shown). You can see Elastic IP (EIP) addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
+This diagram shows an example of an “Across Availability Zones” failover with 3NIC BIG-IPs (NOTE: Management NICs/Subnets are not shown). You can see Elastic IP (EIP) addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
 .. image:: ../images/failover-across-az-multiple-vips.gif
   :width: 800
 
 |
 
+
+
 .. _aws-example:
 
 Example AWS Declaration
 -----------------------
-This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration.
+This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
 .. literalinclude:: ../../examples/declarations/aws.json
    :language: json
+   :caption: Example AWS Declaration with Single Routing Table
    :tab-width: 4
+   :linenos:
 
 :fonticon:`fa fa-download` :download:`aws.json <../../examples/declarations/aws.json>`
 
@@ -88,12 +92,12 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
    - EC2 Read/Write
    - S3 Read/Write
    - STS Assume Role
-   
+
    |
-    
+
    For example, to create a role for an EC2 service follow these steps:
        1. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
-   
+
        2. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
 
        3. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy.
@@ -105,12 +109,12 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
        6. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
 
        7. Optionally, add a Request Condition.
-   
+
        8. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
    .. image:: ../images/aws/AWSIAMRoleSummary.png
      :width: 800
-    
+
    |
 
 #. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
@@ -144,6 +148,7 @@ Below is an example F5 policy that includes IAM roles.
             "ec2:DescribeNetworkInterfaceAttribute",
             "ec2:DescribeRouteTables",
             "s3:ListAllMyBuckets",
+            "s3:GetBucketLocation",
             "ec2:AssociateAddress",
             "ec2:DisassociateAddress",
             "ec2:AssignPrivateIpAddresses",
@@ -175,6 +180,7 @@ Below is an example F5 policy that includes IAM roles.
         {
           "Action": [
             "s3:ListBucket",
+            "s3:GetBucketLocation",
             "s3:GetBucketTagging"
           ],
           "Resource": "arn:aws:s3:::<my_id>",
@@ -216,9 +222,9 @@ Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/cre
 
 #. In the :guilabel:`Name` list, choose the name of the object you want to add tags to.
 
-#. Select :guilabel:`Properties`. 
+#. Select :guilabel:`Properties`.
 
-#. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`. 
+#. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`.
 
 #. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
 
@@ -237,9 +243,9 @@ Tag the Network Interfaces in AWS:
 
      .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
 
-   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``. 
-   
-     .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. 
+   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
+
+     .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
 
 Choose the set of additional instructions to follow based on whether you are provisioning for same network or across network.
@@ -247,9 +253,9 @@ Choose the set of additional instructions to follow based on whether you are pro
 
 .. _aws-tag-addresses-acrossnet:
 
-For Across Network Topology
-```````````````````````````
-If provisioning Across Network Topology, you will also need to:
+For Across AZ (Across Network) Topology
+```````````````````````````````````````
+If provisioning Across AZ Topology, you will also need to:
 
 #. Create two sets of tags for Elastic IP addresses:
 
@@ -263,9 +269,9 @@ If provisioning Across Network Topology, you will also need to:
 .. _aws-tag-addresses-samenet:
 
 
-For Same Network Topology
-`````````````````````````
-If provisioning Same Network Topology, you will also need to: 
+For Same AZ (Same Network) Topology
+```````````````````````````````````
+If provisioning Same Network Topology, you will also need to:
 
 #. Disable the built-in scripts (``/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh``) from a BIG-IP shell, either manually or using automation:
 
@@ -284,14 +290,41 @@ If provisioning Same Network Topology, you will also need to:
 Tag the Route Tables in AWS
 ```````````````````````````
 
-If enabling route failover, tag the route tables containing the routes you want to manage. 
+**If using CFE v1.5.0 and above**, tagging the route table is not required. You can provide the route table id in ``scopingName``. For example:
+
+.. code-block:: json
+
+  "failoverRoutes":{
+      "enabled":true,
+      "routeGroupDefinitions":[
+          {
+            "scopingName":"rtb-11111111111111111",
+            "scopingAddressRanges":[
+                {
+                  "range":"0.0.0.0/0"
+                }
+            ],
+            "defaultNextHopAddresses":{
+                "discoveryType":"static",
+                "items":[
+                  "10.0.13.11",
+                  "10.0.23.11"
+                ]
+            }
+          }
+      ]
+    }
+
+|
+
+**If using CFE versions earlier than v1.5.0**, to enable route failover, tag the route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
 .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
-     
 
-2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the cloud failover configuration OR by using an additional tag on the route table and have CFE discover the mapping via tag. 
+
+2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the cloud failover configuration OR by using an additional tag on the route table and have CFE discover the mapping via tag.
 
 - If you use ``static``, you will need to provide the Self-IPs in the items area of the CFE configuration. For example:
 
@@ -306,7 +339,7 @@ If enabling route failover, tag the route tables containing the routes you want 
         {
           "range": "0.0.0.0/0",
           "nextHopAddresses": {
-            "discoveryType": "static",
+          "discoveryType": "static",
             "items": [
                 "10.0.13.11",
                 "10.0.23.11"
@@ -316,7 +349,11 @@ If enabling route failover, tag the route tables containing the routes you want 
       ]
     }
 
-- If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``. See :ref:`example-route-tag` for an example declaration.
-  
+| 
+
+If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``. See :ref:`example-route-tag` for an example declaration.
+
+
+
 
 .. include:: /_static/reuse/feedback.rst

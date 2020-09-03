@@ -23,6 +23,7 @@ Index
 - :ref:`faq-default-route`
 - :ref:`faq-same-az`
 - :ref:`faq-azure-api`
+- :ref:`faq-azure-static-allocation`
 - :ref:`faq-tag`
 - :ref:`faq-existing-cluster`
 - :ref:`faq-info-store`
@@ -204,7 +205,7 @@ See more information in the :ref:`declaration-components` section.
 
 .. _faq-routes-updated:
 
-What route(s) are to be updated? The Big-IPs can be in different subnets.
+What route(s) are to be updated? The BIG-IPs can be in different subnets.
 `````````````````````````````````````````````````````````````````````````
 The routes can be in any route table to which you attach a matching tag from your CFE configuration. In HA Across AZ, the route tables are remote (for example, in an application subnet versus directly connected subnet to BIG-IP).
 
@@ -256,6 +257,13 @@ Does CFE eliminate the delay time observed with previous failover templates when
 ````````````````````````````````````````````````````````````````````````````````````````````````````````
 To failover cloud resource objects such as private IP addresses and route tables, CFE does make calls to the Azure APIs. These calls may vary significantly in response time. 
 
+-----------------------------------------
+
+.. _faq-azure-static-allocation:
+
+Why do my Azure IP configuration private/public mappings change on failover?
+`````````````````````````````````````````````````````````````````````````````
+IP configurations may reassociate with the NIC in a different order, but all private/public mappings should remain the same. If the mappings are changing, ensure each IP configuration is configured using Static allocation. Dynamic allocation is sometimes leveraged for initial deployments but is discouraged for production deployments.
 
 -----------------------------------------
 

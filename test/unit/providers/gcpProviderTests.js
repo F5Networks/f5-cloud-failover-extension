@@ -20,13 +20,17 @@ const util = require('../../shared/util.js');
 const cloud = 'gcp';
 let provider;
 
-const testPayload = {
+const mockInitData = {
     tags: {
         key01: 'value01'
     },
-    routeTags: {
-        key01: 'value01'
-    }
+    routeGroupDefinitions: [
+        {
+            routeTags: {
+                mylabel: 'mydeployment'
+            }
+        }
+    ]
 };
 const mockSingleZoneVms = [
     {
@@ -87,7 +91,7 @@ const mockMultipleZoneVms = [
     }
 ];
 
-const description = 'f5_cloud_failover_labels={"test-tag-key":"test-tag-value","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
+const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
 const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName01, testInstanceName02"}';
 
 describe('Provider - GCP', () => {
@@ -120,13 +124,17 @@ describe('Provider - GCP', () => {
         provider.tags = {
             'test-tag-key': 'test-tag-value'
         };
-        provider.routeTags = {
-            'test-tag-key': 'test-tag-value'
-        };
-        provider.routeNextHopAddresses = {
-            type: 'routeTag',
-            tag: 'f5_self_ips'
-        };
+        provider.routeGroupDefinitions = [
+            {
+                routeTags: {
+                    mylabel: 'mydeployment'
+                },
+                routeNextHopAddresses: {
+                    type: 'routeTag',
+                    tag: 'f5_self_ips'
+                }
+            }
+        ];
         /* eslint-disable arrow-body-style */
         provider.computeZone = {
             operation: () => {
@@ -153,7 +161,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
         sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
 
-        return provider.init(testPayload)
+        return provider.init(mockInitData)
             .then(() => {
                 assert.strictEqual(provider.fwdRules, 'fwrResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
@@ -173,7 +181,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
-        return provider.init(testPayload)
+        return provider.init(mockInitData)
             .then(() => {
                 assert.ok(false);
             })
@@ -433,10 +441,11 @@ describe('Provider - GCP', () => {
         let providerSendRequestMock;
 
         beforeEach(() => {
-            const getRoutesResponse = [
+            const getRouteTablesResponse = [
                 {
+                    name: 'test-route',
                     kind: 'test-route',
-                    description,
+                    description: routeTableDescription,
                     id: 'some-test-id',
                     creationTimestamp: '101010101010',
                     selfLink: 'https://test-self-link',
@@ -444,8 +453,9 @@ describe('Provider - GCP', () => {
                     destRange: '192.0.0.0/24'
                 },
                 {
+                    name: 'test-route-2',
                     kind: 'test-route-2',
-                    description,
+                    description: routeTableDescription,
                     id: 'some-test-2-id',
                     creationTimestamp: '101010101010',
                     selfLink: 'https://test-self-2-link',
@@ -453,13 +463,13 @@ describe('Provider - GCP', () => {
                     destRange: '192.0.0.1/24'
                 }
             ];
-            sinon.stub(provider, '_getRoutes').resolves(getRoutesResponse);
+            sinon.stub(provider, '_getRouteTables').resolves(getRouteTablesResponse);
 
             providerSendRequestMock = sinon.stub(provider, '_sendRequest');
             providerSendRequestMock.onCall(0).resolves({
                 name: 'test-name'
             });
-            providerSendRequestMock.onCall(2).resolves();
+            providerSendRequestMock.resolves();
             sinon.stub(provider.compute, 'operation').callsFake(() => {
                 return {
                     promise: () => {
@@ -468,7 +478,7 @@ describe('Provider - GCP', () => {
                 };
             });
 
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['192.0.0.0/24']
                 }];
@@ -481,7 +491,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'f5_self_ips'
             };
@@ -497,7 +507,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: static', () => {
-            provider.routeAddressRanges[0].routeNextHopAddresses = {
+            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['1.1.1.1', '2.2.2.2']
             };
@@ -513,7 +523,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update multiple routes using next hop discovery method', () => {
-            provider.routeAddressRanges = [
+            provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['192.0.0.0/24'],
                     routeNextHopAddresses: {
@@ -527,6 +537,51 @@ describe('Provider - GCP', () => {
                         type: 'static',
                         items: ['1.1.1.1', '2.2.2.2']
                     }
+                }
+            ];
+            providerSendRequestMock.onCall(1).resolves({
+                name: 'test-name-2'
+            });
+            providerSendRequestMock.resolves();
+
+            return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using multiple route group definitions', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { mylabel: 'mydeployment' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                },
+                {
+                    routeTags: { mylabel: 'mydeployment' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.1/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
                 }
             ];
             providerSendRequestMock.onCall(1).resolves({
@@ -547,10 +602,128 @@ describe('Provider - GCP', () => {
                 })
                 .catch(err => Promise.reject(err));
         });
+
+        it('update routes using multiple route group definitions with mix name and tag', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'test-route',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                },
+                {
+                    routeTags: { mylabel: 'mydeployment' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.1/24'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                }
+            ];
+            providerSendRequestMock.onCall(1).resolves({
+                name: 'test-name-2'
+            });
+            providerSendRequestMock.onCall(3).resolves();
+            providerSendRequestMock.onCall(4).resolves();
+
+            return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using multiple route group definitions with routes names', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'test-route',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: 'all',
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                },
+                {
+                    routeName: 'test-route-2',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: 'all',
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                }
+            ];
+            providerSendRequestMock.onCall(1).resolves({
+                name: 'test-name-2'
+            });
+            providerSendRequestMock.onCall(3).resolves();
+            providerSendRequestMock.onCall(4).resolves();
+
+            return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('update routes using route name and special "all" route address', () => {
+            provider.routeGroupDefinitions = [
+                {
+                    routeName: 'test-route',
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: 'all',
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['1.1.1.1', '2.2.2.2']
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                })
+                .catch(err => Promise.reject(err));
+        });
     });
 
 
-    it('validate _getRoutes method execution', () => {
+    it('validate _getRouteTables method execution', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
@@ -560,28 +733,21 @@ describe('Provider - GCP', () => {
                 name: 'test-name',
                 items: [
                     {
-                        name: 'notOurRoute'
-                    },
-                    {
-                        name: 'alsoNotOurRoute',
-                        description: 'foo'
-                    },
-                    {
                         name: 'ourRoute',
-                        description
+                        description: routeTableDescription
                     }
                 ]
             });
         });
 
-        return provider._getRoutes({ tags: provider.routeTags })
+        return provider._getRouteTables()
             .then((data) => {
                 assert.strictEqual(data[0].name, 'ourRoute');
             })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _getRoutes method execution with page token', () => {
+    it('validate _getRouteTables method execution with page token', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
@@ -591,7 +757,7 @@ describe('Provider - GCP', () => {
                 name: 'test-name',
                 items: [
                     {
-                        name: 'notOurRoute'
+                        name: 'ourRoute'
                     }
                 ],
                 nextPageToken: 'token'
@@ -606,25 +772,21 @@ describe('Provider - GCP', () => {
                 name: 'test-name',
                 items: [
                     {
-                        name: 'alsoNotOurRoute',
-                        description: 'foo'
-                    },
-                    {
-                        name: 'ourRoute',
-                        description
+                        name: 'ourPaginatedRoute',
+                        description: routeTableDescription
                     }
                 ]
             });
         });
 
-        return provider._getRoutes({ tags: provider.routeTags })
+        return provider._getRouteTables()
             .then((data) => {
-                assert.strictEqual(data[0].name, 'ourRoute');
+                assert.strictEqual(data[1].name, 'ourPaginatedRoute');
             })
             .catch(err => Promise.reject(err));
     });
 
-    it('validate _getRoutes method execution when routeTags do not match', () => {
+    it('validate _getRouteTables method execution no routes found', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
@@ -632,35 +794,11 @@ describe('Provider - GCP', () => {
 
             return Promise.resolve({
                 name: 'test-name',
-                items: [
-                    {
-                        description
-                    }
-                ]
+                items: []
             });
         });
 
-        return provider._getRoutes({ tags: provider.routeTags })
-            .then(() => {
-                assert.ok(true);
-            })
-            .catch(err => Promise.reject(err));
-    });
-
-    it('validate _getRoutes method execution no routes found', () => {
-        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
-        providerSendRequestMock.onCall(0).callsFake((method, path) => {
-            assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes/');
-
-            return Promise.resolve({
-                name: 'test-name',
-                items: [
-                ]
-            });
-        });
-
-        return provider._getRoutes({ tags: provider.routeTags })
+        return provider._getRouteTables()
             .then((data) => {
                 assert.ok(data.length === 0);
             })
@@ -668,7 +806,7 @@ describe('Provider - GCP', () => {
     });
 
 
-    it('validate _getRoutes method promise rejection', () => {
+    it('validate _getRouteTables method promise rejection', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
@@ -677,7 +815,7 @@ describe('Provider - GCP', () => {
             return Promise.reject();
         });
 
-        return provider._getRoutes({ tags: provider.routeTags })
+        return provider._getRouteTables()
             .then(() => {
                 assert.ok(false);
             })
@@ -972,14 +1110,15 @@ describe('Provider - GCP', () => {
                 routeTableName: 'x',
                 networkId: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x'
             });
-            return provider.init(testPayload)
+            return provider.init(mockInitData)
                 .then(() => {
-                    provider._getRoutes = sinon.stub().resolves(([
+                    provider._getRouteTables = sinon.stub().resolves(([
                         {
                             id: '123',
                             name: 'x',
                             network: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x',
-                            nextHopIp: '1.1.1.1'
+                            nextHopIp: '1.1.1.1',
+                            description: routeTableDescription
                         }
                     ]));
                 })
@@ -993,9 +1132,9 @@ describe('Provider - GCP', () => {
         });
 
         it('validate return addresses and not routes for standby device', () => {
-            return provider.init(testPayload)
+            return provider.init(mockInitData)
                 .then(() => {
-                    provider._getRoutes = sinon.stub().resolves(([]));
+                    provider._getRouteTables = sinon.stub().resolves(([]));
                 })
                 .then(() => {
                     return provider.getAssociatedAddressAndRouteInfo();

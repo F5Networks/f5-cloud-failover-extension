@@ -151,41 +151,10 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Updates route tables, by using the next hop address discovery method to find the network interface the
-     * scoping address would need to be routed to and then updating or creating a new route to the network interface
+     * Get Associated Address and Route Info - Returns associated and route table information
      *
-     * @param {Object} options                     - function options
-     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
-     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
-     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
-     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
-     *
-     * @returns {Promise} - Resolves or rejects with the status of updating the route table
+     * @returns {Object}
      */
-    updateRoutes(options) {
-        options = options || {};
-        const localAddresses = options.localAddresses;
-        const discoverOnly = options.discoverOnly || false;
-        const updateOperations = options.updateOperations;
-
-        this.logger.silly('updateRoutes: ', options);
-
-        // discover only logic
-        if (discoverOnly === true) {
-            return this._discoverRouteOperations(localAddresses)
-                .catch(err => Promise.reject(err));
-        }
-        // update only logic
-        if (updateOperations) {
-            return this._updateRoutes(updateOperations)
-                .catch(err => Promise.reject(err));
-        }
-        // default - discover and update
-        return this._discoverRouteOperations(localAddresses)
-            .then(operations => this._updateRoutes(operations))
-            .catch(err => Promise.reject(err));
-    }
-
     getAssociatedAddressAndRouteInfo() {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
@@ -223,6 +192,11 @@ class Cloud extends AbstractCloud {
      * @returns {Object} - Modified parameters object
      */
     _addFilterToParams(params, filterName, filterValue) {
+        params = params || {};
+
+        if (!params.Filters) {
+            params.Filters = [];
+        }
         params.Filters.push(
             {
                 Name: filterName,
@@ -289,9 +263,12 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Discover address operations found Elastic IPs:', eips);
                 this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
                 this.logger.debug('Discover address operations found Nics', nics);
+                const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
-                    this._generateAddressOperations(nics, localAddresses, failoverAddresses)
+                    this._generateAddressOperations(localAddresses,
+                        failoverAddresses, parsedNics)
                 ]);
             })
             .then(operations => Promise.resolve({
@@ -351,18 +328,59 @@ class Cloud extends AbstractCloud {
     * Discover route operations
     *
     * @param {Array} localAddresses - array containing local (self) addresses [ '192.0.2.1' ]
+    * @param {Object} routeGroup    - object containing group properties
+    * @param {Array} routeTables    - array of route tables
     *
     * @returns {Promise} [ { routeTable: {}, networkInterfaceId: 'foo' }]
     */
-    _discoverRouteOperations(localAddresses) {
-        localAddresses = localAddresses || [];
+    _discoverRouteOperationsPerGroup(localAddresses, routeGroup, routeTables) {
+        const operations = [];
+        const filteredRouteTables = this._filterRouteTables(
+            routeTables,
+            {
+                name: routeGroup.routeName,
+                tags: routeGroup.routeTags
+            }
+        );
 
-        const _getUpdateOperationObject = (
-            routeAddresses,
-            address,
-            routeTable,
-            route
-        ) => this._getNetworkInterfaceId(address)
+        filteredRouteTables.forEach((routeTable) => {
+            routeTable.Routes.forEach((route) => {
+                const matchedAddressRange = this._matchRouteToAddressRange(
+                    this._resolveRouteCidrBlock(route).cidrBlock,
+                    routeGroup.routeAddressRanges
+                );
+                if (matchedAddressRange) {
+                    const nextHopAddress = this._discoverNextHopAddress(
+                        localAddresses,
+                        routeTable.Tags,
+                        matchedAddressRange.routeNextHopAddresses
+                    );
+                    if (nextHopAddress) {
+                        operations.push(this._getUpdateOperationObject(
+                            matchedAddressRange.routeAddresses, nextHopAddress, routeTable, route
+                        ));
+                    }
+                }
+            });
+        });
+
+        return Promise.all(operations)
+            .then(routesToUpdate => routesToUpdate.filter(route => Object.keys(route).length))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Get update operation
+    *
+    * @param {Array} routeAddresses - array of route addresses
+    * @param {String} address       - object containing group properties
+    * @param {Object} routeTable    - route table
+    * @param {Object} route         - route in route table
+    *
+    * @returns {Promise} { routeTable: {}, networkInterfaceId: '', routeAddress: '', ipVersion: '' }
+    */
+    _getUpdateOperationObject(routeAddresses, address, routeTable, route) {
+        return this._getNetworkInterfaceId(address)
             .then((networkInterfaceId) => {
                 this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
                 const updateRequired = (routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
@@ -381,35 +399,7 @@ class Cloud extends AbstractCloud {
                 });
             })
             .catch(err => Promise.reject(err));
-
-        return this._getRouteTables({ tags: this.routeTags })
-            .then((routeTables) => {
-                const promises = [];
-                routeTables.forEach((routeTable) => {
-                    routeTable.Routes.forEach((route) => {
-                        const matchedAddressRange = this._matchRouteToAddressRange(
-                            this._resolveRouteCidrBlock(route).cidrBlock
-                        );
-                        if (matchedAddressRange) {
-                            const nextHopAddress = this._discoverNextHopAddress(
-                                localAddresses,
-                                routeTable.Tags,
-                                matchedAddressRange.routeNextHopAddresses
-                            );
-                            if (nextHopAddress) {
-                                promises.push(_getUpdateOperationObject(
-                                    matchedAddressRange.routeAddresses, nextHopAddress, routeTable, route
-                                ));
-                            }
-                        }
-                    });
-                });
-                return Promise.all(promises);
-            })
-            .then(routesToUpdate => Promise.resolve(routesToUpdate.filter(route => Object.keys(route).length)))
-            .catch(err => Promise.reject(err));
     }
-
 
     /**
     * Update addresses - given reassociate operation(s)
@@ -441,7 +431,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * _updateRouteTable iterates through the routes and calls _replaceRoute if expected route exists
+     * Iterates through the routes and perfoms route replacement
      *
      * @param {Object} routeTable         - Route table with routes
      * @param {String} networkInterfaceId - Network interface that the route if to be updated to
@@ -451,14 +441,21 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - Resolves or rejects if route is replaced
      */
     _updateRouteTable(routeTableId, networkInterfaceId, routeAddressRange, ipVersion) {
-        return this._replaceRoute(
-            routeAddressRange,
-            networkInterfaceId,
-            routeTableId,
-            {
-                ipVersion
-            }
-        )
+        this.logger.silly('Updating route: ', routeTableId, networkInterfaceId);
+
+        const params = {
+            NetworkInterfaceId: networkInterfaceId,
+            RouteTableId: routeTableId
+        };
+
+        // check for IPv6, default to IPv4
+        if (ipVersion === '6') {
+            params.DestinationIpv6CidrBlock = routeAddressRange;
+        } else {
+            params.DestinationCidrBlock = routeAddressRange;
+        }
+
+        return this._replaceRoute(params)
             .catch(err => Promise.reject(err));
     }
 
@@ -490,67 +487,19 @@ class Cloud extends AbstractCloud {
      * Fetches the route tables based on the provided tag
      *
      * @param {Object} options                  - function options
-     * @param {Object} [options.tags]           - object containing tags to filter on { 'key': 'value' }
      * @param {Object} [options.instanceId]     - object containing instanceId to filter on
      * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
      */
     _getRouteTables(options) {
-        const tags = options.tags || null;
-        const instanceId = options.instanceId || null;
-
-        let params = {
-            Filters: []
-        };
-        if (tags) {
-            const tagKeys = Object.keys(tags);
-            tagKeys.forEach((tagKey) => {
-                params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
-            });
-        }
-        if (instanceId) {
-            params = this._addFilterToParams(params, 'route.instance-id', instanceId);
-        }
-
-        return new Promise((resolve, reject) => {
-            this.ec2.describeRouteTables(params)
-                .promise()
-                .then((routeTables) => {
-                    resolve(routeTables.RouteTables);
-                })
-                .catch(err => reject(err));
-        });
-    }
-
-    /**
-     * Replaces route in a route table
-     *
-     * @param {Object} destCidr            - Destination Cidr of the Route that is to be replaced
-     * @param {String} networkInterfaceId  - Network interface ID to update the route to
-     * @param {String} routeTableId        - Route table ID where the route is to be updated
-     *
-     * @param {Object} options             - function options
-     * @param {Object} [options.ipVersion] - IP version, such as '4' or '6'
-     *
-     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
-     */
-    _replaceRoute(destCidr, networkInterfaceId, routeTableId, options) {
-        this.logger.silly('Updating route: ', routeTableId, networkInterfaceId);
-
         options = options || {};
 
-        const params = {
-            NetworkInterfaceId: networkInterfaceId,
-            RouteTableId: routeTableId
-        };
-
-        // check for IPv6, default to IPv4
-        if (options.ipVersion === '6') {
-            params.DestinationIpv6CidrBlock = destCidr;
-        } else {
-            params.DestinationCidrBlock = destCidr;
+        let params = {};
+        if (options.instanceId) {
+            params = this._addFilterToParams(params, 'route.instance-id', options.instanceId);
         }
 
-        return this.ec2.replaceRoute(params).promise()
+        return this._describeRouteTables(params)
+            .then(routeTables => Promise.resolve(routeTables.RouteTables))
             .catch(err => Promise.reject(err));
     }
 
@@ -880,50 +829,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Generate the configuration operations required to reassociate the addresses
-     *
-     * @param {Array} nics               - array of NIC information
-     * @param {Object} localAddresses    - local addresses
-     * @param {Object} failoverAddresses - failover addresses
-     *
-     * @returns {Promise} - A Promise that is resolved with the operations, or rejected if an error occurs
-     */
-    _generateAddressOperations(nics, localAddresses, failoverAddresses) {
-        const operations = {
-            disassociate: [],
-            associate: []
-        };
-        const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
-        this.logger.debug('parsedNics', parsedNics);
-        if (!parsedNics.mine || !parsedNics.theirs) {
-            this.logger.error('Could not determine network interfaces.');
-        }
-
-        // go through 'their' nics and come up with disassociate/associate actions required
-        // to move addresses to 'my' nics, if any are required
-        for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
-            for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
-                const theirNic = parsedNics.theirs[h].nic;
-                const myNic = parsedNics.mine[s].nic;
-                const theirNicTags = this._normalizeTags(theirNic.TagSet);
-                const myNicTags = this._normalizeTags(myNic.TagSet);
-
-                if (theirNicTags[constants.NIC_TAG] && myNicTags[constants.NIC_TAG]
-                    && theirNicTags[constants.NIC_TAG] === myNicTags[constants.NIC_TAG]) {
-                    const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
-
-                    if (nicOperations.disassociate && nicOperations.associate) {
-                        operations.disassociate.push(nicOperations.disassociate);
-                        operations.associate.push(nicOperations.associate);
-                    }
-                }
-            }
-        }
-        this.logger.debug('Generated Address Operations', operations);
-        return Promise.resolve(operations);
-    }
-
-    /**
      * Get all Private Secondary IP addresses for this BIG-IP, and their associated NIC ID
      *
      * @returns {Promise}   - A Promise that will be resolved with all of the Private Secondary IP address, or
@@ -941,7 +846,7 @@ class Cloud extends AbstractCloud {
         };
         params = this._addFilterToParams(params, 'attachment.instance-id', this.instanceId);
 
-        return this.ec2.describeNetworkInterfaces(params).promise()
+        return this._describeNetworkInterfaces(params)
             .then((data) => {
                 const privateIps = {};
                 data.NetworkInterfaces.forEach((nic) => {
@@ -998,7 +903,7 @@ class Cloud extends AbstractCloud {
             params = this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address);
         }
 
-        return this.ec2.describeNetworkInterfaces(params).promise()
+        return this._describeNetworkInterfaces(params)
             .then((data) => {
                 const nics = [];
                 data.NetworkInterfaces.forEach((nic) => {
@@ -1113,20 +1018,64 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get all S3 buckets in account, these buckets will later be filtered by tags
+     * Get all S3 buckets in account filtered by current region, however if no buckets are found in the region
+     * or any error occurs during region filtering this method returns all the s3 buckets.
+     * These buckets will later be filtered by tags
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
      *                          rejected if an error occurs
      */
     _getAllS3Buckets() {
+        let bucketNameList = [];
         const listAllBuckets = () => this.s3.listBuckets({}).promise()
             .then((data) => {
                 const bucketNames = data.Buckets.map(b => b.Name);
                 return Promise.resolve(bucketNames);
             })
+            .then((bucketNames) => {
+                const promises = [];
+                bucketNameList = bucketNames;
+                bucketNames.forEach((bucketName) => {
+                    promises.push(this._matchBucketLocationWithCurrentRegion(bucketName));
+                });
+                return Promise.all(promises);
+            })
+            .then((matchedBuckets) => {
+                const filteredBuckets = matchedBuckets.filter(matchedBucket => matchedBucket.matched === true);
+                return Promise.resolve(filteredBuckets.length === 0
+                    ? bucketNameList : filteredBuckets.map(b => b.name));
+            })
             .catch(err => Promise.reject(err));
 
         return this._retrier(listAllBuckets, []);
+    }
+
+    /**
+     * Get the region of a given S3 bucket
+     *
+     * @param   {String}    bucketName                    - name of the S3 bucket
+     *
+     * @returns {Promise}     - A Promise that will be resolved with a boolean value
+     *                          if the configured region matches the buckets region and bucket name.
+     *                          If an error occurs when getting the location the bucket will
+     *                          not be considered matched.
+     */
+    _matchBucketLocationWithCurrentRegion(bucketName) {
+        const bucketObject = {
+            name: bucketName,
+            matched: false
+        };
+        let bucketRegion = 'us-east-1'; // default since if region is null then the bucket is in us-east-1
+        return this.s3.getBucketLocation({ Bucket: bucketName }).promise()
+            .then((data) => {
+                bucketRegion = data.LocationConstraint || bucketRegion;
+                bucketObject.matched = bucketRegion === this.region;
+                return Promise.resolve(bucketObject);
+            })
+            .catch((err) => {
+                this.logger.debug(`Unable to get ${bucketName} region info. ${err}`);
+                return Promise.resolve(bucketObject);
+            });
     }
 
     /**
@@ -1156,6 +1105,48 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(); // resolving since ignoring permissions errors to extraneous buckets
             });
+    }
+
+    /**
+     * Describe EC2 network interfaces, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeNetworkInterfaces(params) {
+        const func = _params => this.ec2.describeNetworkInterfaces(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeRouteTables(params) {
+        const func = _params => this.ec2.describeRouteTables(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _replaceRoute(params) {
+        const func = _params => this.ec2.replaceRoute(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch(err => Promise.reject(err));
     }
 }
 

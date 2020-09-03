@@ -25,13 +25,15 @@ Silly
 `````
 The silly value logs everything.
 
+Note: silly level is recommended for troubleshooting/debugging as it will log all the events in the systems including retries to API REST calls.
+
 .. code-block:: bash
 
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Setting controls log level
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Global logLevel set to 'silly'
    Thu, 19 Dec 2019 19:39:26 GMT - finest: [f5-cloud-failover] Modifying existing data group f5-cloud-failover-state with body{...}
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Successfully wrote Failover trigger scripts to filesystem
-   Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Performing failover - init 
+   Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Performing failover - init
    Thu, 19 Dec 2019 19:39:26 GMT - fine: [f5-cloud-failover] config: {}
    Thu, 19 Dec 2019 19:39:26 GMT - finest: [f5-cloud-failover] Storage Account Information: {...}
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Successfully wrote Failover trigger scripts to filesystem
@@ -47,7 +49,7 @@ The info value will log information and errors.
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Setting controls log level
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Global logLevel set to 'info'
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Successfully wrote Failover trigger scripts to filesystem
-   Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Performing failover - init 
+   Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Performing failover - init
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Successfully wrote Failover trigger scripts to filesystem
 
 
@@ -59,5 +61,5 @@ The error value will log only errors.
 .. code-block:: bash
 
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Global logLevel set to 'error'
-   Thu, 19 Dec 2019 19:41:26 GMT - error: [f5-cloud-failover] uploadDataToStorage error: {...} 
+   Thu, 19 Dec 2019 19:41:26 GMT - error: [f5-cloud-failover] uploadDataToStorage error: {...}
 

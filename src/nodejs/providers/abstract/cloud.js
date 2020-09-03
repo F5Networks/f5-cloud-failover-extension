@@ -19,8 +19,7 @@
 const Logger = require('../../logger.js');
 const utils = require('../../util.js');
 
-const MAX_RETRIES = require('../../constants').MAX_RETRIES;
-const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
+const constants = require('../../constants');
 
 /**
  * Abstract Cloud class - defines cloud agnostic properties and methods
@@ -31,6 +30,10 @@ const RETRY_INTERVAL = require('../../constants').RETRY_INTERVAL;
 class AbstractCloud {
     constructor(name, options) {
         this.environment = name;
+
+        this.maxRetries = constants.MAX_RETRIES;
+        this.retryInterval = constants.RETRY_INTERVAL;
+
 
         const logger = options ? options.logger : Logger;
         if (logger) {
@@ -52,16 +55,15 @@ class AbstractCloud {
     init(options) {
         options = options || {};
         this.tags = options.tags || {};
-        this.routeTags = options.routeTags || {};
-        this.routeAddressRanges = options.routeAddressRanges || [];
+        this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
     }
 
-    uploadDataToStorage() {
+    downloadDataFromStorage() {
         throw new Error('Method must be implemented in child class!');
     }
 
-    downloadDataFromStorage() {
+    getAssociatedAddressAndRouteInfo() {
         throw new Error('Method must be implemented in child class!');
     }
 
@@ -69,13 +71,46 @@ class AbstractCloud {
         throw new Error('Method must be implemented in child class!');
     }
 
-    updateRoutes() {
+    uploadDataToStorage() {
         throw new Error('Method must be implemented in child class!');
     }
 
-    getAssociatedAddressAndRouteInfo() {
+    /**
+    * Update routes
+    *
+    * @param {Object} options                     - function options
+    * @param {Object} [options.localAddresses]    - object containing 1+ local (self) addresses [ '192.0.2.1' ]
+    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
+    * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
+    *
+    * @returns {Promise}
+    */
+    updateRoutes(options) {
+        options = options || {};
+        const localAddresses = options.localAddresses || [];
+        const discoverOnly = options.discoverOnly || false;
+        const updateOperations = options.updateOperations;
+
+        this.logger.silly('updateRoutes: ', options);
+
+        if (discoverOnly === true) {
+            return this._discoverRouteOperations(localAddresses)
+                .catch(err => Promise.reject(err));
+        }
+        if (updateOperations) {
+            return this._updateRoutes(updateOperations.operations)
+                .catch(err => Promise.reject(err));
+        }
+        // default - discover and update
+        return this._discoverRouteOperations(localAddresses)
+            .then(operations => this._updateRoutes(operations.operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    _checkForNicOperations() {
         throw new Error('Method must be implemented in child class!');
     }
+
 
     /**
     * Discover next hop address - support 'none' (static) and routeTag discovery types
@@ -122,17 +157,84 @@ class AbstractCloud {
     }
 
     /**
+    * Discover route operations
+    *
+    * @param {Object} localAddresses          - local addresses
+    *
+    * @returns {Object} - { operations: [] }
+    */
+    _discoverRouteOperations(localAddresses) {
+        return this._getRouteTables()
+            .then(routeTables => Promise.all(this.routeGroupDefinitions.map(
+                routeGroup => this._discoverRouteOperationsPerGroup(
+                    localAddresses,
+                    routeGroup,
+                    routeTables
+                )
+            )))
+            .then((groupOperations) => {
+                const operations = [];
+                groupOperations.forEach((groupOperation) => {
+                    groupOperation.forEach((operation) => {
+                        operations.push(operation);
+                    });
+                });
+                return Promise.resolve({ operations });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Filter route tables
+     *
+     * @param {Object} routeTables        - route tables
+     * @param {Object} options            - function options
+     * @param {Object} [options.tags]     - object containing 1+ tags to filter on { 'key': 'value' }
+     * @param {Object} [options.name]     - route name to filter on
+     *
+     * @returns {object} routeTables      - filtered route tables
+     */
+    _filterRouteTables(routeTables, options) {
+        options = options || {};
+
+        if (options.tags && Object.keys(options.tags)) {
+            return routeTables.filter((item) => {
+                let matchedTags = 0;
+                Object.keys(options.tags).forEach((key) => {
+                    const itemTags = this._normalizeTags(item.Tags || item.tags || item.parsedTags);
+                    if (itemTags && Object.keys(itemTags).indexOf(key) !== -1
+                        && itemTags[key] === options.tags[key]) {
+                        matchedTags += 1;
+                    }
+                });
+                return Object.keys(options.tags).length === matchedTags;
+            });
+        }
+        if (options.name) {
+            return routeTables.filter(item => (item.name || item.RouteTableId) === options.name);
+        }
+        return [];
+    }
+
+    /**
      * Returns route address range and next hop addresses config info given the route's
      * destination cidr
      *
-     * @param cidr             - Cidr to match against routeAddressRanges.routeAddresses
-     * @return {Object|null}
+     * Note: If one of the route address entries contains 'all', it should be considered a match
      *
+     * @param cidr               - Cidr to match against routeAddressRanges.routeAddresses
+     * @param routeAddressRanges - route address ranges to match against
+     *
+     * @return {Object|null}
      */
 
-    _matchRouteToAddressRange(cidr) {
+    _matchRouteToAddressRange(cidr, routeAddressRanges) {
+        // check for special 'all' case
+        if (routeAddressRanges[0].routeAddresses.indexOf('all') !== -1) {
+            return routeAddressRanges[0];
+        }
         // simply compare this cidr to the route address ranges array and look for a match
-        const matchingRouteAddressRange = this.routeAddressRanges.filter(
+        const matchingRouteAddressRange = routeAddressRanges.filter(
             routeAddressRange => routeAddressRange.routeAddresses.indexOf(cidr) !== -1
         );
         return matchingRouteAddressRange.length ? matchingRouteAddressRange[0] : null;
@@ -182,12 +284,57 @@ class AbstractCloud {
         options = options || {};
 
         return utils.retrier(func, args, {
-            maxRetries: options.maxRetries || MAX_RETRIES,
-            retryInterval: options.retryInterval || RETRY_INTERVAL,
+            maxRetries: options.maxRetries || this.maxRetries,
+            retryInterval: options.retryInterval || this.retryInterval,
             thisArg: options.thisArg || this,
             logger: options.logger || this.logger
         })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Generate the configuration operations required to reassociate the addresses
+     *
+     * @param {Object} localAddresses    - local addresses
+     * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} parsedNics        - parsed NICs information
+     *
+     * @returns {Promise} - A Promise that is resolved with the operations, or rejected if an error occurs
+     */
+    _generateAddressOperations(localAddresses, failoverAddresses, parsedNics) {
+        const operations = {
+            disassociate: [],
+            associate: []
+        };
+        this.logger.debug('parsedNics', parsedNics);
+        if (!parsedNics.mine || !parsedNics.theirs) {
+            this.logger.error('Could not determine network interfaces.');
+        } else {
+            // go through 'their' nics and come up with disassociate/associate actions required
+            // to move addresses to 'my' nics, if any are required
+            for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
+                for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
+                    const theirNic = parsedNics.theirs[h].nic;
+                    const myNic = parsedNics.mine[s].nic;
+                    theirNic.tags = theirNic.tags ? theirNic.tags : this._normalizeTags(theirNic.TagSet);
+                    myNic.tags = myNic.tags ? myNic.tags : this._normalizeTags(myNic.TagSet);
+                    if (theirNic.tags[constants.NIC_TAG] === undefined || myNic.tags[constants.NIC_TAG] === undefined) {
+                        this.logger.warning(`${constants.NIC_TAG} tag values do not match or doesn't exist for a interface`);
+                    } else if (theirNic.tags[constants.NIC_TAG] && myNic.tags[constants.NIC_TAG]
+                        && theirNic.tags[constants.NIC_TAG] === myNic.tags[constants.NIC_TAG]) {
+                        const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
+
+                        if (nicOperations.disassociate && nicOperations.associate) {
+                            operations.disassociate.push(nicOperations.disassociate);
+                            operations.associate.push(nicOperations.associate);
+                        }
+                    }
+                }
+            }
+            this.logger.debug('Generated Address Operations', operations);
+        }
+
+        return Promise.resolve(operations);
     }
 }
 

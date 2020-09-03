@@ -14,6 +14,7 @@ const assert = require('assert');
 const sinon = require('sinon');
 
 const constants = require('../constants.js');
+const utils = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 const declarationWithControls = constants.declarations.basicWithLogging;
@@ -31,7 +32,7 @@ describe('Config Worker', () => {
     });
     beforeEach(() => {
         sinon.stub(Device.prototype, 'init').resolves();
-        sinon.stub(Device.prototype, 'getDataGroups').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({ exists: true, data: constants.DATA_GROUP_OBJECT });
         sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
         sinon.spy(logger, 'setLogLevel');
         mockExecuteBigIpBashCmd = sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
@@ -99,7 +100,8 @@ describe('Config Worker', () => {
         .then(() => config.getConfig())
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
-        }));
+        })
+        .catch(err => Promise.reject(err)));
 
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';
@@ -121,10 +123,10 @@ describe('Config Worker', () => {
         const triggerCommand = `${constants.TRIGGER_COMMENT}\n${constants.TRIGGER_COMMAND}`;
 
         function getFailoverScriptContents(command) {
-            return command.substring(
+            return utils.base64('decode', command.substring(
                 command.lastIndexOf('echo "') + 6,
-                command.lastIndexOf('" >')
-            );
+                command.lastIndexOf('" | base64 --decode >')
+            ));
         }
 
         it('should check failover script(s) get trigger call added', () => {
@@ -139,6 +141,42 @@ describe('Config Worker', () => {
                     const updateScriptCommand = mockExecuteBigIpBashCmd.getCall(2).args[0];
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}`);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should check failover script(s) get trigger call updated', () => {
+            mockExecuteBigIpBashCmd.resolves(
+                `${originalContents}\n${constants.TRIGGER_COMMENT}\ncurl replace.me`
+            );
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => {
+                    // should be called 4 times, list and update for tgactive/tgrefresh
+                    assert.strictEqual(mockExecuteBigIpBashCmd.callCount, 4);
+                    // get updated script contents
+                    const updateScriptCommand = mockExecuteBigIpBashCmd.getCall(2).args[0];
+                    const scriptContents = getFailoverScriptContents(updateScriptCommand);
+                    assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}`);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should check failover script(s) get trigger call updated (leaves additional text intact)', () => {
+            mockExecuteBigIpBashCmd.resolves(
+                `${originalContents}\n${constants.TRIGGER_COMMENT}\ncurl replace.me\n\necho keepme`
+            );
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => {
+                    // should be called 4 times, list and update for tgactive/tgrefresh
+                    assert.strictEqual(mockExecuteBigIpBashCmd.callCount, 4);
+                    // get updated script contents
+                    const updateScriptCommand = mockExecuteBigIpBashCmd.getCall(2).args[0];
+                    const scriptContents = getFailoverScriptContents(updateScriptCommand);
+                    assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}\n\necho keepme`);
                 })
                 .catch(err => Promise.reject(err));
         });

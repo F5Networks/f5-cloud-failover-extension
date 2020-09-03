@@ -79,8 +79,8 @@ describe('logger', () => {
         const myPassword = 'foofoo';
         logger.info({ password: myPassword });
         assert.strictEqual(loggedMessages.info[0].indexOf(myPassword), -1);
-        assert.notStrictEqual(loggedMessages.info[0].indexOf('password:', -1));
-        assert.notStrictEqual(loggedMessages.info[0].indexOf('********', -1));
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('"password":'), -1);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('"********"'), -1);
     });
 
     it('should log at the set log level name', () => {

@@ -74,6 +74,34 @@ class TelemetryClient {
             routeFailover
         };
     }
+
+    createTelemetryData(options) {
+        const telemetryData = {
+            product: {
+                version: constants.VERSION,
+                locale: '',
+                installDate: '',
+                installationId: '',
+                environment: options.environment
+            },
+            operation: {
+                featureFlags: {
+                    ipFailover: options.ipFailover,
+                    routeFailover: options.routeFailover
+                },
+                clientRequestId: '',
+                action: options.action,
+                endpoint: options.endpoint,
+                userAgent: '',
+                result: options.result,
+                resultSummary: options.resultSummary,
+                resourceCount: options.resourceCount,
+                startTime: options.starttime,
+                endTime: new Date().toJSON()
+            }
+        };
+        return telemetryData;
+    }
 }
 
 module.exports = {
