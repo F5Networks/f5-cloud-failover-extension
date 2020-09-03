@@ -205,7 +205,7 @@ See more information in the :ref:`declaration-components` section.
 
 .. _faq-routes-updated:
 
-What route(s) are to be updated? The Big-IPs can be in different subnets.
+What route(s) are to be updated? The BIG-IPs can be in different subnets.
 `````````````````````````````````````````````````````````````````````````
 The routes can be in any route table to which you attach a matching tag from your CFE configuration. In HA Across AZ, the route tables are remote (for example, in an application subnet versus directly connected subnet to BIG-IP).
 

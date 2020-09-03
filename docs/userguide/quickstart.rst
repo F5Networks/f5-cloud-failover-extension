@@ -80,10 +80,11 @@ up and running with Cloud Failover.
 Quick Start Example
 -------------------
 
-Here is an example declaration for AWS.
+Here is an example declaration for AWS. NOTE: This example declaration requires CFE v1.5.0 and above.
 
 .. literalinclude:: ../../examples/declarations/quickstart.json
    :language: json
+   :caption: Quick Start Example: AWS Single Routing Table
    :tab-width: 4
    :linenos:
 
