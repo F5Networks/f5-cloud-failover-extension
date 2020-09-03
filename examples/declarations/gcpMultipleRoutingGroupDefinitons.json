@@ -1,6 +1,10 @@
 {
     "class":"Cloud_Failover",
     "environment":"gcp",
+    "controls":{
+       "class":"Controls",
+       "logLevel":"silly"
+    },
     "externalStorage":{
        "scopingTags":{
           "f5_cloud_failover_label":"mydeployment"
@@ -16,12 +20,12 @@
        "enabled":true,
        "routeGroupDefinitions":[
           {
-             "scopingName":"route-name-1",
+             "scopingName":"default-route-for-applications",
              "defaultNextHopAddresses":{
                 "discoveryType":"static",
                 "items":[
-                   "192.0.2.10",
-                   "192.0.2.11"
+                   "10.0.13.11",
+                   "10.0.13.12"
                 ]
              }
           },
@@ -30,8 +34,8 @@
              "defaultNextHopAddresses":{
                 "discoveryType":"static",
                 "items":[
-                   "192.0.2.10",
-                   "192.0.2.11"
+                   "10.0.14.11",
+                   "10.0.14.12"
                 ]
              }
           }

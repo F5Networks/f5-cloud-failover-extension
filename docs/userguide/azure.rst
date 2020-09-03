@@ -17,8 +17,11 @@ These are the basic prerequisites for setting up CFE in Microsoft Azure.
   .. TIP:: Use Static allocation for each IP configuration that will serve application traffic. Using Dynamic allocation is discouraged for production deployments.
 
 - **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below to :ref:`azure-ims`.
+- **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding
+
 
 .. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. 
+
 
 |
 
@@ -58,29 +61,32 @@ Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Befo
 
 .. _azure-diagram:
 
-Failover Event Diagram
-----------------------
+Azure Failover Event Diagram
+----------------------------
 
 The following diagram shows a failover event with CFE implemented in Microsoft Azure with an HA pair in an Active/Standby configuration.
 
 In the diagram, the IP configuration has a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP. In the event of a failover, the IP configuration is deleted and recreated on that device's network interface. Simultaneously, the user-defined routes are updated with a next hop attribute the corresponds to the self IP address of the active BIG-IP.
 
 
-.. image:: ../images/azure/azure-diagram.gif
+.. image:: ../images/azure/azure-failover-3nic-multiple-vs-animated.gif
   :width: 800
 
 |
+
 
 .. _azure-example:
 
 Example Azure Declaration
 -------------------------
-This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration.
+This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
 
 .. literalinclude:: ../../examples/declarations/azure.json
    :language: json
+   :caption: Example Azure Declaration with Single Routing Table
    :tab-width: 4
+   :linenos:
 
 :fonticon:`fa fa-download` :download:`azure.json <../../examples/declarations/azure.json>`
 
@@ -186,7 +192,7 @@ Tag the User-Defined routes in Azure
 ````````````````````````````````````
 .. include:: /_static/reuse/discovery-type-note.rst
 
-If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to tag the route(s) with a name/value pair that will correspond to the name/value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
+If you are using the ``routeTag`` option for ``discoveryType`` within the CFE declaration, you need to tag the route table(s) with a name/value pair that will correspond to the name/value pair in the `failoverRoutes.scopingTags` section of the CFE declaration.
 
 Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
 

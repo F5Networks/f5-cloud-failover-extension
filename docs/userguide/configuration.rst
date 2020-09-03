@@ -99,14 +99,12 @@ The next lines of the declaration set the failover addresses.
    :linenos:
    :lineno-start: 9
 
-      {
         "failoverAddresses": {
             "scopingTags": {
                 "f5_cloud_failover_label": "mydeployment"
             }
         }
-      }
-
+      },
 
 |
 
@@ -130,9 +128,9 @@ The next lines of the declaration sets the failover routes. The scoping address 
 
 .. code-block:: json
    :linenos:
-   :lineno-start: 14
+   :lineno-start: 15
 
-      {
+ 
          "failoverRoutes": {
             "enabled": true,
             "scopingTags": {
@@ -151,15 +149,44 @@ The next lines of the declaration sets the failover routes. The scoping address 
                ]
             }
          }
-      }
-
-
-
 
 
 
 |
 
+NOTE: Starting with Release v1.5.0, "routeGroupDefinitions" was introduced to provide more granular per-route table operations. F5 recommends using this option going forward.     
+
+.. code-block:: json
+   :linenos:
+   :lineno-start: 15
+
+         "failoverRoutes":{
+            "enabled":true,
+            "routeGroupDefinitions":[
+               {
+                  "scopingName":"rtb-11111111111111111",
+                  "scopingAddressRanges":[
+                     {
+                        "range":"192.168.1.0/24",
+                     },
+                     {
+                        "range":"192.168.1.1/24"
+                     }
+                  ],
+                  "defaultNextHopAddresses":{
+                     "discoveryType":"static",
+                     "items":[
+                        "192.0.2.10",
+                        "192.0.2.11"
+                     ]
+                  }
+               }
+            ]
+         }
+      }
+
+
+|
 
 .. table::
 
@@ -168,22 +195,26 @@ The next lines of the declaration sets the failover routes. The scoping address 
    ======================== ======================= ===================================================================
    failoverRoutes           -                       This is a json object. Do not change this value.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   scopingTags              -                       These key/value pairs have to be the same as the tags you assign to the route table(s) in your cloud environment. NOTE: The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings).
+   enabled                  true,false              Enables or disables the route failover functionality.         
    ------------------------ ----------------------- -------------------------------------------------------------------
-   scopingAddressRanges     -                       A list of the destination routes to update in the event of failover.
+   scopingTags              -                       Key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want update in one table vs. another (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option ) 
    ------------------------ ----------------------- -------------------------------------------------------------------
-   defaultNextHopAddresses  -                       This json object is the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration using multiple routing tables pointing to different nexthops.
+   scopingAddressRanges     -                       A list of destination routes (prefixes) to update in the event of failover.
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   defaultNextHopAddresses  -                       This json object is the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
    ------------------------ ----------------------- -------------------------------------------------------------------
    discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self-IPs associated with those NICs. You can either define the Self-IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
                                                      
                                                     - If you use ``static``, you will need to provide the Self-IPs in the ``items`` area of the CFE configuration. 
-                                                    - If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_key_ips``. For example, ``f5_self_ips:192.0.2.10,192.0.2.11``. See :ref:`example-route-tag` for an example declaration.
+                                                    - If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``f5_self_ips:192.0.2.10,192.0.2.11``. See :ref:`example-route-tag` for an example declaration.
    
    ------------------------ ----------------------- -------------------------------------------------------------------
-   items                    -                       List the Self IP address of each instance. This is only required when discoveryType is ``static``.    
+   items                    -                       List the Self IP address of each instance to route traffic to. This is only required when discoveryType is ``static``.    
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   routeGroupDefinitions    -                       List of route tables or route groups to update in event of failover (Released in v1.5.0 to support advanced routing scenarios). NOTE: In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have route tables so translates to groups or collections of routes. This option is intended for use in shared services and/or sandwhich architectures with multiple BIG-IP clusters (which may share networks) and require per-route table granularity. For example, if you have routes that you specificially want update in one table vs. another (ex. 0.0.0.0 for only the internal routing table and not on the external routing table). See :ref:`advanced-routing-examples` for an example declarations.
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   scopingName              -                       String containing name or id of routing table to update. If you use this, you do not need to tag the route tables. See :ref:`advanced-routing-examples` for an example declarations.
    ======================== ======================= ===================================================================
-
-
 
 
 |

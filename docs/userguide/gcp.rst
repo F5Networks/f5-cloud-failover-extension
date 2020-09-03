@@ -47,14 +47,14 @@ Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting s
    =======  ===================================================================
 
 
+.. _gcp-diagram:
 
-
-Failover Event Diagram
-----------------------
+GCP Failover Event Diagram
+--------------------------
 
 This diagram shows a failover event with Cloud Failover implemented in Google Cloud. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/gcp/gcp-diagram.gif
+.. image:: ../images/gcp/gcp-failover-3nic-multiple-vs-animated.gif
   :width: 800
 
 |
@@ -63,11 +63,13 @@ This diagram shows a failover event with Cloud Failover implemented in Google Cl
 
 Example GCP Declaration
 -----------------------
-This example declaration shows the minimum information needed to update the cloud resources in Google Cloud.  See the :ref:`quickstart` section for steps on how to post this declaration.
+This example declaration shows the minimum information needed to update the cloud resources in Google Cloud. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
 .. literalinclude:: ../../examples/declarations/gcp.json
    :language: json
+   :caption: Example GCP Declaration
    :tab-width: 4
+   :linenos:
 
 :fonticon:`fa fa-download` :download:`gcp.json <../../examples/declarations/gcp.json>`
 
@@ -266,10 +268,10 @@ If you are using the ``routeTag`` option for ``discoveryType`` within the CFE de
 Shared VPC Configuration
 ------------------------
 
-A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multuple projects to a common VPC, CFE works with Shared VPC in the following topologies.
+A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multuple projects to a common VPC. CFE works with Shared VPC in the following topologies:
 
-- BIG-IP cluster deployed in the Shard VPC Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the host project will continue to failover per normal conditions.
-- BIG-IP cluster deployed in a Shared VPC Service project where NIC 0 is attached to a Shared VPC in the Host project.  In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the service project will continue to failover per normal conditions.  However any objects in the Shared VPC Host project will not be discovered/updated during a failover event.
+- BIG-IP cluster deployed in the Shard VPC Host project: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the host project will continue to failover per normal conditions.
+- BIG-IP cluster deployed in a Shared VPC Service project where NIC 0 is attached to a Shared VPC in the Host project: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the service project will continue to failover per normal conditions. However, any objects in the Shared VPC Host project will not be discovered/updated during a failover event.
 
 |
 

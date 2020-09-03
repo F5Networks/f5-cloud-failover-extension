@@ -1,6 +1,10 @@
 {
   "class":"Cloud_Failover",
-  "environment":"aws",
+  "environment":"azure",
+  "controls":{
+     "class":"Controls",
+     "logLevel":"silly"
+  },
   "externalStorage":{
      "scopingTags":{
         "f5_cloud_failover_label":"mydeployment"
@@ -14,34 +18,35 @@
   },
   "failoverRoutes":{
      "enabled":true,
+     "defaultResourceLocations":[
+        {
+           "subscriptionId":"1111"
+        },
+        {
+           "subscriptionId":"2222"
+        }
+     ],
      "routeGroupDefinitions":[
         {
-           "scopingName":"rtb-11111111111111111",
+           "scopingName":"myroutetable-1",
            "scopingAddressRanges":[
               {
-                 "range":"192.168.1.0/24",
-                 "nextHopAddresses":{
-                    "discoveryType":"static",
-                    "items":[
-                       "192.0.2.12",
-                       "192.0.2.13"
-                    ]
-                 }
+                 "range":"100.100.101.0/29"
               },
               {
-                 "range":"192.168.1.1/24"
+                 "range":"100.100.102.0/29"
               }
            ],
            "defaultNextHopAddresses":{
               "discoveryType":"static",
               "items":[
-                 "192.0.2.10",
-                 "192.0.2.11"
+                 "10.0.12.11",
+                 "10.0.12.12"
               ]
            }
         },
         {
-           "scopingName":"rtb-22222222222222222",
+           "scopingName":"myroutetable-2",
            "scopingAddressRanges":[
               {
                  "range":"0.0.0.0/0"
@@ -50,8 +55,8 @@
            "defaultNextHopAddresses":{
               "discoveryType":"static",
               "items":[
-                 "192.0.2.10",
-                 "192.0.2.11"
+                 "10.0.13.11",
+                 "10.0.13.12"
               ]
            }
         }
