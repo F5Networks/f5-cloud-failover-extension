@@ -7,12 +7,12 @@ Example Declarations
 
 Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions
 ---------------------------------------------------------------------------
-The following examples leverage the object called "routeGroupDefintions" (released in v1.5.0) to support advanced routing scenarios. *NOTE*: In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have the concept of route tables so translates to groups or collections of routes. Advanced routing examples include operating in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) that require per-route table granularity. 
+The following examples leverage the object called "routeGroupDefintions" (released in v1.5.0) to support advanced routing scenarios. *NOTE*: In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have the concept of route tables so it translates to groups or collections of routes. Advanced routing examples include operating in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) that require per-route table granularity. 
 
-  - ``scopingName`` is used to explicity provide the ``name`` or ``id`` of the route table to update (vs. tagging the route table with a scopingTag. See :ref:`example-route-tag`)
-  - ``scopingAddressRanges`` are used to limit updating a particular route (or list of routes) in that table. 
-  - ``defaultNextHopAddresses`` can be used to specify that each route go to different BIG-IP interfaces (in a multi-nic deployment where you have an external and internal interface, multiple internal interfaces, etc.). 
-  - ``static`` is used to explicitly provide nexthop Self-IP address mappings  (vs. providing the mappings in tags on the route table)
+- ``scopingName`` is used to explicity provide the ``name`` or ``id`` of the route table to update (vs. tagging the route table with a scopingTag. See :ref:`example-route-tag`).
+- ``scopingAddressRanges`` are used to limit updating a particular route (or list of routes) in that table. 
+- ``defaultNextHopAddresses`` can be used to specify that each route go to different BIG-IP interfaces (in a multi-nic deployment where you have an external and internal interface, multiple internal interfaces, etc.). 
+- ``static`` is used to explicitly provide nexthop Self-IP address mappings  (vs. providing the mappings in tags on the route table).
 
 
 AWS
@@ -55,8 +55,8 @@ Route Failover Using Route Tags
 -------------------------------
 For backwards compatability, you can use tags on the route tables to discover them and provide nexthop Self-IP address mappings. For example, the route table will need two tags, one with the scoping tag (arbitrary key/value) and one with the special key ``f5_self_ips`` and value value that contains a comma-separated list of addresses mapping to a Self-IP address on each instance in the cluster. 
 
-  - ``"f5_cloud_failover_label": "route-table-1"`` 
-  - ``"f5_self_ips": "10.0.0.10,10.0.0.11"`` 
+- ``"f5_cloud_failover_label": "route-table-1"`` 
+- ``"f5_self_ips": "10.0.0.10,10.0.0.11"`` 
    
 Once the route table is tagged with above, the below declaration shows how to configure the solution to look for those tags and nexthop Self-IP address mappings.
 
@@ -104,6 +104,7 @@ This example shows a declaration for IPv6 routes.
 
 :fonticon:`fa fa-download` :download:`ipv6RouteFailover.json <../../examples/declarations/ipv6RouteFailover.json>`
 
+.. _azure_multiple_subscriptions:
 
 Azure Route Tables in Multiple Subscriptions
 --------------------------------------------

@@ -10,7 +10,7 @@ AWS CFE Prerequisites
 These are the basic prerequisites for setting up CFE in AWS:
 
 - **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
-- **Disable "Src/Dst checking"** on the NICs if enabling routing or avoiding SNAT. See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check
+- **Disable "Src/Dst checking"** on the NICs if enabling routing or avoiding SNAT. See `AWS documentation <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check>`_ for more information.
 
 |
 
@@ -235,8 +235,6 @@ Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/cre
 Tag the Network Interfaces in AWS:
 ``````````````````````````````````
 
-.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
-
 #. Create two sets of tags for Network Interfaces:
 
    - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
@@ -290,7 +288,7 @@ If provisioning Same Network Topology, you will also need to:
 Tag the Route Tables in AWS
 ```````````````````````````
 
-**If using CFE v1.5.0 and above**, tagging the route table is not required. You can provide the route table id in ``scopingName``. For example:
+The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more granular route-table operations and tagging the route table is not required. See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
@@ -317,43 +315,38 @@ Tag the Route Tables in AWS
 
 |
 
+See :ref:`advanced-routing-examples` for additional examples of more advanced configurations.
+
 **If using CFE versions earlier than v1.5.0**, to enable route failover, tag the route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
 .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
 
+2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the cloud failover configuration.
 
-2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the Self-IPs statically in the cloud failover configuration OR by using an additional tag on the route table and have CFE discover the mapping via tag.
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
 
-- If you use ``static``, you will need to provide the Self-IPs in the items area of the CFE configuration. For example:
 
-.. code-block:: json
+   .. code-block:: json
 
-    "failoverRoutes": {
-      "enabled": true,
-      "scopingTags": {
-        "f5_cloud_failover_label": "mydeployment"
-      },
-      "scopingAddressRanges": [
-        {
-          "range": "0.0.0.0/0",
-          "nextHopAddresses": {
-          "discoveryType": "static",
-            "items": [
-                "10.0.13.11",
-                "10.0.23.11"
-            ]
-          }
-        }
-      ]
-    }
+       "failoverRoutes": {
+         "enabled": true,
+         "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+         },
+         "scopingAddressRanges": [
+           {
+             "range": "0.0.0.0/0",
+             "nextHopAddresses": {
+                 "discoveryType":"routeTag"
+             }
+           }
+         ]
+       }
+
+   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
 
 | 
-
-If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``. See :ref:`example-route-tag` for an example declaration.
-
-
-
 
 .. include:: /_static/reuse/feedback.rst

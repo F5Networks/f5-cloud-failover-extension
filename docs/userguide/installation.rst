@@ -34,9 +34,9 @@ You can compare the checksum produced by that command against the **.sha256** fi
 
 .. _upload-install:
 
-Upload and install the Cloud Failover Extension file on the BIG-IP
-------------------------------------------------------------------
-After you download the RPM, you must upload and then install it on your BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
+Upload and install the Cloud Failover Extension file on each BIG-IP
+-------------------------------------------------------------------
+After you download the RPM, you must upload and then install it on each BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
@@ -120,6 +120,14 @@ Add additional memory for restjavad using following procedure:
 See `K26427018: Overview of Management provisioning <https://support.f5.com/csp/article/K26427018>`_ for more on the memory allocation.
 
 |
+
+.. _upgrade:
+
+Update Cloud Failover Extension
+-------------------------------
+When F5 releases a new version of Cloud Failover Extension, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click **Import** and then select the new RPM, the system recognizes you are upgrading Cloud Failover Extension.
+
+
 
 .. include:: /_static/reuse/feedback.rst
 
