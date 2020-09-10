@@ -126,6 +126,42 @@ describe('Device', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('validate getProxySettings', () => {
+        nock('https://localhost')
+            .get('/mgmt/tm/sys/db')
+            .reply(200,
+                [{
+                    name: 'proxy.host',
+                    value: '1.1.1.1'
+                },
+                {
+                    name: 'proxy.password',
+                    value: '<null>'
+                }, {
+                    name: 'proxy.port',
+                    value: '8080'
+                }, {
+                    name: 'proxy.protocol',
+                    value: 'http'
+                }, {
+                    name: 'proxy.username',
+                    value: '<null>'
+                }]);
+        const expectedProxySettings = {
+            host: '1.1.1.1',
+            password: '',
+            port: '8080',
+            protocol: 'http',
+            username: ''
+        };
+        return device.init()
+            .then(() => device.getProxySettings())
+            .then((proxySettings) => {
+                assert.deepStrictEqual(proxySettings, expectedProxySettings);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('validate getTrafficGroupsStats', () => {
         nock('https://localhost')
             .get('/mgmt/tm/cm/traffic-group/stats')

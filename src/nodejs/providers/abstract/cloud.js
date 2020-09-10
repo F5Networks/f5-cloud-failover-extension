@@ -51,12 +51,14 @@ class AbstractCloud {
     *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
+    * @param {Object} [options.proxySettings]         - proxy settings { protocol: '', 'host': '', port: ''  }
     */
     init(options) {
         options = options || {};
         this.tags = options.tags || {};
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
+        this.proxySettings = options.proxySettings || null;
     }
 
     downloadDataFromStorage() {
@@ -214,6 +216,24 @@ class AbstractCloud {
             return routeTables.filter(item => (item.name || item.RouteTableId) === options.name);
         }
         return [];
+    }
+
+    /**
+     * Format proxy URL
+     *
+     * @param {Object} settings - proxy settings
+     *
+     * @returns {String} URL (valid proxy URL)
+     */
+    _formatProxyUrl(settings) {
+        if (!settings.host) throw new Error('Host must be provided to format proxy URL');
+        if (!settings.port) throw new Error('Port must be provided to format proxy URL');
+
+        const protocol = settings.protocol || 'https';
+        const auth = settings.username && settings.password
+            ? `${settings.username}:${settings.password}@` : '';
+
+        return `${protocol}://${auth}${settings.host}:${settings.port}`;
     }
 
     /**

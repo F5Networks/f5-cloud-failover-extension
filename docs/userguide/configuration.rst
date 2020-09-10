@@ -257,3 +257,22 @@ For more information see the `API Reference <https://clouddocs.f5.com/products/e
 
 
 .. include:: /_static/reuse/feedback.rst
+
+Using a Proxy
+-------------
+
+This extension supports making API calls through a proxy server for most cloud providers.  It looks at the BIG-IP proxy configuration defined in system db variables, these can be viewed by running `tmsh list sys db proxy.*`.
+
+- Azure: All control plane API calls will use the proxy. Storage upload/download (data-plane) calls will not use the proxy.
+- AWS: All API calls will use the proxy.
+- GCP:  No API calls will use the proxy.  Please open an `issue <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ if this is required in your environment.
+
+Configuring BIG-IP proxy configuration:
+
+.. code-block:: bash
+
+   modify sys db proxy.host value 192.0.2.10
+   modify sys db proxy.port value 3128
+   modify sys db proxy.username value proxyuser
+   modify sys db proxy.password value apassword
+   modify sys db proxy.protocol value https

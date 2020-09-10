@@ -18,6 +18,7 @@
 
 const AWS = require('aws-sdk');
 const IPAddressLib = require('ip-address');
+const PROXY = require('https-proxy-agent');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
@@ -45,8 +46,13 @@ class Cloud extends AbstractCloud {
             .then((metadata) => {
                 this.region = metadata.region;
                 this.instanceId = metadata.instanceId;
-
-                AWS.config.update({ region: this.region });
+                const config = {
+                    region: this.region
+                };
+                if (this.proxySettings) {
+                    config.httpOptions = { agent: new PROXY(this._formatProxyUrl(this.proxySettings)) };
+                }
+                AWS.config.update(config);
                 this.ec2 = new AWS.EC2();
                 this.s3 = new AWS.S3();
 

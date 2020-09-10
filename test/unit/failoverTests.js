@@ -34,6 +34,7 @@ describe('Failover', () => {
     let deviceGetNatAddressesMock;
     let deviceGetSnatTranslationAddressesMock;
     let deviceGetCMDeviceInfoMock;
+    let deviceProxySettingsMock;
 
     let cloudProviderMock;
     let downloadDataFromStorageMock;
@@ -82,6 +83,7 @@ describe('Failover', () => {
         deviceGetSnatTranslationAddressesMock = sinon.stub(Device.prototype, 'getSnatTranslationAddresses');
         deviceGetNatAddressesMock = sinon.stub(Device.prototype, 'getNatAddresses');
         deviceGetCMDeviceInfoMock = sinon.stub(Device.prototype, 'getCMDeviceInfo');
+        deviceProxySettingsMock = sinon.stub(Device.prototype, 'getProxySettings');
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
@@ -89,7 +91,8 @@ describe('Failover', () => {
             updateRoutes: () => Promise.resolve({}),
             downloadDataFromStorage: () => Promise.resolve({}),
             uploadDataToStorage: () => Promise.resolve({}),
-            getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] })
+            getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] }),
+            configureProxy: () => Promise.resolve({})
         };
 
         downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
@@ -119,6 +122,7 @@ describe('Failover', () => {
         ]);
         deviceGetSnatTranslationAddressesMock.returns([]);
         deviceGetNatAddressesMock.returns([]);
+        deviceProxySettingsMock.returns({});
 
         uploadDataToStorageSpy = sinon.stub(cloudProviderMock, 'uploadDataToStorage').resolves({});
 

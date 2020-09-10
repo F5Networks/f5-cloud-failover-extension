@@ -48,4 +48,33 @@ describe('Provider - Abstract', () => {
             );
         });
     });
+
+    describe('_formatProxyUrl', () => {
+        it('should format basic URL', () => {
+            const provider = new Provider();
+
+            const proxyUrl = provider._formatProxyUrl({ protocol: 'http', host: 'proxy.local', port: 3128 });
+            assert.strictEqual(proxyUrl, 'http://proxy.local:3128');
+        });
+
+        it('should format HTTPS URL (by default)', () => {
+            const provider = new Provider();
+
+            const proxyUrl = provider._formatProxyUrl({ host: 'proxy.local', port: 3128 });
+            assert.strictEqual(proxyUrl, 'https://proxy.local:3128');
+        });
+
+        it('should format URL with authentication info', () => {
+            const provider = new Provider();
+
+            const proxyUrl = provider._formatProxyUrl({
+                protocol: 'https',
+                host: 'proxy.local',
+                port: 3128,
+                username: 'proxyuser',
+                password: 'apassword'
+            });
+            assert.strictEqual(proxyUrl, 'https://proxyuser:apassword@proxy.local:3128');
+        });
+    });
 });

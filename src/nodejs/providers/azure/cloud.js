@@ -61,13 +61,13 @@ class Cloud extends AbstractCloud {
                     msiApiVersion: '2018-02-01'
                 });
 
-                this.storageClient = new StorageManagementClient(
+                this.storageClient = this._createStorageMgmtClient(
                     credentials,
                     this.primarySubscriptionId,
                     this.environment.resourceManagerEndpointUrl
                 );
                 [this.primarySubscriptionId].concat(options.subscriptions || []).forEach((subscription) => {
-                    this.networkClients[subscription] = new NetworkManagementClient(
+                    this.networkClients[subscription] = this._createNetworkMgmtClient(
                         credentials,
                         subscription,
                         this.environment.resourceManagerEndpointUrl
@@ -254,6 +254,62 @@ class Cloud extends AbstractCloud {
                 return Promise.resolve(data);
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Append request options
+    *
+    * @param {Object} clientOptions - Client options
+    *
+    * @returns {Object} - Updated client options
+    */
+    _appendRequestOptions(clientOptions) {
+        if (this.proxySettings) {
+            clientOptions.requestOptions = {
+                proxy: this._formatProxyUrl(this.proxySettings)
+            };
+        }
+        return clientOptions;
+    }
+
+    /**
+    * Create storage management client
+    *
+    * @param {Object} credentials                - Credentials instance
+    * @param {String} subscriptionId             - Subscription ID
+    * @param {String} resourceManagerEndpointUrl - Resource Manager Endpoint URL
+    *
+    * @returns {StorageManagementClient}
+    */
+    _createStorageMgmtClient(credentials, subscriptionId, resourceManagerEndpointUrl) {
+        const clientOptions = this._appendRequestOptions({});
+
+        return new StorageManagementClient(
+            credentials,
+            subscriptionId,
+            resourceManagerEndpointUrl,
+            clientOptions
+        );
+    }
+
+    /**
+    * Create network management client
+    *
+    * @param {Object} credentials                - Credentials instance
+    * @param {String} subscriptionId             - Subscription ID
+    * @param {String} resourceManagerEndpointUrl - Resource Manager Endpoint URL
+    *
+    * @returns {NetworkManagementClient}
+    */
+    _createNetworkMgmtClient(credentials, subscriptionId, resourceManagerEndpointUrl) {
+        const clientOptions = this._appendRequestOptions({});
+
+        return new NetworkManagementClient(
+            credentials,
+            subscriptionId,
+            resourceManagerEndpointUrl,
+            clientOptions
+        );
     }
 
     /**
