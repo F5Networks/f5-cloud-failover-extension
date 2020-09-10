@@ -60,11 +60,18 @@ class FailoverClient {
     init() {
         logger.debug('Performing failover - initialization');
 
-        return configWorker.getConfig()
+        return this.device.init()
+            .then(() => Promise.all([
+                configWorker.getConfig(),
+                this.device.getProxySettings()
+            ]))
             .then((data) => {
-                logger.debug(`config: ${util.stringify(data)}`);
+                this.config = data[0];
+                this.proxySettings = data[1];
 
-                this.config = data;
+                logger.debug(`config: ${util.stringify(this.config)}`);
+                logger.silly(`proxySettings: ${util.stringify(this.proxySettings)}`);
+
                 if (!this.config || !this.config.environment) {
                     const errorMessage = 'Environment information has not been provided';
                     return Promise.reject(new Error(errorMessage));
@@ -73,7 +80,6 @@ class FailoverClient {
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
                 return this.cloudProvider.init(this._parseConfig());
             })
-            .then(() => this.device.init())
             .then(() => {
                 logger.silly('Failover initialization complete');
             })
@@ -320,7 +326,14 @@ class FailoverClient {
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             subscriptions: (util.getDataByKey(
                 this.config, 'failoverRoutes.defaultResourceLocations'
-            ) || []).map(location => location.subscriptionId)
+            ) || []).map(location => location.subscriptionId),
+            proxySettings: util.getDataByKey(this.proxySettings, 'host') ? {
+                protocol: this.proxySettings.protocol || 'https',
+                host: this.proxySettings.host,
+                port: this.proxySettings.port || 3128,
+                username: this.proxySettings.username || undefined,
+                password: this.proxySettings.password || undefined
+            } : undefined
         };
     }
 

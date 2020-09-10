@@ -41,6 +41,13 @@ describe('Provider - AWS', () => {
         ],
         storageTags: {
             sKey1: 'storageKey1'
+        },
+        proxySettings: {
+            host: '1.1.1.1',
+            password: '',
+            port: '8080',
+            protocol: 'http',
+            username: ''
         }
     };
 
@@ -275,6 +282,12 @@ describe('Provider - AWS', () => {
                         .callsFake(() => ({
                             promise() {
                                 return Promise.resolve(listBucketsSubResponse);
+                            }
+                        }));
+                    provider.s3.getBucketLocation = sinon.stub()
+                        .callsFake(() => ({
+                            promise() {
+                                return Promise.resolve({ LocationConstraint: 'us' });
                             }
                         }));
                     provider._getAllS3Buckets = originalgetAllS3Buckets;

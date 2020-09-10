@@ -139,13 +139,15 @@ class Device {
     * Retrieves BIG-IP configurations from provided endpoints
     *
     * @param {Array} [endpoints] - list of BIG-IP endpoints used for getting required configuration
+    * @param {Object} options - iControlOptions
     *
     * @returns {Promise} resolved promise with REST response
     */
-    getConfig(endpoints) {
+    getConfig(endpoints, options) {
+        options = options || {};
         const promises = [];
         for (let i = 0; i < endpoints.length; i += 1) {
-            promises.push(this.bigip.list(endpoints[i], {}, { maxRetries: 0 }));
+            promises.push(this.bigip.list(endpoints[i], options, { maxRetries: 0 }));
         }
         return Promise.all(promises);
     }
@@ -173,6 +175,50 @@ class Device {
             '/tm/sys/global-settings'
         ])
             .then(results => Promise.resolve(results[0]))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Intended for getting proxy settings config object
+     *
+     * @returns {Promise} resolved promise with REST response
+     */
+    getProxySettings() {
+        return this.getConfig([
+            '/tm/sys/db'
+        ])
+            .then((results) => {
+                const settings = {
+                    protocol: '',
+                    host: '',
+                    port: '',
+                    username: '',
+                    password: ''
+                };
+                results[0].forEach((element) => {
+                    switch (element.name) {
+                    case 'proxy.password':
+                        settings.password = element.value && element.value !== '<null>' ? element.value : '';
+                        break;
+                    case 'proxy.username':
+                        settings.username = element.value && element.value !== '<null>' ? element.value : '';
+                        break;
+                    case 'proxy.host':
+                        settings.host = element.value && element.value !== '<null>' ? element.value : '';
+                        break;
+                    case 'proxy.port':
+                        settings.port = element.value && element.value !== '<null>' ? element.value : '';
+                        break;
+                    case 'proxy.protocol':
+                        settings.protocol = element.value && element.value !== '<null>' ? element.value : '';
+                        break;
+                    default:
+                        break;
+                    }
+                });
+                logger.silly(`Fetched proxy settings: ${util.stringify(settings)}`);
+                return Promise.resolve(settings);
+            })
             .catch(err => Promise.reject(err));
     }
 

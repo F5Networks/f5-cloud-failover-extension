@@ -53,12 +53,13 @@
         "googleapis": "^47.0.0",
         "gtoken": "3.0.0",
         "hooks": "^0.3.2",
+        "ip-address": "^6.2.0",
         "ipaddr.js": "^1.7.0",
-        "ms-rest-azure": "^2.6.0",
-        "request": "^2.83.0",
-        "uuid": "^3.3.2",
         "jsonschema": "^1.2.5",
-        "ip-address": "^6.2.0"
+        "ms-rest-azure": "^2.6.0",
+        "https-proxy-agent": "3.0.1",
+        "request": "^2.83.0",
+        "uuid": "^3.3.2"
     },
     "devDependencies": {
         "@azure/arm-network": "^14.0.0",
