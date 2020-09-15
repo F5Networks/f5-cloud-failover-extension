@@ -47,6 +47,7 @@ function Worker() {
     this.isPublic = true;
     this.isPersisted = true;
     this.isStateRequiredOnStart = true;
+    this.retryInterval = null;
 }
 
 /*
@@ -96,6 +97,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
             if (util.getDataByKey(config, 'controls.logLevel')) {
                 logger.setLogLevel(config.controls.logLevel);
             }
+            this.initFailoverInterval(config);
         })
         .then(() => {
             success();
@@ -113,7 +115,7 @@ Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
  * @param {Object} restOperation
  */
 Worker.prototype.onGet = function (restOperation) {
-    return processRequest(restOperation);
+    return this.processRequest(restOperation);
 };
 
 /**
@@ -122,7 +124,7 @@ Worker.prototype.onGet = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPost = function (restOperation) {
-    return processRequest(restOperation);
+    return this.processRequest(restOperation);
 };
 
 /**
@@ -131,7 +133,7 @@ Worker.prototype.onPost = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPut = function (restOperation) {
-    return processRequest(restOperation);
+    return this.processRequest(restOperation);
 };
 
 /**
@@ -140,7 +142,7 @@ Worker.prototype.onPut = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onPatch = function (restOperation) {
-    return processRequest(restOperation);
+    return this.processRequest(restOperation);
 };
 
 /**
@@ -149,7 +151,7 @@ Worker.prototype.onPatch = function (restOperation) {
  * @param {Object} restOperation
  */
 Worker.prototype.onDelete = function (restOperation) {
-    return processRequest(restOperation);
+    return this.processRequest(restOperation);
 };
 
 
@@ -159,7 +161,7 @@ Worker.prototype.onDelete = function (restOperation) {
  *
  * @param {Object} restOperation  - restOperation
  */
-function processRequest(restOperation) {
+Worker.prototype.processRequest = function (restOperation) {
     const startTimestamp = new Date().toJSON();
     const method = restOperation.method.toUpperCase();
     const pathName = restOperation.getUri().pathname.split('/')[3];
@@ -198,11 +200,15 @@ function processRequest(restOperation) {
                         routeFailover: config.routeFailover
                     }))
                 ]))
-                .then(result => util.restOperationResponder(restOperation, 200,
-                    {
-                        message: 'success',
-                        declaration: result[0]
-                    }))
+                .then((data) => {
+                    const config = data[0];
+                    this.initFailoverInterval(config, failover);
+                    return util.restOperationResponder(restOperation, 200,
+                        {
+                            message: 'success',
+                            declaration: config
+                        });
+                })
                 .catch(err => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(`${err.message} -> ${errorMessageDetail}`)
@@ -224,29 +230,11 @@ function processRequest(restOperation) {
     case 'trigger':
         switch (method) {
         case 'POST':
-            return failover.init()
-                .then(() => Promise.all([
-                    failover.getTaskStateFile(),
-                    device.getGlobalSettings()
-                ]))
-                .then((result) => {
-                    logger.silly(`taskState: ${util.stringify(result[0])}`);
-                    if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
-                        logger.silly('Failover is already executing');
-                        return Promise.resolve();
-                    }
-                    return failover.execute({ callerAttributes: { endpoint: pathName, httpMethod: method } });
-                })
-                .then(() => failover.getTaskStateFile())
-                .then(taskState => util.restOperationResponder(
-                    restOperation,
-                    mapStatusToCode(taskState.taskState),
-                    taskState
-                ))
-                .catch(err => util.restOperationResponder(restOperation, 500,
-                    {
-                        message: util.stringify(err.message)
-                    }));
+            return performFailover({
+                restOperation,
+                pathName,
+                method
+            });
         case 'GET':
             return failover.init()
                 .then(() => failover.getTaskStateFile())
@@ -294,7 +282,27 @@ function processRequest(restOperation) {
     default:
         return util.restOperationResponder(restOperation, 400, { message: 'Invalid Endpoint' });
     }
-}
+};
+
+/**
+ * Process Failover Interval - helper function which performs failover periodically
+ *
+ * @param {Object}  [config] - ConfigWorker configuration
+ */
+Worker.prototype.initFailoverInterval = function (config) {
+    // clear interval if already set
+    if (this.retryInterval) {
+        clearInterval(this.retryInterval);
+    }
+    if (util.getDataByKey(config, 'retryFailover.enabled')) {
+        // set the interval and pass func
+        this.retryInterval = setInterval(performFailover,
+            util.getDataByKey(config, 'retryFailover.interval') * constants.MILLISECONDS_TO_MINUTES);
+    } else {
+        // if interval is not enabled
+        this.retryInterval = null;
+    }
+};
 
 function mapStatusToCode(taskState) {
     switch (taskState) {
@@ -309,6 +317,59 @@ function mapStatusToCode(taskState) {
     default:
         return 500;
     }
+}
+
+/**
+ * Process Failover Trigger - helper function which perform a failover trigger
+ *
+ * @param {Object}  [options] - function options
+ * @param {Object}  [options.restOperation]  - restOperation
+ * @param {String}  [options.pathName] - endpoint path name
+ * @param {String}  [options.method] - http method name name
+ */
+function performFailover(options) {
+    options = options || {};
+    const restOperation = options.restOperation || null;
+    const pathName = options.pathName || '';
+    const method = options.method || '';
+    const failover = new FailoverClient();
+    return failover.init()
+        .then(() => Promise.all([
+            failover.getTaskStateFile(),
+            device.getGlobalSettings()
+        ]))
+        .then((result) => {
+            logger.silly(`taskState: ${util.stringify(result[0])}`);
+            if (result[0].taskState === failoverStates.RUN && result[1].hostname === result[0].instance) {
+                logger.silly('Failover is already executing');
+                return Promise.resolve();
+            }
+            if (pathName && method) {
+                return failover.execute({ callerAttributes: { endpoint: pathName, httpMethod: method } });
+            }
+            return failover.execute();
+        })
+        .then(() => failover.getTaskStateFile())
+        .then((taskState) => {
+            if (restOperation) {
+                return util.restOperationResponder(
+                    restOperation,
+                    mapStatusToCode(taskState.taskState),
+                    taskState
+                );
+            }
+            return taskState;
+        })
+        .catch((err) => {
+            if (restOperation) {
+                return util.restOperationResponder(restOperation, 500,
+                    {
+                        message: util.stringify(err.message)
+                    });
+            }
+            logger.error(util.stringify(err.message));
+            return Promise.reject(err);
+        });
 }
 
 module.exports = Worker;

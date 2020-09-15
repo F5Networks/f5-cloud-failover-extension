@@ -82,6 +82,38 @@ const EXAMPLE_DECLARATIONS = {
             class: 'Controls',
             logLevel: 'info'
         }
+    },
+    basicWithRetryFailover: {
+        class: 'Cloud_Failover',
+        environment: 'azure',
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        },
+        retryFailover: {
+            enabled: true,
+            interval: 60000
+        }
     }
 };
 
