@@ -178,6 +178,19 @@
                 }
             ]
         },
+        "retryFailover": {
+            "title": "Retry Failover",
+            "description": "Feature to trigger failover periodically",
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "interval": {
+                    "type": "integer"
+                }
+            }
+        },
         "externalStorage": {
             "title": "External Storage",
             "description": "External storage this deployment will manage.",

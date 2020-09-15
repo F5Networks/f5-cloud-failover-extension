@@ -55,6 +55,7 @@ describe('Rest Operations', () => {
             this.statusCode = null;
             this.responseBody = null;
         }
+
         MockRestOperation.prototype.getUri = function () {
             return {
                 pathname: `${ROOT_PATH}/${options.endpoint || 'declare'}`
@@ -72,7 +73,8 @@ describe('Rest Operations', () => {
         MockRestOperation.prototype.setStatusCode = function (code) {
             this.statusCode = code;
         };
-        MockRestOperation.prototype.complete = function () { };
+        MockRestOperation.prototype.complete = function () {
+        };
 
         return new MockRestOperation();
     }
@@ -222,6 +224,38 @@ describe('Rest Operations', () => {
         }))
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('should process retry failover on POST to the configuration endpoint', () => {
+        const worker = new WorkerClient();
+
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({
+            exists: true,
+            data: constants.DATA_GROUP_OBJECT
+        });
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
+        sinon.stub(TelemetryClient.prototype, 'send').resolves();
+
+        return worker.onPost(createRestOperation({
+            method: 'POST',
+            endpoint: 'declare',
+            body: constants.declarations.basicWithRetryFailover
+        }))
+            .then((data) => {
+                assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+                assert.notStrictEqual(worker.retryInterval, null);
+            })
+            .then(() => worker.onPost(createRestOperation({
+                method: 'POST',
+                endpoint: 'declare',
+                body: constants.declarations.basic
+            })))
+            .then((data) => {
+                assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+                assert.strictEqual(worker.retryInterval, null);
             })
             .catch(err => Promise.reject(err));
     });
