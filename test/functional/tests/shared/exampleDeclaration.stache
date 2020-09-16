@@ -38,9 +38,5 @@
             ]
           }
         }]
-    },
-    "retryFailover": {
-      "enabled": true,
-      "interval": 2
     }
 }

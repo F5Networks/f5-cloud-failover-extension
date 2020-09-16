@@ -947,30 +947,14 @@ class Cloud extends AbstractCloud {
         // update routes is not supported in GCP, so delete and recreate
         const deletePromises = [];
         operations.forEach((item) => {
-            const uri = `global/routes/${item.id}`;
-            // delete necessary properties first
-            delete item.id;
-            delete item.creationTimestamp;
-            delete item.kind;
-            delete item.selfLink;
-            // now, delete
-            deletePromises.push(this._sendRequest('DELETE', uri));
+            deletePromises.push(this._retrier(this._deleteRoute, [item]));
         });
 
         return Promise.all(deletePromises)
-            .then((response) => {
-                this.logger.debug('Deleted routes successfully');
-                const operationPromises = [];
-                response.forEach((item) => {
-                    const operation = this.compute.operation(item.name);
-                    operationPromises.push(operation.promise());
-                });
-                return Promise.all(operationPromises);
-            })
             .then(() => {
                 const createPromises = [];
                 operations.forEach((item) => {
-                    createPromises.push(this._sendRequest('POST', 'global/routes/', item));
+                    createPromises.push(this._retrier(this._createRoute, [item]));
                 });
                 return Promise.all(createPromises);
             })
@@ -1009,7 +993,14 @@ class Cloud extends AbstractCloud {
                 const operation = computeZone.operation(data.name);
                 return operation.promise();
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => {
+                this.logger.silly(`Update NIC error. ${err}`);
+                // workaround for quota exceeded, retries API call response conditionNotMet during updateNic
+                if (err.message.indexOf('conditionNotMet') !== -1) {
+                    return Promise.resolve();
+                }
+                return Promise.reject(err);
+            });
     }
 
     /**
@@ -1054,6 +1045,58 @@ class Cloud extends AbstractCloud {
             );
         }
         return null;
+    }
+
+    /**
+    * Delete specified GCP user defined routes
+    *
+    * @param {Array} item - item array
+    *
+    * @returns {Promise} A promise which will be resolved with the operation response
+    */
+    _deleteRoute(item) {
+        const uri = `global/routes/${item.id}`;
+        return this._sendRequest('DELETE', uri)
+            .then((response) => {
+                const operation = this.compute.operation(response.name);
+                return operation.promise();
+            })
+            .catch((err) => {
+                this.logger.silly(`Delete route error. ${err}`);
+                // workaround for quota exceeded, retries API call response notFound during delete route
+                if (err.message.indexOf('notFound') !== -1) {
+                    return Promise.resolve();
+                }
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+    * Create specified GCP user defined routes
+    *
+    * @param {Array} item - item array
+    *
+    * @returns {Promise} A promise which will be resolved with the operation response
+    */
+    _createRoute(item) {
+        // delete necessary properties first
+        delete item.id;
+        delete item.creationTimestamp;
+        delete item.kind;
+        delete item.selfLink;
+        return this._sendRequest('POST', 'global/routes/', item)
+            .then((response) => {
+                const operation = this.compute.operation(response.name);
+                return operation.promise();
+            })
+            .catch((err) => {
+                this.logger.silly(`Create route error. ${err}`);
+                // workaround for quota exceeded, retries API call response route alreadyExists during create route
+                if (err.message.indexOf('alreadyExists') !== -1) {
+                    return Promise.resolve();
+                }
+                return Promise.reject(err);
+            });
     }
 }
 
