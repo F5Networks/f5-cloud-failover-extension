@@ -121,6 +121,9 @@ describe('Provider - GCP', () => {
         provider.logger.verbose = sinon.stub();
         provider.logger.silly = sinon.stub();
 
+        provider.maxRetries = 0;
+        provider.retryInterval = 100;
+
         provider.tags = {
             'test-tag-key': 'test-tag-value'
         };
@@ -466,10 +469,9 @@ describe('Provider - GCP', () => {
             sinon.stub(provider, '_getRouteTables').resolves(getRouteTablesResponse);
 
             providerSendRequestMock = sinon.stub(provider, '_sendRequest');
-            providerSendRequestMock.onCall(0).resolves({
+            providerSendRequestMock.resolves({
                 name: 'test-name'
             });
-            providerSendRequestMock.resolves();
             sinon.stub(provider.compute, 'operation').callsFake(() => {
                 return {
                     promise: () => {
@@ -539,10 +541,9 @@ describe('Provider - GCP', () => {
                     }
                 }
             ];
-            providerSendRequestMock.onCall(1).resolves({
+            providerSendRequestMock.resolves({
                 name: 'test-name-2'
             });
-            providerSendRequestMock.resolves();
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
                 .then(operations => provider.updateRoutes({ updateOperations: operations }))
@@ -584,11 +585,9 @@ describe('Provider - GCP', () => {
                     ]
                 }
             ];
-            providerSendRequestMock.onCall(1).resolves({
+            providerSendRequestMock.resolves({
                 name: 'test-name-2'
             });
-            providerSendRequestMock.onCall(3).resolves();
-            providerSendRequestMock.onCall(4).resolves();
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
                 .then(operations => provider.updateRoutes({ updateOperations: operations }))
@@ -630,11 +629,9 @@ describe('Provider - GCP', () => {
                     ]
                 }
             ];
-            providerSendRequestMock.onCall(1).resolves({
+            providerSendRequestMock.resolves({
                 name: 'test-name-2'
             });
-            providerSendRequestMock.onCall(3).resolves();
-            providerSendRequestMock.onCall(4).resolves();
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
                 .then(operations => provider.updateRoutes({ updateOperations: operations }))
@@ -676,11 +673,9 @@ describe('Provider - GCP', () => {
                     ]
                 }
             ];
-            providerSendRequestMock.onCall(1).resolves({
+            providerSendRequestMock.resolves({
                 name: 'test-name-2'
             });
-            providerSendRequestMock.onCall(3).resolves();
-            providerSendRequestMock.onCall(4).resolves();
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
                 .then(operations => provider.updateRoutes({ updateOperations: operations }))
