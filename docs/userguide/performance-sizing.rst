@@ -1,6 +1,6 @@
 .. _performance-sizing:
 
-Performance and sizing
+Performance and Sizing
 ======================
 
 This section shows how the configuration size of the cloud environment may affect CFE performance. These results are examples and may vary.

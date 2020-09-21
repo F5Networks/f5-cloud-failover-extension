@@ -20,7 +20,7 @@ These are the basic prerequisites for setting up CFE in Microsoft Azure.
 - **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding
 
 
-.. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. 
+.. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the :ref:`performance-sizing` section for example times.
 
 
 |
@@ -70,7 +70,6 @@ In the diagram, the IP configuration has a secondary private address that matche
 
 
 .. image:: ../images/azure/azure-failover-3nic-multiple-vs-animated.gif
-  :width: 800
 
 |
 
@@ -105,7 +104,7 @@ To create and assign a Managed Service Identity (MSI) you must have a role of `U
    For example:
 
    .. image:: ../images/azure/AzureMSIVMIdentity.png
-     :width: 800
+
 
    | 
 
@@ -119,7 +118,7 @@ To create and assign a Managed Service Identity (MSI) you must have a role of `U
    For example: 
 
    .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
-     :width: 800
+
 
 .. NOTE:: Certain resources may be deployed in a separate subscription, add role assignments for each subscription where resources are located.
 
@@ -190,7 +189,7 @@ Example:
 
 
 .. image:: ../images/azure/AzureNICTags.png
-  :width: 800
+
 
 |
 
@@ -264,8 +263,8 @@ The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more 
 Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
 
 
-.. image:: ../images/azure/AzureUDRTags.png
-  :width: 800
+.. image:: ../images/azure/AzureUDR.png
+
 
 |
 
@@ -280,7 +279,7 @@ Azure's Instance Metadata Service is a REST Endpoint accessible to all IaaS VMs 
 
 .. IMPORTANT:: Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (for example: ``dhclient_route1``), if that is the case the below steps are not required.
 
-To configure the route on BIG-IP to talk to Azure's Instance Metadata Services, use either of the following commands:
+To configure the route on BIG-IP to talk to Azure's Instance Metadata Services, use either of the commands below. Note that in this example, 192.0.2.1 is the management subnet's default gateway.
 
 Using TMSH
 ``````````
