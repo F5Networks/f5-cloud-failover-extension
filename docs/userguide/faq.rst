@@ -164,6 +164,8 @@ Does it matter if I use CFE in same network or across network?
 
 Cloud Failover Extension is agnostic to same-network and across-network topologies.
 
+CFE will work across Availability Zones by remapping elastic public IPs to those internal IPs that remain on each BIG-IP in different Availability Zones. In Same Availability Zones, CFE will move the internal IPs from one BIG-IP system to another. 
+
 
 
 -----------------------------------------
