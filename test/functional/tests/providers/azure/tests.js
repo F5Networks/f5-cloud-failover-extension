@@ -385,4 +385,17 @@ describe('Provider: Azure', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+        {
+            authToken: dutSecondary.authData.token,
+            port: dutSecondary.port
+        })
+        .then((data) => {
+            const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
+            const routeTableId = data.routes.operations[0][0];
+            assert.deepStrictEqual(addressesInterfaceId, rgName);
+            assert.deepStrictEqual(routeTableId, rgName);
+        })
+        .catch(err => Promise.reject(err)));
 });

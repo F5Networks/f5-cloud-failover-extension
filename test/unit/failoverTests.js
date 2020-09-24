@@ -327,6 +327,24 @@ describe('Failover', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should execute get failover discovery for dry run', () => config.init()
+        .then(() => config.processConfigRequest(declaration))
+        .then(() => failover.init())
+        .then(() => failover.dryRun())
+        .then(() => {
+            const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+            // verify that update addresses get called
+            assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, ['1.1.1.1']);
+            assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, ['2.2.2.2']);
+            assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+
+            // verify that update routes get called
+            const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
+            assert.strictEqual(updateRoutesUpdateCall.discoverOnly, true);
+        })
+        .catch(err => Promise.reject(err)));
+
+
     it('should result in no failover addresses when no virtual addresses exist', () => {
         deviceGetVirtualAddressesMock.returns([]);
 

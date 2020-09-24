@@ -139,6 +139,22 @@ describe('Rest Operations', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should process POST dry-run to the trigger endpoint', () => {
+        const worker = new WorkerClient();
+
+        sinon.stub(FailoverClient.prototype, 'dryRun').resolves({});
+
+        return worker.onPost(createRestOperation({
+            method: 'POST',
+            endpoint: 'trigger',
+            body: { action: 'dry-run' }
+        }))
+            .then((data) => {
+                assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should process GET to the trigger endpoint', () => {
         const worker = new WorkerClient();
 

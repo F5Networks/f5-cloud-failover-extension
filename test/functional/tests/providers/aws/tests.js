@@ -476,4 +476,28 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
+        const expectedResult = {};
+        return Promise.all([
+            getElasticIps(dutPrimary.instanceId),
+            getRouteTableRoutes(dutPrimary.instanceId)
+        ])
+            .then((data) => {
+                expectedResult.publicIp = data[0].Addresses[0].PublicIp;
+                expectedResult.routeTableId = data[1][0].RouteTableId;
+            })
+            .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                {
+                    authToken: dutSecondary.authData.token,
+                    port: dutSecondary.port
+                }))
+            .then((data) => {
+                const addresses = utils.stringify(data.addresses);
+                const routeTableId = data.routes.operations[0].routeTableId;
+                assert(addresses.indexOf(expectedResult.publicIp) !== -1);
+                assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

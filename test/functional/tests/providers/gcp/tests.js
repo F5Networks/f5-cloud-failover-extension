@@ -565,4 +565,27 @@ describe('Provider: GCP', () => {
             })
             .catch(err => Promise.reject(err));
     });
+
+    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
+        const expectedResult = {};
+        expectedResult.addressesInterfaceId = dutSecondary.hostname;
+        return Promise.all([
+            getRoutes(primarySelfIps)
+        ])
+            .then((results) => {
+                expectedResult.routeTableId = results[0][0].id;
+            })
+            .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                {
+                    authToken: dutSecondary.authData.token,
+                    port: dutSecondary.port
+                }))
+            .then((data) => {
+                const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
+                const routeTableId = data.routes.operations[0].id;
+                assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
+                assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+            })
+            .catch(err => Promise.reject(err));
+    });
 });

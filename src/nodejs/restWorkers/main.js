@@ -230,6 +230,18 @@ Worker.prototype.processRequest = function (restOperation) {
     case 'trigger':
         switch (method) {
         case 'POST':
+            if (body && body.action && body.action === 'dry-run') {
+                return failover.init()
+                    .then(() => failover.dryRun())
+                    .then(results => util.restOperationResponder(restOperation, 200, {
+                        addresses: results[0],
+                        routes: results[1]
+                    }))
+                    .catch(err => util.restOperationResponder(restOperation, 500,
+                        {
+                            message: util.stringify(err.message)
+                        }));
+            }
             return performFailover({
                 restOperation,
                 pathName,
