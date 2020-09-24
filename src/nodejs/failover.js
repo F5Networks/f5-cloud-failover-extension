@@ -115,18 +115,6 @@ class FailoverClient {
         this.hasActiveTrafficGroups = false;
 
         return this._getDeviceObjects()
-            .then((results) => {
-                this.hostname = results[0].hostname;
-                this.trafficGroupStats = results[1];
-                this.selfAddresses = results[2];
-                this.virtualAddresses = results[3];
-                this.snatAddresses = results[4];
-                this.natAddresses = results[5];
-                this.cmDeviceInfo = results[6];
-
-                // wait for task - handles all possible states
-                return this._waitForTask();
-            })
             .then((taskResponse) => {
                 if (taskResponse && taskResponse.recoverPreviousTask === true) {
                     return Promise.resolve(taskResponse);
@@ -142,14 +130,7 @@ class FailoverClient {
                     return this._getRecoveryOperations(taskResponse);
                 }
 
-                const activeTrafficGroups = this._getTrafficGroups(
-                    this.trafficGroupStats, this.cmDeviceInfo, deviceStatus.ACTIVE
-                );
-                if (!activeTrafficGroups.length) {
-                    return Promise.resolve([{}, {}]);
-                }
-                this.hasActiveTrafficGroups = true;
-                return this._getFailoverDiscovery(activeTrafficGroups);
+                return this._getFailoverDiscovery(this.trafficGroupStats, this.cmDeviceInfo);
             })
             .then((updates) => {
                 this.addressDiscovery = updates[0] || {};
@@ -253,18 +234,8 @@ class FailoverClient {
      */
     getFailoverStatusAndObjects() {
         let result = null;
-        let hostname = null;
-        let trafficGroupStats = null;
-        let cmDeviceInfo = null;
         logger.info('Fetching device info');
         return this._getDeviceObjects()
-            .then((deviceInfo) => {
-                hostname = deviceInfo[0].hostname;
-                trafficGroupStats = deviceInfo[1];
-                cmDeviceInfo = deviceInfo[6];
-                // wait for task - handles all possible states
-                return this._waitForTask();
-            })
             .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo())
             .then((addressAndRouteInfo) => {
                 logger.debug('Fetching addressAndRouteInfo ', addressAndRouteInfo);
@@ -273,9 +244,11 @@ class FailoverClient {
             })
             .then(() => {
                 logger.debug('Fetching traffic groups');
-                const activeTG = this._getTrafficGroups(trafficGroupStats, cmDeviceInfo, deviceStatus.ACTIVE);
-                const standByTG = this._getTrafficGroups(trafficGroupStats, cmDeviceInfo, deviceStatus.STANDBY);
-                result.hostName = hostname;
+                const activeTG = this._getTrafficGroups(this.trafficGroupStats,
+                    this.cmDeviceInfo, deviceStatus.ACTIVE);
+                const standByTG = this._getTrafficGroups(this.trafficGroupStats,
+                    this.cmDeviceInfo, deviceStatus.STANDBY);
+                result.hostName = this.hostname;
                 if (activeTG === null || activeTG.length === 0) {
                     result.deviceStatus = deviceStatus.STANDBY;
                     result.trafficGroup = standByTG;
@@ -357,6 +330,10 @@ class FailoverClient {
     }
 
     _getDeviceObjects() {
+        this.isAddressOperationsEnabled = this._getOperationEnabledState('failoverAddresses');
+        logger.debug('Address operations enabled? ', this.isAddressOperationsEnabled);
+        this.isRouteOperationsEnabled = this._getOperationEnabledState('failoverRoutes');
+        logger.debug('Route operations enabled? ', this.isRouteOperationsEnabled);
         return Promise.all([
             this.device.getGlobalSettings(),
             this.device.getTrafficGroupsStats(),
@@ -366,7 +343,18 @@ class FailoverClient {
             this.device.getNatAddresses(),
             this.device.getCMDeviceInfo()
         ])
-            .then(results => Promise.resolve(results))
+            .then((results) => {
+                this.hostname = results[0].hostname;
+                this.trafficGroupStats = results[1];
+                this.selfAddresses = results[2];
+                this.virtualAddresses = results[3];
+                this.snatAddresses = results[4];
+                this.natAddresses = results[5];
+                this.cmDeviceInfo = results[6];
+
+                // wait for task - handles all possible states
+                return this._waitForTask();
+            })
             .catch((err) => {
                 const errorMessage = `failover._getDeviceObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                 logger.error(errorMessage);
@@ -376,17 +364,30 @@ class FailoverClient {
     /**
      * Get failover discovery (update cloud provider addresses and routes)
      *
-     * @param {Object} trafficGroups - The traffic groups to discover local and failover addresses
+     * @param {Object} trafficGroupStats - The traffic groups to discover local and failover addresses
+     * @param {String} cmDeviceInfo      - CM device information
+     * @param {Object} [options]         - function options
+     * @param {Boolean} [options.dryRun] - flag to perform dry run
      *
      * @returns {Promise}
      */
-    _getFailoverDiscovery(trafficGroups) {
+    _getFailoverDiscovery(trafficGroupStats, cmDeviceInfo, options) {
         logger.info('Performing Failover - discovery');
+        options = options || {};
+        const dryRun = options.dryRun || false;
+        const failoverStatus = dryRun ? null : deviceStatus.ACTIVE;
+        const activeTrafficGroups = this._getTrafficGroups(
+            trafficGroupStats, cmDeviceInfo, failoverStatus
+        );
+        if (!activeTrafficGroups.length) {
+            return Promise.resolve([{}, {}]);
+        }
 
+        this.hasActiveTrafficGroups = true;
         const addresses = this._getFailoverAddresses(
-            this._getSelfAddresses(this.selfAddresses, trafficGroups),
+            this._getSelfAddresses(this.selfAddresses, activeTrafficGroups),
             this._getFloatingAddresses(
-                this.virtualAddresses, this.snatAddresses, this.natAddresses, trafficGroups
+                this.virtualAddresses, this.snatAddresses, this.natAddresses, activeTrafficGroups
             )
         );
         this.localAddresses = addresses.localAddresses;
@@ -406,7 +407,26 @@ class FailoverClient {
         }) : {});
 
         return Promise.all(updateActions)
-            .catch(err => Promise.reject(err));
+            .catch((err) => {
+                logger.error(`error in _getFailoverDiscovery: ${err}`);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Perform a dry run
+     *
+     * @Returns {promise} - BIG-IP's addresses and routes objects
+     */
+    dryRun() {
+        logger.info('Performing dry run');
+        return this._getDeviceObjects()
+            .then(() => this._getFailoverDiscovery(this.trafficGroupStats, this.cmDeviceInfo, { dryRun: true }))
+            .then(results => Promise.resolve(results))
+            .catch((err) => {
+                logger.error(`error: ${util.stringify(err)}`);
+                return Promise.reject(err);
+            });
     }
 
     /**
@@ -587,11 +607,12 @@ class FailoverClient {
     _getTrafficGroups(trafficGroupStats, cmDeviceInfo, failoverStatus) {
         const trafficGroups = [];
         const localCMDevice = cmDeviceInfo.filter(item => item.selfDevice === true || item.selfDevice === 'true')[0];
-
         const entries = trafficGroupStats.entries;
         Object.keys(entries).forEach((key) => {
-            const local = entries[key].nestedStats.entries.deviceName.description.indexOf(localCMDevice.name) !== -1
-                && entries[key].nestedStats.entries.failoverState.description === failoverStatus;
+            const local = failoverStatus
+                ? entries[key].nestedStats.entries.deviceName.description.indexOf(localCMDevice.name) !== -1
+                && entries[key].nestedStats.entries.failoverState.description === failoverStatus
+                : entries[key].nestedStats.entries.deviceName.description.indexOf(localCMDevice.name) !== -1;
 
             if (local) {
                 trafficGroups.push({

@@ -187,6 +187,30 @@ module.exports = {
     },
 
     /**
+     * Invoke dry-run via a POST to trigger endpoint of a BIG-IP
+     *
+     * @param {String}  host                - host address
+     * @param {Object}  options             - function options
+     * @param {String} [options.authToken]  - Authentication token
+     * @param {String} [options.port]       - port
+     * @param {String} [options.hostname]   - hostname
+     *
+     * @returns {Promise} Resolved with data returned from dry-run
+     */
+    invokeFailoverDryRun(host, options) {
+        const uri = constants.TRIGGER_ENDPOINT;
+        options = options || {};
+
+        const httpOptions = this.makeOptions({ authToken: options.authToken });
+        httpOptions.method = 'POST';
+        httpOptions.port = options.port;
+        httpOptions.body = { action: 'dry-run' };
+        return utils.makeRequest(host, uri, httpOptions)
+            .then(data => Promise.resolve(data))
+            .catch(err => Promise.reject(err));
+    },
+
+    /**
      * Get request to the inspect endpoint of a BIG-IP
      *
      * @param {String}  host                  - host address

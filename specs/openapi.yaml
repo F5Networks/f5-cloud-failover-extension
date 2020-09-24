@@ -133,15 +133,22 @@ paths:
               properties:
                 action:
                   type: string
-            example:
-              action: execute
+            examples:
+              execute:
+                value:
+                  action: execute
+              dry-run:
+                value:
+                  action: dry-run
       responses:
         "200":
           description: Configuration response
           content:
             "application/json; charset=UTF-8":
               schema:
-                $ref: "#/components/schemas/TaskStateResponse"
+                oneOf:
+                  - $ref: "#/components/schemas/TaskStateResponse"
+                  - $ref: "#/components/schemas/DryRunResponse"
         "500":
           description: Failover task failed
           content:
@@ -411,6 +418,13 @@ components:
               type: object
         code:
           type: string
+    DryRunResponse:
+      type: object
+      properties:
+        addresses:
+          type: object
+        routes:
+          type: object
     Error:
       required:
         - code
