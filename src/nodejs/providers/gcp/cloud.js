@@ -79,8 +79,8 @@ class Cloud extends AbstractCloud {
 
                 this.logger.silly('Getting GCP resources');
                 return Promise.all([
-                    this._getVmsByTags(this.tags),
-                    this._getFwdRules({ tags: this.tags }),
+                    this._getVmsByTags(this.addressTags),
+                    this._getFwdRules({ tags: this.addressTags }),
                     this._getTargetInstances()
                 ]);
             })
@@ -166,7 +166,7 @@ class Cloud extends AbstractCloud {
         this.logger.silly('updateAddresses: ', options);
 
         // update this.vms property prior to discovery/update
-        return this._getVmsByTags(this.tags)
+        return this._getVmsByTags(this.addressTags)
             .then((vms) => {
                 this.vms = vms || [];
 
@@ -398,12 +398,11 @@ class Cloud extends AbstractCloud {
         options = options || {};
 
         const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
-            this.logger.silly('getFwdRules called:', nextPageToken, fwdRulesList);
+            let path = `regions/${this.region}/forwardingRules`;
+            if (nextPageToken !== '') {
+                path = `${path}?pageToken=${nextPageToken}`;
+            }
             return new Promise((resolve, reject) => {
-                let path = `regions/${this.region}/forwardingRules`;
-                if (nextPageToken !== '') {
-                    path = `regions/${this.region}/forwardingRules?pageToken=${nextPageToken}`;
-                }
                 this._sendRequest('GET', path)
                     .then((pagedRulesList) => {
                         fwdRulesList = fwdRulesList.concat(pagedRulesList.items);
@@ -424,18 +423,17 @@ class Cloud extends AbstractCloud {
             .then((fwdRules) => {
                 // optionally filter fwd rules using tags
                 if (options.tags) {
-                    const tagKeys = Object.keys(options.tags);
                     const filteredFwdRules = fwdRules.filter((fwdRule) => {
+                        const fwdRuleTags = gcpLabelParse(fwdRule.description || '');
+
                         let matchedTags = 0;
-                        tagKeys.forEach((tagKey) => {
-                            const fwdRuleTags = gcpLabelParse(fwdRule.description || '');
-                            this.logger.silly('fwdRuleTags:', fwdRuleTags, tagKey);
+                        Object.keys(options.tags).forEach((tagKey) => {
                             if (fwdRuleTags && Object.keys(fwdRuleTags).indexOf(tagKey) !== -1
                                 && fwdRuleTags[tagKey] === options.tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
-                        return tagKeys.length === matchedTags;
+                        return Object.keys(options.tags).length === matchedTags;
                     });
                     return Promise.resolve(filteredFwdRules);
                 }
@@ -566,7 +564,7 @@ class Cloud extends AbstractCloud {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceName;
         return Promise.all([
-            this._getVmsByTags(this.tags),
+            this._getVmsByTags(this.addressTags),
             this._getRouteTables()
         ])
             .then((result) => {
@@ -790,7 +788,7 @@ class Cloud extends AbstractCloud {
         };
 
         return Promise.all([
-            this._getFwdRules({ tags: this.tags }),
+            this._getFwdRules({ tags: this.addressTags }),
             this._getTargetInstances()
         ])
             .then((data) => {

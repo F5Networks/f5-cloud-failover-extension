@@ -294,7 +294,7 @@ class FailoverClient {
             }));
         }
         return {
-            tags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+            addressTags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
             routeGroupDefinitions,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             subscriptions: (util.getDataByKey(

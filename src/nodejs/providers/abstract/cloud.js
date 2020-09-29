@@ -44,20 +44,20 @@ class AbstractCloud {
     * Initialize the Cloud Provider
     *
     * @param {Object} options                         - function options
-    * @param {Object} [options.tags]                  - tags to filter addresses on
+    * @param {Object} [options.addressTags]           - tags to filter addresses on
+    * @param {Object} [options.proxySettings]         - proxy settings { protocol: '', 'host': '', port: ''  }
     * @param {Object} [options.routeGroupDefinitions] - group definitions to filter routes on
     * @param {Object} [options.routeAddressRanges]    - addresses to filter on [{ 'range': '192.0.2.0/24' }]
     *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
-    * @param {Object} [options.proxySettings]         - proxy settings { protocol: '', 'host': '', port: ''  }
     */
     init(options) {
         options = options || {};
-        this.tags = options.tags || {};
+        this.addressTags = options.addressTags || {};
+        this.proxySettings = options.proxySettings || null;
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
-        this.proxySettings = options.proxySettings || null;
     }
 
     downloadDataFromStorage() {

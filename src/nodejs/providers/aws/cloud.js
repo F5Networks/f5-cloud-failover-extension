@@ -258,9 +258,9 @@ class Cloud extends AbstractCloud {
     */
     _discoverAddressOperations(localAddresses, failoverAddresses) {
         return Promise.all([
-            this._getElasticIPs({ tags: this.tags }),
+            this._getElasticIPs({ tags: this.addressTags }),
             this._getPrivateSecondaryIPs(),
-            this._listNics({ tags: this.tags })
+            this._listNics({ tags: this.addressTags })
         ])
             .then((results) => {
                 const eips = results[0].Addresses;
@@ -474,7 +474,7 @@ class Cloud extends AbstractCloud {
      */
     _getNetworkInterfaceId(privateIp) {
         const options = {
-            tags: this.tags
+            tags: this.addressTags
         };
         const address = new IPAddressLib.Address4(privateIp);
         if (address.isValid()) {

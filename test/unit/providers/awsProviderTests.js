@@ -23,7 +23,7 @@ describe('Provider - AWS', () => {
     let originalgetAllS3Buckets;
 
     const mockInitData = {
-        tags: {
+        addressTags: {
             key1: 'value1',
             key2: 'value2'
         },
@@ -453,7 +453,7 @@ describe('Provider - AWS', () => {
                                 }
                             };
                         });
-                    return provider._getElasticIPs({ tags: mockInitData.tags });
+                    return provider._getElasticIPs({ tags: mockInitData.addressTags });
                 })
                 .then((results) => {
                     assert.deepEqual(results, _getElasticIPsStubResponse);
@@ -485,7 +485,7 @@ describe('Provider - AWS', () => {
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
-                    return provider._getElasticIPs(mockInitData.tags);
+                    return provider._getElasticIPs(mockInitData.addressTags);
                 })
                 .then(() => {
                     assert.ok(false, 'should have rejected');

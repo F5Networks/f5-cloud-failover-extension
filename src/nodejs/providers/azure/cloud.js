@@ -588,7 +588,7 @@ class Cloud extends AbstractCloud {
             });
         }
         this.logger.info('Discover Address operations using localAddresses', localAddresses, 'failoverAddresses', failoverAddresses, 'to discover');
-        return this._listNics({ tags: this.tags || null })
+        return this._listNics({ tags: this.addressTags || null })
             .then((nics) => {
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
                 return this._generateAddressOperations(localAddresses, failoverAddresses,
