@@ -80,7 +80,7 @@ class Cloud extends AbstractCloud {
                 this.logger.silly('Getting GCP resources');
                 return Promise.all([
                     this._getVmsByTags(this.tags),
-                    this._getFwdRules(),
+                    this._getFwdRules({ tags: this.tags }),
                     this._getTargetInstances()
                 ]);
             })
@@ -381,42 +381,66 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
-
     /**
      * Get all forwarding rules (non-global)
+     *
+     * @param {Object} options  - function options
+     * @param {Object} tags     - 1+ tags to filter on
+     *                 {
+     *                     key01: value01,
+     *                     key02: value02
+     *                 }
      *
      * @returns {Promise} A promise which will be resolved with an array of forwarding rules
      *
      */
     _getFwdRules(options) {
         options = options || {};
-        const pageToken = options.pageToken || '';
-        const initFwdRulesList = [];
+
         const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
-            this.logger.silly(`getFwdRules called with nextPageToken ${nextPageToken}`);
+            this.logger.silly('getFwdRules called:', nextPageToken, fwdRulesList);
             return new Promise((resolve, reject) => {
-                let list = fwdRulesList || [];
                 let path = `regions/${this.region}/forwardingRules`;
                 if (nextPageToken !== '') {
                     path = `regions/${this.region}/forwardingRules?pageToken=${nextPageToken}`;
                 }
                 this._sendRequest('GET', path)
                     .then((pagedRulesList) => {
-                        list = list.concat(pagedRulesList.items);
+                        fwdRulesList = fwdRulesList.concat(pagedRulesList.items);
                         if (pagedRulesList.nextPageToken) {
-                            getRulesWithNextPageToken(list, pagedRulesList.nextPageToken)
+                            getRulesWithNextPageToken(fwdRulesList, pagedRulesList.nextPageToken)
                                 .then((rList) => {
-                                    this.logger.silly('Fwd Rules: resolving for next page');
                                     resolve(rList);
                                 });
                         } else {
-                            resolve(list);
+                            resolve(fwdRulesList);
                         }
                     })
                     .catch(err => reject(err));
             });
         };
-        return getRulesWithNextPageToken(initFwdRulesList, pageToken)
+
+        return getRulesWithNextPageToken([], '')
+            .then((fwdRules) => {
+                // optionally filter fwd rules using tags
+                if (options.tags) {
+                    const tagKeys = Object.keys(options.tags);
+                    const filteredFwdRules = fwdRules.filter((fwdRule) => {
+                        let matchedTags = 0;
+                        tagKeys.forEach((tagKey) => {
+                            const fwdRuleTags = gcpLabelParse(fwdRule.description || '');
+                            this.logger.silly('fwdRuleTags:', fwdRuleTags, tagKey);
+                            if (fwdRuleTags && Object.keys(fwdRuleTags).indexOf(tagKey) !== -1
+                                && fwdRuleTags[tagKey] === options.tags[tagKey]) {
+                                matchedTags += 1;
+                            }
+                        });
+                        return tagKeys.length === matchedTags;
+                    });
+                    return Promise.resolve(filteredFwdRules);
+                }
+                return Promise.resolve(fwdRules);
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -766,7 +790,7 @@ class Cloud extends AbstractCloud {
         };
 
         return Promise.all([
-            this._getFwdRules(),
+            this._getFwdRules({ tags: this.tags }),
             this._getTargetInstances()
         ])
             .then((data) => {

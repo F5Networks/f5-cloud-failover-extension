@@ -160,13 +160,13 @@ describe('Provider - GCP', () => {
 
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
-        sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+        sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
         sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
 
         return provider.init(mockInitData)
             .then(() => {
-                assert.strictEqual(provider.fwdRules, 'fwrResponse');
+                assert.strictEqual(provider.fwdRules, 'fwdRuleResponse');
                 assert.strictEqual(provider.instanceName, 'GoogleInstanceName');
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
                 assert.strictEqual(provider.bucket, 'bucketResponse');
@@ -180,7 +180,7 @@ describe('Provider - GCP', () => {
 
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
-        sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+        sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
         sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
@@ -929,11 +929,35 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getFwdRules returned promise', () => {
-        sinon.replace(provider, '_sendRequest', sinon.fake.resolves({ items: 'test_data' }));
+        sinon.replace(provider, '_sendRequest', sinon.fake.resolves({ items: [{ name: 'testFwdRule' }] }));
 
         return provider._getFwdRules()
             .then((data) => {
-                assert.strictEqual(data[0], 'test_data');
+                assert.strictEqual(data[0].name, 'testFwdRule');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate _getFwdRules filters based on tag', () => {
+        sinon.replace(provider, '_sendRequest', sinon.fake.resolves({
+            items: [
+                {
+                    name: 'notOurTestFwdRule',
+                    IPAddress: 'x.x.x.x',
+                    target: 'compute/xxxx'
+                },
+                {
+                    name: 'testFwdRule',
+                    IPAddress: 'x.x.x.x',
+                    target: 'compute/xxxx',
+                    description: 'f5_cloud_failover_labels={"key01":"value01"}'
+                }
+            ]
+        }));
+
+        return provider._getFwdRules({ tags: { key01: 'value01' } })
+            .then((data) => {
+                assert.strictEqual(data[0].name, 'testFwdRule');
             })
             .catch(err => Promise.reject(err));
     });
@@ -1081,7 +1105,7 @@ describe('Provider - GCP', () => {
             };
             sinon.replace(provider, '_getLocalMetadata', sinon.fake.returns('i-123'));
             sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
-            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwrResponse'));
+            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
             sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
             sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([{
                 name: 'i-123',

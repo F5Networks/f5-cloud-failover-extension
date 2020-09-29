@@ -34,8 +34,7 @@ class AbstractCloud {
         this.maxRetries = constants.MAX_RETRIES;
         this.retryInterval = constants.RETRY_INTERVAL;
 
-
-        const logger = options ? options.logger : Logger;
+        const logger = options && options.logger ? options.logger : Logger;
         if (logger) {
             this.logger = logger;
         }
@@ -45,8 +44,8 @@ class AbstractCloud {
     * Initialize the Cloud Provider
     *
     * @param {Object} options                         - function options
-    * @param {Object} [options.tags]                  - tags to filter on { 'key': 'value' }
-    * @param {Object} [options.routeTags]             - tags to filter on { 'key': 'value' }
+    * @param {Object} [options.tags]                  - tags to filter addresses on
+    * @param {Object} [options.routeGroupDefinitions] - group definitions to filter routes on
     * @param {Object} [options.routeAddressRanges]    - addresses to filter on [{ 'range': '192.0.2.0/24' }]
     *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
@@ -112,7 +111,6 @@ class AbstractCloud {
     _checkForNicOperations() {
         throw new Error('Method must be implemented in child class!');
     }
-
 
     /**
     * Discover next hop address - support 'none' (static) and routeTag discovery types
