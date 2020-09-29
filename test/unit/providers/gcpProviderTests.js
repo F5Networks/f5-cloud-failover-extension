@@ -21,9 +21,10 @@ const cloud = 'gcp';
 let provider;
 
 const mockInitData = {
-    tags: {
-        key01: 'value01'
+    addressTags: {
+        mylabel: 'mydeployment'
     },
+    addressTagsRequired: true,
     routeGroupDefinitions: [
         {
             routeTags: {
@@ -92,7 +93,7 @@ const mockMultipleZoneVms = [
 ];
 
 const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
-const fwdRuleDescription = 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName01, testInstanceName02"}';
+const fwdRuleDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_target_instance_pair":"testInstanceName01,testInstanceName02"}';
 
 describe('Provider - GCP', () => {
     const mockResourceGroup = 'foo';
@@ -124,9 +125,10 @@ describe('Provider - GCP', () => {
         provider.maxRetries = 0;
         provider.retryInterval = 100;
 
-        provider.tags = {
+        provider.addressTags = {
             'test-tag-key': 'test-tag-value'
         };
+        provider.addressTagsRequired = true;
         provider.routeGroupDefinitions = [
             {
                 routeTags: {
@@ -261,9 +263,15 @@ describe('Provider - GCP', () => {
             assert.deepEqual(spy.args[1][3].zone, expectedZone);
         }
 
-        function validateFwdRuleOperations(spy) {
-            assert.deepEqual(spy.args[0][0][0][0], 'testFwdRule');
-            assert.deepEqual(spy.args[0][0][0][1], 'selfLink/testInstanceName01');
+        function validateFwdRuleOperations(getSpy, updateSpy, options) {
+            options = options || {};
+
+            assert.deepStrictEqual(
+                getSpy.args[0][0].tags,
+                options.getTags !== undefined ? options.getTags : { 'test-tag-key': 'test-tag-value' }
+            );
+            assert.deepEqual(updateSpy.args[0][0][0][0], 'testFwdRule');
+            assert.deepEqual(updateSpy.args[0][0][0][1], 'selfLink/testInstanceName01');
         }
 
         beforeEach(() => {
@@ -299,7 +307,7 @@ describe('Provider - GCP', () => {
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
-                    validateFwdRuleOperations(updateFwdRulesSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -321,7 +329,31 @@ describe('Provider - GCP', () => {
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
-                    validateFwdRuleOperations(updateFwdRulesSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover with forwarding rules not requiring scoping tag', () => {
+            provider.addressTagsRequired = false;
+
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getFwdRulesStub.resolves([
+                {
+                    name: 'testFwdRule',
+                    description: 'f5_cloud_failover_labels={"f5_target_instance_pair":"testInstanceName01,testInstanceName02"}',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy, { getTags: null });
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -389,7 +421,7 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
-                    validateFwdRuleOperations(updateFwdRulesSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -1039,10 +1071,10 @@ describe('Provider - GCP', () => {
 
     it('validate _getVmsByTags', () => {
         provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.tags, zone: 'projects/1111/zones/us-west1-a' } }]]);
+        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.addressTags, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
-        return provider._getVmsByTags(provider.tags)
+        return provider._getVmsByTags(provider.addressTags)
             .then((data) => {
                 assert.strictEqual(data[0], 'test_data');
             });
@@ -1053,7 +1085,7 @@ describe('Provider - GCP', () => {
         provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' }, zone: 'projects/1111/zones/us-west1-a' } }]]);
         provider._getVmInfo = sinon.stub().resolves('test_data');
 
-        return provider._getVmsByTags(provider.tags)
+        return provider._getVmsByTags(provider.addressTags)
             .then((data) => {
                 assert.ok(data.length === 1);
                 assert.strictEqual(data[0], 'test_data');

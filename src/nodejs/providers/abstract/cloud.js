@@ -45,6 +45,8 @@ class AbstractCloud {
     *
     * @param {Object} options                         - function options
     * @param {Object} [options.addressTags]           - tags to filter addresses on
+    * @param {Boolean} [options.addressTagsRequired]  - denote if address tags are required for all objects
+    *                                                   (such as GCP forwarding rules)
     * @param {Object} [options.proxySettings]         - proxy settings { protocol: '', 'host': '', port: ''  }
     * @param {Object} [options.routeGroupDefinitions] - group definitions to filter routes on
     * @param {Object} [options.routeAddressRanges]    - addresses to filter on [{ 'range': '192.0.2.0/24' }]
@@ -55,6 +57,7 @@ class AbstractCloud {
     init(options) {
         options = options || {};
         this.addressTags = options.addressTags || {};
+        this.addressTagsRequired = options.addressTagsRequired || false;
         this.proxySettings = options.proxySettings || null;
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};

@@ -123,6 +123,10 @@
                 "scopingTags": {
                     "type": "object",
                     "additionalProperties": true
+                },
+                "requireScopingTags": {
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": [

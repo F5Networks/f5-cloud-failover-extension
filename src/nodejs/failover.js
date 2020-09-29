@@ -295,6 +295,7 @@ class FailoverClient {
         }
         return {
             addressTags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
+            addressTagsRequired: util.getDataByKey(this.config, 'failoverAddresses.requireScopingTags'),
             routeGroupDefinitions,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             subscriptions: (util.getDataByKey(

@@ -80,7 +80,7 @@ class Cloud extends AbstractCloud {
                 this.logger.silly('Getting GCP resources');
                 return Promise.all([
                     this._getVmsByTags(this.addressTags),
-                    this._getFwdRules({ tags: this.addressTags }),
+                    this._getFwdRules({ tags: this.addressTagsRequired === true ? this.addressTags : null }),
                     this._getTargetInstances()
                 ]);
             })
@@ -788,7 +788,7 @@ class Cloud extends AbstractCloud {
         };
 
         return Promise.all([
-            this._getFwdRules({ tags: this.addressTags }),
+            this._getFwdRules({ tags: this.addressTagsRequired === true ? this.addressTags : null }),
             this._getTargetInstances()
         ])
             .then((data) => {
