@@ -43,7 +43,7 @@
         "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "^1.4.6",
         "@google-cloud/compute": "^2.2.0",
-        "@google-cloud/storage": "^5.3.0",
+        "@google-cloud/storage": "^4.3.1",
         "ajv": "^6.10.0",
         "aws-sdk": "^2.369.0",
         "azure-arm-network": "^13.0.0",
@@ -102,6 +102,6 @@
         "bail": true
     },
     "auditProcessor": {
-        "whitelist": []
+        "whitelist": ["1561"]
     }
 }
