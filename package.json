@@ -99,7 +99,7 @@
     },
     "mocha": {
         "timeout": 300000,
-        "bail": true
+        "bail": false
     },
     "auditProcessor": {
         "whitelist": [
