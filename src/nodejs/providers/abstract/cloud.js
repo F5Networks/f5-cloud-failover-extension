@@ -51,6 +51,7 @@ class AbstractCloud {
     *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
+    * @param {Object} [options.storageName]           - storage scoping name
     * @param {Object} [options.proxySettings]         - proxy settings { protocol: '', 'host': '', port: ''  }
     */
     init(options) {
@@ -58,6 +59,7 @@ class AbstractCloud {
         this.tags = options.tags || {};
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
+        this.storageName = options.storageName || '';
         this.proxySettings = options.proxySettings || null;
     }
 

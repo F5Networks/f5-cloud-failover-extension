@@ -195,12 +195,20 @@
             "title": "External Storage",
             "description": "External storage this deployment will manage.",
             "type": "object",
-            "properties": {
-                "scopingTags": {
-                    "type": "object",
-                    "additionalProperties": true
+            "oneOf": [
+                {   
+                    "properties": {
+                        "scopingTags": { "$ref": "#/definitions/scopingTags" }
+                    },
+                    "required": ["scopingTags"]
+                },
+                {   
+                    "properties": {
+                        "scopingName": { "$ref": "#/definitions/scopingName" }
+                    },
+                    "required": ["scopingName"]
                 }
-            }
+            ]
         },
         "controls": {
             "title": "Controls",
