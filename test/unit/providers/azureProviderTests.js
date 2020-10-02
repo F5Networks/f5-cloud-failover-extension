@@ -107,6 +107,42 @@ describe('Provider - Azure', () => {
             });
     });
 
+    it('validate if storageName is set and storageTags are not then return _discoverStorageAccount', () => {
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+
+        const listStorageAccountsSpy = sinon.spy(provider, '_listStorageAccounts');
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
+        provider._initStorageAccountContainer = sinon.stub().resolves();
+
+        return provider.init({ storageName: 'foo' })
+            .then(() => {
+                assert.strictEqual(listStorageAccountsSpy.called, false);
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
+    it('validate if storageTags are set and storageName is not then return _listStorageAccounts', () => {
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+
+        const storageAccountResponse = [
+            {
+                name: 'foo'
+            }
+        ];
+
+        provider._listStorageAccounts = sinon.stub().resolves(storageAccountResponse);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
+        provider._initStorageAccountContainer = sinon.stub().resolves();
+
+        return provider.init({ tags: { foo: 'bar' } })
+            .then(() => {
+                assert.strictEqual(provider._listStorageAccounts.called, true);
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should _getInstanceMetadata with promise rejection', () => {
         f5CloudLibs.util.getDataFromUrl = sinon.stub().rejects();
 

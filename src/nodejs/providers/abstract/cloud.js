@@ -53,6 +53,7 @@ class AbstractCloud {
     *                                                   with next hop address discovery configuration:
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
+    * @param {Object} [options.storageName]           - storage scoping name
     */
     init(options) {
         options = options || {};
@@ -61,6 +62,7 @@ class AbstractCloud {
         this.proxySettings = options.proxySettings || null;
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
+        this.storageName = options.storageName || '';
     }
 
     downloadDataFromStorage() {

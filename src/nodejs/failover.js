@@ -298,6 +298,7 @@ class FailoverClient {
             addressTagsRequired: util.getDataByKey(this.config, 'failoverAddresses.requireScopingTags'),
             routeGroupDefinitions,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
+            storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
             subscriptions: (util.getDataByKey(
                 this.config, 'failoverRoutes.defaultResourceLocations'
             ) || []).map(location => location.subscriptionId),

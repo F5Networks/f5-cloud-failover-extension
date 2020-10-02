@@ -73,14 +73,11 @@ class Cloud extends AbstractCloud {
                         this.environment.resourceManagerEndpointUrl
                     );
                 });
-                return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }]);
+                return this._discoverStorageAccount();
             })
-            .then((storageAccounts) => {
-                if (!storageAccounts.length) {
-                    return Promise.reject(new Error('No storage account found!'));
-                }
-                const storageAccount = storageAccounts[0]; // only need one
-                return this._retrier(this._getStorageAccountKey, [storageAccount.name]);
+            .then((storageName) => {
+                this.logger.silly('Storage name: ', storageName);
+                return this._retrier(this._getStorageAccountKey, [storageName]);
             })
             .then((storageAccountInfo) => {
                 this.logger.silly('Storage Account Information: ', storageAccountInfo);
@@ -94,6 +91,25 @@ class Cloud extends AbstractCloud {
             })
             .then(() => {
                 this.logger.silly('Cloud Provider initialization complete');
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+    * Discover Storage Account (scopingName)
+    *
+    * @returns {Object}
+    */
+    _discoverStorageAccount() {
+        if (this.storageName) {
+            return Promise.resolve(this.storageName);
+        }
+        return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }])
+            .then((storageAccounts) => {
+                if (!storageAccounts.length) {
+                    return Promise.reject(new Error('No storage account found!'));
+                }
+                return Promise.resolve(storageAccounts[0].name); // only need one
             })
             .catch(err => Promise.reject(err));
     }

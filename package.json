@@ -53,11 +53,11 @@
         "googleapis": "^60.0.1",
         "gtoken": "5.0.3",
         "hooks": "^0.3.2",
+        "https-proxy-agent": "3.0.1",
         "ip-address": "^6.2.0",
         "ipaddr.js": "^1.7.0",
         "jsonschema": "^1.2.5",
         "ms-rest-azure": "^2.6.0",
-        "https-proxy-agent": "3.0.1",
         "request": "^2.83.0",
         "uuid": "^3.3.2"
     },
