@@ -134,12 +134,13 @@ paths:
                 action:
                   type: string
             examples:
-              execute:
-                value:
-                  action: execute
               dry-run:
                 value:
                   action: dry-run
+              execute:
+                value:
+                  action: execute
+
       responses:
         "200":
           description: Configuration response
@@ -147,8 +148,9 @@ paths:
             "application/json; charset=UTF-8":
               schema:
                 oneOf:
-                  - $ref: "#/components/schemas/TaskStateResponse"
                   - $ref: "#/components/schemas/DryRunResponse"
+                  - $ref: "#/components/schemas/TaskStateResponse"
+
         "500":
           description: Failover task failed
           content:
