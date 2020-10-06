@@ -164,7 +164,7 @@ describe('Provider - GCP', () => {
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
-        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+        sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketResponse'));
 
         return provider.init(mockInitData)
             .then(() => {
@@ -179,11 +179,10 @@ describe('Provider - GCP', () => {
     it('validate promise rejection for init method', () => {
         assert.strictEqual(typeof provider.init, 'function');
 
-
         sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
         sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
         sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
-        sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+        sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketResponse'));
         sinon.replace(provider, '_getVmsByTags', sinon.fake.rejects('test-error'));
 
         return provider.init(mockInitData)
@@ -194,6 +193,22 @@ describe('Provider - GCP', () => {
                 assert.strictEqual(error.message, 'test-error');
                 assert.ok(true);
             });
+    });
+
+    it('validate init if storageName is set then _getCloudStorage return bucket name', () => {
+        assert.strictEqual(typeof provider.init, 'function');
+
+        sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
+        sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
+        sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
+        sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves('vmsTagResponse'));
+        sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketName'));
+
+        return provider.init({ storageName: 'bucketName' })
+            .then(() => {
+                assert.strictEqual(provider.bucket, 'bucketName');
+            })
+            .catch(err => Promise.reject(err));
     });
 
     it('validate uploadDataToStorage', () => {
@@ -1092,7 +1107,7 @@ describe('Provider - GCP', () => {
             });
     });
 
-    it('validate _getBucketFromLabel', () => {
+    it('validate _getCloudStorage', () => {
         const payload = [
             [
                 {
@@ -1113,7 +1128,7 @@ describe('Provider - GCP', () => {
             return Promise.resolve(payload);
         };
 
-        return provider._getBucketFromLabel({ foo: 'bar', foo1: 'bar1' })
+        return provider._getCloudStorage({ foo: 'bar', foo1: 'bar1' })
             .then((data) => {
                 assert.strictEqual(data.name, 'ourBucket');
             })
@@ -1138,7 +1153,7 @@ describe('Provider - GCP', () => {
             sinon.replace(provider, '_getLocalMetadata', sinon.fake.returns('i-123'));
             sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves('targetInstanceResponse'));
             sinon.replace(provider, '_getFwdRules', sinon.fake.resolves('fwdRuleResponse'));
-            sinon.replace(provider, '_getBucketFromLabel', sinon.fake.resolves('bucketResponse'));
+            sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketResponse'));
             sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([{
                 name: 'i-123',
                 networkInterfaces: [
