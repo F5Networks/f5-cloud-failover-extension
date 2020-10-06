@@ -61,7 +61,7 @@ class Cloud extends AbstractCloud {
             this._getLocalMetadata('instance/service-accounts/default/token'),
             this._getLocalMetadata('instance/name'),
             this._getLocalMetadata('instance/zone'),
-            this._getBucketFromLabel(this.storageTags)
+            this._getCloudStorage(this.storageTags)
         ])
             .then((data) => {
                 this.projectId = data[0];
@@ -231,7 +231,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Get google storage bucket from given label
+     * Get Google cloud storage bucket from storageTags or storageName
      *
      * Note: do not log all bucket information, it can be very large
      *
@@ -240,7 +240,11 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} A promise which is resolved with the bucket requested
      *
      */
-    _getBucketFromLabel(labels) {
+    _getCloudStorage(labels) {
+        if (this.storageName) {
+            return Promise.resolve(this.storage.bucket(this.storageName));
+        }
+
         // helper function
         function getBucketLabels(bucket) {
             return bucket.getLabels()
