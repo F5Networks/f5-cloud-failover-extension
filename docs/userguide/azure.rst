@@ -73,6 +73,7 @@ In the diagram, the IP configuration has a secondary private address that matche
 
 |
 
+.. Note:: Management NICs/Subnets are not shown in this diagram.
 
 .. _azure-example:
 
@@ -130,8 +131,6 @@ RBAC Role Definition
 
 Below is an example Azure role definition with permissions required by CFE.
 
-.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
-
 - Microsoft.Authorization/*/read
 - Microsoft.Compute/locations/*/read
 - Microsoft.Compute/virtualMachines/*/read
@@ -144,9 +143,11 @@ Below is an example Azure role definition with permissions required by CFE.
 - Microsoft.Storage/storageAccounts/read
 - Microsoft.Storage/storageAccounts/listKeys/action
 
-.. IMPORTANT:: Certain resources such as the virtual network are commonly deployed in a separate resource group, ensure the correct scopes are applied to all applicable resource groups.
+.. IMPORTANT::
 
-.. IMPORTANT:: Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
+   - This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
+   - Certain resources such as the virtual network are commonly deployed in a separate resource group, ensure the correct scopes are applied to all applicable resource groups.
+   - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
 
 |
 
@@ -197,7 +198,12 @@ Example:
 
 Tag the User-Defined routes in Azure
 ````````````````````````````````````
-The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more granular route-table operations and you are no longer required to tag the route table. See :ref:`failover-routes` for more information. 
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   Use these steps for CFE version 1.5.0 and newer.
+
+In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allows more granular route operations and you are not required to tag the routes. Simply provide the name of the route you want to manage with ``scopingName``.  See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
@@ -225,11 +231,15 @@ The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more 
 |
 
 - See :ref:`azure_multiple_subscriptions` for examples of managing route tables in multiple subscriptions.
-- See :ref:`advanced-routing-examples` for additional examples of more advanced configurations.
+- See :ref:`advanced-routing-examples-azure` for additional examples of more advanced configurations.
 
 |
 
-**If using CFE versions earlier than v1.5.0**, to enable route failover, you need to tag the route tables containing the routes you want to manage.
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   Use these steps for CFE versions earlier than 1.5.0.
+
+To enable route failover in versions earlier than 1.5.0, tag the route tables containing the routes that you want to manage:
 
 1. In Azure, create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
@@ -238,6 +248,8 @@ The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more 
 2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table, or you can provide them statically in the cloud failover configuration.
 
    - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.13.12"``. 
+
+   |
 
    .. code-block:: json
 
@@ -310,6 +322,24 @@ Using Declarative Onboarding
 
 
 |
+
+
+.. _azure-as3-example:
+
+Example Virtual Service Declaration
+-----------------------------------
+
+See below for example Virtual Services created with `AS3 <https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/>`_ in :ref:`azure-diagram` above:
+
+.. literalinclude:: ../../examples/toolchain/as3/azure-as3.json
+   :language: json
+   :caption: Example AS3 Declaration
+   :tab-width: 4
+   :linenos:
+
+:fonticon:`fa fa-download` :download:`azure-as3.json <../../examples/toolchain/as3/azure-as3.json>`
+
+
 
 .. include:: /_static/reuse/feedback.rst
 

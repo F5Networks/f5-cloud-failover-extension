@@ -9,14 +9,10 @@ Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions
 ---------------------------------------------------------------------------
 The following examples leverage the object called "routeGroupDefintions" (released in v1.5.0) to support advanced routing scenarios. *NOTE*: In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have the concept of route tables so it translates to groups or collections of routes. Advanced routing examples include operating in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) that require per-route table granularity. 
 
-- ``scopingName`` is used to explicity provide the ``name`` or ``id`` of the route table to update (vs. tagging the route table with a scopingTag. See :ref:`example-route-tag`).
-- ``scopingAddressRanges`` are used to limit updating a particular route (or list of routes) in that table. 
-- ``defaultNextHopAddresses`` can be used to specify that each route go to different BIG-IP interfaces (in a multi-nic deployment where you have an external and internal interface, multiple internal interfaces, etc.). 
-- ``static`` is used to explicitly provide nexthop Self-IP address mappings  (vs. providing the mappings in tags on the route table).
+.. _advanced-routing-examples-aws:
 
-
-AWS
-```
+AWS Advanced Routing
+````````````````````
 
 .. literalinclude:: ../../examples/declarations/awsMultipleRoutingTables.json
    :language: json
@@ -26,8 +22,10 @@ AWS
 
 :fonticon:`fa fa-download` :download:`awsMultipleRoutingTables.json <../../examples/declarations/awsMultipleRoutingTables.json>`
 
-GCP
-```
+.. _advanced-routing-examples-gcp:
+
+GCP Advanced Routing
+````````````````````
 
 .. literalinclude:: ../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json
    :language: json
@@ -37,8 +35,10 @@ GCP
 
 :fonticon:`fa fa-download` :download:`gcpMultipleRoutingTables.json <../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json>`
 
-Azure
-`````
+.. _advanced-routing-examples-azure:
+
+Azure Advanced Routing
+``````````````````````
 
 .. literalinclude:: ../../examples/declarations/azureMultipleRoutingTables.json
    :language: json

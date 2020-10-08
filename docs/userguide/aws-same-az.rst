@@ -1,15 +1,15 @@
-.. _aws:
+.. _aws-same-az:
 
-AWS (Across Availability Zones)
-===============================
+AWS (Same Availability Zone)
+============================
 
-In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Across Availability Zones)*. For a *Same Availabilty Zone* deployment, see :ref:`aws-same-az`.
+In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Same Availability Zone)*. For an *Across Availabilty Zone* deployment, see :ref:`aws`.
 
 AWS CFE Prerequisites
 ---------------------
 These are the basic prerequisites for setting up CFE in AWS:
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
 - **Disable "Src/Dst checking"** on the NICs if enabling routing or avoiding SNAT. See `AWS documentation <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check>`_ for more information.
 
 |
@@ -32,52 +32,52 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
             - :ref:`installgui-ref` (or)
             - :ref:`installcurl-ref`
 
-   3.       :ref:`aws-iam`
+   3.       :ref:`aws-same-az-iam`
 
-            - :ref:`aws-iam-example`
+            - :ref:`aws-same-az-iam-example`
 
-   4.       :ref:`aws-tag-objects`
+   4.       :ref:`aws-same-az-tag-objects`
 
-            - :ref:`aws-tag-storage`
-            - :ref:`aws-tag-addresses`
-            - :ref:`aws-tag-addresses-acrossnet`
-            - :ref:`aws-tag-routes`
+            - :ref:`aws-same-az-tag-storage`
+            - :ref:`aws-same-az-tag-addresses`
+            - :ref:`aws-same-az-tag-routes`
 
-   5.       Modify and POST the :ref:`aws-example`
+   5.       Modify and POST the :ref:`aws-same-az-example`
    6.       :ref:`update-revert`
    =======  ===================================================================
 
 
-.. _aws-diagram:
+.. _aws-same-az-diagram:
 
 AWS Failover Event Diagram
 --------------------------
 
-This diagram shows an example of an *Across Availability Zones* failover with 3NIC BIG-IPs. You can see Elastic IP (EIP) addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
+This diagram shows an example of an *Same Availability Zone* failover with 3NIC BIG-IPs. You can see Elastic IP (EIP) addresses are associated with the secondary private IPs of the active BIG-IP device. Upon failover, secondary IP addresses will be re-mapped to the peer BIG-IP. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
 
-.. image:: ../images/failover-across-az-multiple-vips.gif
+.. image:: ../images/aws/aws-failover-same-net-3nic-multiple-vips-animated.gif
+
 
 |
 
 .. Note:: Management NICs/Subnets are not shown in this diagram.
 
-.. _aws-example:
+.. _aws-same-az-example:
 
 Example AWS Declaration
 -----------------------
 This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
-.. literalinclude:: ../../examples/declarations/aws.json
+.. literalinclude:: ../../examples/declarations/aws-same-az.json
    :language: json
    :caption: Example AWS Declaration with Single Routing Table
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`aws.json <../../examples/declarations/aws.json>`
+:fonticon:`fa fa-download` :download:`aws-same-az.json <../../examples/declarations/aws-same-az.json>`
 
 |
 
-.. _aws-iam:
+.. _aws-same-az-iam:
 
 Create and assign an IAM Role
 -----------------------------
@@ -110,6 +110,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    .. image:: ../images/aws/AWSIAMRoleSummary.png
 
+
    |
 
 #. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
@@ -118,9 +119,10 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    .. image:: ../images/aws/AWSIAMRoleAssignedToInstance.png
 
+
 |
 
-.. _aws-iam-example:
+.. _aws-same-az-iam-example:
 
 IAM Role Example Declaration
 ````````````````````````````
@@ -194,7 +196,7 @@ Below is an example F5 policy that includes IAM roles.
 
 |
 
-.. _aws-tag-objects:
+.. _aws-same-az-tag-objects:
 
 Tag your AWS Network Infrastructure Objects
 -------------------------------------------
@@ -202,9 +204,9 @@ Tag your AWS Network Infrastructure Objects
 Tag your infrastructure with the the keys and values that you will send in your CFE declaration.
 
 
-.. _aws-tag-storage:
+.. _aws-same-az-tag-storage:
 
-Tag the Storage Account in AWS
+Tag the storage account in AWS
 ``````````````````````````````
 Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s). Then add tags for a key-value pair that will correspond to the key-value tag in the `externalStorage.scopingTags` section of the CFE declaration.
 
@@ -224,7 +226,7 @@ Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/cre
 
 |
 
-.. _aws-tag-addresses:
+.. _aws-same-az-tag-addresses:
 
 Tag the Network Interfaces in AWS:
 ``````````````````````````````````
@@ -240,22 +242,18 @@ Tag the Network Interfaces in AWS:
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
 
+#. Disable the original built-in scripts (``/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh``) from a BIG-IP shell, either manually or using automation:
 
-.. _aws-tag-addresses-acrossnet:
+   .. code-block:: bash
 
-Tag the Elastic IP Addresses in AWS:
-````````````````````````````````````
+      mount -o remount,rw /usr
+      mv /usr/libexec/aws/aws-failover-tgactive.sh /usr/libexec/aws/aws-failover-tgactive.sh.disabled
+      mv /usr/libexec/aws/aws-failover-tgrefresh.sh /usr/libexec/aws/aws-failover-tgrefresh.sh.disabled
+      mount -o remount,ro /usr
 
-#. Create two sets of tags for Elastic IP addresses:
+|
 
-   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-
-     .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
-
-   - **VIP mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_vips`` and value that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``"f5_cloud_failover_vips":"10.0.12.101,10.0.22.101"``
-
-
-.. _aws-tag-routes:
+.. _aws-same-az-tag-routes:
 
 Tag the Route Tables in AWS
 ```````````````````````````
@@ -264,26 +262,26 @@ The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more 
 
 .. code-block:: json
 
-   "failoverRoutes":{
-       "enabled":true,
-       "routeGroupDefinitions":[
-           {
-             "scopingName":"rtb-11111111111111111",
-             "scopingAddressRanges":[
-                 {
-                   "range":"0.0.0.0/0"
-                 }
-             ],
-             "defaultNextHopAddresses":{
-                 "discoveryType":"static",
-                 "items":[
-                   "10.0.13.11",
-                   "10.0.23.11"
-                 ]
-             }
-           }
-       ]
-   }
+  "failoverRoutes":{
+      "enabled":true,
+      "routeGroupDefinitions":[
+          {
+            "scopingName":"rtb-11111111111111111",
+            "scopingAddressRanges":[
+                {
+                  "range":"0.0.0.0/0"
+                }
+            ],
+            "defaultNextHopAddresses":{
+                "discoveryType":"static",
+                "items":[
+                  "10.0.13.11",
+                  "10.0.13.12"
+                ]
+            }
+          }
+      ]
+    }
 
 |
 
@@ -297,7 +295,7 @@ See :ref:`advanced-routing-examples-aws` for additional examples of more advance
 
 2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the cloud failover configuration.
 
-   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.13.12"``.
 
 
    .. code-block:: json
@@ -321,21 +319,19 @@ See :ref:`advanced-routing-examples-aws` for additional examples of more advance
 
 | 
 
-
-.. _aws-as3-across-az-example:
+.. _aws-as3-same-az-example:
 
 Example Virtual Service Declaration
 -----------------------------------
 
-See below for example Virtual Services created with `AS3 <https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/>`_ in :ref:`aws-diagram` above:
+See below for example Virtual Services created with `AS3 <https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/>`_ in :ref:`aws-same-az-diagram` above:
 
-.. literalinclude:: ../../examples/toolchain/as3/aws-as3-across-az.json
+.. literalinclude:: ../../examples/toolchain/as3/aws-as3-same-az.json
    :language: json
    :caption: Example AS3 Declaration
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`aws-as3-across-az.json <../../examples/toolchain/as3/aws-as3-across-az.json>`
-
+:fonticon:`fa fa-download` :download:`aws-as3-same-az.json <../../examples/toolchain/as3/aws-as3-same-az.json>`
 
 .. include:: /_static/reuse/feedback.rst
