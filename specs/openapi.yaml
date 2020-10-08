@@ -122,6 +122,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /trigger:
     post:
+      description: "Primarily supported action is dry-run, which returns objects and resources that are updated if failover is triggered. WARNING: Do not use the execute action, it is for use by BIG-IP only."
       summary: Trigger failover
       tags:
         - Trigger
