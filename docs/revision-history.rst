@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 1.9
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Separated AWS into :ref:`aws` and :ref:`aws-same-az`.
+        - 10-6-20       
+
       * - 1.8
         - Updated the documentation for Cloud Failover Extension v1.5.0 with the following changes: |br| • Added the performance-sizing section. |br| • Updated all example declarations to account for single route tables or multiple route tables. |br| • Added :ref:`increase-memory` section to the Quickstart and Installation pages. |br| • Updated the :ref:`gcp-diagram` and the :ref:`azure-diagram`.
         - 09-03-20        
@@ -24,7 +28,7 @@ Document Revision History
         - 07-16-20
 
       * - 1.5
-        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • More information added to AWS sections covering :ref:`aws-tag-addresses-samenet` and :ref:`aws-tag-addresses-acrossnet`. |br| • Added :ref:`example-multiple-next-hop` to the example declarations section.  |br| • Added many new entries to the :ref:`faq` including :ref:`faq-auto-phone-home` and :ref:`faq-cfe-caveats`
+        - Updated the documentation for Cloud Failover Extension v1.4.0 with the following changes: |br| • More information added to AWS sections covering Across Availability Zones and Same Availability Zone. |br| • Added :ref:`example-multiple-next-hop` to the example declarations section.  |br| • Added many new entries to the :ref:`faq` including :ref:`faq-auto-phone-home` and :ref:`faq-cfe-caveats`
         - 07-09-20
 
       * - 1.4

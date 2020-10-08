@@ -13,21 +13,18 @@
        }
     },
     "failoverRoutes":{
-       "enabled":true,
-       "scopingTags":{
-          "f5_cloud_failover_label":"mydeployment"
-       },
-       "scopingAddressRanges":[
-          {
-             "range":"0.0.0.0/0"
-          }
-       ],
-       "defaultNextHopAddresses":{
-          "discoveryType":"static",
-          "items":[
-             "10.0.13.11",
-             "10.0.13.12"
-          ]
-       }
+      "enabled":true,
+      "routeGroupDefinitions":[
+         {
+            "scopingName":"example-route-1",
+            "defaultNextHopAddresses":{
+               "discoveryType":"static",
+               "items":[
+                  "10.0.13.11",
+                  "10.0.13.12"
+               ]
+            }
+         }
+      ]
     }
  }

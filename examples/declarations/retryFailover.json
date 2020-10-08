@@ -1,6 +1,10 @@
 {
     "class": "Cloud_Failover",
     "environment": "aws",
+    "retryFailover": {
+      "enabled": true,
+      "interval": 10
+    },
     "externalStorage": {
       "scopingTags": {
         "f5_cloud_failover_label": "mydeployment"
@@ -29,9 +33,5 @@
           }
         }
       ]
-    },
-    "retryFailover": {
-      "enabled": true,
-      "interval": 10
     }
 }

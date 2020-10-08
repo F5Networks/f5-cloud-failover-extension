@@ -73,7 +73,7 @@ If, during a reboot, the objects are mapped to the wrong BIG-IP, you can force a
 
 Verifying IP addresses and Routes for Failover
 ``````````````````````````````````````````````
-- You can verify the objects that will be change from the standby device (e.g. BIG-IP 2) when it fails over by providing a payload body message `{ action: dry-run }` for the POST /trigger endpoint.
+- You can verify the objects that will change from the standby device (for example, BIG-IP 2) when it fails over by providing a payload body message `{ action: dry-run }` for the POST /trigger endpoint.
 - To examine the failover objects (IP addresses and routes) that are associated with any given BIG-IP device, you can do a GET request on /inspect endpoint of the device to get a list of failover objects.
 
 |
