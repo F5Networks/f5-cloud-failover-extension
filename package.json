@@ -102,8 +102,6 @@
         "bail": false
     },
     "auditProcessor": {
-        "whitelist": [
-            "1561"
-        ]
+        "whitelist": []
     }
 }
