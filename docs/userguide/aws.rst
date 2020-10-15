@@ -1,7 +1,7 @@
 .. _aws:
 
-AWS (Across Availability Zones)
-===============================
+AWS
+===
 
 In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Across Availability Zones)*. For a *Same Availabilty Zone* deployment, see :ref:`aws-same-az`.
 
@@ -260,7 +260,11 @@ Tag the Elastic IP Addresses in AWS:
 Tag the Route Tables in AWS
 ```````````````````````````
 
-The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more granular route-table operations and tagging the route table is not required. See :ref:`failover-routes` for more information. 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   Use these steps for CFE version 1.5.0 and newer.
+
+The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more granular route-table operations and you are not required to tag the routes. See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
@@ -289,7 +293,13 @@ The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more 
 
 See :ref:`advanced-routing-examples-aws` for additional examples of more advanced configurations.
 
-**If using CFE versions earlier than v1.5.0**, to enable route failover, tag the route tables containing the routes you want to manage.
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   Use these steps for CFE versions earlier than 1.5.0.
+
+To enable route failover in CFE versions earlier than v1.5.0, tag the route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 

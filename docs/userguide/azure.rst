@@ -164,7 +164,7 @@ Tag your infrastructure with the the names and values that you will send in your
 
 .. _azure-storage:
 
-Tag the storage account in Azure
+Tag the Storage Account in Azure
 ````````````````````````````````
 Add a storage account to your resource group, and tag with a name/value pair that corresponds to the name/value pair in the `externalStorage.scopingTags` section of the CFE declaration.
 
@@ -203,7 +203,7 @@ Tag the User-Defined routes in Azure
 
    Use these steps for CFE version 1.5.0 and newer.
 
-In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allows more granular route operations and you are not required to tag the routes. Simply provide the name of the route you want to manage with ``scopingName``.  See :ref:`failover-routes` for more information. 
+In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allows more granular route operations and you are not required to tag the routes. Provide the name of the route you want to manage with ``scopingName``.  See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
@@ -243,7 +243,7 @@ To enable route failover in versions earlier than 1.5.0, tag the route tables co
 
 1. In Azure, create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
-.. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
+   .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
 
 2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table, or you can provide them statically in the cloud failover configuration.
 
@@ -272,10 +272,10 @@ To enable route failover in versions earlier than 1.5.0, tag the route tables co
 
 | 
 
-Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
+3. Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
 
 
-.. image:: ../images/azure/AzureUDR.png
+   .. image:: ../images/azure/AzureUDR.png
 
 
 |

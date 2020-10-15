@@ -82,9 +82,9 @@ Azure
 
 *TESTING NOTES:* 
 
-* ``API rate throttling observed``. At these levels, we observed the provider rate limiting requests. In these cases, CFE implements clientside retries.
-* Max objects tested were dictated by our default account quotas or limits. Quotas and limits can potentially be increased. See your provider for more details. ex:
-   * [AWS](https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
-   * [GCP](https://cloud.google.com/docs/quota)
-   * [Azure](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits)
+- **API rate throttling observed**. At these levels, we observed the provider rate limiting requests. CFE implements clientside retries in these cases.
+- Max objects tested were dictated by our default account quotas or limits. Quotas and limits can potentially be increased. See your provider for more details:
 
+  - `AWS <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_
+  - `GCP <https://cloud.google.com/docs/quota>`_
+  - `Azure <https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits>`_

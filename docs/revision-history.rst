@@ -12,11 +12,11 @@ Document Revision History
         - Date
 
       * - 1.9
-        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Separated AWS into :ref:`aws` and :ref:`aws-same-az`.
-        - 10-6-20       
+        - Updated the documentation for Cloud Failover Extension v1.6.0 with the following changes: |br| • Created a separate section for :ref:`aws-same-az`. Continue using the :ref:`aws` section for across availability zones. |br| • Updated AWS diagrams. |br| • Added an :ref:`azure-as3-example`. |br| • Added more information to the :ref:`performance-sizing` section. |br| • Added more example declarations.  |br| • Updated the :ref:`azure-udrtagging` section. 
+        - 10-15-20       
 
       * - 1.8
-        - Updated the documentation for Cloud Failover Extension v1.5.0 with the following changes: |br| • Added the performance-sizing section. |br| • Updated all example declarations to account for single route tables or multiple route tables. |br| • Added :ref:`increase-memory` section to the Quickstart and Installation pages. |br| • Updated the :ref:`gcp-diagram` and the :ref:`azure-diagram`.
+        - Updated the documentation for Cloud Failover Extension v1.5.0 with the following changes: |br| • Added the :ref:`performance-sizing` section. |br| • Updated all example declarations to account for single route tables or multiple route tables. |br| • Added :ref:`increase-memory` section to the Quickstart and Installation pages. |br| • Updated the :ref:`gcp-diagram` and the :ref:`azure-diagram`.
         - 09-03-20        
 
       * - 1.7
