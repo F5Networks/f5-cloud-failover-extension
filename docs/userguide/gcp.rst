@@ -40,6 +40,7 @@ Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting s
 
             - :ref:`gcp-tag-storage`
             - :ref:`gcp-tag-addresses`
+            - :ref:`gcp-tag-forwarding-rules`
             - :ref:`gcp-tag-routes`
 
    5.       Modify and POST the :ref:`gcp-example`
@@ -160,7 +161,7 @@ Label your infrastructure with the the keys and values that you will send in you
 
 .. _gcp-tag-storage:
 
-Label the storage account in GCP
+Label the Storage Account in GCP
 ````````````````````````````````
 You need to add a label to the storage bucket for Cloud Failover Extension cluster-wide file(s) and then specify a key and value for the label. This key/value will correspond to the key/value you use in the `externalStorage.scopingTags` section of the CFE configuration.
 
@@ -436,7 +437,7 @@ For example, to add a ``Description`` with key:pair:
 
 |
 
-or via gcloud cli:
+or via gcloud CLI:
 
 .. code-block:: python
    :caption: Example of a gcloud compute command to create a route
