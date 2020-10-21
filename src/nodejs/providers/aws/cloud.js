@@ -271,6 +271,7 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
                 this.logger.debug('Discover address operations found Nics', nics);
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+                this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
 
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
@@ -299,7 +300,6 @@ class Cloud extends AbstractCloud {
             return Promise.resolve();
         }
         this.logger.debug('Update address operations to perform', operations);
-
         return Promise.all([
             this._reassociatePublicAddresses(operations.publicAddresses),
             this._reassociateAddresses(operations.interfaces)
@@ -673,12 +673,21 @@ class Cloud extends AbstractCloud {
     _disassociateAddressFromNic(networkInterfaceId, addresses) {
         this.logger.debug(`Disassociating ${util.stringify(addresses)} from ${networkInterfaceId}`);
 
-        const params = {
-            NetworkInterfaceId: networkInterfaceId,
-            PrivateIpAddresses: addresses.map(address => address.address)
-        };
-
-        return this.ec2.unassignPrivateIpAddresses(params).promise()
+        const params = this._getIpParamsByVersion(networkInterfaceId, addresses);
+        this.logger.debug(`addresses ipv4Params to disassociate: ${util.stringify(params.ipv4)}`);
+        this.logger.debug(`addresses ipv6params to disassociate: ${util.stringify(params.ipv6)}`);
+        let promise = {};
+        if (params.ipv6.Ipv6Addresses.length > 0) {
+            this.logger.debug(`disassociating ipv6 addresses: ${util.stringify(params.ipv6)}`);
+            promise = this.ec2.unassignIpv6Addresses(params.ipv6).promise();
+        }
+        return Promise.resolve(promise)
+            .then(() => {
+                if (params.ipv4.PrivateIpAddresses.length > 0) {
+                    return this.ec2.unassignPrivateIpAddresses(params.ipv4).promise();
+                }
+                return Promise.resolve({});
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -693,18 +702,71 @@ class Cloud extends AbstractCloud {
     _associateAddressToNic(networkInterfaceId, addresses) {
         this.logger.debug(`Associating ${util.stringify(addresses)} to ${networkInterfaceId}`);
 
-        const params = {
+        const params = this._getIpParamsByVersion(networkInterfaceId, addresses);
+        this.logger.debug(`addresses ipv4Params to associate: ${util.stringify(params.ipv4)}`);
+        this.logger.debug(`addresses ipv6params to associate: ${util.stringify(params.ipv6)}`);
+        let promise = {};
+        if (params.ipv6.Ipv6Addresses.length > 0) {
+            this.logger.debug(`associating ipv6 addresses: ${util.stringify(params.ipv6)}`);
+            promise = this.ec2.assignIpv6Addresses(params.ipv6).promise();
+        }
+        return Promise.resolve(promise)
+            .then(() => {
+                if (params.ipv4.PrivateIpAddresses.length > 0) {
+                    return this._assignPrivateIpv4Addresses(params.ipv4, addresses);
+                }
+                return Promise.resolve({});
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Construct params for IPv4 and IPv6
+     *
+     * @param {String} networkInterfaceId - network interface ID
+     * @param {Array} addresses           - addresses to associate: [{address: '', publicAddress: ''}]
+     *
+     * @returns {Object} - Object of IPv4 and IPv6 params
+     */
+    _getIpParamsByVersion(networkInterfaceId, addresses) {
+        const ipv4Params = {
             NetworkInterfaceId: networkInterfaceId,
-            PrivateIpAddresses: addresses.map(address => address.address)
+            PrivateIpAddresses: []
+        };
+        const ipv6Params = {
+            NetworkInterfaceId: networkInterfaceId,
+            Ipv6Addresses: []
         };
 
-        return this.ec2.assignPrivateIpAddresses(params).promise()
+        addresses.forEach((address) => {
+            if (address.address) {
+                if (address.ipVersion === 6) {
+                    ipv6Params.Ipv6Addresses.push(address.address);
+                } else {
+                    ipv4Params.PrivateIpAddresses.push(address.address);
+                }
+            }
+        });
+        return { ipv4: ipv4Params, ipv6: ipv6Params };
+    }
+
+    /**
+     *  Assign private IPv4 addresses
+     *
+     * @param {Object} ipv4Params          - params for IPv4
+     * @param {Array} addresses            - addresses to assign: [{address: '', publicAddress: ''}]
+     *
+     * @returns {Promise} -                - resolved when private IPv4 addresses are assigned and
+     * public addresses are reassociated to NIC
+     */
+    _assignPrivateIpv4Addresses(ipv4Params, addresses) {
+        return this.ec2.assignPrivateIpAddresses(ipv4Params).promise()
             .then(() => {
                 const promises = [];
                 addresses.forEach((address) => {
                     if (address.publicAddress) {
                         promises.push(this._reassociatePublicAddressToNic(
-                            address.publicAddress, networkInterfaceId, address.address
+                            address.publicAddress, ipv4Params.NetworkInterfaceId, address.address
                         ));
                     }
                 });
@@ -723,6 +785,7 @@ class Cloud extends AbstractCloud {
      */
     _generatePublicAddressOperations(eips, privateInstanceIPs) {
         const updatedState = {};
+        this.logger.debug(`eips: ${eips}, privateInstanceIPs: ${privateInstanceIPs}`);
         eips.forEach((eip) => {
             const vipsTag = eip.Tags.find(tag => constants.AWS_VIPS_TAGS.indexOf(tag.Key) !== -1);
             const targetAddresses = vipsTag ? vipsTag.Value.split(',') : [];
@@ -799,30 +862,54 @@ class Cloud extends AbstractCloud {
     /**
      * Check for any NIC operations required
      *
-     * @param {Array} myNics             - 'my' NIC object
+     * @param {Array} myNic             - 'my' NIC object
      * @param {Object} theirNic          - 'their' NIC object
      * @param {Object} failoverAddresses - failover addresses
      *
-     * @returns {Object} { 'disasociate': [], 'association: [] }
+     * @returns {Object} { 'disassociate': [], 'association: [] }
      */
     _checkForNicOperations(myNic, theirNic, failoverAddresses) {
         const addressesToTake = [];
         const theirNicAddresses = theirNic.PrivateIpAddresses;
 
+        // check if Ipv6Address exists and if so add it to the list
+        this.logger.debug('_checkForNicOperations performing ipv6 check');
+        if (theirNic.Ipv6Addresses && theirNicAddresses.length > 0) {
+            theirNic.Ipv6Addresses.forEach((ipv6Address) => {
+                theirNicAddresses.push(ipv6Address);
+            });
+        }
+
+        this.logger.silly(`_checkForNicOperations myNic: ${util.stringify(myNic)}`);
+        this.logger.silly(`_checkForNicOperations theirNic: ${util.stringify(theirNic)}`);
+        this.logger.silly(`_checkForNicOperations failoverAddress: ${util.stringify(failoverAddresses)}`);
+        this.logger.silly(`length of theirNicAddresses: ${theirNicAddresses.length}, failoverAddresses: ${failoverAddresses.length}`);
         for (let i = theirNicAddresses.length - 1; i >= 0; i -= 1) {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                if (failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                this.logger.silly(`failoverAddress: ${util.stringify(failoverAddresses[t])}`);
+                this.logger.silly(`theirNicAddress: ${util.stringify(theirNicAddresses[i])}`);
+                if (theirNicAddresses[i].PrivateIpAddress
+                    && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
                     && theirNicAddresses[i].Primary !== true) {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
 
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
-                        publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp')
+                        publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp'),
+                        ipVersion: 4
+                    });
+                } else if (theirNicAddresses[i].Ipv6Address
+                    && util.validateIpv6Address(failoverAddresses[t])
+                    && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                    this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
+                    addressesToTake.push({
+                        address: failoverAddresses[t],
+                        ipVersion: 6
                     });
                 }
             }
         }
-
+        this.logger.silly(`addressesToTake: ${util.stringify(addressesToTake)}`);
         return {
             disassociate: {
                 networkInterfaceId: theirNic.NetworkInterfaceId,
@@ -855,6 +942,7 @@ class Cloud extends AbstractCloud {
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
+                this.logger.silly(`data found in Network interfaces: ${util.stringify(data)}`);
                 const privateIps = {};
                 data.NetworkInterfaces.forEach((nic) => {
                     nic.PrivateIpAddresses.forEach((privateIp) => {
@@ -865,6 +953,7 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 });
+                this.logger.silly(`privateIps discovered: ${util.stringify(privateIps)}`);
                 return Promise.resolve(privateIps);
             })
             .catch(err => Promise.reject(err));
