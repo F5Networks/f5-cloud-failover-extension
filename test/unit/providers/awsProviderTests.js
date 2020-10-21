@@ -53,7 +53,8 @@ describe('Provider - AWS', () => {
 
     const mockMetadata = {
         region: 'us-west',
-        instanceId: 'i-123'
+        instanceId: 'i-123',
+        storageName: 's3BucketName'
     };
 
     const _getPrivateSecondaryIPsStubResponse = {
@@ -200,6 +201,18 @@ describe('Provider - AWS', () => {
                 .catch((err) => {
                     assert.strictEqual(err.message, genericAWSError.message);
                 });
+        });
+
+        it('should initialize if storageName is set then return bucket name', () => {
+            provider.region = mockMetadata.region;
+            provider.instanceId = mockMetadata.instanceId;
+            provider.storageName = mockMetadata.storageName;
+
+            return provider.init({ storageName: 's3BucketName' })
+                .then(() => {
+                    assert.strictEqual(provider.storageName, 's3BucketName');
+                })
+                .catch(err => Promise.reject(err));
         });
 
         describe('_getS3BucketByTags', () => {

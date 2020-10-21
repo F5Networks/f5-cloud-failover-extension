@@ -56,11 +56,13 @@ class Cloud extends AbstractCloud {
                 this.ec2 = new AWS.EC2();
                 this.s3 = new AWS.S3();
 
+                if (this.storageName) {
+                    return this.storageName;
+                }
                 return this._getS3BucketByTags(this.storageTags);
             })
             .then((bucketName) => {
                 this.s3BucketName = bucketName;
-
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
@@ -76,7 +78,7 @@ class Cloud extends AbstractCloud {
     */
     uploadDataToStorage(fileName, data) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Uploading data to: ${s3Key} ${util.stringify(data)}`);
+        this.logger.silly(`Uploading data to: ${s3Key}`);
 
         const uploadObject = () => new Promise((resolve, reject) => {
             const params = {
@@ -102,7 +104,6 @@ class Cloud extends AbstractCloud {
     downloadDataFromStorage(fileName) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Downloading data from: ${s3Key}`);
-
         const downloadObject = () => new Promise((resolve, reject) => {
             // check if the object exists first, if not return an empty object
             this.s3.listObjectsV2({ Bucket: this.s3BucketName, Prefix: s3Key }).promise()
