@@ -60,6 +60,7 @@ function matchRouteTables(routeTables, nics) {
 
 describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     let ec2;
+    let virtualAddresses = [];
 
     before(function () {
         this.timeout(10000);
@@ -75,6 +76,11 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((results) => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];
+                const options = funcUtils.makeOptions({ authToken: results[0].token });
+                return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
+            })
+            .then((result) => {
+                virtualAddresses = result.items.map(i => i.address.split('/')[0]);
             })
             .catch(err => Promise.reject(err));
     });
@@ -114,6 +120,29 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 privateAddress: address.PrivateIpAddress
             }))))
             .catch(err => Promise.reject(err));
+    }
+
+    function getIpv6Addresses(instanceId) {
+        const ipv6Addresses = [];
+        return Promise.resolve(
+            getInstanceNics(instanceId)
+        )
+            .then((response) => {
+                const params = {
+                    NetworkInterfaceIds: response
+                };
+                return ec2.describeNetworkInterfaces(params).promise();
+            })
+            .then((response) => {
+                response.NetworkInterfaces.forEach((nic) => {
+                    if (nic.Ipv6Addresses && nic.Ipv6Addresses.length > 0) {
+                        nic.Ipv6Addresses.forEach((address) => {
+                            ipv6Addresses.push(address.Ipv6Address);
+                        });
+                    }
+                });
+                return Promise.resolve(ipv6Addresses);
+            });
     }
 
     function getElasticIps(instanceId) {
@@ -226,6 +255,20 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .catch(err => Promise.reject(err));
     }
 
+    function checkForIpv6Addresses(addresses) {
+        let match = false;
+        for (let i = 0; i < virtualAddresses.length; i += 1) {
+            if (addresses.indexOf(virtualAddresses[i]) > -1) {
+                match = true;
+                break;
+            }
+        }
+        // assert
+        if (!match) {
+            assert.fail('Matching ipv6 address not found');
+        }
+    }
+
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
@@ -255,6 +298,17 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .catch(err => Promise.reject(err));
     });
 
+    if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+        it('should check that secondary IPv6 address is  mapped to primary ', function () {
+            this.retries(RETRIES.LONG);
+            getIpv6Addresses(dutPrimary.instanceId)
+                .then((addresses) => {
+                    checkForIpv6Addresses(addresses);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    }
+
     it('should check AWS route table routes for next hop matches primary', function () {
         this.retries(RETRIES.LONG);
 
@@ -272,6 +326,17 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         return checkElasticIPs(dutSecondary)
             .catch(err => Promise.reject(err));
     });
+
+    if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+        it('should check that secondary IPv6 address is  mapped to secondary ', function () {
+            this.retries(RETRIES.LONG);
+            return getIpv6Addresses(dutSecondary.instanceId)
+                .then((addresses) => {
+                    checkForIpv6Addresses(addresses);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('should check AWS route table routes for next hop matches secondary', function () {
         this.retries(RETRIES.LONG);

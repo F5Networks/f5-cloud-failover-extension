@@ -808,7 +808,7 @@ describe('Provider - AWS', () => {
             }
         ];
         const localAddresses = ['1.2.3.4'];
-        const failoverAddresses = ['10.10.10.10', '10.10.10.11'];
+        const failoverAddresses = ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2'];
 
         beforeEach(() => {
             actualParams = {

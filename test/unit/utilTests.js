@@ -49,6 +49,14 @@ describe('Util', () => {
         assert.strictEqual(obj, newObj);
     });
 
+    it('should validate ipv6 address', () => {
+        const invalidAddress = '5.5.5.5';
+        const ipv6Address = '2600:1f13:fa5:c004:72ec:d73:3fda:3094';
+
+        assert.deepEqual(util.validateIpv6Address(invalidAddress), false);
+        assert.deepEqual(util.validateIpv6Address(ipv6Address), true);
+    });
+
     it('should call rest operation responder', () => {
         const mockRestOperation = new MockRestOperation();
 
