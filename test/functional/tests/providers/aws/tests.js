@@ -77,6 +77,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];
                 const options = funcUtils.makeOptions({ authToken: results[0].token });
+                options.port = dutPrimary.port;
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((result) => {
