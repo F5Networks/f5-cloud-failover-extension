@@ -611,7 +611,7 @@ build_docs:
     stage: build_docs
     script:
         # generate docs
-        - if [ "$CI_COMMIT_REF_NAME" = "docs_staging" ] || [ "$CI_COMMIT_REF_NAME" = "docs_production" ]; then
+        - if [ "$CI_COMMIT_REF_NAME" = "docs_staging" ] || [ "$CI_COMMIT_REF_NAME" = "docs_production" ] || [ "$CI_COMMIT_REF_NAME" = "master" ]; then
         -   rm -rf docs/_templates
         - fi
         - make html
