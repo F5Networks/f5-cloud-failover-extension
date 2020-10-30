@@ -80,7 +80,7 @@ class Cloud extends AbstractCloud {
                 return this._retrier(this._getStorageAccountKey, [storageName]);
             })
             .then((storageAccountInfo) => {
-                this.logger.silly('Storage Account Information: ', storageAccountInfo);
+                this.logger.silly('Storage Account Information: ', storageAccountInfo.name);
 
                 this.storageOperationsClient = Storage.createBlobService(
                     storageAccountInfo.name,
