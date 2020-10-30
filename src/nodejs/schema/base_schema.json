@@ -11,12 +11,19 @@
         "scopingName": {
             "type": "string"
         },
+        "scopingAddress": {
+            "type": "string"
+        },
         "scopingTags": {
             "type": "object",
             "additionalProperties": true
         },
+        "type": {
+            "$comment": "Determine the type of IP failover objects to perform failover",
+            "type": "string"
+        },
         "nextHopAddresses": {
-            "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatability.",
+            "$comment": "Determine default next hop addresses: Supports multiple discovery types, should default to route tag for backwards compatibility.",
             "type": "object",
             "properties": {
                 "discoveryType": {
@@ -65,6 +72,20 @@
                     }
                 },
                 "required": []
+            }
+        },
+        "vipAddresses": {
+            "$comment": "An array of BIG-IP virtual IP addresses for failover",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "targetInstances": {
+            "$comment": "An array of BIG-IP target instances for failover",
+            "type": "array",
+            "items": {
+                "type": "string"
             }
         }
     },
@@ -129,10 +150,43 @@
                 "requireScopingTags": {
                     "type": "boolean",
                     "default": false
+                },
+                "addressGroupDefinitions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": { "#ref": "#/definitions/type"},
+                            "scopingName": { "#ref": "#/definitions/scopingName" },
+                            "scopingAddress": { "#ref": "#/definitions/scopingAddress"},
+                            "targetInstances": { "#ref": "#/definitions/targetInstances"},
+                            "vipAddresses": {"#ref": "#/definitions/vipAddresses"}
+                        },
+                        "required": ["type"],
+                        "anyOf": [
+                            {
+                                "properties": {"type": { "const":  "forwardingRule"}},
+                                "required": ["scopingName", "targetInstances"]
+                            },
+                            {
+                                "properties": {"type": { "const":  "aliasAddress"}},
+                                "required": ["scopingAddress"]
+                            },
+                            {
+                                "properties": {"type": { "const":  "networkInterfaceAddress"}},
+                                "required": ["scopingAddress"]
+                            },
+                            {
+                                "properties": {"type": { "const":  "elasticIpAddress"}},
+                                "required": ["scopingName", "vipAddresses"]
+                            }
+                        ]
+                    }
                 }
             },
-            "required": [
-                "scopingTags"
+            "oneOf": [
+                { "required": ["scopingTags"] },
+                { "required": ["addressGroupDefinitions"] }
             ]
         },
         "failoverRoutes": {
@@ -202,13 +256,13 @@
             "description": "External storage this deployment will manage.",
             "type": "object",
             "oneOf": [
-                {   
+                {
                     "properties": {
                         "scopingTags": { "$ref": "#/definitions/scopingTags" }
                     },
                     "required": ["scopingTags"]
                 },
-                {   
+                {
                     "properties": {
                         "scopingName": { "$ref": "#/definitions/scopingName" }
                     },
