@@ -157,7 +157,6 @@ Label your infrastructure with the the keys and values that you will send in you
 
    - GCP uses the term `labels` rather than the term `tags`, which is used by other cloud providers. 
    - In cases where cloud objects do not have labels (for example, Forwarding Rules and Routes), Cloud Failover will leverage the ``Description`` field instead. Cloud Failover Extension will search the ``Description`` field/string for tags contained in the reserved string ``f5_cloud_failover_labels={}``. See examples below.
-   - For how to use GCP private endpoints for CFE when no internet is access is available, see `this article <https://f5.sharepoint.com/sites/SME-PublicCloud/SitePages/Isolated.aspx>`_.
 
 .. _gcp-tag-storage:
 
