@@ -446,6 +446,64 @@ or via gcloud CLI:
 
 |
 
+
+How to use CFE on GCP when BIG-IP instances have no route to public internet
+````````````````````````````````````````````````````````````````````````````
+CFE will not function correctly out of the box when the BIG-IP instances are not able to reach the public internet directly or via a NAT. CFE must have access to Storage APIs for state management, and to Compute APIs for network updates. This section shows you how to make CFE work in an isolated VPC using a scenario.
+
+In the following scenario:
+
+- VMs do not have a public IP address
+- NAT is not provided
+- Default VPC network routes to the internet are removed and only the default subnet and any custom routes exist
+
+.. image:: ../images/gcp/gcp-private-endpoints.png
+
+|
+
+This scenario causes problems for CFE:
+
+- CFE tries to initialize shared instance state in dedicated bucket, or update a route via API.
+- Bucket access is via storage.googleapis.com endpoint and networking API is via compute.googleapis.com, both of which resolve to public IP addresses.
+- Default internet routes have been removed from the network, and NAT gateway or instance with custom routes is not in place: Access to the APIs fails.
+
+*Private Google Access*
+Enabling Private Google Access on each VPC subnet that may need to access Google Cloud APIs makes a change to the underlying SDN such that the CIDR for restricted.googleapis.com (199.36.153.4/30) will be routed without going through the internet. When combined with a private DNS zone which resolves all googleapis.com lookups to restricted.googleapis.com1 API endpoint addresses, the VPC networks effectively have private endpoint access for all GCP APIs.
+
+1. Enable Private Google Access on each VPC subnet as necessary.
+2. Create a Cloud DNS private zone\ :sup:`2` for googleapis.com.
+
+  a. Add a CNAME for *.googleapis.com that aliases to restricted.googleapis.com.
+  b. Add an A record for restricted.googleapis.com that resolves to 199.36.153.4/30.
+
+With this configuration in place, any VMs that are attached to the VPC networks that are associated with this private DNS zone will automatically try to use 199.36.153.4/30 endpoints for all GCP API calls. If the customer did not remove the default-internet routes, this is all you need to do to make the APIs functional again and CFE will work correctly.
+
+
+
+In this scenario, the default route to internet was removed, and the customer insists that it cannot be re-added. In this case, a custom route\ :sup:`3` must be added to each VPC network that will use GCP APIs.
+
+1. Define a custom route​​​​​​​ on each network\ :sup:`4` for 199.36.153.4/30 with next-hop set for ``internet gateway``.
+
+Once the custom routes are in place, GCP will route traffic for the /30 CIDR to an internet gateway, which will effectively route via a private VPC network to an internal GCP endpoint; the traffic will never go to the internet even though the target IP is a public address.
+
+.. image:: ../images/gcp/gcp-private-endpoints2.png
+
+Now CFE can access the GCP APIs and function correctly:-
+
+- BIG-IP (and bastion) instances attempt to connect to GCP APIs.
+- Cloud DNS private zone for googleapis.com has been injected into each VPC network; DNS returns a CNAME alias of restricted.googleapis.com for all googleapis.com lookups, which in turn resolves to an IP address in 199.36.153.4/30.
+- Custom routes provides a way to reach Google API endpoints from VMs to GCP services that does not traverse the public internet.
+- API endpoints in Google's private VPC respond.
+
+
+The approach described here applies at VPC network and subnet resources, which means that any VM that is instantiated on those networks after these changes will be able to use GCP APIs, including Cloud Storage. This makes GCS a viable option for storing Cloud Libs, RPMs, etc. needed by the BIG-IP boot-time initialization scripts.
+
+A fully-functional example can be found `here<https://github.com/memes/f5-google-bigip-isolated-vpcs>`_. When executed, Terraform will create three network VPCs that lack the default-internet egress route, but have a custom route to allow traffic to restricted.googleapis.com CIDR. It will also create a Cloud DNS private zone to override googleapis.com and resolve to restricted.googleapis.com, and associate the private zone with all three networks. A pair of BIG-IPs are spun up with CFE  enabled and using a dedicated CFE bucket for state management. An IAP bastion host with tinyproxy allows for SSH and GUI access to the BIG-IPs (See the repo README for details). If you force the active instance to standby, you will see CFE state being created or updated in the GCS bucket.
+
+|
+
+
+
 .. _gcp-as3-example:
 
 Example Virtual Service Declaration
