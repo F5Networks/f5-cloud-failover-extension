@@ -17,7 +17,7 @@ These are the basic prerequisites for setting up CFE in Google Cloud Platform:
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
 
 .. include:: /_static/reuse/initial-config.rst
 
