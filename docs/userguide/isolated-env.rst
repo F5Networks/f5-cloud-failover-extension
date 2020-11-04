@@ -54,8 +54,9 @@ Enabling Private Google Access on each VPC subnet that may need to access Google
 
 2. Create a Cloud DNS private zone [#ie2]_ for `googleapis.com`.
 
-  a. Add a CNAME for `*.googleapis.com` that aliases to `restricted.googleapis.com`.
-  b. Add an A record for `restricted.googleapis.com` that resolves to 199.36.153.4/30.
+   a. Add a CNAME for `*.googleapis.com` that aliases to `restricted.googleapis.com`.
+
+   b. Add an A record for `restricted.googleapis.com` that resolves to 199.36.153.4/30.
 
 
 With this configuration in place, any VMs that are attached to the VPC networks that are associated with this private DNS zone will automatically try to use 199.36.153.4/30 endpoints for all GCP API calls. If the user did not remove the default-internet routes, this is all you need to do to make the APIs functional again and CFE will work correctly.
@@ -207,23 +208,20 @@ Steps
 
    ii. Set your browser to proxy HTTP and HTTPS traffic through localhost:8888
 
-      .. image:: ../images/gcp/gcp-private-endpoints3.png
+       .. image:: ../images/gcp/gcp-private-endpoints3.png
          :scale: 50%
 
-     |
 
    iii. Retrieve the random admin password from Secret Manager.
 
-      .. image:: ../images/gcp/gcp-private-endpoints4.png
+       .. image:: ../images/gcp/gcp-private-endpoints4.png
          :scale: 50%
 
-     |
 
    iv. Login to a BIG-IP instance using the ``admin`` account and password from step 3.
 
        .. image:: ../images/gcp/gcp-private-endpoints5.png
 
-     |
 
 
 Inputs
