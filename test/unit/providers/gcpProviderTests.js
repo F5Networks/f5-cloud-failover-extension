@@ -380,7 +380,11 @@ describe('Provider - GCP', () => {
             getTargetInstancesStub.resolves(null);
 
             return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => {
+                    const fwdRuleOperations = operations;
+                    fwdRuleOperations.loadBalancerAddresses = undefined;
+                    return provider.updateAddresses({ updateOperations: fwdRuleOperations });
+                })
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                 })
