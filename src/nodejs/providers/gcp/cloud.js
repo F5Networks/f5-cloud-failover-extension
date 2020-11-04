@@ -816,6 +816,9 @@ class Cloud extends AbstractCloud {
                             this.instanceName, fwdRuleDefinedTargetInstances
                         );
                     }
+                    if (targetInstanceToUse === undefined || targetInstanceToUse === '') {
+                        this.logger.warning('Target instance to use is undefined');
+                    }
                     this.logger.silly('Discovered our target instance ', targetInstanceToUse);
 
                     if (rule.target && rule.target.indexOf(targetInstanceToUse.name) === -1) {
@@ -945,6 +948,12 @@ class Cloud extends AbstractCloud {
      */
     _updateFwdRules(operations) {
         const promises = [];
+
+        // check if operations is undefined
+        if (operations === undefined || operations.length === 0) {
+            return Promise.resolve([]);
+        }
+
         operations.forEach((item) => {
             promises.push(this._retrier(this._updateFwdRule, item));
         });
