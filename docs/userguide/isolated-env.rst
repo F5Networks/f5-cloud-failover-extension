@@ -227,84 +227,79 @@ Steps
 Inputs
 ``````
 
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| Name                       | Type         | Required  | Default                         | Description                                     |
-+============================+==============+===========+=================================+=================================================+
-| bastion_zone               | string       | Optional  | ``"us-central1-f"``             | The GCE zone to deploy the bastion host.        |
-|                            |              |           |                                 | Default is 'us-central1-f'.                     |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| bigip_zones                | list(string) | Optional  | ``[``                           | The GCE zones to deploy the BIG-IP              |
-|                            |              |           |   ``"us-central1-f",``          | instances. Default is 'us-central1-f' and       |
-|                            |              |           |   ``"us-central1-c"``           | 'us-central1-c'.                                |
-|                            |              |           | ``]``                           |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| cfe_label_key              | string       | Optional  | "f5_cloud_failover_label"       | The CFE label key to assign to resources        |
-|                            |              |           |                                 | that are going to be managed by CFE.            |
-|                            |              |           |                                 | Default value is 'f5_cloud_failover_label'.     |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| cfe_label_value            | string       | Optional  | ``""``                          | The CFE label value to assign to resources      |
-|                            |              |           |                                 | that are going to be managed by this BIG-IP     |
-|                            |              |           |                                 | deployment. If left empty, a value will be      |
-|                            |              |           |                                 | generated for this deployment.                  |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| cloud_libs_bucket          | string       | Optional  | ``""``                          | An optional GCS bucket name to which the        |
-|                            |              |           |                                 | BIG-IP service account will be granted          |
-|                            |              |           |                                 | read-only access. Default is empty string.      |
-|                            |              |           |                                 | See install_cloud_libs.                         |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| image                      | string       | Optional  | ``"projects/f5-7626-networks-`` | The GCE image to use as the base for BIG-IP     |
-|                            |              |           | ``public/global/images/f5-``    | instances; default is latest BIG-IP v15         |
-|                            |              |           | ``bigip-15-1-0-4-0-0-6-payg-``  | payg good 25mbs. BIG-IP iControl REST           |
-|                            |              |           | ``good-25mbps-200618231522"``   | password                                        |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| install_cloud_libs         | list(string) | Required  | N/A                             | Contains the URLs for F5's Cloud Libs           |
-|                            |              |           |                                 | required for BIG-IP w/CFE on-boarding,          |
-|                            |              |           |                                 | overriding the default download patch from      |
-|                            |              |           |                                 | cdn.f5.com and github.com.                      |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| install_tinyproxy_url      | string       | Required  | N/A                             | Contains the URL for tinyproxy RPM to           |
-|                            |              |           |                                 | install on bastion host.                        |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| labels                     | map(string)  | Optional  | ``{}``                          | An optional map of label key-values to          |
-|                            |              |           |                                 | apply to all resources. Default is an           |
-|                            |              |           |                                 | empty map.                                      |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| prefix                     | string       | Optional  | ``"isolated-vpcs"``             | An optional prefix to use when naming           |
-|                            |              |           |                                 | resources; default is 'isolated-vpcs'.          |
-|                            |              |           |                                 | Override this value if you are deploying        |
-|                            |              |           |                                 | in a shared environment.                        |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| project_id                 | string       | Required  | N/A                             | The existing project id that will host the      |
-|                            |              |           |                                 | BIG-IP resources.                               |
-|                            |              |           |                                 |                                                 |
-|                            |              |           |                                 |                                                 |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| tf_sa_email                | string       | Optional  | ``null``                        | The fully-qualified email address of the        |
-|                            |              |           |                                 | Terraform service account to use for            |
-|                            |              |           |                                 | resource creation. E.g. tf_sa_email =           |
-|                            |              |           |                                 | "terraform@PROJECT_ID.iam.gserviceaccount.com"  |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
-| tf_sa_token_lifetime_secs  | number       | Optional  | ``1200``                        | The expiration duration for the service account |
-|                            |              |           |                                 | token, in seconds. This value should be high    |
-|                            |              |           |                                 | enough to prevent token timeout issues during   |
-|                            |              |           |                                 | resource creation, but short enough that the    |
-|                            |              |           |                                 | token is useless replayed later. Default value  |
-|                            |              |           |                                 | is 1200.                                        |
-+----------------------------+--------------+-----------+---------------------------------+-------------------------------------------------+
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| Name                       | Type         | Required  | Default                         | Description                                         |
++============================+==============+===========+=================================+=====================================================+
+| bastion_zone               | string       | Optional  | ``"us-central1-f"``             | The GCE zone to deploy the bastion host.            |
+|                            |              |           |                                 | Default is 'us-central1-f'.                         |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| bigip_zones                | list(string) | Optional  | ``[``                           | The GCE zones to deploy the BIG-IP                  |
+|                            |              |           |   ``"us-central1-f",``          | instances. Default is 'us-central1-f' and           |
+|                            |              |           |   ``"us-central1-c"``           | 'us-central1-c'.                                    |
+|                            |              |           | ``]``                           |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| cfe_label_key              | string       | Optional  | ``f5_cloud_failover_label``     | The CFE label key to assign to resources            |
+|                            |              |           |                                 | that are going to be managed by CFE.                |
+|                            |              |           |                                 | Default value is 'f5_cloud_failover_label'.         |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| cfe_label_value            | string       | Optional  | ``""``                          | The CFE label value to assign to resources          |
+|                            |              |           |                                 | that are going to be managed by this BIG-IP         |
+|                            |              |           |                                 | deployment. If left empty, a value will be          |
+|                            |              |           |                                 | generated for this deployment.                      |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| cloud_libs_bucket          | string       | Optional  | ``""``                          | An optional GCS bucket name to which the            |
+|                            |              |           |                                 | BIG-IP service account will be granted              |
+|                            |              |           |                                 | read-only access. Default is empty string.          |
+|                            |              |           |                                 | See install_cloud_libs.                             |
+|                            |              |           |                                 |                                                     |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| image                      | string       | Optional  | ``"projects/f5-7626-networks-   | The GCE image to use as the base for BIG-IP         |
+|                            |              |           | public/global/images/f5-        | instances; default is latest BIG-IP v15             |
+|                            |              |           | bigip-15-1-0-4-0-0-6-payg-      | payg good 25mbs.                                    |
+|                            |              |           | good-25mbps-200618231522"``     |                                                     |
+|                            |              |           |                                 |                                                     |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| install_cloud_libs         | list(string) | Required  | N/A                             | Contains the URLs for F5's Cloud Libs               |
+|                            |              |           |                                 | required for BIG-IP with CFE on-boarding,           |
+|                            |              |           |                                 | overriding the default download patch from          |
+|                            |              |           |                                 | cdn.f5.com and github.com.                          |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| install_tinyproxy_url      | string       | Required  | N/A                             | Contains the URL for tinyproxy RPM to               |
+|                            |              |           |                                 | install on bastion host.                            |
+|                            |              |           |                                 |                                                     |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| labels                     | map(string)  | Optional  | ``{}``                          | An optional map of label key-values to              |
+|                            |              |           |                                 | apply to all resources. Default is an               |
+|                            |              |           |                                 | empty map.                                          |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| prefix                     | string       | Optional  | ``"isolated-vpcs"``             | An optional prefix to use when naming               |
+|                            |              |           |                                 | resources; default is 'isolated-vpcs'.              |
+|                            |              |           |                                 | Override this value if you are deploying            |
+|                            |              |           |                                 | in a shared environment.                            |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| project_id                 | string       | Required  | N/A                             | The existing project ID that will host the          |
+|                            |              |           |                                 | BIG-IP resources.                                   |
+|                            |              |           |                                 |                                                     |
+|                            |              |           |                                 |                                                     |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| tf_sa_email                | string       | Optional  | ``null``                        | The fully-qualified email address of the            |
+|                            |              |           |                                 | Terraform service account to use for                |
+|                            |              |           |                                 | resource creation. For example ``tf_sa_email =      |
+|                            |              |           |                                 | "terraform@PROJECT_ID.iam.gserviceaccount.com"``    |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
+| tf_sa_token_lifetime_secs  | number       | Optional  | ``1200``                        | The expiration duration for the service account     |
+|                            |              |           |                                 | token, in seconds. This value should be high        |
+|                            |              |           |                                 | enough to prevent token timeout issues during       |
+|                            |              |           |                                 | resource creation, but short enough that the        |
+|                            |              |           |                                 | token is useless replayed later. Default value      |
+|                            |              |           |                                 | is 1200.                                            |
++----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
 
 
 
