@@ -25,5 +25,6 @@ User Guide Index
    userguide/logging
    userguide/update-revert
    userguide/performance-sizing
+   userguide/isolated-env
    userguide/troubleshooting
    revision-history
