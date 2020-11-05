@@ -17,7 +17,7 @@ These are the basic prerequisites for setting up CFE in Google Cloud Platform:
 
 |
 
-Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
 
 .. include:: /_static/reuse/initial-config.rst
 
@@ -157,6 +157,7 @@ Label your infrastructure with the the keys and values that you will send in you
 
    - GCP uses the term `labels` rather than the term `tags`, which is used by other cloud providers. 
    - In cases where cloud objects do not have labels (for example, Forwarding Rules and Routes), Cloud Failover will leverage the ``Description`` field instead. Cloud Failover Extension will search the ``Description`` field/string for tags contained in the reserved string ``f5_cloud_failover_labels={}``. See examples below.
+   - To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see :ref:`isolated-env`.
 
 
 .. _gcp-tag-storage:
@@ -445,6 +446,7 @@ or via gcloud CLI:
     gcloud compute routes create example-route-1 --destination-range=0.0.0.0/0 --network=example-network --next-hop-address=10.0.13.11 --description='f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}'
 
 |
+
 
 .. _gcp-as3-example:
 
