@@ -487,6 +487,24 @@ describe('Provider - GCP', () => {
                     assert.ok(true);
                 });
         });
+
+        it('validate fwd rule throws error', () => {
+            getTargetInstancesStub.resolves([
+                {
+                    name: 'someRandomTargetInstance',
+                    instance: 'compute/someRandomTargetInstance',
+                    selfLink: 'selfLink/someRandomTargetInstance'
+                }
+            ]);
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+                .then(() => {
+                    assert.ok(false, 'Error: The function should go to catch block!');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'Unable to locate our target instance: testInstanceName01');
+                });
+        });
     });
 
     describe('updateRoutes should', () => {
