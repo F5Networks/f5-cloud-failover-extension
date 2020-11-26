@@ -783,10 +783,8 @@ class Cloud extends AbstractCloud {
                 }
             });
 
-            if (!tgtInstances.length) {
-                return Promise.reject(
-                    new Error(`Unable to locate our target instance: ${this.instanceName}`)
-                );
+            if (!result.length) {
+                throw new Error(`Unable to locate our target instance: ${this.instanceName}`);
             }
             return result[0];
         };
