@@ -152,6 +152,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+    * @param {Object} [options.forwardingRuleNames] - object containing forwarding rule names
     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
@@ -162,24 +163,23 @@ class Cloud extends AbstractCloud {
         const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
-
-        this.logger.silly('updateAddresses: ', options);
+        const discoverOperations = options.forwardingRules || [];
+        this.logger.silly('updateAddresses(options): ', options);
 
         // update this.vms property prior to discovery/update
         return this._getVmsByTags(this.addressTags)
             .then((vms) => {
                 this.vms = vms || [];
-
                 // discover only logic
                 if (discoverOnly === true) {
-                    return this._discoverAddressOperations(failoverAddresses);
+                    return this._discoverAddressOperations(failoverAddresses, discoverOperations);
                 }
                 // update only logic
                 if (updateOperations) {
                     return this._updateAddresses(updateOperations);
                 }
                 // default - discover and update
-                return this._discoverAddressOperations(failoverAddresses)
+                return this._discoverAddressOperations(failoverAddresses, discoverOperations)
                     .then(operations => this._updateAddresses(operations));
             })
             .catch(err => Promise.reject(err));
@@ -560,6 +560,33 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Match forwarding rules
+     *
+     * @param {Object} ruleNames - Array of forwarding rule names
+     *
+     * @param {Object} forwardingRulesNames - Array of filter forwarding rule names
+     *
+     * @returns {Promise} A promise which will be resolved with the array of matched forwarding rule names
+     *
+     */
+    _matchFwdRuleNames(ruleNames, forwardingRuleNames) {
+        const matched = [];
+        ruleNames.forEach((ruleName) => {
+            let match = false;
+            forwardingRuleNames.forEach((forwardingRuleName) => {
+                if (ruleName.match(forwardingRuleName)) {
+                    match = true;
+                }
+            });
+            // Add rule to matched array if a match was found
+            if (match) {
+                matched.push(ruleName);
+            }
+        });
+        return matched;
+    }
+
+    /**
      * Get the addresses and routes for inspect endpoint
      *
      * @returns {Promise} A promise which will be resolved with the array of Big-IP addresses and routes
@@ -621,11 +648,12 @@ class Cloud extends AbstractCloud {
      * Discover address operations
      *
      * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} discoverOperations - discover forwarding rules operations
      *
      * @returns {Promise} { publicAddresses: [], interfaces: [], loadBalancerAddresses: [] }
      *
      */
-    _discoverAddressOperations(failoverAddresses) {
+    _discoverAddressOperations(failoverAddresses, discoverOperations) {
         this.logger.debug('Failover addresses to discover', failoverAddresses);
         if (!failoverAddresses || !failoverAddresses.length) {
             this.logger.debug('No failoverAddresses to discover');
@@ -638,7 +666,7 @@ class Cloud extends AbstractCloud {
 
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
-            this._discoverFwdRuleOperations(failoverAddresses)
+            this._discoverFwdRuleOperations(discoverOperations)
         ])
             .then(operations => Promise.resolve({
                 publicAddresses: {},
@@ -761,16 +789,16 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Discover what forwarding rules to update
+     * Discover what forwarding rules to update by IPAddresses or forwarding rule names
      *
-     * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} discoverOperations - discover operations
      *
      * @returns {Promise} A promise which will be resolved once discovery is complete
      *
      */
-    _discoverFwdRuleOperations(failoverAddresses) {
+    _discoverFwdRuleOperations(discoverOperations) {
         const fwdRulesToUpdate = [];
-
+        this.logger.silly('discoverOperations:', discoverOperations);
         const getOurTargetInstance = (instanceName, tgtInstances) => {
             const result = [];
 
@@ -798,7 +826,13 @@ class Cloud extends AbstractCloud {
                 this.targetInstances = data[1] || [];
 
                 this.fwdRules.forEach((rule) => {
-                    const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    let match = [];
+
+                    if (discoverOperations.type === 'address' && rule.IPAddress) {
+                        match = this._matchIps([rule.IPAddress], discoverOperations.ipAddresses);
+                    } else if (discoverOperations.type === 'name' && rule.name) {
+                        match = this._matchFwdRuleNames([rule.name], discoverOperations.fwdRuleNames);
+                    }
                     if (!match.length) {
                         return; // continue with next iteration
                     }
