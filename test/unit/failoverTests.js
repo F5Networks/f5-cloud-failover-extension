@@ -327,6 +327,62 @@ describe('Failover', () => {
             .catch(err => Promise.reject(err));
     });
 
+    it('should execute failover with forwarding rule name', () => {
+        const localDeclaration = {
+            class: 'Cloud_Failover',
+            environment: 'gcp',
+            failoverAddresses: {
+                enabled: true,
+                addressGroupDefinitions: [
+                    {
+                        type: 'forwardingRule',
+                        scopingName: 'forwardingRuleName',
+                        targetInstances: [
+                            'test-target-vm01',
+                            'test-target-vm02'
+                        ]
+                    },
+                    {
+                        type: 'aliasAddress',
+                        scopingAddress: '10.0.3.4/32'
+                    }
+                ]
+            },
+            failoverRoutes: {
+                enabled: true,
+                routeGroupDefinitions: [
+                    {
+                        scopingName: 'network-route',
+                        defaultNextHopAddresses: {
+                            discoveryType: 'static',
+                            items: [
+                                '10.0.2.2',
+                                '10.0.2.3'
+                            ]
+                        }
+                    }
+                ]
+            }
+        };
+
+        return config.init()
+            .then(() => config.processConfigRequest(localDeclaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                // verify that update addresses get called
+                const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+                assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+                assert.deepStrictEqual(updateAddressesDiscoverCall.forwardingRules.fwdRuleNames, ['forwardingRuleName']);
+                assert.deepStrictEqual(updateAddressesDiscoverCall.aliasAddresses, ['10.0.3.4/32']);
+                // verify that update route get called
+                const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
+                assert.strictEqual(updateRoutesUpdateCall.discoverOnly, true);
+                assert.deepStrictEqual(updateRoutesUpdateCall.localAddresses, ['1.1.1.1']);
+            })
+            .catch(err => Promise.reject(err));
+    });
+
     it('should execute get failover discovery for dry run', () => config.init()
         .then(() => config.processConfigRequest(declaration))
         .then(() => failover.init())

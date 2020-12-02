@@ -262,7 +262,10 @@ describe('Provider - GCP', () => {
     describe('updateAddresses should', () => {
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1', '2.2.2.2'];
-
+        const forwardingRules = {
+            type: 'name',
+            fwdRuleNames: ['testFwdRule', 'testFwdRule2']
+        };
         let getVmsByTagsStub;
         let getFwdRulesStub;
         let getTargetInstancesStub;
@@ -280,7 +283,6 @@ describe('Provider - GCP', () => {
 
         function validateFwdRuleOperations(getSpy, updateSpy, options) {
             options = options || {};
-
             assert.deepStrictEqual(
                 getSpy.args[0][0].tags,
                 options.getTags !== undefined ? options.getTags : { 'test-tag-key': 'test-tag-value' }
@@ -318,7 +320,9 @@ describe('Provider - GCP', () => {
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -340,7 +344,32 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover with forwarding rules parameter', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getFwdRulesStub.resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -364,7 +393,9 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -379,7 +410,9 @@ describe('Provider - GCP', () => {
             getFwdRulesStub.resolves([]);
             getTargetInstancesStub.resolves(null);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then((operations) => {
                     const fwdRuleOperations = operations;
                     fwdRuleOperations.loadBalancerAddresses = undefined;
@@ -403,7 +436,9 @@ describe('Provider - GCP', () => {
             ]);
             getTargetInstancesStub.resolves(null);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -437,7 +472,9 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
@@ -451,7 +488,9 @@ describe('Provider - GCP', () => {
 
             getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
@@ -465,7 +504,9 @@ describe('Provider - GCP', () => {
 
             getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
@@ -478,7 +519,9 @@ describe('Provider - GCP', () => {
         it('validate updateAddresses method, promise rejection', () => {
             getVmsByTagsStub.rejects(new Error('rejection'));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     assert.ok(false, 'Expected an error');
@@ -920,6 +963,11 @@ describe('Provider - GCP', () => {
         assert.strictEqual(result[0].ipCidrRange, '10.0.0.0/24');
     });
 
+    it('validate _matchFwdRuleNames method', () => {
+        assert.strictEqual(provider.environment, cloud);
+        const result = provider._matchFwdRuleNames(['testFwdRule', 'testFwdRule2'], [{ forwardingRuleName: 'testFwdRule' }]);
+        assert.strictEqual(result[0], 'testFwdRule');
+    });
 
     it('validate _getVmMetadata', () => {
         provider.computeZone = provider.compute.zone('us-west1-a');
