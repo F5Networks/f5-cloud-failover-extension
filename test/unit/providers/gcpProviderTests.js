@@ -540,7 +540,9 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(() => {
                     assert.ok(false, 'Error: The function should go to catch block!');
                 })
