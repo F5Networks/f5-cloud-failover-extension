@@ -272,6 +272,14 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    // TODO: This is stub method which will be implemented as part of AUTOSDK-455
+    discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options) {
+        this.logger.silly('discoverAddressUsingProvidedDefinitions: stubber for Azure Cloud provider');
+        this.logger.silly(`discoverAddressUsingProvidedDefinitions: addresses: ${JSON.stringify(addresses)}`);
+        this.logger.silly(`discoverAddressUsingProvidedDefinitions: addressGroupDefinitions: ${JSON.stringify(addresses)}`);
+        this.logger.silly(`discoverAddressUsingProvidedDefinitions: options: ${JSON.stringify(options)}`);
+    }
+
     /**
     * Append request options
     *

@@ -15,7 +15,11 @@
       "addressGroupDefinitions": [
          {
             "type": "networkInterfaceAddress",
-            "scopingAddress": "10.0.1.2"
+            "scopingAddress": "10.0.1.2",
+            "networkInterfaces": [
+               "test-nic01",
+               "test-nic02"
+            ]
          }
       ]
    },

@@ -186,6 +186,44 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Discover addresses using provided definitions
+     *
+     * @param {Object} addressGroupDefinitions - discover forwarding rule names and alias addresses
+     *
+     * @returns {Object} updateActions
+     */
+    discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options) {
+        const forwardingRuleNames = [];
+        const aliasAddresses = [];
+        addressGroupDefinitions.forEach((item) => {
+            if (item.type === 'forwardingRule') {
+                forwardingRuleNames.push(item.scopingName);
+            }
+            if (item.type === 'aliasAddress') {
+                aliasAddresses.push(item.scopingAddress);
+            }
+        });
+        this.forwardingRuleNames = forwardingRuleNames;
+        this.logger.silly('Retrieved forwarding rule names: ', this.forwardingRuleNames);
+        this.aliasAddresses = aliasAddresses;
+        this.logger.silly('Retrieved alias addresses: ', this.aliasAddresses);
+
+        if (!options.isAddressOperationsEnabled) {
+            return Promise.resolve();
+        }
+        return this.updateAddresses({
+            localAddresses: addresses.localAddresses,
+            failoverAddresses: addresses.failoverAddresses,
+            forwardingRules: {
+                type: 'name',
+                fwdRuleNames: this.forwardingRuleNames
+            },
+            aliasAddresses: this.aliasAddresses,
+            discoverOnly: true
+        });
+    }
+
+    /**
      * Send HTTP Request to GCP API (Compute)
      *
      * @returns {Promise} A promise which will be resolved upon complete response

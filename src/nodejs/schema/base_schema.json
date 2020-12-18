@@ -74,6 +74,13 @@
                 "required": []
             }
         },
+        "networkInterfaces": {
+            "$comment": "An array of network interfaces used in failover",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "vipAddresses": {
             "$comment": "An array of BIG-IP virtual IP addresses for failover",
             "type": "array",
@@ -178,13 +185,13 @@
                             },
                             {
                                 "properties": {"type": { "const":  "elasticIpAddress"}},
-                                "required": ["scopingName", "vipAddresses"]
+                                "required": ["scopingAddress", "vipAddresses"]
                             }
                         ]
                     }
                 }
             },
-            "oneOf": [
+            "anyOf": [
                 { "required": ["scopingTags"] },
                 { "required": ["addressGroupDefinitions"] }
             ]
