@@ -77,6 +77,10 @@ class AbstractCloud {
         throw new Error('Method must be implemented in child class!');
     }
 
+    discoverAddressUsingProvidedDefinitions() {
+        throw new Error('Method must be implemented in child class!');
+    }
+
     uploadDataToStorage() {
         throw new Error('Method must be implemented in child class!');
     }

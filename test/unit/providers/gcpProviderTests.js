@@ -552,6 +552,93 @@ describe('Provider - GCP', () => {
         });
     });
 
+    describe('discoverAddressUsingProvidedDefinitions method', () => {
+        it('validate correct execution for forwardingRule type', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'forwardingRule',
+                    scopingName: 'forwardingRuleName',
+                    targetInstances: [
+                        'test-target-vm01',
+                        'test-target-vm02'
+                    ]
+                }];
+            const options = {
+                isAddressOperationsEnabled: true
+            };
+            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.localAddresses[0], '1.2.3.4');
+                    assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
+                    assert.strictEqual(response.failoverAddresses[1], '10.10.10.11');
+                    assert.strictEqual(response.failoverAddresses[2], '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.forwardingRules.fwdRuleNames[0], 'forwardingRuleName');
+                    assert.ok(response.discoverOnly);
+                })
+                .catch(() => assert.fail());
+        });
+
+
+        it('validate correct execution for aliasAddress type', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'aliasAddress',
+                    scopingAddress: '10.0.12.112/28'
+                }];
+            const options = {
+                isAddressOperationsEnabled: true
+            };
+            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.localAddresses[0], '1.2.3.4');
+                    assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
+                    assert.strictEqual(response.failoverAddresses[1], '10.10.10.11');
+                    assert.strictEqual(response.failoverAddresses[2], '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.forwardingRules.fwdRuleNames.length, 0);
+                    assert.strictEqual(response.aliasAddresses[0], '10.0.12.112/28');
+                    assert.ok(response.discoverOnly);
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('validate correct execution for aliasAddress type when isAddressOperationsEnabled is set to false', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'aliasAddress',
+                    scopingAddress: '10.0.12.112/28'
+                }];
+            const options = {
+                isAddressOperationsEnabled: false
+            };
+            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response, undefined);
+                })
+                .catch(() => assert.fail());
+        });
+    });
+
     describe('updateRoutes should', () => {
         const localAddresses = ['1.1.1.1', '2.2.2.2'];
 

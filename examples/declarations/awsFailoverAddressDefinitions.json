@@ -12,6 +12,9 @@
   },
   "failoverAddresses":{
      "enabled":true,
+      "scopingTags":{
+        "f5_cloud_failover_label":"mydeployment"
+      },
      "addressGroupDefinitions": [
       {
         "type": "networkInterfaceAddress",
@@ -19,7 +22,7 @@
       },
       {
         "type": "elasticIpAddress",
-        "scopingName": "eip-123",
+        "scopingAddress": "23.1.2.3",
         "vipAddresses": [
           "10.0.12.116",
           "10.0.22.116"

@@ -397,10 +397,16 @@ class FailoverClient {
 
         let updateActions = [];
         // Get address group definitions from the declaration
-        this.addressGroupDefinitions = this._mapAddressGroupDefinitions('failoverAddresses.addressGroupDefinitions');
+        this.addressGroupDefinitions = util.getDataByKey(this.config, 'failoverAddresses.addressGroupDefinitions') || [];
         logger.debug('Retrieved addressGroupDefinitions: ', this.addressGroupDefinitions);
-        if (Object.keys(this.addressGroupDefinitions).length !== 0) {
-            updateActions = this._discoverAddressesUsingAdvancedDefinitions(addresses, this.addressGroupDefinitions);
+        if (this.addressGroupDefinitions.length !== 0 && this.isAddressOperationsEnabled) {
+            updateActions.push(this.cloudProvider.discoverAddressUsingProvidedDefinitions(
+                addresses,
+                this.addressGroupDefinitions,
+                {
+                    isAddressOperationsEnabled: this.isAddressOperationsEnabled
+                }
+            ));
         } else {
             updateActions = this._discoverAddresses(addresses);
         }
@@ -747,29 +753,6 @@ class FailoverClient {
     }
 
     /**
-     * Map address group definitions
-     *
-     * @param {String} addressGroupDefinitionsKey
-     *
-     * @returns {object} addressGroupDefinitions
-     */
-    _mapAddressGroupDefinitions(addressGroupDefinitionsKey) {
-        let addressGroupDefinitions = util.getDataByKey(this.config, addressGroupDefinitionsKey) || [];
-        if (addressGroupDefinitions === undefined) {
-            return Promise.resolve([]);
-        }
-        addressGroupDefinitions = addressGroupDefinitions.map(addressGroupInfo => (
-            {
-                type: addressGroupInfo.type,
-                forwardingRuleName: addressGroupInfo.scopingName,
-                targetInstances: addressGroupInfo.targetInstances,
-                aliasAddress: addressGroupInfo.scopingAddress
-            }
-        ));
-        return addressGroupDefinitions;
-    }
-
-    /**
      * Discover addresses (update cloud provider addresses and routes)
      *
      * @param {Object} addresses
@@ -785,44 +768,6 @@ class FailoverClient {
                 type: 'address',
                 ipAddresses: addresses.failoverAddresses
             },
-            discoverOnly: true
-        }) : {});
-        return updateActions;
-    }
-
-    /**
-     * Discover addresses using advanced definitions
-     *
-     * @param {Object} addressGroupDefinitions - discover forwarding rule names and alias addresses
-     *
-     * @returns {Object} updateActions
-     */
-    _discoverAddressesUsingAdvancedDefinitions(addresses, addressGroupDefinitions) {
-        const forwardingRuleNames = [];
-        const aliasAddresses = [];
-        const updateActions = [];
-        addressGroupDefinitions.forEach((item) => {
-            if (item.forwardingRuleName) {
-                forwardingRuleNames.push(item.forwardingRuleName);
-            }
-        });
-        this.forwardingRuleNames = forwardingRuleNames;
-        logger.silly('Retrieved forwarding rule names: ', this.forwardingRuleNames);
-        addressGroupDefinitions.forEach((item) => {
-            if (item.aliasAddress) {
-                aliasAddresses.push(item.aliasAddress);
-            }
-        });
-        this.aliasAddresses = aliasAddresses;
-        logger.silly('Retrieved alias addresses: ', this.aliasAddresses);
-        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
-            localAddresses: addresses.localAddresses,
-            failoverAddresses: addresses.failoverAddresses,
-            forwardingRules: {
-                type: 'name',
-                fwdRuleNames: this.forwardingRuleNames
-            },
-            aliasAddresses: this.aliasAddresses,
             discoverOnly: true
         }) : {});
         return updateActions;
