@@ -1024,7 +1024,7 @@ describe('Provider - AWS', () => {
         });
     });
 
-    describe('function discoverAddressUsingProvidedDefinitions', () => {
+    describe('function discoverAddressOperationsUsingDefinitions', () => {
         const addresses = {
             localAddresses: ['1.2.3.4'],
             failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
@@ -1102,7 +1102,7 @@ describe('Provider - AWS', () => {
                         return Promise.resolve(describeNetworkInterfacesResponse);
                     }
                 });
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
@@ -1175,7 +1175,7 @@ describe('Provider - AWS', () => {
                         return Promise.resolve(describeNetworkInterfacesResponse);
                     }
                 });
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].current.PrivateIpAddress, '10.10.10.10');
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].current.AssociationId, 'association-id');
@@ -1194,7 +1194,7 @@ describe('Provider - AWS', () => {
                     vipAddresses: []
                 }
             ];
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                 })
@@ -1218,7 +1218,7 @@ describe('Provider - AWS', () => {
                         return Promise.resolve({});
                     }
                 }));
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                 })
@@ -1242,7 +1242,7 @@ describe('Provider - AWS', () => {
                         return Promise.resolve(undefined);
                     }
                 }));
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                 })
@@ -1272,7 +1272,7 @@ describe('Provider - AWS', () => {
                         });
                     }
                 }));
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                 })
@@ -1303,7 +1303,7 @@ describe('Provider - AWS', () => {
                         });
                     }
                 }));
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                 })

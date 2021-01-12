@@ -186,6 +186,10 @@
                             {
                                 "properties": {"type": { "const":  "elasticIpAddress"}},
                                 "required": ["scopingAddress", "vipAddresses"]
+                            },
+                            {
+                                "properties": {"type": { "const":  "publicIpAddress"}},
+                                "required": ["scopingName", "vipAddresses"]
                             }
                         ]
                     }
