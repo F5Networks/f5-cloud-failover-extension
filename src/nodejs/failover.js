@@ -671,12 +671,10 @@ class FailoverClient {
      */
     _getFloatingAddresses(virtualAddresses, snatAddresses, natAddresses, trafficGroups) {
         const addresses = [];
-
         // helper function to add address (as needed)
         const _addAddress = (item, addressKey) => {
             const address = item[addressKey].split('%')[0];
             const addressTrafficGroup = item.trafficGroup;
-
             trafficGroups.forEach((nestedItem) => {
                 if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
                     addresses.push({
@@ -722,10 +720,10 @@ class FailoverClient {
         floatingAddresses.forEach((item) => {
             failoverAddresses.push(item.address);
         });
-
+        // dedup failover addresses before returning back
         return {
             localAddresses,
-            failoverAddresses
+            failoverAddresses: failoverAddresses.filter((value, idx) => failoverAddresses.indexOf(value) === idx)
         };
     }
 
