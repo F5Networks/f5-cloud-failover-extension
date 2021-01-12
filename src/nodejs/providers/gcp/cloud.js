@@ -188,11 +188,13 @@ class Cloud extends AbstractCloud {
     /**
      * Discover addresses using provided definitions
      *
+     * @param {Object} addresses               - local addresses, failover addresses
      * @param {Object} addressGroupDefinitions - discover forwarding rule names and alias addresses
+     * @param {Object} options                 - function options
      *
      * @returns {Object} updateActions
      */
-    discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options) {
+    discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options) {
         const forwardingRuleNames = [];
         const aliasAddresses = [];
         addressGroupDefinitions.forEach((item) => {

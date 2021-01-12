@@ -160,14 +160,16 @@ class Cloud extends AbstractCloud {
     /**
      * Discover addresses using provided definitions
      *
+     * @param {Object}                         - local addresses, failover addresses
      * @param {Object} addressGroupDefinitions - provides definition used for fetching addresses from AWS cloud
+     * @param {Object} options                 - function options
      *
      * @returns {Object} updateActions
      */
-    discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options) {
-        this.logger.silly(`discoverAddressUsingProvidedDefinitions: addresses: ${JSON.stringify(addresses)}`);
-        this.logger.silly(`discoverAddressUsingProvidedDefinitions: addressGroupDefinitions: ${JSON.stringify(addressGroupDefinitions)}`);
-        this.logger.silly(`discoverAddressUsingProvidedDefinitions: options: ${JSON.stringify(options)}`);
+    discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options) {
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: addresses: ${JSON.stringify(addresses)}`);
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: addressGroupDefinitions: ${JSON.stringify(addressGroupDefinitions)}`);
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: options: ${JSON.stringify(options)}`);
         const resultAction = {
             publicAddresses: {},
             interfaces: {
@@ -178,7 +180,7 @@ class Cloud extends AbstractCloud {
         };
         const promises = [];
         addressGroupDefinitions.forEach((item) => {
-            this.logger.silly(`aws-discoverAddressUsingProvidedDefinitions: handling addressGroupDefinition for elasticIpAddress ${item.type}`);
+            this.logger.silly(`aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinition for elasticIpAddress ${item.type}`);
             if (item.type === 'elasticIpAddress') {
                 promises.push(this._createActionForElasticIpAddress(resultAction, item));
             } else if (item.type === 'networkInterfaceAddress') {
@@ -191,6 +193,14 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    /**
+     * Create operations for Elastic IP Address
+     *
+     * @param {Object} resultAction     - publicAddresses operations
+     * @param {Object} providedAddress  - virtual addresses and scoping address
+     *
+     * @returns {Object} updateActions  - A promise resolved resultAction or rejects
+     */
     _createActionForElasticIpAddress(resultAction, providedAddress) {
         if (providedAddress.vipAddresses === undefined || providedAddress.vipAddresses.length !== 2) {
             this.logger.silly('Provided address group definition does not provide correct number of vip addresses; 2 vip addreses must be provided.');
@@ -256,6 +266,14 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
     }
 
+    /**
+     * Create operations for associate and dissassociate address
+     *
+     * @param {Object} addresses        - local addresses, virtual addresses
+     * @param {Object} providedAddress  - network interface scoping address
+     *
+     * @returns {Object}                - A promise resolved publicAddresses and interfaces
+     */
     _createActionForAddressAssociationDisassociation(addresses, providedAddress) {
         const operations = {
             disassociate: [],
@@ -1200,7 +1218,6 @@ class Cloud extends AbstractCloud {
         if (privateAddress) {
             params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
         }
-
         return this.ec2.describeAddresses(params).promise()
             .catch(err => Promise.reject(err));
     }

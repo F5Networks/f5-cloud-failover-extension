@@ -400,7 +400,7 @@ class FailoverClient {
         this.addressGroupDefinitions = util.getDataByKey(this.config, 'failoverAddresses.addressGroupDefinitions') || [];
         logger.debug('Retrieved addressGroupDefinitions: ', this.addressGroupDefinitions);
         if (this.addressGroupDefinitions.length !== 0 && this.isAddressOperationsEnabled) {
-            updateActions.push(this.cloudProvider.discoverAddressUsingProvidedDefinitions(
+            updateActions.push(this.cloudProvider.discoverAddressOperationsUsingDefinitions(
                 addresses,
                 this.addressGroupDefinitions,
                 {

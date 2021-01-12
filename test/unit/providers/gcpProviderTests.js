@@ -552,7 +552,7 @@ describe('Provider - GCP', () => {
         });
     });
 
-    describe('discoverAddressUsingProvidedDefinitions method', () => {
+    describe('discoverAddressOperationsUsingDefinitions method', () => {
         it('validate correct execution for forwardingRule type', () => {
             provider.updateAddresses = sinon.stub().callsFake((parameters) => {
                 return Promise.resolve(parameters);
@@ -573,7 +573,7 @@ describe('Provider - GCP', () => {
             const options = {
                 isAddressOperationsEnabled: true
             };
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(response.localAddresses[0], '1.2.3.4');
                     assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
@@ -602,7 +602,7 @@ describe('Provider - GCP', () => {
             const options = {
                 isAddressOperationsEnabled: true
             };
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(response.localAddresses[0], '1.2.3.4');
                     assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
@@ -631,7 +631,7 @@ describe('Provider - GCP', () => {
             const options = {
                 isAddressOperationsEnabled: false
             };
-            return provider.discoverAddressUsingProvidedDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
                 .then((response) => {
                     assert.strictEqual(response, undefined);
                 })

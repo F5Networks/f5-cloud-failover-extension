@@ -274,6 +274,10 @@ describe('Provider - Azure', () => {
                         privateIPAddress: '10.10.10.10',
                         subnet: {
                             id: 'my-subnet-resource-location'
+                        },
+                        primary: false,
+                        publicIPAddress: {
+                            id: 'vip-pip1'
                         }
                     }
                 ],
@@ -308,17 +312,17 @@ describe('Provider - Azure', () => {
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
         return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
-                const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
-                assert.strictEqual(disassociateArgs[1], 'nic01');
-                assert.deepStrictEqual(disassociateArgs[2].ipConfigurations[0].privateIPAddress, '1.1.1.1');
+                const disassociateArgs = updateAddressesSpy.getCall(0).args[0].disassociate;
+                assert.strictEqual(disassociateArgs[0][1], 'nic01');
+                assert.deepStrictEqual(disassociateArgs[0][2].ipConfigurations[0].privateIPAddress, '1.1.1.1');
 
-                const associateArgs = updateAddressesSpy.getCall(0).args[1][0];
-                assert.strictEqual(associateArgs[1], 'nic02');
-                assert.deepStrictEqual(associateArgs[2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
-                assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
-                assert.deepStrictEqual(associateArgs[2].ipConfigurations[1].subnet.id, 'my-subnet-resource-location');
+                const associateArgs = updateAddressesSpy.getCall(0).args[0].associate;
+                assert.strictEqual(associateArgs[0][1], 'nic02');
+                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
+                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
+                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].subnet.id, 'my-subnet-resource-location');
             })
             .catch(err => Promise.reject(err));
     });
@@ -368,13 +372,10 @@ describe('Provider - Azure', () => {
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
         return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-            .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
                 assert.strictEqual(disassociateArgs, undefined);
-
-                const associateArgs = updateAddressesSpy.getCall(0).args[1][0];
-                assert.strictEqual(associateArgs, undefined);
             })
             .catch(err => Promise.reject(err));
     });
@@ -1060,6 +1061,581 @@ describe('Provider - Azure', () => {
             return provider.getAssociatedAddressAndRouteInfo()
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+
+    describe('function _reassociateAddresses', () => {
+        const nic01 = {
+            id: 'test-nic01',
+            name: 'nic01',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.10',
+                    primary: true
+                },
+                {
+                    privateIPAddress: '10.10.10.100',
+                    primary: false
+                }
+            ]
+        };
+        const nic02 = {
+            id: 'test-nic02',
+            name: 'nic02',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.20',
+                    primary: true
+                }
+            ]
+        };
+        const operators = {
+            disassociate: [
+                [this.resourceGroup, nic01.name, nic01, 'Disassociate']
+            ],
+            associate: [
+                [this.resourceGroup, nic02.name, nic02, 'Associate']
+            ]
+        };
+        it('should reassociate addresses to different NICs via disassociate and then associate', () => {
+            sinon.stub(provider, '_updateNic').resolves();
+            return provider._reassociateAddresses(operators)
+                .then(() => {
+                    // succeeds when promise gets resolved
+                    assert.ok(true);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+
+    describe('function discoverAddressOperationsUsingDefinitions', () => {
+        const options = {};
+        const addresses = {
+            localAddresses: ['10.10.10.1', '10.10.10.2'],
+            failoverAddresses: []
+        };
+        const addresses2 = {
+            localAddresses: ['10.10.10.4'],
+            failoverAddresses: []
+        };
+        // Use nic01 and nic02 to validate across-net,
+        // moving publicIPAddress from the secondary ipConfigurations
+        const nic01 = {
+            id: 'test-nic01',
+            name: 'nic01',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.1',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip1'
+                    },
+                    provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.10.10',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip2'
+                    },
+                    provisioningState: 'Succeeded'
+                }
+            ]
+        };
+        const nic02 = {
+            id: 'test-nic02',
+            name: 'nic02',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.2',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip3'
+                    },
+                    provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.10.100',
+                    primary: false,
+                    provisioningState: 'Succeeded'
+                }
+            ]
+        };
+        //  Use nic03 and nic04 to validate same-net, moving the secondary ipConfigurations
+        const nic03 = {
+            id: 'test-nic03',
+            name: 'nic03',
+            provisioningState: 'Succeeded',
+            type: 'networkInterfaces',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.3',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip5'
+                    },
+                    provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.10.20',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip6'
+                    },
+                    provisioningState: 'Succeeded'
+                }
+            ]
+        };
+        const nic04 = {
+            id: 'test-nic04',
+            name: 'nic04',
+            provisioningState: 'Succeeded',
+            type: 'networkInterfaces',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.4',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip6'
+                    },
+                    provisioningState: 'Succeeded'
+                }
+            ]
+        };
+        const publicIpResponse = {
+            id: 'vip-pip1',
+            name: 'vip-pip1',
+            type: 'publicIPAddresses',
+            ipConfigurations: { id: 'test-vip01' },
+            ipAddress: '3.3.3.3'
+        };
+
+        it('should validate across-net public IP address gets reassociated', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'publicIpAddress',
+                    scopingName: 'vip-pip1',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves(publicIpResponse);
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+
+            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
+                callback(error, [nic01, nic02]);
+            });
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
+                .callsFake((resourceGroup, nicName) => {
+                    if (nicName === 'nic01') {
+                        return Promise.resolve(nic01);
+                    }
+                    return Promise.resolve(nic02);
+                });
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.publicAddresses['3.3.3.3'].publicIpAddressId.id, 'vip-pip1');
+                    assert.strictEqual(response.publicAddresses['3.3.3.3'].current.name, 'nic01');
+                    assert.strictEqual(response.publicAddresses['3.3.3.3'].current.privateIPAddress, '10.10.10.10');
+                    assert.strictEqual(response.publicAddresses['3.3.3.3'].target.name, 'nic02');
+                    assert.strictEqual(response.publicAddresses['3.3.3.3'].target.privateIPAddress, '10.10.10.100');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('should validate same-net public and private addresses get reassociated', () => {
+            const networkGroupDefinitions = [
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.10.20',
+                    networkInterfaces: [
+                        'nic03',
+                        'nic04'
+                    ]
+                }
+            ];
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
+                .callsFake((resourceGroup, nicName) => {
+                    if (nicName === 'nic03') {
+                        return Promise.resolve(nic03);
+                    }
+                    return Promise.resolve(nic04);
+                });
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses2, networkGroupDefinitions, options)
+                .then((response) => {
+                    const disasociate = response.interfaces.disassociate;
+                    const associate = response.interfaces.associate;
+                    assert.strictEqual(disasociate[0][1], 'nic03');
+                    assert.strictEqual(disasociate[0][2].name, 'nic03');
+                    assert.strictEqual(disasociate[0][2].ipConfigurations[0].privateIPAddress, '10.10.10.3');
+                    assert.strictEqual(associate[0][1], 'nic04');
+                    assert.strictEqual(associate[0][2].name, 'nic04');
+                    assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '10.10.10.4');
+                    assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.20');
+                    assert.strictEqual(associate[0][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip6');
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+
+    describe('function _getPublicIpAddress', () => {
+        const pipResponse = {
+            id: '/path/publicIPAddresses/test-pip1',
+            name: 'test-pip01',
+            type: 'Microsoft.Network/publicIPAddresses',
+            ipConfigurations: { id: '/path/ipConfigurations/test-vip01-' },
+            ipAddress: '13.13.13.13',
+            location: 'westus'
+        };
+        it('should validate _getPublicIpAddress with resolved promise', () => {
+            const options = {
+                publicIpAddress: 'test-pip01'
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves(pipResponse);
+
+            return provider._getPublicIpAddress(options)
+                .then((response) => {
+                    assert.strictEqual(response.name, 'test-pip01');
+                    assert.strictEqual(response.ipAddress, '13.13.13.13');
+                    assert.strictEqual(response.type, 'Microsoft.Network/publicIPAddresses');
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should validate _getPublicIpAddress name was not found', () => {
+            const options = {
+                publicIpAddress: 'test-value'
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves({
+                name: 'not-match'
+            });
+            return provider._getPublicIpAddress(options)
+                .then((response) => {
+                    assert.strictEqual(response, undefined);
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should _getPublicIpAddress with promise rejection', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
+            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().rejects();
+            return provider._getPublicIpAddress('pipName')
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
+                    assert.ok(true);
+                });
+        });
+    });
+
+    describe('function _getNetworkInterfaces', () => {
+        const nic01 = {
+            id: 'test-nic01',
+            name: 'nic01',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.1',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip1'
+                    }
+                },
+                {
+                    privateIPAddress: '10.10.10.11',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip2'
+                    }
+                }
+            ]
+        };
+        const nic02 = {
+            id: 'test-nic02',
+            name: 'nic02',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.2',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip3'
+                    }
+                },
+                {
+                    privateIPAddress: '10.10.10.12',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip4'
+                    }
+                }
+            ]
+        };
+        it('should get secondary network interfaces resource given private IP addresses match', () => {
+            const options = {
+                privateIpAddresses: ['10.10.10.11', '10.10.10.12']
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
+                callback(error, [nic01, nic02]);
+            });
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
+                .callsFake((resourceGroup, nicName) => {
+                    if (nicName === 'nic01') {
+                        return Promise.resolve(nic01);
+                    }
+                    return Promise.resolve(nic02);
+                });
+            provider._getNetworkInterfaces(options)
+                .then((response) => {
+                    assert.strictEqual(response[0].name, 'nic01');
+                    assert.strictEqual(response[0].ipConfigurations[0].privateIPAddress, '10.10.10.1');
+                    assert.strictEqual(response[0].ipConfigurations[1].primary, false);
+                    assert.strictEqual(response[0].ipConfigurations[1].privateIPAddress, '10.10.10.11');
+                    assert.strictEqual(response[1].name, 'nic02');
+                    assert.strictEqual(response[1].ipConfigurations[0].privateIPAddress, '10.10.10.2');
+                    assert.strictEqual(response[1].ipConfigurations[1].primary, false);
+                    assert.strictEqual(response[1].ipConfigurations[1].privateIPAddress, '10.10.10.12');
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should validate network interfaces given private IP addresses not match', () => {
+            const options = {
+                privateIpAddresses: ['10.10.10.5', '10.10.10.15']
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
+                callback(error, [nic01]);
+            });
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves(nic01);
+            return provider._getNetworkInterfaces(options)
+                .then((response) => {
+                    assert.strictEqual(response[0], undefined);
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should gets network interface resource given a network interface name', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves(nic01);
+            return provider._getNetworkInterfaceByName('nic01')
+                .then((response) => {
+                    assert.strictEqual(response.name, 'nic01');
+                    assert.strictEqual(response.provisioningState, 'Succeeded');
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should validate provided network interface name was not found', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves({
+                name: 'not-match'
+            });
+            return provider._getNetworkInterfaceByName('nicName')
+                .then((response) => {
+                    assert.strictEqual(response, undefined);
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should _getNetworkInterfaceByName with promise rejection', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().rejects();
+            return provider._getNetworkInterfaceByName('nicName')
+                .then(() => {
+                    // fails when promise is resolved
+                    assert.fail();
+                })
+                .catch(() => {
+                    // succeeds when error recieved
+                    assert.ok(true);
+                });
+        });
+    });
+
+    describe('function _reassociatePublicIpAddresses', () => {
+        const publicIpAddresses = {
+            '13.13.13.13': {
+                publicIpAddressId: {
+                    id: 'vip-pip1'
+                },
+                current: {
+                    name: 'nic01',
+                    privateIPAddress: '10.10.10.10'
+                },
+                target: {
+                    name: 'nic02',
+                    privateIPAddress: '10.10.10.20'
+                }
+            }
+        };
+        it('should call _disassociatePublicIpAddress with correct params', () => {
+            const passedParams = [];
+            provider._disassociatePublicIpAddress = sinon.stub()
+                .callsFake((param1, param2) => {
+                    passedParams.push(param1, param2);
+                    return Promise.resolve();
+                });
+            provider._associatePublicIpAddress = sinon.stub()
+                .resolves();
+
+            return provider._reassociatePublicIpAddresses(publicIpAddresses)
+                .then(() => {
+                    assert.deepStrictEqual(passedParams, ['nic01', '10.10.10.10']);
+                    assert.strictEqual(passedParams.length, 2);
+                })
+                .catch(err => Promise.reject(err));
+        });
+        it('should call _associatePublicIpAddress with correct params', () => {
+            const passedParams = [];
+            provider._disassociatePublicIpAddress = sinon.stub()
+                .resolves();
+            provider._associatePublicIpAddress = sinon.stub()
+                .callsFake(
+                    (nicName, privateIpAddress, publicIpAddressId) => {
+                        passedParams.push({
+                            nicName,
+                            privateIpAddress,
+                            publicIpAddressId
+                        });
+                        return Promise.resolve();
+                    }
+                );
+
+            return provider._reassociatePublicIpAddresses(publicIpAddresses)
+                .then(() => {
+                    assert.deepStrictEqual(passedParams, [
+                        {
+                            nicName: 'nic02',
+                            privateIpAddress: '10.10.10.20',
+                            publicIpAddressId: {
+                                id: 'vip-pip1'
+                            }
+                        }
+                    ]);
+                    assert.strictEqual(passedParams.length, 1);
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+
+    describe('function _disassociatePublicIpAddress', () => {
+        const nic01 = {
+            id: 'test-nic01',
+            name: 'nic01',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.1',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip1'
+                    }
+                },
+                {
+                    privateIPAddress: '10.10.10.11',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip2'
+                    }
+                }
+            ]
+        };
+
+        it('should disassociate public IP address', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves(nic01);
+            provider.networkClients[mockSubscriptionId].networkInterfaces.createOrUpdate = sinon.stub()
+                .callsFake((resourceGroup, nicName, nicParams, callback) => {
+                    assert.strictEqual(callback(false, 'Dissasociate'), 'Dissasociate');
+                    return Promise.resolve();
+                });
+            return provider._disassociatePublicIpAddress(nic01.name,
+                nic01.ipConfigurations[1].privateIPAddress, nic01.ipConfigurations[1].publicIPAddress)
+                .then((updateNicResponse) => {
+                    assert.strictEqual(updateNicResponse[0], 'Dissasociate');
+                })
+                .catch(err => Promise.reject(err));
+        });
+    });
+
+    describe('function _associatePublicIpAddress', () => {
+        const nic02 = {
+            id: 'test-nic02',
+            name: 'nic02',
+            type: 'networkInterfaces',
+            provisioningState: 'Succeeded',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.10.2',
+                    primary: true,
+                    publicIPAddress: {
+                        id: 'vip-pip3'
+                    }
+                },
+                {
+                    privateIPAddress: '10.10.10.12',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip4'
+                    }
+                }
+            ]
+        };
+        it('should associate public IP address', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves(nic02);
+            provider.networkClients[mockSubscriptionId].networkInterfaces.createOrUpdate = sinon.stub()
+                .callsFake((resourceGroup, nicName, nicParams, callback) => {
+                    assert.strictEqual(callback(false, 'Associate'), 'Associate');
+                    return Promise.resolve();
+                });
+            return provider._associatePublicIpAddress(nic02.name, nic02.ipConfigurations[1].privateIPAddress,
+                nic02.ipConfigurations[1].publicIPAddress)
+                .then((updateNicResponse) => {
+                    assert.strictEqual(updateNicResponse[0], 'Associate');
                 })
                 .catch(err => Promise.reject(err));
         });
