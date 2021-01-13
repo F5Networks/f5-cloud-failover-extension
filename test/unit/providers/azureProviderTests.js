@@ -1274,13 +1274,9 @@ describe('Provider - Azure', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
             provider.networkClients[mockSubscriptionId] = sinon.stub();
             provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
-                .callsFake((resourceGroup, nicName) => {
-                    if (nicName === 'nic03') {
-                        return Promise.resolve(nic03);
-                    }
-                    return Promise.resolve(nic04);
-                });
+            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
+                callback(error, [nic03, nic04]);
+            });
 
             return provider.discoverAddressOperationsUsingDefinitions(addresses2, networkGroupDefinitions, options)
                 .then((response) => {

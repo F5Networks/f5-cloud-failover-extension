@@ -969,25 +969,25 @@ class Cloud extends AbstractCloud {
     /**
      * Generate network interface operations required to reassociate the addresses
      *
-     * @param {Object} addresses            - given the virtual addresses
-     * @param {Object} providedDeclaration  - given the network interface names
+     * @param {Object} addresses            - local addresses
+     * @param {Object} providedDeclaration  - network interface scoping address
      *
-     * @returns {Promise} - A Promise that is resolved with the public IP configuration
+     * @returns {Promise} - A Promise that is resolved network interface operations
      */
     _generateNetworkInterfaceOperations(addresses, providedDeclaration) {
         const operations = {
             disassociate: [],
             associate: []
         };
-        const promises = [];
-        providedDeclaration.networkInterfaces.forEach((nicName) => {
-            promises.push(this._getNetworkInterfaceByName(nicName));
-        });
-        return Promise.all(promises)
-            .then((nics) => {
+        return Promise.all([
+            this._listNics({ tags: this.addressTags })
+        ])
+            .then((results) => {
+                const nics = results[0];
                 const failoverAddresses = [providedDeclaration.scopingAddress];
                 const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
-                if (parsedNics.mine.length !== 1 || parsedNics.theirs.length !== 1) {
+                this.logger.silly('parsedNics.mine.length:', parsedNics.mine.length, ', parsedNics.theirs.length:', parsedNics.theirs.length);
+                if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
                     this.logger.warning('Problem with discovering network interfaces parsedNics');
                     return Promise.resolve({
                         publicAddresses: {},
