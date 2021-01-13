@@ -15,11 +15,7 @@
       "addressGroupDefinitions": [
          {
             "type": "networkInterfaceAddress",
-            "scopingAddress": "192.0.2.10",
-            "networkInterfaces": [
-               "test-nic0",
-               "test-nic1"
-            ]
+            "scopingAddress": "192.0.2.10"
          },
          {
             "type": "publicIpAddress",
