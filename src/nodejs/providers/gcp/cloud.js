@@ -441,29 +441,7 @@ class Cloud extends AbstractCloud {
     _getFwdRules(options) {
         options = options || {};
 
-        const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
-            let path = `regions/${this.region}/forwardingRules`;
-            if (nextPageToken !== '') {
-                path = `${path}?pageToken=${nextPageToken}`;
-            }
-            return new Promise((resolve, reject) => {
-                this._sendRequest('GET', path)
-                    .then((pagedRulesList) => {
-                        fwdRulesList = fwdRulesList.concat(pagedRulesList.items);
-                        if (pagedRulesList.nextPageToken) {
-                            getRulesWithNextPageToken(fwdRulesList, pagedRulesList.nextPageToken)
-                                .then((rList) => {
-                                    resolve(rList);
-                                });
-                        } else {
-                            resolve(fwdRulesList);
-                        }
-                    })
-                    .catch(err => reject(err));
-            });
-        };
-
-        return getRulesWithNextPageToken([], '')
+        return this._getItemsUsingNextPageToken(`regions/${this.region}/forwardingRules`, [], '')
             .then((fwdRules) => {
                 // optionally filter fwd rules using tags
                 if (options.tags) {
@@ -493,12 +471,43 @@ class Cloud extends AbstractCloud {
      *
      */
     _getTargetInstances() {
-        return this._sendRequest(
-            'GET',
-            `zones/${this.zone}/targetInstances`
-        )
-            .then(data => Promise.resolve(data.items))
+        return this._getItemsUsingNextPageToken(`zones/${this.zone}/targetInstances`, [], '')
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get items (cloud resources) using nextPageToken
+     *
+     * @returns {Promise} A promise which will be resolved with an array of items/resources
+     *
+     */
+    _getItemsUsingNextPageToken(path, list, nextPageToken) {
+        if (nextPageToken !== '') {
+            if (path.slice(-1) === '/') {
+                path = path.slice(0, -1);
+            }
+            if (path.indexOf('?pageToken') !== -1) {
+                path = path.substr(0, path.indexOf('?pageToken'));
+            } else {
+                path = `${path}?pageToken=${nextPageToken}`;
+            }
+        }
+        return new Promise((resolve, reject) => {
+            this._sendRequest('GET', path)
+                .then((pagedRulesList) => {
+                    list = list.concat(pagedRulesList.items);
+                    if (pagedRulesList.nextPageToken) {
+                        this.logger.silly('_getItemsUsingNextPageToken called recursively to fetch next page');
+                        this._getItemsUsingNextPageToken(path, list, pagedRulesList.nextPageToken)
+                            .then((rList) => {
+                                resolve(rList);
+                            });
+                    } else {
+                        resolve(list);
+                    }
+                })
+                .catch(err => reject(err));
+        });
     }
 
     /**
@@ -529,34 +538,7 @@ class Cloud extends AbstractCloud {
 
         const pageToken = options.pageToken || '';
         const routesList = [];
-
-        const getRoutesWithNextPageToken = (routeList, nextPageToken) => {
-            this.logger.silly(`getRoutes called with nextPageToken ${nextPageToken}`);
-            return new Promise((resolve, reject) => {
-                let list = routeList || [];
-                let path = 'global/routes/';
-                if (nextPageToken !== '') {
-                    path = `global/routes?pageToken=${nextPageToken}`;
-                }
-                this._sendRequest('GET', path)
-                    .then((pagedRoutesList) => {
-                        list = list.concat(pagedRoutesList.items);
-                        if (pagedRoutesList.nextPageToken) {
-                            getRoutesWithNextPageToken(list, pagedRoutesList.nextPageToken)
-                                .then((rList) => {
-                                    this.logger.silly('Resolving for next page');
-                                    resolve(rList);
-                                })
-                                .catch(err => reject(err));
-                        } else {
-                            resolve(list);
-                        }
-                    })
-                    .catch(err => reject(err));
-            });
-        };
-
-        return getRoutesWithNextPageToken(routesList, pageToken)
+        return this._getItemsUsingNextPageToken('global/routes/', routesList, pageToken)
             .catch(err => Promise.reject(err));
     }
 
@@ -864,7 +846,6 @@ class Cloud extends AbstractCloud {
             .then((data) => {
                 this.fwdRules = data[0] || [];
                 this.targetInstances = data[1] || [];
-
                 this.fwdRules.forEach((rule) => {
                     let match = [];
 
