@@ -1105,7 +1105,8 @@ describe('Provider - GCP', () => {
 
         return provider._getTargetInstances()
             .then((data) => {
-                assert.strictEqual(data, 'test_data');
+                assert.ok(data.length > 0);
+                assert.strictEqual(data[0], 'test_data');
             })
             .catch(err => Promise.reject(err));
     });
