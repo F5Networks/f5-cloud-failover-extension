@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 F5 Networks, Inc.
+ * Copyright 2021 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,11 +56,13 @@ class Cloud extends AbstractCloud {
                 this.ec2 = new AWS.EC2();
                 this.s3 = new AWS.S3();
 
+                if (this.storageName) {
+                    return this.storageName;
+                }
                 return this._getS3BucketByTags(this.storageTags);
             })
             .then((bucketName) => {
                 this.s3BucketName = bucketName;
-
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch(err => Promise.reject(err));
@@ -76,7 +78,7 @@ class Cloud extends AbstractCloud {
     */
     uploadDataToStorage(fileName, data) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Uploading data to: ${s3Key} ${util.stringify(data)}`);
+        this.logger.silly(`Uploading data to: ${s3Key}`);
 
         const uploadObject = () => new Promise((resolve, reject) => {
             const params = {
@@ -102,7 +104,6 @@ class Cloud extends AbstractCloud {
     downloadDataFromStorage(fileName) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Downloading data from: ${s3Key}`);
-
         const downloadObject = () => new Promise((resolve, reject) => {
             // check if the object exists first, if not return an empty object
             this.s3.listObjectsV2({ Bucket: this.s3BucketName, Prefix: s3Key }).promise()
@@ -157,6 +158,166 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Discover addresses using provided definitions
+     *
+     * @param {Object}                         - local addresses, failover addresses
+     * @param {Object} addressGroupDefinitions - provides definition used for fetching addresses from AWS cloud
+     * @param {Object} options                 - function options
+     *
+     * @returns {Object} updateActions
+     */
+    discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options) {
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: addresses: ${JSON.stringify(addresses)}`);
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: addressGroupDefinitions: ${JSON.stringify(addressGroupDefinitions)}`);
+        this.logger.silly(`discoverAddressOperationsUsingDefinitions: options: ${JSON.stringify(options)}`);
+        const resultAction = {
+            publicAddresses: {},
+            interfaces: {
+                disassociate: [],
+                associate: []
+            },
+            loadBalancerAddresses: {}
+        };
+        const promises = [];
+        addressGroupDefinitions.forEach((item) => {
+            this.logger.silly(`aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinition for elasticIpAddress ${item.type}`);
+            if (item.type === 'elasticIpAddress') {
+                promises.push(this._createActionForElasticIpAddress(resultAction, item));
+            } else if (item.type === 'networkInterfaceAddress') {
+                promises.push(this._createActionForAddressAssociationDisassociation(addresses, item));
+            }
+        });
+
+        return Promise.all(promises)
+            .then(response => response.pop())
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Create operations for Elastic IP Address
+     *
+     * @param {Object} resultAction     - publicAddresses operations
+     * @param {Object} providedAddress  - virtual addresses and scoping address
+     *
+     * @returns {Object} updateActions  - A promise resolved resultAction or rejects
+     */
+    _createActionForElasticIpAddress(resultAction, providedAddress) {
+        if (providedAddress.vipAddresses === undefined || providedAddress.vipAddresses.length !== 2) {
+            this.logger.silly('Provided address group definition does not provide correct number of vip addresses; 2 vip addreses must be provided.');
+            return Promise.resolve(resultAction);
+        }
+        let publicIpAddress;
+        return this._getElasticIPs({ publicAddress: providedAddress.scopingAddress })
+            .then((response) => {
+                if (!response) {
+                    this.logger.warning('Elastic ip was not found. Make sure declaration provides correct public ip');
+                    return Promise.resolve(resultAction);
+                }
+
+                if (response.Addresses === undefined || response.Addresses.length === 0) {
+                    this.logger.warning('Response does not have addresses. Make sure declaration provides correct public ip under failoverAddresses.addressGroupDefinitions.');
+                    return Promise.resolve(resultAction);
+                }
+
+                publicIpAddress = response.Addresses[0].PublicIp;
+                let params = {
+                    Filters: []
+                };
+
+                if (response.Addresses[0].PrivateIpAddress === undefined) {
+                    this.logger.warning(`Recieved address does not have PrivateAddress association: ${util.stringify(response.Addresses[0])}`);
+                    return Promise.resolve(resultAction);
+                }
+
+                if (providedAddress.vipAddresses.indexOf(response.Addresses[0].PrivateIpAddress) === -1) {
+                    this.logger.warning('Private addresses associated with public ip is not in provided list of VIP Addresses. Make sure declaration includes correct VIP addresses under failoverAddresses.addressGroupDefinitions.');
+                    return Promise.resolve(resultAction);
+                }
+                providedAddress.vipAddresses.forEach((privateAddress) => {
+                    if (privateAddress !== response.Addresses[0].PrivateIpAddress) {
+                        resultAction.publicAddresses[publicIpAddress] = {
+                            current: {
+                                PrivateIpAddress: response.Addresses[0].PrivateIpAddress,
+                                AssociationId: response.Addresses[0].AssociationId
+                            },
+                            target: {
+                                PrivateIpAddress: privateAddress,
+                                NetworkInterfaceId: 'to-set'
+                            },
+                            AllocationId: response.Addresses[0].AllocationId
+                        };
+                        params = this._addFilterToParams(params, 'addresses.private-ip-address', privateAddress);
+                        Object.keys(this.addressTags).forEach((tagKey) => {
+                            params = this._addFilterToParams(params, `tag:${tagKey}`, this.addressTags[tagKey]);
+                        });
+                    }
+                });
+                return this._describeNetworkInterfaces(params);
+            })
+            .then((response) => {
+                if (response.NetworkInterfaces === undefined || response.NetworkInterfaces.length !== 1) {
+                    this.logger.warning('Problem with fetching network interface metadata. Make sure declaration includes correct VIP addresses under failoverAddresses.addressGroupDefinitions as well as network intefaces are tagged correctly.');
+                    return Promise.resolve(resultAction);
+                }
+                resultAction.publicAddresses[publicIpAddress]
+                    .target.NetworkInterfaceId = response.NetworkInterfaces[0].NetworkInterfaceId;
+                return Promise.resolve(resultAction);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Create operations for associate and dissassociate address
+     *
+     * @param {Object} addresses        - local addresses, virtual addresses
+     * @param {Object} providedAddress  - network interface scoping address
+     *
+     * @returns {Object}                - A promise resolved publicAddresses and interfaces
+     */
+    _createActionForAddressAssociationDisassociation(addresses, providedAddress) {
+        const operations = {
+            disassociate: [],
+            associate: []
+        };
+        return Promise.all([
+            this._getElasticIPs({ publicAddress: providedAddress.scopingAddress }),
+            this._listNics({ tags: this.addressTags })
+        ])
+            .then((results) => {
+                const eips = results[0].Addresses;
+                const nics = results[1];
+                this.logger.debug('Discover address operations found Elastic IPs:', eips);
+                this.logger.debug('Discover address operations found Nics', nics);
+                const parsedNics = this._parseNics(nics, addresses.localAddresses, addresses.failoverAddresses);
+                this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
+                if (parsedNics.mine.length !== 1 || parsedNics.theirs.length !== 1) {
+                    this.logger.warning(`Problem with discovering network interfaces; nics: ${JSON.stringify(parsedNics)}`);
+                    return Promise.resolve({
+                        publicAddresses: {},
+                        interfaces: operations,
+                        loadBalancerAddresses: {}
+                    });
+                }
+                const nicOperations = this._checkForNicOperations(
+                    parsedNics.mine[0].nic,
+                    parsedNics.theirs[0].nic,
+                    addresses.failoverAddresses
+                );
+
+                if (nicOperations.disassociate && nicOperations.associate) {
+                    operations.disassociate.push(nicOperations.disassociate);
+                    operations.associate.push(nicOperations.associate);
+                }
+                return Promise.resolve({
+                    publicAddresses: {},
+                    interfaces: operations,
+                    loadBalancerAddresses: {}
+                });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
      * Get Associated Address and Route Info - Returns associated and route table information
      *
      * @returns {Object}
@@ -203,14 +364,24 @@ class Cloud extends AbstractCloud {
         if (!params.Filters) {
             params.Filters = [];
         }
-        params.Filters.push(
-            {
-                Name: filterName,
-                Values: [
-                    filterValue
-                ]
-            }
-        );
+        if (Array.isArray(filterValue)) {
+            params.Filters.push(
+                {
+                    Name: filterName,
+                    Values: filterValue
+                }
+            );
+        } else {
+            params.Filters.push(
+                {
+                    Name: filterName,
+                    Values: [
+                        filterValue
+                    ]
+                }
+            );
+        }
+
         return params;
     }
 
@@ -270,6 +441,7 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
                 this.logger.debug('Discover address operations found Nics', nics);
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
+                this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
 
                 return Promise.all([
                     this._generatePublicAddressOperations(eips, secondaryPrivateIps),
@@ -298,7 +470,6 @@ class Cloud extends AbstractCloud {
             return Promise.resolve();
         }
         this.logger.debug('Update address operations to perform', operations);
-
         return Promise.all([
             this._reassociatePublicAddresses(operations.publicAddresses),
             this._reassociateAddresses(operations.interfaces)
@@ -672,12 +843,21 @@ class Cloud extends AbstractCloud {
     _disassociateAddressFromNic(networkInterfaceId, addresses) {
         this.logger.debug(`Disassociating ${util.stringify(addresses)} from ${networkInterfaceId}`);
 
-        const params = {
-            NetworkInterfaceId: networkInterfaceId,
-            PrivateIpAddresses: addresses.map(address => address.address)
-        };
-
-        return this.ec2.unassignPrivateIpAddresses(params).promise()
+        const params = this._getIpParamsByVersion(networkInterfaceId, addresses);
+        this.logger.debug(`addresses ipv4Params to disassociate: ${util.stringify(params.ipv4)}`);
+        this.logger.debug(`addresses ipv6params to disassociate: ${util.stringify(params.ipv6)}`);
+        let promise = {};
+        if (params.ipv6.Ipv6Addresses.length > 0) {
+            this.logger.debug(`disassociating ipv6 addresses: ${util.stringify(params.ipv6)}`);
+            promise = this.ec2.unassignIpv6Addresses(params.ipv6).promise();
+        }
+        return Promise.resolve(promise)
+            .then(() => {
+                if (params.ipv4.PrivateIpAddresses.length > 0) {
+                    return this.ec2.unassignPrivateIpAddresses(params.ipv4).promise();
+                }
+                return Promise.resolve({});
+            })
             .catch(err => Promise.reject(err));
     }
 
@@ -692,18 +872,71 @@ class Cloud extends AbstractCloud {
     _associateAddressToNic(networkInterfaceId, addresses) {
         this.logger.debug(`Associating ${util.stringify(addresses)} to ${networkInterfaceId}`);
 
-        const params = {
+        const params = this._getIpParamsByVersion(networkInterfaceId, addresses);
+        this.logger.debug(`addresses ipv4Params to associate: ${util.stringify(params.ipv4)}`);
+        this.logger.debug(`addresses ipv6params to associate: ${util.stringify(params.ipv6)}`);
+        let promise = {};
+        if (params.ipv6.Ipv6Addresses.length > 0) {
+            this.logger.debug(`associating ipv6 addresses: ${util.stringify(params.ipv6)}`);
+            promise = this.ec2.assignIpv6Addresses(params.ipv6).promise();
+        }
+        return Promise.resolve(promise)
+            .then(() => {
+                if (params.ipv4.PrivateIpAddresses.length > 0) {
+                    return this._assignPrivateIpv4Addresses(params.ipv4, addresses);
+                }
+                return Promise.resolve({});
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Construct params for IPv4 and IPv6
+     *
+     * @param {String} networkInterfaceId - network interface ID
+     * @param {Array} addresses           - addresses to associate: [{address: '', publicAddress: ''}]
+     *
+     * @returns {Object} - Object of IPv4 and IPv6 params
+     */
+    _getIpParamsByVersion(networkInterfaceId, addresses) {
+        const ipv4Params = {
             NetworkInterfaceId: networkInterfaceId,
-            PrivateIpAddresses: addresses.map(address => address.address)
+            PrivateIpAddresses: []
+        };
+        const ipv6Params = {
+            NetworkInterfaceId: networkInterfaceId,
+            Ipv6Addresses: []
         };
 
-        return this.ec2.assignPrivateIpAddresses(params).promise()
+        addresses.forEach((address) => {
+            if (address.address) {
+                if (address.ipVersion === 6) {
+                    ipv6Params.Ipv6Addresses.push(address.address);
+                } else {
+                    ipv4Params.PrivateIpAddresses.push(address.address);
+                }
+            }
+        });
+        return { ipv4: ipv4Params, ipv6: ipv6Params };
+    }
+
+    /**
+     *  Assign private IPv4 addresses
+     *
+     * @param {Object} ipv4Params          - params for IPv4
+     * @param {Array} addresses            - addresses to assign: [{address: '', publicAddress: ''}]
+     *
+     * @returns {Promise} -                - resolved when private IPv4 addresses are assigned and
+     * public addresses are reassociated to NIC
+     */
+    _assignPrivateIpv4Addresses(ipv4Params, addresses) {
+        return this.ec2.assignPrivateIpAddresses(ipv4Params).promise()
             .then(() => {
                 const promises = [];
                 addresses.forEach((address) => {
                     if (address.publicAddress) {
                         promises.push(this._reassociatePublicAddressToNic(
-                            address.publicAddress, networkInterfaceId, address.address
+                            address.publicAddress, ipv4Params.NetworkInterfaceId, address.address
                         ));
                     }
                 });
@@ -722,6 +955,7 @@ class Cloud extends AbstractCloud {
      */
     _generatePublicAddressOperations(eips, privateInstanceIPs) {
         const updatedState = {};
+        this.logger.debug(`eips: ${JSON.stringify(eips)}, privateInstanceIPs: ${JSON.stringify(privateInstanceIPs)}`);
         eips.forEach((eip) => {
             const vipsTag = eip.Tags.find(tag => constants.AWS_VIPS_TAGS.indexOf(tag.Key) !== -1);
             const targetAddresses = vipsTag ? vipsTag.Value.split(',') : [];
@@ -798,30 +1032,54 @@ class Cloud extends AbstractCloud {
     /**
      * Check for any NIC operations required
      *
-     * @param {Array} myNics             - 'my' NIC object
+     * @param {Array} myNic             - 'my' NIC object
      * @param {Object} theirNic          - 'their' NIC object
      * @param {Object} failoverAddresses - failover addresses
      *
-     * @returns {Object} { 'disasociate': [], 'association: [] }
+     * @returns {Object} { 'disassociate': [], 'association: [] }
      */
     _checkForNicOperations(myNic, theirNic, failoverAddresses) {
         const addressesToTake = [];
         const theirNicAddresses = theirNic.PrivateIpAddresses;
 
+        // check if Ipv6Address exists and if so add it to the list
+        this.logger.debug('_checkForNicOperations performing ipv6 check');
+        if (theirNic.Ipv6Addresses && theirNicAddresses.length > 0) {
+            theirNic.Ipv6Addresses.forEach((ipv6Address) => {
+                theirNicAddresses.push(ipv6Address);
+            });
+        }
+
+        this.logger.silly(`_checkForNicOperations myNic: ${util.stringify(myNic)}`);
+        this.logger.silly(`_checkForNicOperations theirNic: ${util.stringify(theirNic)}`);
+        this.logger.silly(`_checkForNicOperations failoverAddress: ${util.stringify(failoverAddresses)}`);
+        this.logger.silly(`length of theirNicAddresses: ${theirNicAddresses.length}, failoverAddresses: ${failoverAddresses.length}`);
         for (let i = theirNicAddresses.length - 1; i >= 0; i -= 1) {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                if (failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                this.logger.silly(`failoverAddress: ${util.stringify(failoverAddresses[t])}`);
+                this.logger.silly(`theirNicAddress: ${util.stringify(theirNicAddresses[i])}`);
+                if (theirNicAddresses[i].PrivateIpAddress
+                    && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
                     && theirNicAddresses[i].Primary !== true) {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
 
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
-                        publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp')
+                        publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp'),
+                        ipVersion: 4
+                    });
+                } else if (theirNicAddresses[i].Ipv6Address
+                    && util.validateIpv6Address(failoverAddresses[t])
+                    && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                    this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
+                    addressesToTake.push({
+                        address: failoverAddresses[t],
+                        ipVersion: 6
                     });
                 }
             }
         }
-
+        this.logger.silly(`addressesToTake: ${util.stringify(addressesToTake)}`);
         return {
             disassociate: {
                 networkInterfaceId: theirNic.NetworkInterfaceId,
@@ -854,6 +1112,7 @@ class Cloud extends AbstractCloud {
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
+                this.logger.silly(`data found in Network interfaces: ${util.stringify(data)}`);
                 const privateIps = {};
                 data.NetworkInterfaces.forEach((nic) => {
                     nic.PrivateIpAddresses.forEach((privateIp) => {
@@ -864,6 +1123,7 @@ class Cloud extends AbstractCloud {
                         }
                     });
                 });
+                this.logger.silly(`privateIps discovered: ${util.stringify(privateIps)}`);
                 return Promise.resolve(privateIps);
             })
             .catch(err => Promise.reject(err));
@@ -927,6 +1187,7 @@ class Cloud extends AbstractCloud {
      * @param {Object} [options.tags]          - object containing tags to filter on { 'key': 'value' }
      * @param {Object} [options.instanceId]    - object containing instanceId to filter on
      * @param {Object} [options.publicAddress] - object containing public address to filter on
+     * @param {Object} [options.privateAddress] - object containing private address to filter on
      *
      * @returns {Promise}   - A Promise that will be resolved with an array of Elastic IP(s), or
      *                          rejected if an error occurs
@@ -936,6 +1197,7 @@ class Cloud extends AbstractCloud {
         const tags = options.tags || null;
         const instanceId = options.instanceId || null;
         const publicAddress = options.publicAddress || null;
+        const privateAddress = options.privateAddress || null;
 
         let params = {
             Filters: []
@@ -953,6 +1215,9 @@ class Cloud extends AbstractCloud {
             params = this._addFilterToParams(params, 'public-ip', publicAddress);
         }
 
+        if (privateAddress) {
+            params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
+        }
         return this.ec2.describeAddresses(params).promise()
             .catch(err => Promise.reject(err));
     }

@@ -53,7 +53,7 @@ variables:
 # supplements the native pre-receive push rules built into GitLab for secrets
 # note: .gitallowed is used for exceptions
 check_content:
-    image: f5devcentral/containthedocs:rpmbuild
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
     stage: check_content
     script:
         # install git-secrets
@@ -68,7 +68,7 @@ check_content:
         - cm-official-docker-executor
 
 build_package:
-    image: f5devcentral/containthedocs:rpmbuild
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
     stage: build_package
     script:
         - echo 'CI BUILD'

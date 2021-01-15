@@ -1,5 +1,5 @@
 /*
- * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2021. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -53,7 +53,8 @@ describe('Provider - AWS', () => {
 
     const mockMetadata = {
         region: 'us-west',
-        instanceId: 'i-123'
+        instanceId: 'i-123',
+        storageName: 's3BucketName'
     };
 
     const _getPrivateSecondaryIPsStubResponse = {
@@ -200,6 +201,18 @@ describe('Provider - AWS', () => {
                 .catch((err) => {
                     assert.strictEqual(err.message, genericAWSError.message);
                 });
+        });
+
+        it('should initialize if storageName is set then return bucket name', () => {
+            provider.region = mockMetadata.region;
+            provider.instanceId = mockMetadata.instanceId;
+            provider.storageName = mockMetadata.storageName;
+
+            return provider.init({ storageName: 's3BucketName' })
+                .then(() => {
+                    assert.strictEqual(provider.storageName, 's3BucketName');
+                })
+                .catch(err => Promise.reject(err));
         });
 
         describe('_getS3BucketByTags', () => {
@@ -795,7 +808,7 @@ describe('Provider - AWS', () => {
             }
         ];
         const localAddresses = ['1.2.3.4'];
-        const failoverAddresses = ['10.10.10.10', '10.10.10.11'];
+        const failoverAddresses = ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2'];
 
         beforeEach(() => {
             actualParams = {
@@ -1008,6 +1021,293 @@ describe('Provider - AWS', () => {
                     })
                     .catch(err => Promise.reject(err));
             });
+        });
+    });
+
+    describe('function discoverAddressOperationsUsingDefinitions', () => {
+        const addresses = {
+            localAddresses: ['1.2.3.4'],
+            failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+        };
+        const options = {};
+        it('should validate same-net case', () => {
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        PrivateIpAddress: '10.10.10.10',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: []
+                    }
+                ],
+                Tags: []
+            };
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-000001',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.4'
+                            }
+                        ],
+                        TagSet: []
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-000002',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.5'
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.10',
+                                Association: {
+                                    PublicIp: '2.2.2.2'
+                                }
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.11',
+                                Association: {}
+                            }
+                        ],
+                        TagSet: []
+                    }
+                ],
+                Tags: []
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2.2.2.2',
+                    networkInterfaces: [
+                        'eni-000001',
+                        'eni-000002'
+                    ]
+                }
+            ];
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                }));
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                    assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
+                    assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000002');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000001');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].publicAddress, '2.2.2.2');
+                })
+                .catch(err => assert.fail(err));
+        });
+
+        it('should validate across-net case', () => {
+            provider.addressTags = {
+                f5_cloud_failover_label: 'foo'
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        PrivateIpAddress: '10.10.10.10',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: []
+                    }
+                ],
+                Tags: []
+            };
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-000002',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.100'
+                            }
+                        ],
+                        TagSet: []
+                    }
+                ]
+            };
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                }));
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.publicAddresses['2.2.2.2'].current.PrivateIpAddress, '10.10.10.10');
+                    assert.strictEqual(response.publicAddresses['2.2.2.2'].current.AssociationId, 'association-id');
+                    assert.strictEqual(response.publicAddresses['2.2.2.2'].target.PrivateIpAddress, '10.10.10.100');
+                    assert.strictEqual(response.publicAddresses['2.2.2.2'].target.NetworkInterfaceId, 'eni-000002');
+                    assert.strictEqual(response.publicAddresses['2.2.2.2'].AllocationId, 'allocation-id');
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('across-net addressGroupDefinitions vipAddress are empty', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: []
+                }
+            ];
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('across-net publicIp not found', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve({});
+                    }
+                }));
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('across-net publicIp metadata is undefined', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve(undefined);
+                    }
+                }));
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('across-net publicIp has not private address association', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve({
+                            Addresses: [
+                                {
+                                    PublicIp: '2.2.2.2'
+                                }
+                            ]
+                        });
+                    }
+                }));
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('across-net publicIp includes private address which is not under vipAddresses', () => {
+            const addressGroupDefinitions = [
+                {
+                    type: 'elasticIpAddress',
+                    scopingAddress: '2.2.2.2',
+                    vipAddresses: [
+                        '10.10.10.10',
+                        '10.10.10.100'
+                    ]
+                }
+            ];
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve({
+                            Addresses: [
+                                {
+                                    PublicIp: '2.2.2.2',
+                                    PrivateIpAddress: '10.0.0.1'
+                                }
+                            ]
+                        });
+                    }
+                }));
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                })
+                .catch(() => assert.fail());
         });
     });
 
