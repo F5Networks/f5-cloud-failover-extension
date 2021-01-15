@@ -1,5 +1,5 @@
 /*
- * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2021. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -262,7 +262,10 @@ describe('Provider - GCP', () => {
     describe('updateAddresses should', () => {
         const localAddresses = ['1.1.1.1', '4.4.4.4'];
         const failoverAddresses = ['10.0.2.1', '2.2.2.2'];
-
+        const forwardingRules = {
+            type: 'name',
+            fwdRuleNames: ['testFwdRule', 'testFwdRule2']
+        };
         let getVmsByTagsStub;
         let getFwdRulesStub;
         let getTargetInstancesStub;
@@ -280,7 +283,6 @@ describe('Provider - GCP', () => {
 
         function validateFwdRuleOperations(getSpy, updateSpy, options) {
             options = options || {};
-
             assert.deepStrictEqual(
                 getSpy.args[0][0].tags,
                 options.getTags !== undefined ? options.getTags : { 'test-tag-key': 'test-tag-value' }
@@ -318,7 +320,9 @@ describe('Provider - GCP', () => {
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -340,7 +344,32 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
+                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then(() => {
+                    validateAliasIpOperations(updateNicSpy);
+                    validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
+        it('validate address failover with forwarding rules parameter', () => {
+            const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
+            const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
+
+            getFwdRulesStub.resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -364,7 +393,9 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -379,8 +410,14 @@ describe('Provider - GCP', () => {
             getFwdRulesStub.resolves([]);
             getTargetInstancesStub.resolves(null);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
+                .then((operations) => {
+                    const fwdRuleOperations = operations;
+                    fwdRuleOperations.loadBalancerAddresses = undefined;
+                    return provider.updateAddresses({ updateOperations: fwdRuleOperations });
+                })
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                 })
@@ -399,7 +436,9 @@ describe('Provider - GCP', () => {
             ]);
             getTargetInstancesStub.resolves(null);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
@@ -433,7 +472,9 @@ describe('Provider - GCP', () => {
                 }
             ]);
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
@@ -447,7 +488,9 @@ describe('Provider - GCP', () => {
 
             getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
@@ -461,7 +504,9 @@ describe('Provider - GCP', () => {
 
             getVmsByTagsStub.resolves(util.deepCopy(mockSingleZoneVms));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
@@ -474,7 +519,9 @@ describe('Provider - GCP', () => {
         it('validate updateAddresses method, promise rejection', () => {
             getVmsByTagsStub.rejects(new Error('rejection'));
 
-            return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
                 .then(operations => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     assert.ok(false, 'Expected an error');
@@ -482,6 +529,113 @@ describe('Provider - GCP', () => {
                 .catch(() => {
                     assert.ok(true);
                 });
+        });
+
+        it('validate fwd rule throws error', () => {
+            getTargetInstancesStub.resolves([
+                {
+                    name: 'someRandomTargetInstance',
+                    instance: 'compute/someRandomTargetInstance',
+                    selfLink: 'selfLink/someRandomTargetInstance'
+                }
+            ]);
+
+            return provider.updateAddresses({
+                localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
+            })
+                .then(() => {
+                    assert.ok(false, 'Error: The function should go to catch block!');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'Unable to locate our target instance: testInstanceName01');
+                });
+        });
+    });
+
+    describe('discoverAddressOperationsUsingDefinitions method', () => {
+        it('validate correct execution for forwardingRule type', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'forwardingRule',
+                    scopingName: 'forwardingRuleName',
+                    targetInstances: [
+                        'test-target-vm01',
+                        'test-target-vm02'
+                    ]
+                }];
+            const options = {
+                isAddressOperationsEnabled: true
+            };
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.localAddresses[0], '1.2.3.4');
+                    assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
+                    assert.strictEqual(response.failoverAddresses[1], '10.10.10.11');
+                    assert.strictEqual(response.failoverAddresses[2], '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.forwardingRules.fwdRuleNames[0], 'forwardingRuleName');
+                    assert.ok(response.discoverOnly);
+                })
+                .catch(() => assert.fail());
+        });
+
+
+        it('validate correct execution for aliasAddress type', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'aliasAddress',
+                    scopingAddress: '10.0.12.112/28'
+                }];
+            const options = {
+                isAddressOperationsEnabled: true
+            };
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response.localAddresses[0], '1.2.3.4');
+                    assert.strictEqual(response.failoverAddresses[0], '10.10.10.10');
+                    assert.strictEqual(response.failoverAddresses[1], '10.10.10.11');
+                    assert.strictEqual(response.failoverAddresses[2], '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.forwardingRules.fwdRuleNames.length, 0);
+                    assert.strictEqual(response.aliasAddresses[0], '10.0.12.112/28');
+                    assert.ok(response.discoverOnly);
+                })
+                .catch(() => assert.fail());
+        });
+
+        it('validate correct execution for aliasAddress type when isAddressOperationsEnabled is set to false', () => {
+            provider.updateAddresses = sinon.stub().callsFake((parameters) => {
+                return Promise.resolve(parameters);
+            });
+            const addresses = {
+                localAddresses: ['1.2.3.4'],
+                failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'aliasAddress',
+                    scopingAddress: '10.0.12.112/28'
+                }];
+            const options = {
+                isAddressOperationsEnabled: false
+            };
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(response, undefined);
+                })
+                .catch(() => assert.fail());
         });
     });
 
@@ -898,6 +1052,11 @@ describe('Provider - GCP', () => {
         assert.strictEqual(result[0].ipCidrRange, '10.0.0.0/24');
     });
 
+    it('validate _matchFwdRuleNames method', () => {
+        assert.strictEqual(provider.environment, cloud);
+        const result = provider._matchFwdRuleNames(['testFwdRule', 'testFwdRule2'], [{ forwardingRuleName: 'testFwdRule' }]);
+        assert.strictEqual(result[0], 'testFwdRule');
+    });
 
     it('validate _getVmMetadata', () => {
         provider.computeZone = provider.compute.zone('us-west1-a');
@@ -946,7 +1105,8 @@ describe('Provider - GCP', () => {
 
         return provider._getTargetInstances()
             .then((data) => {
-                assert.strictEqual(data, 'test_data');
+                assert.ok(data.length > 0);
+                assert.strictEqual(data[0], 'test_data');
             })
             .catch(err => Promise.reject(err));
     });

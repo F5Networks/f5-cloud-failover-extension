@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 F5 Networks, Inc.
+ * Copyright 2021 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -135,8 +135,8 @@ class FailoverClient {
             .then((updates) => {
                 this.addressDiscovery = updates[0] || {};
                 this.routeDiscovery = updates[1] || {};
-                logger.silly(`addressesDiscovered ${this.addressDiscovery}`);
-                logger.silly(`routesDiscovered ${this.routeDiscovery}`);
+                logger.silly(`addressesDiscovered: ${util.stringify(this.addressDiscovery)}`);
+                logger.silly(`routesDiscovered: ${util.stringify(this.routeDiscovery)}`);
                 return this._createAndUpdateStateObject({
                     taskState: failoverStates.RUN,
                     message: 'Failover running',
@@ -392,19 +392,26 @@ class FailoverClient {
                 this.virtualAddresses, this.snatAddresses, this.natAddresses, activeTrafficGroups
             )
         );
-        this.localAddresses = addresses.localAddresses;
-        logger.debug('Retrieved local addresses', this.localAddresses);
-        this.failoverAddresses = addresses.failoverAddresses;
-        logger.debug('Retrieved failover addresses ', this.failoverAddresses);
+        logger.debug('Retrieved local addresses: ', addresses.localAddresses);
+        logger.debug('Retrieved failover addresses: ', addresses.failoverAddresses);
 
-        const updateActions = [];
-        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
-            localAddresses: this.localAddresses,
-            failoverAddresses: this.failoverAddresses,
-            discoverOnly: true
-        }) : {});
+        let updateActions = [];
+        // Get address group definitions from the declaration
+        this.addressGroupDefinitions = util.getDataByKey(this.config, 'failoverAddresses.addressGroupDefinitions') || [];
+        logger.debug('Retrieved addressGroupDefinitions: ', this.addressGroupDefinitions);
+        if (this.addressGroupDefinitions.length !== 0 && this.isAddressOperationsEnabled) {
+            updateActions.push(this.cloudProvider.discoverAddressOperationsUsingDefinitions(
+                addresses,
+                this.addressGroupDefinitions,
+                {
+                    isAddressOperationsEnabled: this.isAddressOperationsEnabled
+                }
+            ));
+        } else {
+            updateActions = this._discoverAddresses(addresses);
+        }
         updateActions.push(this.isRouteOperationsEnabled ? this.cloudProvider.updateRoutes({
-            localAddresses: this.localAddresses,
+            localAddresses: addresses.localAddresses,
             discoverOnly: true
         }) : {});
 
@@ -664,12 +671,10 @@ class FailoverClient {
      */
     _getFloatingAddresses(virtualAddresses, snatAddresses, natAddresses, trafficGroups) {
         const addresses = [];
-
         // helper function to add address (as needed)
         const _addAddress = (item, addressKey) => {
             const address = item[addressKey].split('%')[0];
             const addressTrafficGroup = item.trafficGroup;
-
             trafficGroups.forEach((nestedItem) => {
                 if (nestedItem.name.indexOf(addressTrafficGroup) !== -1) {
                     addresses.push({
@@ -715,10 +720,10 @@ class FailoverClient {
         floatingAddresses.forEach((item) => {
             failoverAddresses.push(item.address);
         });
-
+        // dedup failover addresses before returning back
         return {
             localAddresses,
-            failoverAddresses
+            failoverAddresses: failoverAddresses.filter((value, idx) => failoverAddresses.indexOf(value) === idx)
         };
     }
 
@@ -743,6 +748,27 @@ class FailoverClient {
             resourceCount: options.resourceCount
         }))
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Discover addresses (update cloud provider addresses and routes)
+     *
+     * @param {Object} addresses
+     *
+     * @returns {Object} updateActions
+     */
+    _discoverAddresses(addresses) {
+        const updateActions = [];
+        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
+            localAddresses: addresses.localAddresses,
+            failoverAddresses: addresses.failoverAddresses,
+            forwardingRules: {
+                type: 'address',
+                ipAddresses: addresses.failoverAddresses
+            },
+            discoverOnly: true
+        }) : {});
+        return updateActions;
     }
 }
 

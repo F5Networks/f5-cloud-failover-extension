@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 F5 Networks, Inc.
+ * Copyright 2021 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,25 +96,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Discover Storage Account (scopingName)
-    *
-    * @returns {Object}
-    */
-    _discoverStorageAccount() {
-        if (this.storageName) {
-            return Promise.resolve(this.storageName);
-        }
-        return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }])
-            .then((storageAccounts) => {
-                if (!storageAccounts.length) {
-                    return Promise.reject(new Error('No storage account found!'));
-                }
-                return Promise.resolve(storageAccounts[0].name); // only need one
-            })
-            .catch(err => Promise.reject(err));
-    }
-
-    /**
     * Update Addresses
     *
     * @param {Object} options                     - function options
@@ -139,14 +120,12 @@ class Cloud extends AbstractCloud {
                 .catch(err => Promise.reject(err));
         }
         if (updateOperations) {
-            return this._updateAddresses(updateOperations.interfaces.disassociate,
-                updateOperations.interfaces.associate)
+            return this._updateAddresses(updateOperations)
                 .catch(err => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
-            .then(operations => this._updateAddresses(operations.interfaces.disassociate,
-                operations.interfaces.associate))
+            .then(operations => this._updateAddresses(operations))
             .catch(err => Promise.reject(err));
     }
 
@@ -228,6 +207,38 @@ class Cloud extends AbstractCloud {
             .catch(err => Promise.reject(err));
         return this._retrier(downloadObject, [],
             { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
+    }
+
+    /**
+     * Discover address operations using definitions
+     *
+     * @param {Object} addresses                - failover addresses, local addresses
+     * @param {Object} addressGroupDefinitions  - network interface names, virtual addresses, public IP name
+     * @param {Object} options                  - function options
+     *
+     * @returns {Promise}
+     */
+    discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options) {
+        this.logger.silly('discoverAddressOperationsUsingDefinitions options', options);
+        const resultAction = {
+            publicAddresses: {},
+            interfaces: {
+                disassociate: [],
+                associate: []
+            },
+            loadBalancerAddresses: {}
+        };
+        const promises = [];
+        addressGroupDefinitions.forEach((item) => {
+            if (item.type === 'publicIpAddress') {
+                promises.push(this._generatePublicIpAddressOperations(resultAction, item));
+            } else if (item.type === 'networkInterfaceAddress') {
+                promises.push(this._generateNetworkInterfaceOperations(addresses, item));
+            }
+        });
+        return Promise.all(promises)
+            .then(response => response.pop())
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -326,6 +337,25 @@ class Cloud extends AbstractCloud {
             resourceManagerEndpointUrl,
             clientOptions
         );
+    }
+
+    /**
+    * Discover Storage Account (scopingName)
+    *
+    * @returns {Object}
+    */
+    _discoverStorageAccount() {
+        if (this.storageName) {
+            return Promise.resolve(this.storageName);
+        }
+        return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }])
+            .then((storageAccounts) => {
+                if (!storageAccounts.length) {
+                    return Promise.reject(new Error('No storage account found!'));
+                }
+                return Promise.resolve(storageAccounts[0].name); // only need one
+            })
+            .catch(err => Promise.reject(err));
     }
 
     /**
@@ -509,20 +539,20 @@ class Cloud extends AbstractCloud {
     /**
     * Update Nic
     *
-    * @param {String} group     - group
-    * @param {String} nicName   - nicName
-    * @param {String} nicParams - nicParams
-    * @param {String} action    - action
+    * @param {String} resourceGroup - resourceGroup
+    * @param {String} nicName       - nicName
+    * @param {String} nicParams     - nicParams
+    * @param {String} action        - action
     *
     * @returns {Promise}
     */
-    _updateNic(group, nicName, nicParams, action) {
+    _updateNic(resourceGroup, nicName, nicParams, action) {
         return new Promise(
             ((resolve, reject) => {
                 this.logger.debug(action, 'NIC: ', nicName);
                 this.logger.silly('Updating Network Interfaces');
                 this.networkClients[this.primarySubscriptionId].networkInterfaces.createOrUpdate(
-                    group,
+                    resourceGroup,
                     nicName,
                     nicParams,
                     (error, data) => {
@@ -619,26 +649,51 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Update addresses (given disassociate/associate operations)
+    * Update addresses - given reassociate operation(s)
     *
-    * @param {Array} disassociate - Disassociate array
-    * @param {Array} associate    - Associate array
+    * @param {Object} operations - operations object { publicAddresses: {}, interfaces: [] }
     *
     * @returns {Promise}
     */
-    _updateAddresses(disassociate, associate) {
-        this.logger.silly('updateAddresses disassociate operations: ', disassociate);
-        this.logger.silly('updateAddresses associate operations: ', associate);
+    _updateAddresses(operations) {
+        if (!operations || !Object.keys(operations).length) {
+            this.logger.debug('No update address operations to perform');
+            return Promise.resolve();
+        }
+        this.logger.debug('Update address operations to perform', operations);
+        return Promise.all([
+            this._reassociatePublicIpAddresses(operations.publicAddresses),
+            this._reassociateAddresses(operations.interfaces)
+        ])
+            .then(() => {
+                this.logger.info('Addresses reassociated successfully');
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Re-associates addresses to different NICs via disassociate and then associate operations
+     *
+     * @param {Object} operations - operations we should perform
+     *
+     * @returns {Promise}         - Resolves when all addresses are reassociated or rejects if an error occurs
+     */
+    _reassociateAddresses(operations) {
+        operations = operations || {};
+        const disassociate = operations.disassociate || [];
+        const associate = operations.associate || [];
 
         if (!disassociate || Object.keys(disassociate).length === 0
             || !associate || Object.keys(associate).length === 0) {
-            this.logger.info('No associate/disassociate operations to update.');
+            this.logger.silly('No disassociate/associate interface operations to update.');
             return Promise.resolve();
         }
+
         const disassociatePromises = [];
         disassociate.forEach((item) => {
             disassociatePromises.push(this._retrier(this._updateNic, item));
         });
+
         return Promise.all(disassociatePromises)
             .then(() => {
                 this.logger.info('Disassociate NICs successful.');
@@ -647,6 +702,7 @@ class Cloud extends AbstractCloud {
                 associate.forEach((item) => {
                     associatePromises.push(this._retrier(this._updateNic, item));
                 });
+
                 return Promise.all(associatePromises);
             })
             .then(() => {
@@ -847,6 +903,286 @@ class Cloud extends AbstractCloud {
         return {
             subscriptionId: resourceString.split('/')[2]
         };
+    }
+
+    /**
+     * Generate public IP address operations required to reassociate a public IP address
+     *
+     * @param {Object} resultAction
+     * @param {Object} providedDeclaration
+     *
+     * @returns {Promise} - A Promise that is resolved with the public IP configuration
+     */
+    _generatePublicIpAddressOperations(resultAction, providedDeclaration) {
+        return Promise.all([
+            this._getPublicIpAddress({ publicIpAddress: providedDeclaration.scopingName }),
+            this._getNetworkInterfaces({ privateIpAddresses: providedDeclaration.vipAddresses })
+        ])
+            .then((results) => {
+                const publicIpAddress = results[0];
+                const networkInterfaces = results[1];
+                const operations = this._setCurrentTargetOperations(networkInterfaces, providedDeclaration);
+                resultAction.publicAddresses[publicIpAddress.ipAddress] = {
+                    publicIpAddressId: { id: publicIpAddress.id },
+                    current: {
+                        name: operations.currentConfig.nicName,
+                        privateIPAddress: operations.currentConfig.privateIpAddress
+                    },
+                    target: {
+                        name: operations.targetConfig.nicName,
+                        privateIPAddress: operations.targetConfig.privateIpAddress
+                    }
+                };
+                this.logger.silly('Generated public IP address operations:', resultAction);
+                return Promise.resolve(resultAction);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Set the current and target operations
+     *
+     * @param {Object} networkInterfaces    - network interfaces resource
+     * @param {Object} providedDeclaration  - virtual addresses
+     *
+     * @returns {Promise} - A Promise that is resolved with the public IP configuration
+     */
+    _setCurrentTargetOperations(networkInterfaces, providedDeclaration) {
+        const currentConfig = {};
+        const targetConfig = {};
+        Object.keys(networkInterfaces).forEach((key) => {
+            networkInterfaces[key].ipConfigurations.forEach((ipConfig) => {
+                if (ipConfig.publicIPAddress && ipConfig.primary === false
+                    && providedDeclaration.vipAddresses.indexOf(ipConfig.privateIPAddress) !== -1) {
+                    currentConfig.privateIpAddress = ipConfig.privateIPAddress;
+                    currentConfig.nicName = networkInterfaces[key].name;
+                } else if (ipConfig.primary === false
+                    && providedDeclaration.vipAddresses.indexOf(ipConfig.privateIPAddress) !== -1) {
+                    targetConfig.privateIpAddress = ipConfig.privateIPAddress;
+                    targetConfig.nicName = networkInterfaces[key].name;
+                }
+            });
+        });
+        return { currentConfig, targetConfig };
+    }
+
+    /**
+     * Generate network interface operations required to reassociate the addresses
+     *
+     * @param {Object} addresses            - local addresses
+     * @param {Object} providedDeclaration  - network interface scoping address
+     *
+     * @returns {Promise} - A Promise that is resolved network interface operations
+     */
+    _generateNetworkInterfaceOperations(addresses, providedDeclaration) {
+        const operations = {
+            disassociate: [],
+            associate: []
+        };
+        return Promise.all([
+            this._listNics({ tags: this.addressTags })
+        ])
+            .then((results) => {
+                const nics = results[0];
+                const failoverAddresses = [providedDeclaration.scopingAddress];
+                const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
+                this.logger.silly('parsedNics.mine.length:', parsedNics.mine.length, ', parsedNics.theirs.length:', parsedNics.theirs.length);
+                if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
+                    this.logger.warning('Problem with discovering network interfaces parsedNics');
+                    return Promise.resolve({
+                        publicAddresses: {},
+                        interfaces: operations,
+                        loadBalancerAddresses: {}
+                    });
+                }
+                const nicOperations = this._checkForNicOperations(
+                    parsedNics.mine[0].nic,
+                    parsedNics.theirs[0].nic,
+                    failoverAddresses
+                );
+                if (nicOperations.disassociate && nicOperations.associate) {
+                    operations.disassociate.push(nicOperations.disassociate);
+                    operations.associate.push(nicOperations.associate);
+                }
+                return Promise.resolve({
+                    publicAddresses: {},
+                    interfaces: operations,
+                    loadBalancerAddresses: {}
+                });
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Gets the public IP address resource - given a public IP name
+     *
+     * @param {Object} options                 - function options
+     * @param {Object} options.publicIpAddress - object containing the name of the public IP address
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _getPublicIpAddress(options) {
+        options = options || {};
+        const publicIpAddressName = options.publicIpAddress;
+        return this.networkClients[this.primarySubscriptionId].publicIPAddresses.get(
+            this.resourceGroup, publicIpAddressName
+        )
+            .then((response) => {
+                if (response.name.indexOf(publicIpAddressName) !== -1) {
+                    return Promise.resolve(response);
+                }
+                this.logger.info('Provided public IP address name was not found');
+                return Promise.resolve();
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get network interfaces resource - given the secondary private IP addressess
+     *
+     * @param {Object} options                      - function options
+     * @param {Object} [options.privateIpAddresses] - secondary private IP addresses
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     *
+     */
+    _getNetworkInterfaces(options) {
+        options = options || {};
+        const providedPrivateIpAddresses = options.privateIpAddresses;
+        return this._listNics(options)
+            .then((nics) => {
+                const promises = [];
+                nics.forEach((nic) => {
+                    nic.ipConfigurations.forEach((ipConfig) => {
+                        if (providedPrivateIpAddresses.indexOf(ipConfig.privateIPAddress) !== -1
+                            && ipConfig.primary === false) {
+                            promises.push(this._getNetworkInterfaceByName(nic.name));
+                            this.logger.silly('Found a match NIC name:', nic.name);
+                        }
+                    });
+                });
+                return Promise.all(promises);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Gets network interface resource - given a network interface name
+     *
+     * @param {String} networkInterfaceName - name of network interface
+     *
+     * @returns {Promise}                   - A Promise that will be resolved with the API response
+     */
+    _getNetworkInterfaceByName(networkInterfaceName) {
+        return this.networkClients[this.primarySubscriptionId].networkInterfaces.get(
+            this.resourceGroup, networkInterfaceName
+        )
+            .then((response) => {
+                if (response.name.indexOf(networkInterfaceName) !== -1
+                    && response.provisioningState.indexOf('Succeeded') !== -1) {
+                    return Promise.resolve(response);
+                }
+                this.logger.info('Provided network interface name was not found');
+                return Promise.resolve();
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Re-associates the Public IP Addresses. Will first attempt to disassociate and then associate
+     * the Public IP Address(es) to the newly active BIG-IP
+     *
+     * @param {Object} operations - reassocate public addresses operations
+     *
+     * @returns {Promise}         - Resolves or rejects with status public IP address
+     */
+    _reassociatePublicIpAddresses(operations) {
+        if (!operations || Object.keys(operations).length === 0) {
+            this.logger.silly('No public IP address reassociation operations to perform');
+            return Promise.resolve();
+        }
+        const disassociatePromises = [];
+        Object.keys(operations).forEach((key) => {
+            const nicName = operations[key].current.name;
+            const privateIpAddress = operations[key].current.privateIPAddress;
+            const publicIpAddressId = operations[key].publicIpAddressId;
+            if (operations[key].publicIpAddressId) {
+                this.logger.info('Starting reassociate public IP addresses');
+                disassociatePromises.push(this._retrier(
+                    this._disassociatePublicIpAddress,
+                    [nicName, privateIpAddress, publicIpAddressId]
+                ));
+            }
+        });
+        return Promise.all(disassociatePromises)
+            .then(() => {
+                this.logger.info('Public IP addresses disassociated successfully');
+                const associatePromises = [];
+                Object.keys(operations).forEach((key) => {
+                    const nicName = operations[key].target.name;
+                    const privateIpAddress = operations[key].target.privateIPAddress;
+                    const publicIpAddressId = operations[key].publicIpAddressId;
+                    associatePromises.push(this._retrier(
+                        this._associatePublicIpAddress,
+                        [nicName, privateIpAddress, publicIpAddressId]
+                    ));
+                });
+                return Promise.all(associatePromises);
+            })
+            .then(() => {
+                this.logger.info('Public IP addresses associated successfully');
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Disassociate the public IP address from a private IP address on a given NIC
+     *
+     * @param {string} nicName          - current nic name
+     * @param {string} privateIpAddress - current privateIpAddress
+     * @param {object} publicIpAddressId - target publicIpAddressId
+     *
+     * @returns {Promise} - A promise resolved or rejected
+     */
+    _disassociatePublicIpAddress(nicName, privateIpAddress, publicIpAddressId) {
+        return this._getNetworkInterfaceByName(nicName)
+            .then((nic) => {
+                const promises = [];
+                nic.ipConfigurations.forEach((ipConfig) => {
+                    if (ipConfig.publicIPAddress.id === publicIpAddressId.id && ipConfig.primary === false
+                        && ipConfig.privateIPAddress.indexOf(privateIpAddress) !== -1) {
+                        delete ipConfig.publicIPAddress;
+                        promises.push(this._updateNic(this.resourceGroup, nicName, nic, 'Disassociate'));
+                    }
+                });
+                return Promise.all(promises);
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Associate the public IP address to a private IP address on a given NIC
+     *
+     * @param {string} nicName           - target nic name
+     * @param {string} privateIpAddress  - target privateIpAddress
+     * @param {object} publicIpAddressId - target publicIpAddressId
+     *
+     * @returns {Promise}                - A promise resolved or rejected
+     */
+    _associatePublicIpAddress(nicName, privateIpAddress, publicIpAddressId) {
+        return this._getNetworkInterfaceByName(nicName)
+            .then((nic) => {
+                const promises = [];
+                nic.ipConfigurations.forEach((ipConfig) => {
+                    if (ipConfig.primary === false
+                        && ipConfig.privateIPAddress.indexOf(privateIpAddress) !== -1) {
+                        ipConfig.publicIPAddress = publicIpAddressId;
+                        promises.push(this._updateNic(this.resourceGroup, nicName, nic, 'Associate'));
+                    }
+                });
+                return Promise.all(promises);
+            })
+            .catch(err => Promise.reject(err));
     }
 }
 

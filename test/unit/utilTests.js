@@ -1,5 +1,5 @@
 /*
- * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2021. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -47,6 +47,14 @@ describe('Util', () => {
         const obj = 'foo';
         const newObj = util.stringify(obj);
         assert.strictEqual(obj, newObj);
+    });
+
+    it('should validate ipv6 address', () => {
+        const invalidAddress = '5.5.5.5';
+        const ipv6Address = '2600:1f13:fa5:c004:72ec:d73:3fda:3094';
+
+        assert.deepEqual(util.validateIpv6Address(invalidAddress), false);
+        assert.deepEqual(util.validateIpv6Address(ipv6Address), true);
     });
 
     it('should call rest operation responder', () => {

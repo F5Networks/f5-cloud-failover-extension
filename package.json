@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -13,7 +13,7 @@
         "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
         "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --timeout 300000",
-        "test": "nyc npm run test-only",
+        "test": "nyc --use-spawn-wrap npm run test-only",
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
         "functional-test": "mocha --recursive \"./test/functional/tests/testRunner.js\"",
@@ -21,6 +21,7 @@
         "deployment-delete": "bash ../deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete",
         "deployment-show": "bash ../deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action show",
         "deployment-setup": "bash scripts/build_rpm.sh && npm run deployment-create && npm run functional-test",
+        "build-rpm": "bash scripts/build_rpm.sh",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
         "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_PORT=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_port' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:${CF_ENV_PORT}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",

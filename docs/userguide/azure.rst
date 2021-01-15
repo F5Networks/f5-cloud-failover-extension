@@ -136,6 +136,8 @@ Below is an example Azure role definition with permissions required by CFE.
 - Microsoft.Compute/virtualMachines/*/read
 - Microsoft.Network/networkInterfaces/read
 - Microsoft.Network/networkInterfaces/write
+- Microsoft.Network/publicIPAddresses/read
+- Microsoft.Network/publicIPAddresses/write
 - Microsoft.Network/*/join/action
 - Microsoft.Network/routeTables/*/read
 - Microsoft.Network/routeTables/*/write
