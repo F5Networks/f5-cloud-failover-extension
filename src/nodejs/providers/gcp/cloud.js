@@ -488,9 +488,8 @@ class Cloud extends AbstractCloud {
             }
             if (path.indexOf('?pageToken') !== -1) {
                 path = path.substr(0, path.indexOf('?pageToken'));
-            } else {
-                path = `${path}?pageToken=${nextPageToken}`;
             }
+            path = `${path}?pageToken=${nextPageToken}`;
         }
         return new Promise((resolve, reject) => {
             this._sendRequest('GET', path)
