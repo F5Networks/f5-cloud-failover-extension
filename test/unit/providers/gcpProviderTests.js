@@ -1186,13 +1186,43 @@ describe('Provider - GCP', () => {
             assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
 
             return Promise.resolve({
-                items: 'test_data2'
+                items: 'test_data2',
+                nextPageToken: 'token'
+            });
+        });
+        providerSendRequestMock.onCall(2).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+
+            return Promise.resolve({
+                items: 'test_data3',
+                nextPageToken: 'token'
+            });
+        });
+        providerSendRequestMock.onCall(3).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+
+            return Promise.resolve({
+                items: 'test_data4',
+                nextPageToken: 'token'
+            });
+        });
+        providerSendRequestMock.onCall(4).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+
+            return Promise.resolve({
+                items: 'test_data5'
             });
         });
         return provider._getFwdRules()
             .then((data) => {
                 assert.strictEqual(data[0], 'test_data');
                 assert.strictEqual(data[1], 'test_data2');
+                assert.strictEqual(data[2], 'test_data3');
+                assert.strictEqual(data[3], 'test_data4');
+                assert.strictEqual(data[4], 'test_data5');
             })
             .catch(err => Promise.reject(err));
     });
