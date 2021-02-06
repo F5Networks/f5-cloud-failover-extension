@@ -85,9 +85,25 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
 #. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
-   - EC2 Read/Write
-   - S3 Read/Write
-   - STS Assume Role
+   - ec2:DescribeInstances
+   - ec2:DescribeInstanceStatus
+   - ec2:DescribeAddresses
+   - ec2:AssociateAddress
+   - ec2:DisassociateAddress
+   - ec2:DescribeNetworkInterfaces
+   - ec2:DescribeNetworkInterfaceAttribute
+   - ec2:DescribeRouteTables
+   - ec2:assignprivateipaddresses
+   - s3:ListAllMyBuckets
+   - ec2:UnassignPrivateIpAddresses
+   - s3:ListBucket
+   - s3:GetBucketTagging
+   - s3:PutObject
+   - s3:GetObject
+   - s3:DeleteObject
+   - ec2:CreateRoute
+   - ec2:ReplaceRoute
+   - sts:AssumeRole
 
    |
 
