@@ -86,7 +86,9 @@
             "type": "array",
             "items": {
                 "type": "string"
-            }
+            },
+            "maxItems": 2,
+            "minItems": 2
         },
         "targetInstances": {
             "$comment": "An array of BIG-IP target instances for failover",
