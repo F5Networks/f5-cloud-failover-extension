@@ -680,7 +680,10 @@ class Cloud extends AbstractCloud {
             this.logger.debug('No failoverAddresses to discover');
             return Promise.resolve({
                 publicAddresses: [],
-                interfaces: [],
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                },
                 loadBalancerAddresses: []
             });
         }
