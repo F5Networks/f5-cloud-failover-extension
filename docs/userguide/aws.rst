@@ -93,7 +93,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
    - ec2:DescribeNetworkInterfaces
    - ec2:DescribeNetworkInterfaceAttribute
    - ec2:DescribeRouteTables
-   - ec2:assignprivateipaddresses
+   - ec2:AssignPrivateIpAddresses
    - s3:ListAllMyBuckets
    - ec2:UnassignPrivateIpAddresses
    - s3:ListBucket
