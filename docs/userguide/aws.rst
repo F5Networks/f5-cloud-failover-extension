@@ -222,6 +222,10 @@ Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/cre
 
 #. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
 
+.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+.. image:: ../images/aws/AWS-S3-Tags.png
+
 |
 
 .. _aws-tag-addresses:
@@ -239,7 +243,9 @@ Tag the Network Interfaces in AWS:
 
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
+.. image:: ../images/aws/AWS-NetworkInterface-Tags.png
 
+|
 
 .. _aws-tag-addresses-acrossnet:
 
@@ -254,6 +260,9 @@ Tag the Elastic IP Addresses in AWS:
 
    - **VIP mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_vips`` and value that contains a comma-separated list of addresses mapping to a private IP address on each instance in the cluster that the Elastic IP is associated with. For example: ``"f5_cloud_failover_vips":"10.0.12.101,10.0.22.101"``
 
+.. image:: ../images/aws/AWS-EIP-Tags.png
+
+|
 
 .. _aws-tag-routes:
 
