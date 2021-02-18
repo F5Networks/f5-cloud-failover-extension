@@ -40,7 +40,7 @@ For more information, see the [Support page](SUPPORT.md).
 
 ## Copyright
 
-Copyright 2014-2020 F5 Networks Inc.
+Copyright 2014-2021 F5 Networks Inc.
 
 ### F5 Networks Contributor License Agreement
 

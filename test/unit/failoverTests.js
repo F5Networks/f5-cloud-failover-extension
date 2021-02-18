@@ -1,5 +1,5 @@
 /*
- * Copyright 2020. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * Copyright 2021. F5 Networks, Inc. See End User License Agreement ("EULA") for
  * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
  * may copy and modify this software product for its internal business purposes.
  * Further, Licensee may upload, publish and distribute the modified version of
@@ -90,6 +90,7 @@ describe('Failover', () => {
             updateAddresses: () => Promise.resolve({}),
             updateRoutes: () => Promise.resolve({}),
             downloadDataFromStorage: () => Promise.resolve({}),
+            discoverAddressUsingProvidedDefinition: () => [],
             uploadDataToStorage: () => Promise.resolve({}),
             getAssociatedAddressAndRouteInfo: () => Promise.resolve({ routes: [], addresses: [] }),
             configureProxy: () => Promise.resolve({})
@@ -777,5 +778,43 @@ describe('Failover', () => {
                 assert.strictEqual(callArg.product.environment, 'azure');
                 assert.strictEqual(callArg.operation.result, 'FAILED');
             });
+    });
+
+    it('should execute failover when virtual, snat and self addresses are the same', () => {
+        deviceGetSnatTranslationAddressesMock.returns([
+            {
+                address: '2.2.2.2',
+                trafficGroup: 'traffic-group-1',
+                partition: 'Common'
+            }
+        ]);
+
+        deviceGetVirtualAddressesMock.returns([
+            {
+                address: '2.2.2.2',
+                trafficGroup: 'traffic-group-1',
+                parition: 'Common'
+            }
+        ]);
+        deviceGetSelfAddressesMock.returns([
+            {
+                name: 'traffic-group-1',
+                address: '2.2.2.2',
+                trafficGroup: 'traffic-group-1'
+            },
+            {
+                name: 'traffic-group-1',
+                address: '1.1.1.1',
+                trafficGroup: 'local_only'
+            }
+        ]);
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.execute())
+            .then(() => {
+                validateFailover({ failoverAddresses: ['2.2.2.2'], localAddresses: ['1.1.1.1'] });
+            })
+            .catch(err => Promise.reject(err));
     });
 });

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 F5 Networks, Inc.
+ * Copyright 2021 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,6 +74,10 @@ class AbstractCloud {
     }
 
     updateAddresses() {
+        throw new Error('Method must be implemented in child class!');
+    }
+
+    discoverAddressOperationsUsingDefinitions() {
         throw new Error('Method must be implemented in child class!');
     }
 

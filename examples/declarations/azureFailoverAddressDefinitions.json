@@ -15,7 +15,15 @@
       "addressGroupDefinitions": [
          {
             "type": "networkInterfaceAddress",
-            "scopingAddress": "10.0.1.2"
+            "scopingAddress": "192.0.2.10"
+         },
+         {
+            "type": "publicIpAddress",
+            "scopingName": "ext-pip3",
+            "vipAddresses": [
+              "192.0.2.10",
+              "192.0.2.11"
+            ]
          }
       ]
    },

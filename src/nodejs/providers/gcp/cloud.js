@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 F5 Networks, Inc.
+ * Copyright 2021 F5 Networks, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,6 +152,7 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+    * @param {Object} [options.forwardingRuleNames] - object containing forwarding rule names
     * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
@@ -162,27 +163,66 @@ class Cloud extends AbstractCloud {
         const failoverAddresses = options.failoverAddresses || [];
         const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
-
-        this.logger.silly('updateAddresses: ', options);
+        const discoverOperations = options.forwardingRules || [];
+        this.logger.silly('updateAddresses(options): ', options);
 
         // update this.vms property prior to discovery/update
         return this._getVmsByTags(this.addressTags)
             .then((vms) => {
                 this.vms = vms || [];
-
                 // discover only logic
                 if (discoverOnly === true) {
-                    return this._discoverAddressOperations(failoverAddresses);
+                    return this._discoverAddressOperations(failoverAddresses, discoverOperations);
                 }
                 // update only logic
                 if (updateOperations) {
                     return this._updateAddresses(updateOperations);
                 }
                 // default - discover and update
-                return this._discoverAddressOperations(failoverAddresses)
+                return this._discoverAddressOperations(failoverAddresses, discoverOperations)
                     .then(operations => this._updateAddresses(operations));
             })
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Discover addresses using provided definitions
+     *
+     * @param {Object} addresses               - local addresses, failover addresses
+     * @param {Object} addressGroupDefinitions - discover forwarding rule names and alias addresses
+     * @param {Object} options                 - function options
+     *
+     * @returns {Object} updateActions
+     */
+    discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options) {
+        const forwardingRuleNames = [];
+        const aliasAddresses = [];
+        addressGroupDefinitions.forEach((item) => {
+            if (item.type === 'forwardingRule') {
+                forwardingRuleNames.push(item.scopingName);
+            }
+            if (item.type === 'aliasAddress') {
+                aliasAddresses.push(item.scopingAddress);
+            }
+        });
+        this.forwardingRuleNames = forwardingRuleNames;
+        this.logger.silly('Retrieved forwarding rule names: ', this.forwardingRuleNames);
+        this.aliasAddresses = aliasAddresses;
+        this.logger.silly('Retrieved alias addresses: ', this.aliasAddresses);
+
+        if (!options.isAddressOperationsEnabled) {
+            return Promise.resolve();
+        }
+        return this.updateAddresses({
+            localAddresses: addresses.localAddresses,
+            failoverAddresses: addresses.failoverAddresses,
+            forwardingRules: {
+                type: 'name',
+                fwdRuleNames: this.forwardingRuleNames
+            },
+            aliasAddresses: this.aliasAddresses,
+            discoverOnly: true
+        });
     }
 
     /**
@@ -401,29 +441,7 @@ class Cloud extends AbstractCloud {
     _getFwdRules(options) {
         options = options || {};
 
-        const getRulesWithNextPageToken = (fwdRulesList, nextPageToken) => {
-            let path = `regions/${this.region}/forwardingRules`;
-            if (nextPageToken !== '') {
-                path = `${path}?pageToken=${nextPageToken}`;
-            }
-            return new Promise((resolve, reject) => {
-                this._sendRequest('GET', path)
-                    .then((pagedRulesList) => {
-                        fwdRulesList = fwdRulesList.concat(pagedRulesList.items);
-                        if (pagedRulesList.nextPageToken) {
-                            getRulesWithNextPageToken(fwdRulesList, pagedRulesList.nextPageToken)
-                                .then((rList) => {
-                                    resolve(rList);
-                                });
-                        } else {
-                            resolve(fwdRulesList);
-                        }
-                    })
-                    .catch(err => reject(err));
-            });
-        };
-
-        return getRulesWithNextPageToken([], '')
+        return this._getItemsUsingNextPageToken(`regions/${this.region}/forwardingRules`, [], '')
             .then((fwdRules) => {
                 // optionally filter fwd rules using tags
                 if (options.tags) {
@@ -453,12 +471,42 @@ class Cloud extends AbstractCloud {
      *
      */
     _getTargetInstances() {
-        return this._sendRequest(
-            'GET',
-            `zones/${this.zone}/targetInstances`
-        )
-            .then(data => Promise.resolve(data.items))
+        return this._getItemsUsingNextPageToken(`zones/${this.zone}/targetInstances`, [], '')
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get items (cloud resources) using nextPageToken
+     *
+     * @returns {Promise} A promise which will be resolved with an array of items/resources
+     *
+     */
+    _getItemsUsingNextPageToken(path, list, nextPageToken) {
+        if (nextPageToken !== '') {
+            if (path.slice(-1) === '/') {
+                path = path.slice(0, -1);
+            }
+            if (path.indexOf('?pageToken') !== -1) {
+                path = path.substr(0, path.indexOf('?pageToken'));
+            }
+            path = `${path}?pageToken=${nextPageToken}`;
+        }
+        return new Promise((resolve, reject) => {
+            this._sendRequest('GET', path)
+                .then((pagedRulesList) => {
+                    list = list.concat(pagedRulesList.items);
+                    if (pagedRulesList.nextPageToken) {
+                        this.logger.silly('_getItemsUsingNextPageToken called recursively to fetch next page');
+                        this._getItemsUsingNextPageToken(path, list, pagedRulesList.nextPageToken)
+                            .then((rList) => {
+                                resolve(rList);
+                            });
+                    } else {
+                        resolve(list);
+                    }
+                })
+                .catch(err => reject(err));
+        });
     }
 
     /**
@@ -489,34 +537,7 @@ class Cloud extends AbstractCloud {
 
         const pageToken = options.pageToken || '';
         const routesList = [];
-
-        const getRoutesWithNextPageToken = (routeList, nextPageToken) => {
-            this.logger.silly(`getRoutes called with nextPageToken ${nextPageToken}`);
-            return new Promise((resolve, reject) => {
-                let list = routeList || [];
-                let path = 'global/routes/';
-                if (nextPageToken !== '') {
-                    path = `global/routes?pageToken=${nextPageToken}`;
-                }
-                this._sendRequest('GET', path)
-                    .then((pagedRoutesList) => {
-                        list = list.concat(pagedRoutesList.items);
-                        if (pagedRoutesList.nextPageToken) {
-                            getRoutesWithNextPageToken(list, pagedRoutesList.nextPageToken)
-                                .then((rList) => {
-                                    this.logger.silly('Resolving for next page');
-                                    resolve(rList);
-                                })
-                                .catch(err => reject(err));
-                        } else {
-                            resolve(list);
-                        }
-                    })
-                    .catch(err => reject(err));
-            });
-        };
-
-        return getRoutesWithNextPageToken(routesList, pageToken)
+        return this._getItemsUsingNextPageToken('global/routes/', routesList, pageToken)
             .catch(err => Promise.reject(err));
     }
 
@@ -554,6 +575,33 @@ class Cloud extends AbstractCloud {
             // Add IP to matched array if a match was found
             if (match) {
                 matched.push(ip);
+            }
+        });
+        return matched;
+    }
+
+    /**
+     * Match forwarding rules
+     *
+     * @param {Object} ruleNames - Array of forwarding rule names
+     *
+     * @param {Object} forwardingRulesNames - Array of filter forwarding rule names
+     *
+     * @returns {Promise} A promise which will be resolved with the array of matched forwarding rule names
+     *
+     */
+    _matchFwdRuleNames(ruleNames, forwardingRuleNames) {
+        const matched = [];
+        ruleNames.forEach((ruleName) => {
+            let match = false;
+            forwardingRuleNames.forEach((forwardingRuleName) => {
+                if (ruleName.match(forwardingRuleName)) {
+                    match = true;
+                }
+            });
+            // Add rule to matched array if a match was found
+            if (match) {
+                matched.push(ruleName);
             }
         });
         return matched;
@@ -621,24 +669,28 @@ class Cloud extends AbstractCloud {
      * Discover address operations
      *
      * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} discoverOperations - discover forwarding rules operations
      *
      * @returns {Promise} { publicAddresses: [], interfaces: [], loadBalancerAddresses: [] }
      *
      */
-    _discoverAddressOperations(failoverAddresses) {
+    _discoverAddressOperations(failoverAddresses, discoverOperations) {
         this.logger.debug('Failover addresses to discover', failoverAddresses);
         if (!failoverAddresses || !failoverAddresses.length) {
             this.logger.debug('No failoverAddresses to discover');
             return Promise.resolve({
                 publicAddresses: [],
-                interfaces: [],
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                },
                 loadBalancerAddresses: []
             });
         }
 
         return Promise.all([
             this._discoverNicOperations(failoverAddresses),
-            this._discoverFwdRuleOperations(failoverAddresses)
+            this._discoverFwdRuleOperations(discoverOperations)
         ])
             .then(operations => Promise.resolve({
                 publicAddresses: {},
@@ -761,16 +813,16 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Discover what forwarding rules to update
+     * Discover what forwarding rules to update by IPAddresses or forwarding rule names
      *
-     * @param {Object} failoverAddresses - failover addresses
+     * @param {Object} discoverOperations - discover operations
      *
      * @returns {Promise} A promise which will be resolved once discovery is complete
      *
      */
-    _discoverFwdRuleOperations(failoverAddresses) {
+    _discoverFwdRuleOperations(discoverOperations) {
         const fwdRulesToUpdate = [];
-
+        this.logger.silly('discoverOperations:', discoverOperations);
         const getOurTargetInstance = (instanceName, tgtInstances) => {
             const result = [];
 
@@ -783,10 +835,8 @@ class Cloud extends AbstractCloud {
                 }
             });
 
-            if (!tgtInstances.length) {
-                return Promise.reject(
-                    new Error(`Unable to locate our target instance: ${this.instanceName}`)
-                );
+            if (!result.length) {
+                throw new Error(`Unable to locate our target instance: ${this.instanceName}`);
             }
             return result[0];
         };
@@ -798,9 +848,14 @@ class Cloud extends AbstractCloud {
             .then((data) => {
                 this.fwdRules = data[0] || [];
                 this.targetInstances = data[1] || [];
-
                 this.fwdRules.forEach((rule) => {
-                    const match = this._matchIps([rule.IPAddress], failoverAddresses);
+                    let match = [];
+
+                    if (discoverOperations.type === 'address' && rule.IPAddress) {
+                        match = this._matchIps([rule.IPAddress], discoverOperations.ipAddresses);
+                    } else if (discoverOperations.type === 'name' && rule.name) {
+                        match = this._matchFwdRuleNames([rule.name], discoverOperations.fwdRuleNames);
+                    }
                     if (!match.length) {
                         return; // continue with next iteration
                     }
