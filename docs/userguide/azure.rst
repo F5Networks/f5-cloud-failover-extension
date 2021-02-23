@@ -22,7 +22,6 @@ These are the basic prerequisites for setting up CFE in Microsoft Azure.
 
 .. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the :ref:`performance-sizing` section for example times.
 
-
 |
 
 Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
@@ -172,6 +171,12 @@ Add a storage account to your resource group, and tag with a name/value pair tha
 
 .. WARNING:: Ensure the required storage accounts do not have public access.
 
+.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+.. image:: ../images/azure/AzureStorageTags.png
+
+|
+
 
 .. _azure-nictagging:
 
@@ -192,7 +197,6 @@ Example:
 
 
 .. image:: ../images/azure/AzureNICTags.png
-
 
 |
 
