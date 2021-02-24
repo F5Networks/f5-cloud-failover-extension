@@ -311,7 +311,7 @@ describe('Provider - Azure', () => {
         sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+        return provider.discoverAddresses({ localAddresses, failoverAddresses })
             .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0].disassociate;
@@ -371,7 +371,7 @@ describe('Provider - Azure', () => {
         sinon.replace(provider, '_listNics', sinon.fake.resolves(listNicsResponse));
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
-        return provider.updateAddresses({ localAddresses, failoverAddresses, discoverOnly: true })
+        return provider.discoverAddresses({ localAddresses, failoverAddresses })
             .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
