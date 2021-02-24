@@ -40,6 +40,7 @@ describe('Failover', () => {
     let downloadDataFromStorageMock;
 
     let spyOnUpdateAddresses;
+    let spyOnDiscoverAddresses;
     let spyOnUpdateRoutes;
     let uploadDataToStorageSpy;
     let setConfigSpy;
@@ -88,6 +89,7 @@ describe('Failover', () => {
         cloudProviderMock = {
             init: () => Promise.resolve({}),
             updateAddresses: () => Promise.resolve({}),
+            discoverAddresses: () => Promise.resolve({}),
             updateRoutes: () => Promise.resolve({}),
             downloadDataFromStorage: () => Promise.resolve({}),
             discoverAddressUsingProvidedDefinition: () => [],
@@ -99,6 +101,7 @@ describe('Failover', () => {
         downloadDataFromStorageMock = sinon.stub(cloudProviderMock, 'downloadDataFromStorage');
         downloadDataFromStorageMock.onCall(0).resolves({ taskState: constants.FAILOVER_STATES.PASS });
         spyOnUpdateAddresses = sinon.spy(cloudProviderMock, 'updateAddresses');
+        spyOnDiscoverAddresses = sinon.spy(cloudProviderMock, 'discoverAddresses');
         spyOnUpdateRoutes = sinon.spy(cloudProviderMock, 'updateRoutes');
         sinon.stub(CloudFactory, 'getCloudProvider').returns(cloudProviderMock);
         telemetryClientSpy = sinon.stub(TelemetryClient.prototype, 'send').resolves();
@@ -160,13 +163,12 @@ describe('Failover', () => {
         if (isAddressOperationsEnabled) {
             // the updateAddresses function will only be invoked if there are traffic groups in the hostname
             // verify that cloudProvider.updateAddresses method gets called - discover
-            const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
-            assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, localAddresses);
-            assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, failoverAddresses);
-            assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+            const discoverAddressesCall = spyOnDiscoverAddresses.getCall(0).args[0];
+            assert.deepStrictEqual(discoverAddressesCall.localAddresses, localAddresses);
+            assert.deepStrictEqual(discoverAddressesCall.failoverAddresses, failoverAddresses);
 
             // verify that cloudProvider.updateAddresses method gets called - update
-            const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(1).args[0];
+            const updateAddressesUpdateCall = spyOnUpdateAddresses.getCall(0).args[0];
             assert.deepStrictEqual(updateAddressesUpdateCall.updateOperations, {});
         }
 
@@ -333,11 +335,10 @@ describe('Failover', () => {
         .then(() => failover.init())
         .then(() => failover.dryRun())
         .then(() => {
-            const updateAddressesDiscoverCall = spyOnUpdateAddresses.getCall(0).args[0];
+            const discoverAddressesCall = spyOnDiscoverAddresses.getCall(0).args[0];
             // verify that update addresses get called
-            assert.deepStrictEqual(updateAddressesDiscoverCall.localAddresses, ['1.1.1.1']);
-            assert.deepStrictEqual(updateAddressesDiscoverCall.failoverAddresses, ['2.2.2.2']);
-            assert.strictEqual(updateAddressesDiscoverCall.discoverOnly, true);
+            assert.deepStrictEqual(discoverAddressesCall.localAddresses, ['1.1.1.1']);
+            assert.deepStrictEqual(discoverAddressesCall.failoverAddresses, ['2.2.2.2']);
 
             // verify that update routes get called
             const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];

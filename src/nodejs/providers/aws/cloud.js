@@ -127,7 +127,6 @@ class Cloud extends AbstractCloud {
     * @param {Object} options                     - function options
     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
-    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
     * @returns {Object}
@@ -136,16 +135,10 @@ class Cloud extends AbstractCloud {
         options = options || {};
         const localAddresses = options.localAddresses || [];
         const failoverAddresses = options.failoverAddresses || [];
-        const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
 
         this.logger.silly('updateAddresses: ', options);
 
-        // discover only logic
-        if (discoverOnly === true) {
-            return this._discoverAddressOperations(localAddresses, failoverAddresses)
-                .catch(err => Promise.reject(err));
-        }
         // update only logic
         if (updateOperations) {
             return this._updateAddresses(updateOperations)
@@ -154,6 +147,24 @@ class Cloud extends AbstractCloud {
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
             .then(operations => this._updateAddresses(operations))
+            .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Discover Addresses - discovers addresses
+     *
+     * @param {Object} options                     - function options
+     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+     *
+     * @returns {Object}
+     */
+    discoverAddresses(options) {
+        options = options || {};
+        const localAddresses = options.localAddresses || [];
+        const failoverAddresses = options.failoverAddresses || [];
+        this.logger.silly('discoverAddresses: ', options);
+        return this._discoverAddressOperations(localAddresses, failoverAddresses)
             .catch(err => Promise.reject(err));
     }
 
