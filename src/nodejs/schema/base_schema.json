@@ -117,6 +117,7 @@
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
             "enum": [
+                "1.8.0",
                 "1.7.1",
                 "1.7.0",
                 "1.6.1",
@@ -129,7 +130,7 @@
                 "1.0.0",
                 "0.9.1"
             ],
-            "default": "1.7.1"
+            "default": "1.8.0"
         },
         "$schema": {
             "title": "Schema",
