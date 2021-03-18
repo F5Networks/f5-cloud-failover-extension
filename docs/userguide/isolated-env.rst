@@ -388,8 +388,8 @@ Use this section to set up a private endpoint for accessing Azure APIs. Before y
 | Source                     | Port    | Destination              | Port   | Protocol   | Action    |
 +============================+=========+==========================+========+============+===========+
 | Self IPs of both BIG-IPs   | Any     | ``169.254.169.254/32``,  | Any    | TCP        | Allow     |
-| in external subnet.        |         | ``13.69.67.32/28``*      |        |            |           |
-|                            |         | ``13.69.114.0/23``*      |        |            |           |
+| in external subnet.        |         | ``13.69.67.32/28`` *     |        |            |           |
+|                            |         | ``13.69.114.0/23`` *     |        |            |           |
 +----------------------------+---------+--------------------------+--------+------------+-----------+
 | Self IPs of both BIG-IPs   | Any     | Service tag Internet     | Any    | TCP        | Deny      |
 | in external subnet.        |         |                          |        |            |           |
