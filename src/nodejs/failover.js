@@ -759,14 +759,13 @@ class FailoverClient {
      */
     _discoverAddresses(addresses) {
         const updateActions = [];
-        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.updateAddresses({
+        updateActions.push(this.isAddressOperationsEnabled ? this.cloudProvider.discoverAddresses({
             localAddresses: addresses.localAddresses,
             failoverAddresses: addresses.failoverAddresses,
             forwardingRules: {
                 type: 'address',
                 ipAddresses: addresses.failoverAddresses
-            },
-            discoverOnly: true
+            }
         }) : {});
         return updateActions;
     }

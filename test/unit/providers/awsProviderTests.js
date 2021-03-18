@@ -1007,7 +1007,7 @@ describe('Provider - AWS', () => {
                         }
                     });
 
-                return provider.updateAddresses({ discoverOnly: true })
+                return provider.discoverAddresses()
                     .then(operations => provider.updateAddresses({ updateOperations: operations }))
                     .then(() => {
                         // assert public address gets reassociated properly

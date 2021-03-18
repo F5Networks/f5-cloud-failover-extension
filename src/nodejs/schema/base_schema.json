@@ -86,7 +86,9 @@
             "type": "array",
             "items": {
                 "type": "string"
-            }
+            },
+            "maxItems": 2,
+            "minItems": 2
         },
         "targetInstances": {
             "$comment": "An array of BIG-IP target instances for failover",
@@ -115,6 +117,7 @@
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
             "enum": [
+                "1.8.0",
                 "1.7.1",
                 "1.7.0",
                 "1.6.1",
@@ -127,7 +130,7 @@
                 "1.0.0",
                 "0.9.1"
             ],
-            "default": "1.7.1"
+            "default": "1.8.0"
         },
         "$schema": {
             "title": "Schema",
