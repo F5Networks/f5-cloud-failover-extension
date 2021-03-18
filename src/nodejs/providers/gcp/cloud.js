@@ -153,7 +153,6 @@ class Cloud extends AbstractCloud {
     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
     * @param {Object} [options.forwardingRuleNames] - object containing forwarding rule names
-    * @param {Boolean} [options.discoverOnly]     - only perform discovery operation
     * @param {Object} [options.updateOperations]  - skip discovery and perform 'these' update operations
     *
     * @returns {Object}
@@ -161,7 +160,6 @@ class Cloud extends AbstractCloud {
     updateAddresses(options) {
         options = options || {};
         const failoverAddresses = options.failoverAddresses || [];
-        const discoverOnly = options.discoverOnly || false;
         const updateOperations = options.updateOperations;
         const discoverOperations = options.forwardingRules || [];
         this.logger.silly('updateAddresses(options): ', options);
@@ -170,10 +168,6 @@ class Cloud extends AbstractCloud {
         return this._getVmsByTags(this.addressTags)
             .then((vms) => {
                 this.vms = vms || [];
-                // discover only logic
-                if (discoverOnly === true) {
-                    return this._discoverAddressOperations(failoverAddresses, discoverOperations);
-                }
                 // update only logic
                 if (updateOperations) {
                     return this._updateAddresses(updateOperations);
@@ -181,6 +175,30 @@ class Cloud extends AbstractCloud {
                 // default - discover and update
                 return this._discoverAddressOperations(failoverAddresses, discoverOperations)
                     .then(operations => this._updateAddresses(operations));
+            })
+            .catch(err => Promise.reject(err));
+    }
+
+
+    /**
+     * Discover Addresses - discovers addresses
+     *
+     * @param {Object} options                     - function options
+     * @param {Object} [options.localAddresses]    - object containing local (self) addresses [ '192.0.2.1' ]
+     * @param {Object} [options.failoverAddresses] - object containing failover addresses [ '192.0.2.1' ]
+     *
+     * @returns {Object}
+     */
+    discoverAddresses(options) {
+        options = options || {};
+        const discoverOperations = options.forwardingRules || [];
+        const failoverAddresses = options.failoverAddresses || [];
+        this.logger.silly('discoverAddresses: ', options);
+        // update this.vms property prior to discovery/update
+        return this._getVmsByTags(this.addressTags)
+            .then((vms) => {
+                this.vms = vms || [];
+                return this._discoverAddressOperations(failoverAddresses, discoverOperations);
             })
             .catch(err => Promise.reject(err));
     }
