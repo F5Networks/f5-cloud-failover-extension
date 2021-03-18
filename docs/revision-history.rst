@@ -11,9 +11,13 @@ Document Revision History
         - Description
         - Date
 
+      * - 2.1
+        - Updated the documentation for Cloud Failover Extension v1.8.0 with the following changes: |br| • Added :ref:`azure-iso-env` to :ref:`isolated-env`. 
+        - 03-18-21
+
       * - 2.0
-        - Updated the documentation for Cloud Failover Extension v1.6.1 with the following changes: |br| • Added Azure to :ref:`isolated-env`. 
-        - 03-18-21  
+        - Updated the documentation for Cloud Failover Extension v1.7.0 with the following changes: |br| • Added new section for :ref:`isolated-env`. 
+        - 01-14-21  
 
       * - 1.9
         - Updated the documentation for Cloud Failover Extension v1.6.0 with the following changes: |br| • Created a separate section for :ref:`aws-same-az`. Continue using the :ref:`aws` section for across availability zones. |br| • Updated AWS diagrams. |br| • Added an :ref:`azure-as3-example`. |br| • Added more information to the :ref:`performance-sizing` section. |br| • Added more example declarations.  |br| • Updated the :ref:`azure-udrtagging` section. 
