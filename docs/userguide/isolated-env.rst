@@ -3,8 +3,10 @@
 CFE in Isolated Environments
 ============================
 
-Running BIG-IP in isolated Virtual Private Clouds (VPCs) is a security best practice, but requires upfront foundational setup. This section shows how to support CFE in :ref:`gcp-iso-env` and :ref:`azure-iso-env` when BIG-IP instances have no route to public internet.
+Running BIG-IP in isolated Virtual Private Clouds (VPCs) is a security best practice, but requires upfront foundational setup. This section shows how to support CFE when BIG-IP instances have no route to public internet on the following cloud environments:
 
+- :ref:`gcp-iso-env`
+- :ref:`azure-iso-env`
 
 .. _gcp-iso-env:
 
@@ -384,16 +386,16 @@ Use this section to set up a private endpoint for accessing Azure APIs. Before y
 
    |
 
-+----------------------------+---------+--------------------------+--------+------------+-----------+
-| Source                     | Port    | Destination              | Port   | Protocol   | Action    |
-+============================+=========+==========================+========+============+===========+
-| Self IPs of both BIG-IPs   | Any     | ``169.254.169.254/32``,  | Any    | TCP        | Allow     |
-| in external subnet.        |         | ``13.69.67.32/28`` *     |        |            |           |
-|                            |         | ``13.69.114.0/23`` *     |        |            |           |
-+----------------------------+---------+--------------------------+--------+------------+-----------+
-| Self IPs of both BIG-IPs   | Any     | Service tag Internet     | Any    | TCP        | Deny      |
-| in external subnet.        |         |                          |        |            |           |
-+----------------------------+---------+--------------------------+--------+------------+-----------+
++----------------------------+--------------------------+--------+------------+-----------+
+| Source                     | Destination              | Port   | Protocol   | Action    |
++============================+==========================+========+============+===========+
+| Self IPs of both BIG-IPs   | ``169.254.169.254/32``,  | Any    | TCP        | Allow     |
+| in external subnet.        | ``13.69.67.32/28`` *     |        |            |           |
+|                            | ``13.69.114.0/23`` *     |        |            |           |
++----------------------------+--------------------------+--------+------------+-----------+
+| Self IPs of both BIG-IPs   | Service tag Internet     | Any    | TCP        | Deny      |
+| in external subnet.        |                          |        |            |           |
++----------------------------+--------------------------+--------+------------+-----------+
 
 .. Important:: Only use the destination addresses with asterisks(*) if you are in the West Europe region. If you are deploying elsewhere you can find the subnets to be referenced in the ServiceTags_Public_xxxxx.json file available for download in `Azure website <https://www.microsoft.com/en-us/download/details.aspx?id=56519>`_. 
 

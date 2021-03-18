@@ -348,6 +348,11 @@ See below for example Virtual Services created with `AS3 <https://clouddocs.f5.c
 :fonticon:`fa fa-download` :download:`azure-as3.json <../../examples/toolchain/as3/azure-as3.json>`
 
 
+Azure Private Endpoints
+-----------------------
+
+To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
+
 
 .. include:: /_static/reuse/feedback.rst
 
