@@ -61,7 +61,7 @@ class Cloud extends AbstractCloud {
                     resource: this.environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
                 });
-
+                this.customerId = metadata.compute.subscriptionId;
                 this.storageClient = this._createStorageMgmtClient(
                     credentials,
                     this.primarySubscriptionId,
