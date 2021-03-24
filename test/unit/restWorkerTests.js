@@ -28,6 +28,7 @@ const ROOT_PATH = 'mgmt/shared/cloud-failover';
 describe('Rest Operations', () => {
     let WorkerClient;
     let Device;
+    let Cloud;
     let FailoverClient;
     let TelemetryClient;
 
@@ -36,6 +37,7 @@ describe('Rest Operations', () => {
     beforeEach(() => {
         WorkerClient = require('../../src/nodejs/restWorkers/main.js');
         Device = require('../../src/nodejs/device');
+        Cloud = require('../../src/nodejs/providers/azure/cloud.js').Cloud;
         FailoverClient = require('../../src/nodejs/failover.js').FailoverClient;
         TelemetryClient = require('../../src/nodejs/telemetry.js').TelemetryClient;
 
@@ -103,7 +105,7 @@ describe('Rest Operations', () => {
         });
         sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
         sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
-
+        sinon.stub(Cloud.prototype, 'init').resolves();
         const telemetrySpy = sinon.stub(TelemetryClient.prototype, 'send').resolves();
 
         return worker.onPost(createRestOperation({
@@ -254,7 +256,7 @@ describe('Rest Operations', () => {
         sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
         sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
         sinon.stub(TelemetryClient.prototype, 'send').resolves();
-
+        sinon.stub(Cloud.prototype, 'init').resolves();
         return worker.onPost(createRestOperation({
             method: 'POST',
             endpoint: 'declare',
