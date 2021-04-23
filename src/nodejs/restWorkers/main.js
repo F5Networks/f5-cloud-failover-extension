@@ -18,6 +18,7 @@
 const util = require('../util.js');
 const logger = require('../logger.js');
 const configWorker = require('../config.js');
+const CloudFactory = require('../providers/cloudFactory.js');
 const FailoverClient = require('../failover.js').FailoverClient;
 const constants = require('../constants.js');
 const Device = require('../device.js');
@@ -48,6 +49,8 @@ function Worker() {
     this.isPersisted = true;
     this.isStateRequiredOnStart = true;
     this.retryInterval = null;
+    this.cloudProvider = null;
+    this.config = null;
 }
 
 /*
@@ -188,18 +191,31 @@ Worker.prototype.processRequest = function (restOperation) {
         case 'POST':
             // call failover init during config to ensure init succeeds prior to responding to the user
             return configWorker.processConfigRequest(body)
-                .then(config => Promise.all([
-                    config,
-                    failover.init(),
-                    telemetry.send(telemetry.createTelemetryData({
-                        startTime: startTimestamp,
-                        result: 'SUCCESS',
-                        resultSummary: 'Configuration Successful',
-                        environment: config.environment,
-                        ipFailover: config.ipFailover,
-                        routeFailover: config.routeFailover
-                    }))
-                ]))
+                .then((config) => {
+                    this.cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
+                    const tags = {
+                        storageTags: util.getDataByKey(config, 'externalStorage.scopingTags'),
+                        storageName: util.getDataByKey(config, 'externalStorage.scopingName')
+                    };
+                    return this.cloudProvider.init(tags)
+                        .then(() => Promise.all([
+                            config,
+                            failover.init(),
+                            telemetry.send(telemetry.createTelemetryData({
+                                failover: {
+                                    event: false,
+                                    success: true
+                                },
+                                customerId: this.cloudProvider.customerId,
+                                startTime: startTimestamp,
+                                result: 'SUCCESS',
+                                resultSummary: 'Configuration Successful',
+                                environment: config.environment,
+                                ipFailover: config.ipFailover,
+                                routeFailover: config.routeFailover
+                            }))
+                        ]));
+                })
                 .then((data) => {
                     const config = data[0];
                     this.initFailoverInterval(config, failover);

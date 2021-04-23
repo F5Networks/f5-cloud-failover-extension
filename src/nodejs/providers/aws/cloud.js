@@ -46,6 +46,7 @@ class Cloud extends AbstractCloud {
             .then((metadata) => {
                 this.region = metadata.region;
                 this.instanceId = metadata.instanceId;
+                this.customerId = metadata.accountId;
                 const config = {
                     region: this.region
                 };
