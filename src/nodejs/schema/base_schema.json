@@ -286,6 +286,11 @@
                 }
             ]
         },
+        "trustedCertBundle": {
+            "title": "Trusted Cert Bundle",
+            "description": "File location of a custom certificate bundle to use for cloud API calls.",
+            "type": "string"
+        },
         "controls": {
             "title": "Controls",
             "description": "Controls class used to set system controls, such as logging level.",

@@ -19,6 +19,9 @@
 const AWS = require('aws-sdk');
 const IPAddressLib = require('ip-address');
 const PROXY = require('https-proxy-agent');
+const fs = require('fs');
+const https = require('https');
+const url = require('url');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
@@ -50,9 +53,24 @@ class Cloud extends AbstractCloud {
                 const config = {
                     region: this.region
                 };
+
+                let opts = {};
                 if (this.proxySettings) {
-                    config.httpOptions = { agent: new PROXY(this._formatProxyUrl(this.proxySettings)) };
+                    opts = url.parse(this._formatProxyUrl(this.proxySettings));
                 }
+                if (this.trustedCertBundle) {
+                    if (fs.existsSync(this.trustedCertBundle)) {
+                        const certs = fs.readFileSync(this.trustedCertBundle);
+                        opts.rejectUnauthorized = true;
+                        opts.ca = certs;
+                    }
+                }
+                if (this.proxySettings) {
+                    config.httpOptions = { agent: new PROXY(opts) };
+                } else {
+                    config.httpOptions = { agent: new https.Agent(opts) };
+                }
+
                 AWS.config.update(config);
                 this.ec2 = new AWS.EC2();
                 this.s3 = new AWS.S3();
