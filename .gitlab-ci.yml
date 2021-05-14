@@ -1,4 +1,4 @@
-image: node:8
+image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
 
 stages:
     - check_content
@@ -88,7 +88,7 @@ build_package:
 # test package against node 4.x
 test_node4:
     stage: test
-    image: node:4
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:4
     script:
         - npm install --global npm@5.10.0
         - npm install mocha@5.2.0

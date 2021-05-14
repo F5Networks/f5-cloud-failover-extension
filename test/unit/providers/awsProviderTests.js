@@ -191,6 +191,17 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
 
+        it('should initialize if trustedCertBundle is set', () => {
+            mockInitData.trustedCertBundle = '/config/ssl/ssl.crt/ca-bundle.crt';
+
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.strictEqual(provider.region, mockMetadata.region);
+                    assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('should reject if error', () => {
             provider._getInstanceIdentityDoc = sinon.stub()
                 .rejects(genericAWSError);
