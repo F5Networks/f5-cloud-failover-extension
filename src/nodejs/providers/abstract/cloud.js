@@ -54,6 +54,7 @@ class AbstractCloud {
     *                                                     { 'type': 'address': 'items': [], tag: null}
     * @param {Object} [options.storageTags]           - storage tags to filter on { 'key': 'value' }
     * @param {Object} [options.storageName]           - storage scoping name
+    * @param {Object} [options.subnets]               - subnets
     * @param {Object} [options.trustedCertBundle]     - custom certificate bundle for cloud API calls
     */
     init(options) {
@@ -64,6 +65,7 @@ class AbstractCloud {
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};
         this.storageName = options.storageName || '';
+        this.subnets = options.subnets || {};
         this.trustedCertBundle = options.trustedCertBundle || '';
     }
 
