@@ -3,7 +3,7 @@
 AWS (Same Availability Zone)
 ============================
 
-In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Same Availability Zone)*. For an *Across Availabilty Zone* deployment, see :ref:`aws`.
+In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Same Availability Zone)*. For an *Across Availability Zone* deployment, see :ref:`aws`.
 
 AWS CFE Prerequisites
 ---------------------
@@ -58,6 +58,8 @@ This diagram shows an example of an *Same Availability Zone* failover with 3NIC 
 
 
 |
+
+.. Note:: In AWS, only Secondary IP addresses can be reassigned, so they are mapped to BIG-IP addresses that typically float (like VIPs, SNATs, etc.). Hence, AWS Primary IPs and their associated EIPs are used for the BIG-IP system's unique Self IPs (which also do not float) and are not remapped during failover.
 
 .. Note:: Management NICs/Subnets are not shown in this diagram.
 
