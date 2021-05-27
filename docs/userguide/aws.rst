@@ -3,7 +3,7 @@
 AWS
 ===
 
-In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Across Availability Zones)*. For a *Same Availabilty Zone* deployment, see :ref:`aws-same-az`.
+In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Across Availability Zones)*. For a *Same Availability Zone* deployment, see :ref:`aws-same-az`.
 
 AWS CFE Prerequisites
 ---------------------
@@ -53,11 +53,14 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
 AWS Failover Event Diagram
 --------------------------
 
-This diagram shows an example of an *Across Availability Zones* failover with 3NIC BIG-IPs. You can see Elastic IP (EIP) addresses with matching tags are associated with the secondary private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.
+This diagram shows an example of an *Across Availability Zones* failover with 3NIC BIG-IPs. You can see Elastic IP (EIP) addresses with matching tags are associated with the **secondary** private IP matching the virtual address corresponding to the active BIG-IP device. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device. 
+
 
 .. image:: ../images/failover-across-az-multiple-vips.gif
 
 |
+
+.. Note:: AWS Primary IPs and their associated EIPs are reserved for the BIG-IP system's unique Self IPs (which do not float). So EIPs associated with the Primary IPs are not remapped during failover. Only EIPs mapped to Secondary IPs (which are mapped to BIG-IP addresses that typically float, such as VIPs) are remapped during Failover.
 
 .. Note:: Management NICs/Subnets are not shown in this diagram.
 
