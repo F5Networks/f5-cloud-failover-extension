@@ -191,6 +191,17 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
 
+        it('should initialize if trustedCertBundle is set', () => {
+            mockInitData.trustedCertBundle = '/config/ssl/ssl.crt/ca-bundle.crt';
+
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.strictEqual(provider.region, mockMetadata.region);
+                    assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('should reject if error', () => {
             provider._getInstanceIdentityDoc = sinon.stub()
                 .rejects(genericAWSError);
@@ -514,6 +525,7 @@ describe('Provider - AWS', () => {
             NetworkInterfaces: [
                 {
                     NetworkInterfaceId: 'eni-2345',
+                    PrivateIpAddress: '1.2.3.4',
                     PrivateIpAddresses: [
                         {
                             Primary: true,
@@ -527,6 +539,7 @@ describe('Provider - AWS', () => {
                 },
                 {
                     NetworkInterfaceId: 'eni-3456',
+                    PrivateIpAddress: '3.4.5.6',
                     PrivateIpAddresses: [
                         {
                             Primary: false,
@@ -874,16 +887,19 @@ describe('Provider - AWS', () => {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddress: '1.2.3.4',
                         PrivateIpAddresses: [
                             {
                                 Primary: true,
                                 PrivateIpAddress: '1.2.3.4'
                             }
                         ],
-                        TagSet: nicsTagSet
+                        TagSet: nicsTagSet,
+                        SubnetId: 'subnet-00e0083fedd84419f'
                     },
                     {
                         NetworkInterfaceId: 'eni-2',
+                        PrivateIpAddress: '1.2.3.5',
                         PrivateIpAddresses: [
                             {
                                 Primary: true,
@@ -902,7 +918,8 @@ describe('Provider - AWS', () => {
                                 Association: {}
                             }
                         ],
-                        TagSet: nicsTagSet
+                        TagSet: nicsTagSet,
+                        SubnetId: 'subnet-00e0083fedd84419f'
                     }
                 ]
             };
@@ -916,6 +933,14 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
+            const describeSubnetsResponse = {
+                Subnets: [
+                    {
+                        CidrBlock: '1.2.3.0/24',
+                        SubnetId: 'subnet-00e0083fedd84419f'
+                    }
+                ]
+            };
             provider.ec2.describeAddresses = sinon.stub()
                 .returns({
                     promise() {
@@ -926,6 +951,12 @@ describe('Provider - AWS', () => {
                 .returns({
                     promise() {
                         return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+            provider.ec2.describeSubnets = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeSubnetsResponse);
                     }
                 });
 
@@ -974,23 +1005,35 @@ describe('Provider - AWS', () => {
                     NetworkInterfaces: [
                         {
                             NetworkInterfaceId: 'eni-1',
+                            PrivateIpAddress: '10.10.10.10',
                             PrivateIpAddresses: [
                                 {
                                     Primary: false,
                                     PrivateIpAddress: '10.10.10.10'
                                 }
                             ],
-                            TagSet: []
+                            TagSet: [],
+                            SubnetId: 'subnet-00e0083fedd84419f'
                         },
                         {
                             NetworkInterfaceId: 'eni-2',
+                            PrivateIpAddress: '10.10.10.100',
                             PrivateIpAddresses: [
                                 {
                                     Primary: false,
                                     PrivateIpAddress: '10.10.10.100'
                                 }
                             ],
-                            TagSet: []
+                            TagSet: [],
+                            SubnetId: 'subnet-00e0083fedd84419f'
+                        }
+                    ]
+                };
+                const describeSubnetsResponse = {
+                    Subnets: [
+                        {
+                            CidrBlock: '10.10.10.0/24',
+                            SubnetId: 'subnet-00e0083fedd84419f'
                         }
                     ]
                 };
@@ -1004,6 +1047,12 @@ describe('Provider - AWS', () => {
                     .returns({
                         promise() {
                             return Promise.resolve(describeNetworkInterfacesResponse);
+                        }
+                    });
+                provider.ec2.describeSubnets = sinon.stub()
+                    .returns({
+                        promise() {
+                            return Promise.resolve(describeSubnetsResponse);
                         }
                     });
 
@@ -1047,16 +1096,19 @@ describe('Provider - AWS', () => {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-000001',
+                        PrivateIpAddress: '1.2.3.4',
                         PrivateIpAddresses: [
                             {
                                 Primary: true,
                                 PrivateIpAddress: '1.2.3.4'
                             }
                         ],
-                        TagSet: []
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
                     },
                     {
                         NetworkInterfaceId: 'eni-000002',
+                        PrivateIpAddress: '1.2.3.5',
                         PrivateIpAddresses: [
                             {
                                 Primary: true,
@@ -1075,7 +1127,8 @@ describe('Provider - AWS', () => {
                                 Association: {}
                             }
                         ],
-                        TagSet: []
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
                     }
                 ],
                 Tags: []
@@ -1090,6 +1143,14 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
+            const describeSubnetsResponse = {
+                Subnets: [
+                    {
+                        CidrBlock: '1.2.3.0/24',
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    }
+                ]
+            };
             provider.ec2.describeAddresses = sinon.stub()
                 .callsFake(() => ({
                     promise() {
@@ -1100,6 +1161,12 @@ describe('Provider - AWS', () => {
                 .returns({
                     promise() {
                         return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+            provider.ec2.describeSubnets = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeSubnetsResponse);
                     }
                 });
             return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
@@ -1153,6 +1220,7 @@ describe('Provider - AWS', () => {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-000002',
+                        PrivateIpAddress: '10.10.10.100',
                         PrivateIpAddresses: [
                             {
                                 Primary: false,

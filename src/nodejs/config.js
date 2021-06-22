@@ -41,15 +41,22 @@ class ConfigWorker {
      * @returns {Promise} A promise which is resolved when initialization is complete
      */
     init() {
-        return this.device.init()
-            .then(() => this._loadStateFromStore())
-            .then((state) => {
-                this.state = state;
-            })
-            .catch((err) => {
-                logger.error(`Could not initialize state: ${util.stringify(err.message)}`);
-                return Promise.reject(err);
-            });
+        const options = { maxRetries: 5, retryInterval: 3 * 1000, thisArg: this };
+
+        const func = function () {
+            return this.device.init()
+                .then(() => this._loadStateFromStore())
+                .then((state) => {
+                    this.state = state;
+                })
+                .catch((err) => {
+                    logger.error(`Could not initialize state: ${util.stringify(err.message)}`);
+                    return Promise.reject(err);
+                });
+        };
+
+        return util.retrier(func, [], options)
+            .catch(err => Promise.reject(err));
     }
 
     /**
