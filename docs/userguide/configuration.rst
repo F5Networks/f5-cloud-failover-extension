@@ -49,7 +49,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 Components of the Declaration
 -----------------------------
 
-This section provides more information about the options in a Cloud Failove configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
+This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
 
 
 .. _base-comps:
