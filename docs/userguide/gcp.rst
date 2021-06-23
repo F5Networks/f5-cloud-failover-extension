@@ -477,6 +477,11 @@ A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organiz
 
 |
 
+GCP Private Endpoints
+---------------------
+
+To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
+
 .. include:: /_static/reuse/feedback.rst
 
 
