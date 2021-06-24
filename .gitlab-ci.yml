@@ -119,6 +119,11 @@ test_audit:
         - npm run audit
     tags:
         - cm-official-docker-executor
+    artifacts:
+        name: audit_report
+        paths:
+            - .auditReport.json
+        expire_in: 1 month
 
 # job must be called coverage
 coverage:
@@ -270,7 +275,7 @@ test_functional_init_gcp:
 # Functional Tests - Execute phase (with no retries)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
-    image: python:3.7
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/python:3.7
     script:
         # install jq
         - apt-get update
