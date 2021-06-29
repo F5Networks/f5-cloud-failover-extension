@@ -13,3 +13,14 @@ The following are prerequisites for using Cloud Failover:
   general information and documentation on the BIG-IP system, see the
   `F5 Knowledge Center <https://support.f5.com/csp/knowledge-center/software/BIG-IP?module=BIG-IP%20LTM&version=13.1.0>`_.
 - Each provider has their own prerequisites, see the invididual provider sections for more information.
+- Your BIG-IPs must have DNS and NTP setup 
+
+Here is a list of supported DNS and NTP servers for each cloud (see your cloud provider's documentation for the latest information or more details).
+
+============== ================= ================== 
+Cloud Provider        DNS                NTP       
+============== ================= ================== 
+     AWS        169.254.169.253   169.254.169.123    
+    Azure       168.63.129.16     time.windows.com   
+     GCP        169.254.169.254   169.254.169.254    
+============== ================= ================== 
