@@ -3,7 +3,7 @@
     "environment": "{{environment}}",
     "controls": {
       "class": "Controls",
-      "logLevel": "info"
+      "logLevel": "silly"
     },
     "externalStorage": {
       "scopingTags": {

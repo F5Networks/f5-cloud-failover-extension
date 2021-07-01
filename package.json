@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.8.0",
+    "version": "1.9.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -24,6 +24,7 @@
         "build-rpm": "bash scripts/build_rpm.sh",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
+        "preinstall": "npx npm-force-resolutions",
         "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_PORT=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_port' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:${CF_ENV_PORT}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/postmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
@@ -40,6 +41,12 @@
         ],
         "cache": false
     },
+    "resolutions": {
+        "google-p12-pem": "^3.0.3",
+        "gcp-metadata": "^4.2.0",
+        "node-forge": "^0.10.0",
+        "json-bigint": "^1.0.0"
+    },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "^1.4.6",
@@ -49,7 +56,7 @@
         "aws-sdk": "^2.369.0",
         "azure-arm-network": "^13.0.0",
         "azure-arm-storage": "^8.1.0",
-        "azure-storage": "^2.10.3",
+        "azure-storage": "^2.10.4",
         "commander": "^2.19.0",
         "googleapis": "^60.0.1",
         "gtoken": "5.0.3",
@@ -73,18 +80,18 @@
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^7.2.0",
         "mustache": "^3.0.1",
+        "nock": "^9.6.1",
         "nyc": "^15.1.0",
         "sinon": "7.4.1",
         "ssh2": "^0.8.2",
-        "nock": "^9.6.1",
         "yargs": "^15.4.0"
     },
     "optionalDependencies": {
-        "mermaid.cli": "^0.5.1",
-        "redoc": "^2.0.0-rc.10",
-        "redoc-cli": "^0.8.5",
         "dredd": "^11.2.15",
-        "openapi-to-postmanv2": "0.0.16"
+        "mermaid.cli": "^0.5.1",
+        "openapi-to-postmanv2": "0.0.16",
+        "redoc": "^2.0.0-rc.10",
+        "redoc-cli": "^0.8.5"
     },
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
@@ -103,6 +110,9 @@
         "bail": false
     },
     "auditProcessor": {
-        "whitelist": []
+        "whitelist": [
+            "1561",
+            "1690"
+        ]
     }
 }

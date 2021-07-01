@@ -3,7 +3,7 @@
 AWS (Same Availability Zone)
 ============================
 
-In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Same Availability Zone)*. For an *Across Availabilty Zone* deployment, see :ref:`aws`.
+In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS *(Same Availability Zone)*. For an *Across Availability Zone* deployment, see :ref:`aws`.
 
 AWS CFE Prerequisites
 ---------------------
@@ -46,6 +46,11 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
    6.       :ref:`update-revert`
    =======  ===================================================================
 
+Additional Information:
+
+- :ref:`aws-as3-same-az-example`
+- :ref:`aws-same-az-custom-cert`
+
 
 .. _aws-same-az-diagram:
 
@@ -58,6 +63,8 @@ This diagram shows an example of an *Same Availability Zone* failover with 3NIC 
 
 
 |
+
+.. Note:: In AWS, only Secondary IP addresses can be reassigned, so they are mapped to BIG-IP addresses that typically float (like VIPs, SNATs, etc.). Hence, AWS Primary IPs and their associated EIPs are used for the BIG-IP system's unique Self IPs (which also do not float) and are not remapped during failover.
 
 .. Note:: Management NICs/Subnets are not shown in this diagram.
 
@@ -343,5 +350,22 @@ See below for example Virtual Services created with `AS3 <https://clouddocs.f5.c
    :linenos:
 
 :fonticon:`fa fa-download` :download:`aws-as3-same-az.json <../../examples/toolchain/as3/aws-as3-same-az.json>`
+
+
+
+.. _aws-same-az-custom-cert:
+
+Specify a custom trusted certificate bundle for API Calls
+---------------------------------------------------------
+
+In AWS C2S environments, you may need the ability to specify a custom trusted certificate bundle for API calls to work. You can specify a custom trusted certificate by using the parameter ``trustedCertBundle``. Enter a string that specifies the BIG-IP file path to the certificate bundle to use when connecting to AWS API endpoints. For example:
+
+
+
+.. code-block:: json
+
+    {
+        "trustedCertBundle": "/config/ssl/ssl.crt/ca-bundle.crt",
+    }
 
 .. include:: /_static/reuse/feedback.rst

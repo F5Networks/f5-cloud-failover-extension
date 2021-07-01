@@ -22,10 +22,9 @@ These are the basic prerequisites for setting up CFE in Microsoft Azure.
 
 .. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the :ref:`performance-sizing` section for example times.
 
-
 |
 
-Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. 
+Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the `Known Issues <https://github.com/F5Networks/f5-cloud-failover-extension/issues>`_ and :ref:`faq`. To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
 
 .. include:: /_static/reuse/initial-config.rst
 
@@ -121,7 +120,7 @@ To create and assign a Managed Service Identity (MSI) you must have a role of `U
    .. image:: ../images/azure/AzureMSIAssignedToResourceGroup.png
 
 
-.. NOTE:: Certain resources may be deployed in a separate subscription, add role assignments for each subscription where resources are located.
+.. NOTE:: Certain resources may be deployed in a separate subscription. Add role assignments for each subscription where resources are located.
 
 
 .. _azure-rbac:
@@ -148,7 +147,7 @@ Below is an example Azure role definition with permissions required by CFE.
 .. IMPORTANT::
 
    - This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
-   - Certain resources such as the virtual network are commonly deployed in a separate resource group, ensure the correct scopes are applied to all applicable resource groups.
+   - Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.
    - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
 
 |
@@ -172,6 +171,14 @@ Add a storage account to your resource group, and tag with a name/value pair tha
 
 .. WARNING:: Ensure the required storage accounts do not have public access.
 
+.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+.. image:: ../images/azure/AzureStorageTags.png
+
+|
+
+|
+
 
 .. _azure-nictagging:
 
@@ -188,11 +195,10 @@ Tag the Network Interfaces in Azure
 
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
-Example:
+   For Example:
 
 
-.. image:: ../images/azure/AzureNICTags.png
-
+   .. image:: ../images/azure/AzureNICTags.png
 
 |
 
@@ -341,6 +347,11 @@ See below for example Virtual Services created with `AS3 <https://clouddocs.f5.c
 
 :fonticon:`fa fa-download` :download:`azure-as3.json <../../examples/toolchain/as3/azure-as3.json>`
 
+
+Azure Private Endpoints
+-----------------------
+
+To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
 
 
 .. include:: /_static/reuse/feedback.rst
