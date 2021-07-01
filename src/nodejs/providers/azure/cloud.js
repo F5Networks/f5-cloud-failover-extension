@@ -21,6 +21,7 @@ const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
 const StorageManagementClient = require('azure-arm-storage');
 const Storage = require('azure-storage');
+const IPAddressLib = require('ip-address');
 const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
 const constants = require('../../constants');
@@ -306,6 +307,13 @@ class Cloud extends AbstractCloud {
                     addresses.networkInterfaceId = null;
                     data.addresses.push(addresses);
                     localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
+
+                    const ipv6Addresses = nic.ipv6.ipAddress[0] || {};
+                    if ('privateIpAddress' in ipv6Addresses) {
+                        ipv6Addresses.networkInterfaceId = null;
+                        data.addresses.push(ipv6Addresses);
+                        localAddresses.push(nic.ipv6.ipAddress[0].privateIpAddress);
+                    }
                 });
             })
             .then(() => this._getRouteTables())
@@ -825,6 +833,40 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Filter local addresses - based on IPv4 or IPv6
+    *
+    * @param {Object} routePrefix - address prefix of route object
+    *
+    * @param {Object} localAddresses - local IP addresses on this device
+    *
+    * @returns {Object} {"0":"ace:cab:deca:deee::4","1":"ace:cab:deca:deef::4"}
+    */
+    _filterLocalAddresses(routePrefix, localAddresses) {
+        let ipVersion = '4';
+        let selfAddress = '';
+        const filteredLocalAddresses = [];
+
+        const routeAddress = new IPAddressLib.Address6(routePrefix.split('/')[0]);
+        if (routeAddress.isValid()) {
+            ipVersion = '6';
+        }
+
+        localAddresses.forEach((address) => {
+            if (ipVersion === '6') {
+                selfAddress = new IPAddressLib.Address6(address);
+            } else {
+                selfAddress = new IPAddressLib.Address4(address);
+            }
+            if (selfAddress.isValid()) {
+                this.logger.silly('Using ipVersion', ipVersion, 'with local address:', address);
+                filteredLocalAddresses.push(address);
+            }
+        });
+
+        return filteredLocalAddresses;
+    }
+
+    /**
      * Discover route operations (per group)
      *
      * @param {Object} localAddresses   - local addresses
@@ -865,8 +907,12 @@ class Cloud extends AbstractCloud {
                     routeGroup.routeAddressRanges
                 );
                 if (matchedAddressRange) {
+                    const filteredLocalAddresses = this._filterLocalAddresses(
+                        route.addressPrefix,
+                        localAddresses
+                    );
                     const nextHopAddress = this._discoverNextHopAddress(
-                        localAddresses,
+                        filteredLocalAddresses,
                         routeTable.tags,
                         matchedAddressRange.routeNextHopAddresses
                     );
