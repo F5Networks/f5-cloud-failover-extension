@@ -982,6 +982,96 @@ describe('Provider - AWS', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('should validate private+public address gets reassociated without Subnet information', () => {
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddress: '1.2.3.4',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.4'
+                            }
+                        ],
+                        TagSet: nicsTagSet
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-2',
+                        PrivateIpAddress: '1.2.3.5',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.5'
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.10',
+                                Association: {
+                                    PublicIp: '2.2.2.2'
+                                }
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.11',
+                                Association: {}
+                            }
+                        ],
+                        TagSet: nicsTagSet
+                    }
+                ]
+            };
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: []
+                    }
+                ]
+            };
+            provider.ec2.describeAddresses = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                });
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeNetworkInterfacesResponse);
+                    }
+                });
+            provider.ec2.describeSubnets = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.reject(new Error('No permissions'));
+                    }
+                });
+
+            return provider.updateAddresses({ localAddresses, failoverAddresses })
+                .then(() => {
+                    // assert correct unassign/assign call count
+                    assert.strictEqual(actualParams.unassign.private.length, 1);
+                    assert.strictEqual(actualParams.assign.private.length, 1);
+                    assert.strictEqual(actualParams.assign.public.length, 1);
+
+                    // assert private address gets reassociated properly
+                    assert.deepStrictEqual(actualParams.unassign.private, [{ NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
+                    assert.deepStrictEqual(actualParams.assign.private, [{ NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
+                    // assert public address gets reassociated properly
+                    assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
+                    assert.deepStrictEqual(actualParams.assign.public, [{
+                        AllocationId: 'allocation-id',
+                        NetworkInterfaceId: 'eni-1',
+                        PrivateIpAddress: '10.10.10.10',
+                        AllowReassociation: true
+                    }]);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         // validate
         ['f5_cloud_failover_vips', 'VIPS'].forEach((vipTagName) => {
             it(`should validate public address gets reassociated (using ${vipTagName} tag)`, () => {
