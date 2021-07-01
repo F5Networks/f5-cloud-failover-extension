@@ -77,6 +77,8 @@ class TelemetryClient {
 
     createTelemetryData(options) {
         const telemetryData = {
+            customerId: options.customerId,
+            failover: options.failover,
             product: {
                 version: constants.VERSION,
                 locale: '',
@@ -94,10 +96,7 @@ class TelemetryClient {
                 endpoint: options.endpoint,
                 userAgent: '',
                 result: options.result,
-                resultSummary: options.resultSummary,
-                resourceCount: options.resourceCount,
-                startTime: options.starttime,
-                endTime: new Date().toJSON()
+                resultSummary: options.resultSummary
             }
         };
         return telemetryData;

@@ -65,6 +65,7 @@ class Cloud extends AbstractCloud {
         ])
             .then((data) => {
                 this.projectId = data[0];
+                this.customerId = data[0];
                 this.accessToken = data[1].access_token;
                 this.instanceName = data[2];
                 this.instanceZone = data[3];

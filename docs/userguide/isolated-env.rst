@@ -3,11 +3,15 @@
 CFE in Isolated Environments
 ============================
 
-Running BIG-IP in isolated Virtual Private Clouds (VPCs) is a security best practice, but requires upfront foundational setup. This section shows how to support CFE on GCP when BIG-IP instances have no route to public internet.
+Running BIG-IP in isolated Virtual Private Clouds (VPCs) is a security best practice, but requires upfront foundational setup. This section shows how to support CFE when BIG-IP instances have no route to public internet on the following cloud environments:
 
+- :ref:`gcp-iso-env`
+- :ref:`azure-iso-env`
 
-How to use CFE on GCP when BIG-IP instances have no route to public internet
-----------------------------------------------------------------------------
+.. _gcp-iso-env:
+
+GCP
+---
 
 Overview
 ````````
@@ -103,11 +107,11 @@ See a fully functional example below. [#ie5]_ When executed, Terraform will crea
 |
 
 Steps
------
+`````
 
 1. Create or prepare a GCS bucket, or other HTTP host on the private network that can supply Cloud Libraries and supporting files as needed by BIG-IP and bastion host.
 
-2. Prepare Terraform config and variables setting files; you can make a copy of ``env/emes`` folder and modify the ``base.config`` and ``base.tfvars`` files to match your environment.
+2. Prepare Terraform config and variables setting files; make a copy of ``env/emes`` folder and modify the ``base.config`` and ``base.tfvars`` files to match your environment.
 
    - This example assumes you have setup and enabled IAM impersonation for a Terraform service account; set ``tf_sa_email`` variable to empty string ("") to use your own credentials or a service account via application-default credentials.
    - If you are using a GCS bucket to host RPMs, etc, use the scheme for encoding HTTP download requests as described at `Encoding URI path parts <https://cloud.google.com/storage/docs/request-endpoints#encoding>`_ and set ``cloud_libs_bucket`` variable to the name of the GCS bucket. Terraform will ensure the BIG-IP and bastion service accounts have read-only access to the bucket.
@@ -199,28 +203,34 @@ Steps
 
 5. Login and configure BIG-IP as needed. In this example, accessing the BIG-IP requires the use of the bastion host. Create an SSH tunnel through the bastion host and use tinyproxy to access instances.
 
-   i. Create an IAP session for SSH to the bastion and tunnel between port 8888 on local computer and bastion. Tinyproxy has been configured to be active on port 8888 too. This command will ensure that your key is forwarded to the bastion so you can SSH to a BIG-IP instance on it's management IP address.
+   a. Create an IAP session for SSH to the bastion and tunnel between port 8888 on local computer and bastion. Tinyproxy has been configured to be active on port 8888 too. This command will ensure that your key is forwarded to the bastion so you can SSH to a BIG-IP instance on it's management IP address.
 
       :: 
      
          gcloud compute ssh --project f5-gcs-4138-sales-cloud-sales --zone us-central1-f isolated-vpcs-bastion --tunnel-through-iap -- -A -L8888:127.0.0.1:8888
 
 
-   ii. Set your browser to proxy HTTP and HTTPS traffic through localhost:8888
+   b. Set your browser to proxy HTTP and HTTPS traffic through localhost:8888
 
        .. image:: ../images/gcp/gcp-private-endpoints3.png
          :scale: 50%
 
+      |     
 
-   iii. Retrieve the random admin password from Secret Manager.
+
+   c. Retrieve the random admin password from Secret Manager.
 
        .. image:: ../images/gcp/gcp-private-endpoints4.png
          :scale: 50%
 
+      |
 
-   iv. Login to a BIG-IP instance using the ``admin`` account and password from step 3.
+
+   d. Login to a BIG-IP instance using the ``admin`` account and password from step 3.
 
        .. image:: ../images/gcp/gcp-private-endpoints5.png
+
+      |       
 
 
 
@@ -301,7 +311,93 @@ Inputs
 |                            |              |           |                                 | is 1200.                                            |
 +----------------------------+--------------+-----------+---------------------------------+-----------------------------------------------------+
 
+|
 
+-----------------------------------------
+
+
+.. _azure-iso-env:
+
+Azure
+-----
+
+.. seealso::
+   :class: sidebar
+
+   - Azure documentation for `connecting to a private endpoint <https://docs.microsoft.com/en-us/azure/storage/common/storage-private-endpoints#connecting-to-private-endpoints>`_.
+
+Use this section to set up a private endpoint for accessing Azure APIs. Before you get started, deploy the ARM template and install CFE on both devices.
+
+1. Within Azure, convert the storage account from V1 to V2:
+
+   a. Select the storage account used by CFE.
+   
+   b. Go to the :guilabel:`Configuration` tab and select the :guilabel:`Upgrade` button. 
+
+   .. image:: ../images/azure/azure-private-endpoint-1.png
+
+
+   |   
+
+
+2. Go to :guilabel:`Firewalls and virtual networks` tab and select :guilabel:`Selected networks`. Ensure that the Exception *Allow trusted Microsoft services to access this storage account* is checked.
+
+   .. image:: ../images/azure/azure-private-endpoint-2.png
+      :width: 800
+
+   |
+
+3. Go to :guilabel:`Private Link Center > Private endpoints` to create a private endpoint.
+
+   .. image:: ../images/azure/azure-private-endpoint-3.png
+
+
+   |
+
+4. On the Resource configuration page change the :guilabel:`Target sub-resource` to :guilabel:`blob`.
+
+   .. image:: ../images/azure/azure-private-endpoint-4.png
+
+   |
+
+5. On the Configuration page, select the subnet in which you want the private endpoint to be created. Select the external subnet of the BIG-IPs. 
+
+   .. image:: ../images/azure/azure-private-endpoint-5.png
+     :scale: 50%
+ 
+
+   |
+
+   .. image:: ../images/azure/azure-private-endpoint-6.png
+    :scale: 50%
+
+   |
+
+
+6. The resource, once created, should show a private IP in the external subnet: 
+
+   .. image:: ../images/azure/azure-private-endpoint-7.png
+
+   |
+
+7. Restrict outbound connections to AzureResourceManager API and Azure’s Instance Metadata Service API. On the Network Security Group (NSG) of your external subnet, add the following rules: 
+
+   .. image:: ../images/azure/azure-private-endpoint-8.png
+
+   |
+
++----------------------------+--------------------------+--------+------------+-----------+
+| Source                     | Destination              | Port   | Protocol   | Action    |
++============================+==========================+========+============+===========+
+| Self IPs of both BIG-IPs   | ``169.254.169.254/32``,  | Any    | TCP        | Allow     |
+| in external subnet.        | ``13.69.67.32/28`` *     |        |            |           |
+|                            | ``13.69.114.0/23`` *     |        |            |           |
++----------------------------+--------------------------+--------+------------+-----------+
+| Self IPs of both BIG-IPs   | Service tag Internet     | Any    | TCP        | Deny      |
+| in external subnet.        |                          |        |            |           |
++----------------------------+--------------------------+--------+------------+-----------+
+
+.. Important:: Only use the destination addresses with asterisks(*) if you are in the West Europe region. If you are deploying elsewhere you can find the subnets to be referenced in the ServiceTags_Public_xxxxx.json file available for download in `Azure website <https://www.microsoft.com/en-us/download/details.aspx?id=56519>`_. 
 
 
 

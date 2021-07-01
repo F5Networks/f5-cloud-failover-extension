@@ -181,10 +181,14 @@ class FailoverClient {
             .then(() => this._sendTelemetry({
                 result: failoverStates.PASS,
                 resultSummary: 'Failover Successful',
-                resourceCount: {
-                    addresses: Object.keys(this.addressDiscovery.publicAddresses || {}).length
-                                + (this.addressDiscovery.interfaces || { associate: [] }).associate.length,
-                    routes: this.routeDiscovery.length
+                failover: {
+                    event: true,
+                    success: true,
+                    totalRoutes: (this.routeDiscovery.operations || []).length,
+                    totalIps: Object.keys(this.addressDiscovery.publicAddresses || {}).length
+                        + (this.addressDiscovery.interfaces || { associate: [] }).associate.length,
+                    startTime: this.startTimestamp,
+                    endTime: new Date().toJSON()
                 }
             }))
             .catch((err) => {
@@ -198,6 +202,13 @@ class FailoverClient {
                     }
                 })
                     .then(() => this._sendTelemetry({
+                        failover: {
+                            event: true,
+                            success: false,
+                            startTime: this.startTimestamp,
+                            endTime: new Date().toJSON(),
+                            errorMessage: util.stringify(err.message)
+                        },
                         result: failoverStates.FAIL,
                         resultSummary: util.stringify(err.message)
                     }))
@@ -269,6 +280,7 @@ class FailoverClient {
      */
     _parseConfig() {
         let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
+        const trustedCertBundle = util.getDataByKey(this.config, 'trustedCertBundle') || '';
         const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
         const routeAddressRanges = (util.getDataByKey(
             this.config, 'failoverRoutes.scopingAddressRanges'
@@ -297,6 +309,7 @@ class FailoverClient {
             addressTags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
             addressTagsRequired: util.getDataByKey(this.config, 'failoverAddresses.requireScopingTags'),
             routeGroupDefinitions,
+            trustedCertBundle,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
             subscriptions: (util.getDataByKey(
@@ -737,6 +750,8 @@ class FailoverClient {
 
     _sendTelemetry(options) {
         return telemetry.send(telemetry.createTelemetryData({
+            failover: options.failover,
+            customerId: this.cloudProvider.customerId,
             startTime: this.startTimestamp,
             action: this.callerAttributes.httpMethod,
             endpoint: this.callerAttributes.endpoint || '',
