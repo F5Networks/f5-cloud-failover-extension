@@ -280,6 +280,7 @@ class FailoverClient {
      */
     _parseConfig() {
         let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
+        const trustedCertBundle = util.getDataByKey(this.config, 'trustedCertBundle') || '';
         const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
         const routeAddressRanges = (util.getDataByKey(
             this.config, 'failoverRoutes.scopingAddressRanges'
@@ -308,6 +309,7 @@ class FailoverClient {
             addressTags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
             addressTagsRequired: util.getDataByKey(this.config, 'failoverAddresses.requireScopingTags'),
             routeGroupDefinitions,
+            trustedCertBundle,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
             subscriptions: (util.getDataByKey(

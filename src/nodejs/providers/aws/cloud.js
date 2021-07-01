@@ -19,6 +19,9 @@
 const AWS = require('aws-sdk');
 const IPAddressLib = require('ip-address');
 const PROXY = require('https-proxy-agent');
+const fs = require('fs');
+const https = require('https');
+const url = require('url');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
@@ -50,9 +53,24 @@ class Cloud extends AbstractCloud {
                 const config = {
                     region: this.region
                 };
+
+                let opts = {};
                 if (this.proxySettings) {
-                    config.httpOptions = { agent: new PROXY(this._formatProxyUrl(this.proxySettings)) };
+                    opts = url.parse(this._formatProxyUrl(this.proxySettings));
                 }
+                if (this.trustedCertBundle) {
+                    if (fs.existsSync(this.trustedCertBundle)) {
+                        const certs = fs.readFileSync(this.trustedCertBundle);
+                        opts.rejectUnauthorized = true;
+                        opts.ca = certs;
+                    }
+                }
+                if (this.proxySettings) {
+                    config.httpOptions = { agent: new PROXY(opts) };
+                } else {
+                    config.httpOptions = { agent: new https.Agent(opts) };
+                }
+
                 AWS.config.update(config);
                 this.ec2 = new AWS.EC2();
                 this.s3 = new AWS.S3();
@@ -293,7 +311,8 @@ class Cloud extends AbstractCloud {
         };
         return Promise.all([
             this._getElasticIPs({ publicAddress: providedAddress.scopingAddress }),
-            this._listNics({ tags: this.addressTags })
+            this._listNics({ tags: this.addressTags }),
+            this._getSubnets()
         ])
             .then((results) => {
                 const eips = results[0].Addresses;
@@ -443,7 +462,8 @@ class Cloud extends AbstractCloud {
         return Promise.all([
             this._getElasticIPs({ tags: this.addressTags }),
             this._getPrivateSecondaryIPs(),
-            this._listNics({ tags: this.addressTags })
+            this._listNics({ tags: this.addressTags }),
+            this._getSubnets()
         ])
             .then((results) => {
                 const eips = results[0].Addresses;
@@ -1042,6 +1062,33 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Parse Subnets - figure out which subnets are ours
+    *
+    * @param {Object} nics              - nics
+    * @param {Object} subnets           - all subnets
+    *
+    * @returns {Object} subnet
+    */
+    _parseSubnets(nic, subnets) {
+        let foundSubnet = {};
+        this.logger.debug('_parseSubnets filtering on list of subnets');
+        this.logger.debug('_parseSubnets incoming nic SubnetId', nic.SubnetId);
+
+        /* eslint-disable-next-line no-restricted-syntax */
+        for (const subnet of subnets.Subnets) {
+            this.logger.debug('_parseSubnets SubnetId nic', nic.SubnetId);
+            this.logger.debug('_parseSubnets SubnetId subnet', subnet.SubnetId);
+            if (nic.SubnetId === subnet.SubnetId) {
+                this.logger.debug('_parseSubnets found subnet');
+                foundSubnet = subnet;
+                break;
+            }
+        }
+
+        return foundSubnet;
+    }
+
+    /**
      * Check for any NIC operations required
      *
      * @param {Array} myNic             - 'my' NIC object
@@ -1051,8 +1098,39 @@ class Cloud extends AbstractCloud {
      * @returns {Object} { 'disassociate': [], 'association: [] }
      */
     _checkForNicOperations(myNic, theirNic, failoverAddresses) {
+        const subnets = this.subnets;
+        let mySubnetCidr;
+        let theirSubnetCidr;
+        let foundSubnetInformation = false;
+        if (subnets === undefined) {
+            this.logger.debug('No subnets found, possibly due to missing permissions');
+        } else if (!Object.keys(subnets).length) {
+            this.logger.debug('No subnets found, possibly due to missing permissions');
+        } else if (!subnets.Subnets.length) {
+            this.logger.debug('No subnets found, possibly due to missing permissions');
+        } else {
+            foundSubnetInformation = true;
+            this.logger.debug('_checkForNicOperations found subnets', subnets);
+            const mySubnet = this._parseSubnets(myNic, subnets);
+            const theirSubnet = this._parseSubnets(theirNic, subnets);
+
+            this.logger.silly('_checkForNicOperations found mySubnet', mySubnet);
+            this.logger.silly('_checkForNicOperations found theirSubnet', theirSubnet);
+
+            mySubnetCidr = new IPAddressLib.Address4(mySubnet.CidrBlock);
+            theirSubnetCidr = new IPAddressLib.Address4(theirSubnet.CidrBlock);
+
+            this.logger.silly('_checkForNicOperations calc mySubnetCidr', mySubnetCidr);
+            this.logger.silly('_checkForNicOperations calc theirSubnetCidr', theirSubnetCidr);
+        }
+
         const addressesToTake = [];
+        const myNicAddress = myNic.PrivateIpAddress;
+        const theirNicAddress = theirNic.PrivateIpAddress;
         const theirNicAddresses = theirNic.PrivateIpAddresses;
+
+        this.logger.silly('_checkForNicOperations found myNicAddress', myNicAddress);
+        this.logger.silly('_checkForNicOperations found theirNicAddress', theirNicAddress);
 
         // check if Ipv6Address exists and if so add it to the list
         this.logger.debug('_checkForNicOperations performing ipv6 check');
@@ -1070,7 +1148,41 @@ class Cloud extends AbstractCloud {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
                 this.logger.silly(`failoverAddress: ${util.stringify(failoverAddresses[t])}`);
                 this.logger.silly(`theirNicAddress: ${util.stringify(theirNicAddresses[i])}`);
-                if (theirNicAddresses[i].PrivateIpAddress
+
+                this.logger.silly(`theirNicAddresses: ${theirNicAddress}`);
+                this.logger.silly(`myNicAddress: ${myNicAddress}`);
+
+                const theirAddress = new IPAddressLib.Address4(theirNicAddress);
+                const myAddress = new IPAddressLib.Address4(myNicAddress);
+
+                if (foundSubnetInformation) {
+                    this.logger.silly(`theirAddress isInSubnet: ${theirAddress.isInSubnet(mySubnetCidr)}`);
+                    this.logger.silly(`myAddress isInSubnet: ${myAddress.isInSubnet(theirSubnetCidr)}`);
+
+                    if (theirAddress.isInSubnet(mySubnetCidr) && myAddress.isInSubnet(theirSubnetCidr)) {
+                        if (theirNicAddresses[i].PrivateIpAddress
+                            && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                            && theirNicAddresses[i].Primary !== true) {
+                            this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
+
+                            addressesToTake.push({
+                                address: theirNicAddresses[i].PrivateIpAddress,
+                                publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp'),
+                                ipVersion: 4
+                            });
+                        } else if (theirNicAddresses[i].Ipv6Address
+                            && util.validateIpv6Address(failoverAddresses[t])
+                            && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                            this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
+                            addressesToTake.push({
+                                address: failoverAddresses[t],
+                                ipVersion: 6
+                            });
+                        }
+                    } else {
+                        this.logger.warning('Assumed same-net operation, but subnet CIDRs do not match, therefore no private IP disassociation will happen');
+                    }
+                } else if (theirNicAddresses[i].PrivateIpAddress
                     && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
                     && theirNicAddresses[i].Primary !== true) {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
@@ -1416,6 +1528,32 @@ class Cloud extends AbstractCloud {
 
         return this._retrier(func, [params])
             .catch(err => Promise.reject(err));
+    }
+
+    /**
+     * Get full list of available EC2 subnets, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _getSubnets() {
+        this.logger.debug('Trying to get subnets');
+        const func = () => this.ec2.describeSubnets().promise();
+        return this._retrier(func, [], { maxRetries: 1 })
+            .then((subnets) => {
+                if (!subnets.Subnets.length) {
+                    this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
+                    this.subnets = subnets;
+                    return Promise.resolve();
+                }
+                this.subnets = subnets;
+                return Promise.resolve();
+            })
+            .catch(() => {
+                this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
+                Promise.resolve();
+            });
     }
 
     /**

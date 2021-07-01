@@ -22,6 +22,8 @@ Index
 - :ref:`faq-routes-updated`
 - :ref:`faq-default-route`
 - :ref:`faq-same-az`
+- :ref:`faq-multi-az-gcp`
+- :ref:`faq-azure-vnet-separate-resource-group`
 - :ref:`faq-azure-api`
 - :ref:`faq-azure-static-allocation`
 - :ref:`faq-tag`
@@ -30,6 +32,7 @@ Index
 - :ref:`faq-telemetry`
 - :ref:`faq-auto-phone-home`
 - :ref:`faq-routetag`
+- :ref:`faq-persistent-config`
 - :ref:`faq-troubleshoot`
 - :ref:`faq-report`
 
