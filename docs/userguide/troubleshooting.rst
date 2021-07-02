@@ -7,13 +7,33 @@ Use this section to read about known issues and for common troubleshooting steps
 Cloud Failover Extension general troubleshooting tips
 -----------------------------------------------------
 
-- Examine the restnoded failure log at ``/var/log/restnoded/restnoded.log``. This is where Cloud Failover Extension records error messages.
-- To see all log messages, make sure to set the log level to silly.
 - Examine the REST response:
-
-  - A 400-level response will carry an error message.
+  - A 400-level response will carry an error message. See Troubleshooting Index below.
   - If this message is missing, incorrect, or misleading, please let us know by filing a |github|.
 
+- If CFE is installed and configured but not functioning as expected, use your favorite REST client to run these steps on the *Standby* instance: 
+
+.. code-block:: bash
+# Example running locally on the Standby instance itself.
+
+# Set Logging to Silly if not already
+# Download the config
+curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare > cfe.json | jq.
+# Use favorite editor to edit the config to enable debug logging if not already enabled and repost.
+vim cfe.json
+curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+
+# Reset Statefile
+curl -su admin: -X POST -d '{"resetStateFile":true}' {http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
+
+# Validate: Use addtional CFE endpoints to run Inspect and Dry-Run on the Standby Instance
+curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+
+# Look at Debug Logs
+tail -f /var/log/restnoded/restnoded.log
+
+|
 
 Troubleshooting Index
 ---------------------
@@ -77,6 +97,7 @@ Verifying IP addresses and Routes for Failover
 - To examine the failover objects (IP addresses and routes) that are associated with any given BIG-IP device, you can do a GET request on /inspect endpoint of the device to get a list of failover objects.
 
 |
+
 
 .. |github| raw:: html
 

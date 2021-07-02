@@ -51,40 +51,78 @@ Components of the Declaration
 
 This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
 
+IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
+   * Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag). This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
+   * Explicit Configuration: This involves defining external resources by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
+        * NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
 
 Base components
 ```````````````
-The first few lines of your declaration are a part of the base components and define top-level options. When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
+The first few lines of your declaration are a part of the base components and are required. The
+
+First you define the environment in which Cloud Failover will be running.
 
 .. code-block:: json
-   :linenos:
-
     {
         "class": "Cloud_Failover",
         "environment": "aws",
-        "externalStorage": {
-             "scopingTags": {
-                 "f5_cloud_failover_label": "mydeployment"
-            }
-        },
-
-
 
 |
 
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Parameter          | Options                        | Description/Notes                                                                                                                                                            |
 +====================+================================+==============================================================================================================================================================================+
-| class              | Cloud_Failover                 | Describes top-level Cloud Failover options. Do not change this value.                                                                                                        |
+| class              | Cloud_Failover                 | Top-level Cloud Failover class. Do not change this value.                                                                                                        |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| environment        | aws, gcp, azure                | This value defines which cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                        |
+| environment        | aws, gcp, azure                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                        |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| externalStorage    | -                              | This is a json object. Do not change this value.                                                                                                                             |
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| scopingTags        | -                              | These key/value pairs have to be the same as the tags you assign to the external storage in your cloud environment.                                                          |
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
+Next you define the external storage Cloud Failover will use for its state file. 
+
+Discovery via Tag example:
+
+.. code-block:: json
+
+        "externalStorage": {
+            "scopingTags": {
+                 "f5_cloud_failover_label": "mydeployment"
+            }
+        },
+
+|
+
+Explicit Configuration example:
+
+.. code-block:: json
+
+        "externalStorage":{
+            "scopingName": "CloudFailoverBucket"
+        },
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The parameter ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+
+|
+
++--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Parameter          | Options                        | Description/Notes                                                                                                                                                                               |
++====================+================================+=================================================================================================================================================================================================+
+| externalStorage    | -                              | Provide scopingTags or scopingName object to define Cloud Failover's storage. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of what storage objects are used.      |
++--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| scopingTags        | -                              | Provide the key/value pair that match the cloud tags you assigned to the external storage in your cloud environment.                                                                            |
++--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| scopingName        | -                              | Provide the name of external storage in your cloud environment.                                                                                                                                 |
++--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
+
+The following base components are optional.
 
 .. _base_comps-logging:
 
@@ -92,25 +130,25 @@ Logging
 ```````
 
 Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
-The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'. This controls object is sent via a POST /declare.
+The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'.
 
 .. code-block:: json
 
-    {
         "controls": {
             "class": "Controls",
             "logLevel": "info"
         }
-    }
 
 |
 
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Parameter          | Options                                      | Description/Notes                                                                                                                                              |
 +====================+==============================================+================================================================================================================================================================+
-| class              | Controls                                     | Describes top-level Controls options. Do not change this value.                                                                                                |
+| controls           | -                                            | Provide various controls options                                                                                                                                           |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| logLevel           | silly, verbose, debug, info, warning, error  | The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.                                             |
+| class              | Controls                                     | Controls class. Do not change this value.                                                                                                                                            |
++--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.           |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
@@ -126,21 +164,27 @@ As part of floating object mapping validation, this feature is added to have the
 
 .. code-block:: json
 
-      "retryFailover": {
-         "enabled": true,
-         "interval": 2
-       }
+        "retryFailover": {
+            "enabled": true,
+            "interval": 2
+        }
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The parameter ``retryFailover`` is available in Cloud Failover Extension v1.6.0 and later.
 
 |
 
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Parameter          | Options                        | Description/Notes                                                                                                                                              |
 +====================+================================+================================================================================================================================================================+
-| retryFailover      | -                              | This is a json object. Do not change this value.                                                                                                               |
+| retryFailover      | -                              | Provide retry options.                                                                                                           |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| enabled            | true, false                    | The default value is **false**                                                                                                                                 |
+| enabled            | true, false                    | Specify if retrying failover is enabled. The default value is **false**                                                                                                                                 |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| interval           | -                              | Interval unit is in minutes.                                                                                                                                   |
+| interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                                                                   |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
@@ -148,32 +192,95 @@ As part of floating object mapping validation, this feature is added to have the
 
 Failover Addresses
 ``````````````````
-The next lines of the declaration set the failover addresses.
+The next lines of the declaration set the address failover functionality.
 
 .. code-block:: json
-   :linenos:
-   :lineno-start: 9
+
+        "failoverAddresses": {
+            "enabled": true,
+
+|
+
+.. table::
+
+   ======================== ======================= ===================================================================
+   Parameter                Options                 Description/Notes
+   ======================== ======================= ===================================================================
+   failoverAddresse         -                       Provide **address** failover configurations.
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   enabled                  true,false              Enables or disables the address failover functionality. 
+   ======================== ======================= ===================================================================
+
+|
+
+
+Discovery via Tag example:
+
+.. code-block:: json
 
         "failoverAddresses": {
             "enabled": true,
             "scopingTags": {
                 "f5_cloud_failover_label": "mydeployment"
             }
-        }
-      },
+        },
+
+|
+
+Explicit Configuration example:
+
+.. code-block:: json
+
+        "failoverAddresses":{
+            "enabled":true,
+            "scopingTags": {
+                "f5_cloud_failover_label": "mydeployment"
+            }
+            "addressGroupDefinitions": [
+                {
+                    "type": "networkInterfaceAddress",
+                    "scopingAddress": "10.0.1.1"
+                },
+                {
+                    "type": "elasticIpAddress",
+                    "scopingAddress": "23.1.2.3",
+                    "vipAddresses": [
+                        "10.0.12.116",
+                        "10.0.22.116"
+                    ]
+                }
+            ]
+        },
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The parameter ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
 
 |
 
 
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                        |  Description/Notes                                                                                                                                               |
-+====================+================================+==================================================================================================================================================================+
-| failoverAddresses  | -                              | This is a json object. Do not change this value.                                                                                                                 |
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| enabled            | true, false                    | Enables or disables the failoverAddress functionality.                                                                                                           |
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| scopingTags        | -                              | These key/value pairs have to be the same as the tags you assign to the addresses in your cloud environment.                                                     |
-+--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+.. table::
+
+   ======================== ======================= ===================================================================
+   Parameter                Options                 Description/Notes
+   ======================== ======================= ===================================================================
+   scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details on required additional tags.
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of address types. 
+   ======================== ======================= ===================================================================
+
+|
+
+IMPORTANT: In AWS, the scopingTags (or Deployment Scoping tag) is always required as it is leveraged internally to map the BIG-IP's own NICs. 
+
+        "failoverAddresses":{
+            "scopingTags": {
+                "f5_cloud_failover_label": "mydeployment"
+            }
+
+Wether you use Explicit Config option to define external resources or not or even if just enabling route failover (ex. where failoverAddresses has "enabled: false" ), you need to configure ScopingTags and tag your NICs or instances.  
 
 
 
@@ -181,13 +288,33 @@ The next lines of the declaration set the failover addresses.
 
 Failover Routes
 ```````````````
-The next lines of the declaration set the failover routes. ``scopingAddressRanges`` is used to define which routes (prefixes) to update.
+The next lines of the declaration set the route failover functionality. 
 
 .. code-block:: json
-   :linenos:
-   :lineno-start: 15
+
+         "failoverRoutes": {
+            "enabled": true,
+
+|
+
+.. table::
+
+   ======================== ======================= ===================================================================
+   Parameter                Options                 Description/Notes
+   ======================== ======================= ===================================================================
+   failoverRoutes           -                       Provide **route** failover configurations.
+   ------------------------ ----------------------- -------------------------------------------------------------------
+   enabled                  true,false              Enables or disables the route failover functionality. If the failoverAddresses section is provided, the default is **true**.
+   ======================== ======================= ===================================================================
+
+|
 
 
+
+Discovery via Tag example:
+
+
+.. code-block:: json
          "failoverRoutes": {
             "enabled": true,
             "scopingTags": {
@@ -196,6 +323,9 @@ The next lines of the declaration set the failover routes. ``scopingAddressRange
             "scopingAddressRanges": [
                {
                   "range": "192.168.1.0/24"
+               },
+               {
+                  "range": "192.168.1.1/24"
                }
             ],
             "defaultNextHopAddresses": {
@@ -205,43 +335,27 @@ The next lines of the declaration set the failover routes. ``scopingAddressRange
 
 |
 
-The route failover feature provides various options for determining which routes or route tables to manage, from discovering them via cloud tags to specifying them directly in the configuration itself.
-
-For example, you can add tags to your routes or route table(s) to determine which ones to operate on and which interfaces (or nexthop Self-IP addresses) to point your routes to. Cloud Failover then uses:
-
-
-- ``scopingTags`` to search for your routes or route table(s). For example, you add a tag ``"f5_cloud_failover_label": "mydeployment"`` to any route table(s) you want to manage.
-- ``"discoveryType": "routeTag"`` to look for an additional tag which contains which nexthop Self-IP addresses it should point the routes to.
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The parameter ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
-
-|
-
-Alternatively, you can explicitly provide the route tables and nexthop self-IP addresses in the configuration. Starting with Release v1.5.0, the parameter ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
+Explicit Configuration example:
 
 
 .. code-block:: json
-   :linenos:
-   :lineno-start: 15
 
-         "failoverRoutes":{
-            "enabled":true,
-            "routeGroupDefinitions":[
+         "failoverRoutes": {
+            "enabled": true,
+            "routeGroupDefinitions": [
                {
-                  "scopingName":"rtb-11111111111111111",
-                  "scopingAddressRanges":[
+                  "scopingName": "rtb-11111111111111111",
+                  "scopingAddressRanges": [
                      {
-                        "range":"192.168.1.0/24",
+                        "range": "192.168.1.0/24",
                      },
                      {
-                        "range":"192.168.1.1/24"
+                        "range": "192.168.1.1/24"
                      }
                   ],
-                  "defaultNextHopAddresses":{
-                     "discoveryType":"static",
-                     "items":[
+                  "defaultNextHopAddresses": {
+                     "discoveryType": "static",
+                     "items": [
                         "192.0.2.10",
                         "192.0.2.11"
                      ]
@@ -254,20 +368,25 @@ Alternatively, you can explicitly provide the route tables and nexthop self-IP a
 
 |
 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The parameter ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
+
+|
+
+The parameter ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
+
+
 .. table::
 
    ======================== ======================= ===================================================================
    Parameter                Options                 Description/Notes
    ======================== ======================= ===================================================================
-   failoverRoutes           -                       This is a json object. Do not change this value.
-   ------------------------ ----------------------- -------------------------------------------------------------------
-   enabled                  true,false              Enables or disables the route failover functionality.
-   ------------------------ ----------------------- -------------------------------------------------------------------
-   scopingTags              -                       Key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option )
+   scopingTags              -                       Provide a key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option )
    ------------------------ ----------------------- -------------------------------------------------------------------
    scopingAddressRanges     -                       A list of destination routes (prefixes) to update in the event of failover.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   defaultNextHopAddresses  -                       This json object is the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
+   defaultNextHopAddresses  -                       This the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
    ------------------------ ----------------------- -------------------------------------------------------------------
    discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self-IPs associated with those NICs. You can either define the Self-IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
 
@@ -291,14 +410,17 @@ Endpoints
 
 - `Info <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information>`_: use this endpoint to get information on CFE, such as the version number.
 
+- `Inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.
+
 - `Reset <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Reset>`_: use this endpoint to reset the failover state file.
 
 - `Trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: use this endpoint to trigger failover.
 
+
+
 For more information see the `API Reference <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html>`_.
 
 
-.. include:: /_static/reuse/feedback.rst
 
 
 Using a Proxy
@@ -323,6 +445,44 @@ Configuring BIG-IP proxy configuration:
 |
 
 
+Validation
+----------
+
+On any initial configuration or re-configuration, it is recommended you validate Cloud Failover Extension's configuration to confirm it can communicate with the cloud environment and what actions will be performed.
+
+On the **Standby** instance:
+
+1. Inspect the configuration: To confirm all the BIG-IPs interfaces have been identified.
+
+Use the /inspect endpoint: 
+- `Inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.
+
+For example:
+.. code-block:: bash
+curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+|
+
+2. Peform a Dry-Run of the Failover: To confirm what addresses or routes have been identified and will be remapped. 
+
+Use the /trigger endpoint with '{"action":"dry-run"}' payload: 
+- `Trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: use this endpoint to trigger failover.
+
+For example:
+.. code-block:: bash
+curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+|
+
+If you run into any issues or errors, see the Troubleshooting section for more details.
+
+
+
+ 
+
+
+
+
+
+
 Cloud Environments
 ------------------
 
@@ -336,3 +496,6 @@ Choose the cloud environment you are working in to continue implementing CFE:
    aws
    gcp
    azure
+
+
+.. include:: /_static/reuse/feedback.rst

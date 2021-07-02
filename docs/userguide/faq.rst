@@ -276,7 +276,8 @@ IP configurations may reassociate with the NIC in a different order, but all pri
 
 Do I always have to tag my resources?
 `````````````````````````````````````
-Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE configuration.
+
+Beginning with version v1.7.0, there are two options for configuring CFE. With the explicit configuration option, tagging external resources is no longer required. However, tagging BIG-IPs own NICs own cloud resources may still be required. See :ref:`declaration-components` and your cloud providers specific configuration sections for more details.
 
 
 -----------------------------------------
