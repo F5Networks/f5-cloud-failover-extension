@@ -52,9 +52,9 @@ Components of the Declaration
 This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
 
 IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
-   * Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag). This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
+   * Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on your resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
    * Explicit Configuration: This involves defining external resources by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
-        * NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
+        NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
 
@@ -125,67 +125,6 @@ When you POST a declaration, depending on the complexity of your declaration and
 The following base components are optional.
 
 .. _base_comps-logging:
-
-Logging
-```````
-
-Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
-The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'.
-
-.. code-block:: json
-
-        "controls": {
-            "class": "Controls",
-            "logLevel": "info"
-        }
-
-|
-
-+--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                                      | Description/Notes                                                                                                                                              |
-+====================+==============================================+================================================================================================================================================================+
-| controls           | -                                            | Provide various controls options                                                                                                                                           |
-+--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| class              | Controls                                     | Controls class. Do not change this value.                                                                                                                                            |
-+--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.           |
-+--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
-
-See :ref:`logging-ref` for more details and example output levels.
-
-
-.. _base_comps-retry:
-
-
-Retry Failover Interval
-```````````````````````
-As part of floating object mapping validation, this feature is added to have the failover trigger periodically on a user-defined interval.
-
-.. code-block:: json
-
-        "retryFailover": {
-            "enabled": true,
-            "interval": 2
-        }
-
-|
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The parameter ``retryFailover`` is available in Cloud Failover Extension v1.6.0 and later.
-
-|
-
-+--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                        | Description/Notes                                                                                                                                              |
-+====================+================================+================================================================================================================================================================+
-| retryFailover      | -                              | Provide retry options.                                                                                                           |
-+--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| enabled            | true, false                    | Specify if retrying failover is enabled. The default value is **false**                                                                                                                                 |
-+--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                                                                   |
-+--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 .. _failover-addresses:
@@ -404,6 +343,68 @@ The parameter ``routeGroupDefinitions`` provides more granular per-route table o
 |
 
 
+Logging
+```````
+
+Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
+The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'.
+
+.. code-block:: json
+
+        "controls": {
+            "class": "Controls",
+            "logLevel": "info"
+        }
+
+|
+
++--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Parameter          | Options                                      | Description/Notes                                                                                                                                              |
++====================+==============================================+================================================================================================================================================================+
+| controls           | -                                            | Provide various controls options                                                                                                                                           |
++--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| class              | Controls                                     | Controls class. Do not change this value.                                                                                                                                            |
++--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.           |
++--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
+See :ref:`logging-ref` for more details and example output levels.
+
+
+.. _base_comps-retry:
+
+
+Retry Failover Interval
+```````````````````````
+As part of floating object mapping validation, this feature is added to have the failover trigger periodically on a user-defined interval.
+
+.. code-block:: json
+
+        "retryFailover": {
+            "enabled": true,
+            "interval": 2
+        }
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The parameter ``retryFailover`` is available in Cloud Failover Extension v1.6.0 and later.
+
+|
+
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Parameter          | Options                        | Description/Notes                                                                                                                                              |
++====================+================================+================================================================================================================================================================+
+| retryFailover      | -                              | Provide retry options.                                                                                                           |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| enabled            | true, false                    | Specify if retrying failover is enabled. The default value is **false**                                                                                                                                 |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                                                                   |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
 Endpoints
 ---------
 
@@ -473,13 +474,6 @@ curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/sha
 |
 
 If you run into any issues or errors, see the Troubleshooting section for more details.
-
-
-
- 
-
-
-
 
 
 
