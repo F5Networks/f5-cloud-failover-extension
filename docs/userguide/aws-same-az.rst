@@ -36,11 +36,12 @@ Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting s
 
             - :ref:`aws-same-az-iam-example`
 
-   4.       :ref:`aws-same-az-tag-objects`
+   4.       :ref:`aws-same-az-define-objects`
 
-            - :ref:`aws-same-az-tag-storage`
-            - :ref:`aws-same-az-tag-addresses`
-            - :ref:`aws-same-az-tag-routes`
+            - :ref:`aws-same-az-tag-nics`
+            - :ref:`aws-same-az-define-storage`
+            - :ref:`aws-same-az-define-addresses`
+            - :ref:`aws-same-az-define-routes`
 
    5.       Modify and POST the :ref:`aws-same-az-example`
    6.       :ref:`update-revert`
@@ -74,13 +75,13 @@ Example AWS Declaration
 -----------------------
 This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
-.. literalinclude:: ../../examples/declarations/aws-same-az.json
+.. literalinclude:: ../../examples/declarations/aws-same-az-1.7.0.json
    :language: json
    :caption: Example AWS Declaration with Single Routing Table
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`aws-same-az.json <../../examples/declarations/aws-same-az.json>`
+:fonticon:`fa fa-download` :download:`aws-same-az.json <../../examples/declarations/aws-same-az-1.7.0.json>`
 
 |
 
@@ -135,7 +136,7 @@ IAM Role Example Declaration
 ````````````````````````````
 Below is an example F5 policy that includes IAM roles.
 
-.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
+.. IMPORTANT:: This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices. See your cloud provider resources for IAM Best Practices (for example, `IAM Best Practices <https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html>`_).
 
 .. code-block:: json
 
@@ -203,50 +204,40 @@ Below is an example F5 policy that includes IAM roles.
 
 |
 
-.. _aws-same-az-tag-objects:
+.. _aws-same-az-define-objects:
 
-Tag your AWS Network Infrastructure Objects
+Define AWS Network Infrastructure Objects
 -------------------------------------------
 
-Tag your infrastructure with the the keys and values that you will send in your CFE declaration.
+Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
 
-.. _aws-same-az-tag-storage:
-
-Tag the Storage Account in AWS
-``````````````````````````````
-Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s). Then add tags for a key-value pair that will correspond to the key-value tag in the `externalStorage.scopingTags` section of the CFE declaration.
-
-.. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access.
-
-#. Sign in to the AWS Management Console and open the Amazon S3 console.
-
-#. In the :guilabel:`Bucket name` list, choose the name of the bucket.
-
-#. In the :guilabel:`Name` list, choose the name of the object you want to add tags to.
-
-#. Select :guilabel:`Properties`.
-
-#. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`.
-
-#. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
-
-|
-
-.. _aws-same-az-tag-addresses:
+.. _aws-same-az-tag-nics:
 
 Tag the Network Interfaces in AWS:
 ``````````````````````````````````
 
-#. Create two sets of tags for Network Interfaces:
+IMPORTANT: Tagging the NICs is required for all AWS deployments regardless of configuration option you chose to define external resources.
+
+
+#. Create two sets of tags for Network Interfaces. 
 
    - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+    .. code-block:: json
+    "failoverAddresses":{
+        "scopingTags": {
+            "f5_cloud_failover_label": "mydeployment"
+        },
+    |
 
      .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
 
    - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
 
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
+
+.. image:: ../images/aws/AWS-NetworkInterface-Tags.png
 
 
 #. Disable the original built-in scripts (``/usr/libexec/aws/aws-failover-tgactive.sh, /usr/libexec/aws/aws-failover-tgrefresh.sh``) from a BIG-IP shell, either manually or using automation:
@@ -260,51 +251,158 @@ Tag the Network Interfaces in AWS:
 
 |
 
-.. _aws-same-az-tag-routes:
 
-Tag the Route Tables in AWS
+.. _aws-same-az-define-storage:
+
+Deifine the Storage Account
 ```````````````````````````
 
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s).
 
-   Use these steps for CFE version 1.5.0 and newer.
+.. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access. See your cloud provider for best practices.
 
-The parameter ``routeGroupDefinitions`` was added in CFE v1.5.0. It allows more granular route-table operations and tagging the route table is not required. See :ref:`failover-routes` for more information. 
+
+Update/modify the Cloud Failover scopingName value with name of your S3 bucket:
 
 .. code-block:: json
 
-  "failoverRoutes":{
-      "enabled":true,
-      "routeGroupDefinitions":[
-          {
-            "scopingName":"rtb-11111111111111111",
-            "scopingAddressRanges":[
-                {
-                  "range":"0.0.0.0/0"
-                }
-            ],
-            "defaultNextHopAddresses":{
-                "discoveryType":"static",
-                "items":[
-                  "10.0.13.11",
-                  "10.0.13.12"
-                ]
-            }
-          }
+  "externalStorage":{
+    "scopingName": "yourS3BucketforCloudFailover"
+  },
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   scopingName added in CFE version 1.7.0.
+
+
+Or if using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+
+.. code-block:: json
+
+  "externalStorage":{
+     "scopingTags":{
+        "f5_cloud_failover_label":"mydeployment"
+     }
+  },
+
+#. Sign in to the AWS Management Console and open the Amazon S3 console.
+
+#. In the :guilabel:`Bucket name` list, choose the name of the bucket.
+
+#. In the :guilabel:`Name` list, choose the name of the object you want to add tags to.
+
+#. Select :guilabel:`Properties`.
+
+#. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`.
+
+#. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
+
+.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+.. image:: ../images/aws/AWS-S3-Tags.png
+
+|
+
+
+.. _aws-define-addresses:
+
+Define the Failover Addresses:
+````````````````````````````````
+
+Update/modify the addressGroupDefiniitions list to match the addresses in your deployment. In the Same AZ example below, there are two services defined on secondary IP adddress:
+
+   1. Virtual Service 1 (10.0.12.101): Mapped to an AWS secondary IP (10.0.12.101)
+   2. Virtual Service 2 (10.0.12.102): Mapped to an AWS secondary IP (10.0.12.102) 
+
+.. code-block:: json
+
+  "failoverAddresses":{
+     "enabled":true,
+     "scopingTags": {
+        "f5_cloud_failover_label": "mydeployment"
+     },
+      "addressGroupDefinitions": [
+        {
+          "type": "networkInterfaceAddress",
+          "scopingAddress": "10.0.12.101"
+        },
+        {
+          "type": "networkInterfaceAddress",
+          "scopingAddress": "10.0.12.102"
+        }
       ]
-    }
+  },
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   addressGroupDefinitions was added in CFE version 1.7.0.
+
+
+Or if using the Discovery via Tag option:
+
+.. code-block:: json
+
+  "failoverAddresses":{
+     "enabled":true,
+     "scopingTags":{
+        "f5_cloud_failover_label":"mydeployment"
+     }
+  },
+
+|
+
+which will look for BIG-IPs Virtual Addresses (on traffic-group 1) try to match them to Secondary IPs.
+
+|
+
+
+.. _aws-define-routes:
+
+
+Define the Route Tables
+```````````````````````
+
+Update/modify the routeGroupDefinitions list to the desired route tables and prefixes to manage. 
+The ``routeGroupDefinitions`` parameter allows more granular route-table operations. See :ref:`failover-routes` for more information. 
+
+.. code-block:: json
+
+   "failoverRoutes":{
+       "enabled":true,
+       "routeGroupDefinitions":[
+           {
+             "scopingName":"rtb-11111111111111111",
+             "scopingAddressRanges":[
+                 {
+                   "range":"0.0.0.0/0"
+                 }
+             ],
+             "defaultNextHopAddresses":{
+                 "discoveryType":"static",
+                 "items":[
+                   "10.0.13.11",
+                   "10.0.13.12"
+                 ]
+             }
+           }
+       ]
+   }
 
 |
 
 See :ref:`advanced-routing-examples-aws` for additional examples of more advanced configurations.
 
-|
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   Use these steps for CFE versions earlier than 1.5.0.
+   routeGroupDefinitions was added in CFE version 1.5.0.
 
-To enable route failover in CFE versions earlier than v1.5.0, tag the route tables containing the routes you want to manage.
+
+Or if using the Discovery via Tag option, tag the route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
@@ -312,7 +410,7 @@ To enable route failover in CFE versions earlier than v1.5.0, tag the route tabl
 
 2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the cloud failover configuration.
 
-   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.13.12"``.
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
 
 
    .. code-block:: json
@@ -335,6 +433,7 @@ To enable route failover in CFE versions earlier than v1.5.0, tag the route tabl
    - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
 
 | 
+
 
 .. _aws-as3-same-az-example:
 

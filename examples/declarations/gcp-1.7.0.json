@@ -2,15 +2,24 @@
   "class": "Cloud_Failover",
   "environment": "gcp",
   "externalStorage": {
-    "scopingTags": {
-      "f5_cloud_failover_label": "mydeployment"
-    }
+    "scopingName": "myCloudFailoverBucket"
   },
   "failoverAddresses": {
     "enabled": true,
-    "scopingTags": {
-      "f5_cloud_failover_label": "mydeployment"
-    }
+    "addressGroupDefinitions": [
+      {
+        "type": "forwardingRule",
+        "scopingName": "forwarding-rule-1-1-1-1",
+        "targetInstances": [
+          "ti-cluster-1-a",
+          "ti-cluster-1-b"
+        ]
+      },
+      {
+        "type": "aliasAddress",
+        "scopingAddress": "10.0.12.101/28"
+      }
+    ]
   },
   "failoverRoutes": {
     "enabled": true,

@@ -242,15 +242,11 @@ Explicit Configuration example:
             "addressGroupDefinitions": [
                 {
                     "type": "networkInterfaceAddress",
-                    "scopingAddress": "10.0.1.1"
+                    "scopingAddress": "10.0.1.100"
                 },
                 {
-                    "type": "elasticIpAddress",
-                    "scopingAddress": "23.1.2.3",
-                    "vipAddresses": [
-                        "10.0.12.116",
-                        "10.0.22.116"
-                    ]
+                    "type": "networkInterfaceAddress",
+                    "scopingAddress": "10.0.1.101"
                 }
             ]
         },
@@ -392,7 +388,7 @@ The parameter ``routeGroupDefinitions`` provides more granular per-route table o
    ------------------------ ----------------------- -------------------------------------------------------------------
    scopingAddressRanges     -                       A list of destination routes (prefixes) to update in the event of failover.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   defaultNextHopAddresses  -                       This the default list of next hop addresses for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
+   defaultNextHopAddresses  -                       This is the default list of BIG-IP's Self-IPs to point the routes (prefixes) to for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
    ------------------------ ----------------------- -------------------------------------------------------------------
    discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self-IPs associated with those NICs. You can either define the Self-IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
 
@@ -455,7 +451,7 @@ Configuring BIG-IP proxy configuration:
 Validation
 ----------
 
-On any initial configuration or re-configuration, it is recommended you validate Cloud Failover Extension's configuration to confirm it can properly communicate with the cloud environment and what actions will be performed.
+On any initial configuration or re-configuration, it is recommended you validate Cloud Failover Extension's configuration to confirm it can properlycommunicate with the cloud environment and what actions will be performed.
 
 On the **Standby** instance:
 
