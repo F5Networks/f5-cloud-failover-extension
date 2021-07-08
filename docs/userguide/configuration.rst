@@ -51,10 +51,10 @@ Components of the Declaration
 
 This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
 
-IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
-   * Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
-   * Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
-        NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
+IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include
+   - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
+   - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
+      - NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
 
@@ -65,6 +65,7 @@ The first few lines of your declaration are a part of the base components and ar
 First you define the environment in which Cloud Failover will be running.
 
 .. code-block:: json
+
     {
         "class": "Cloud_Failover",
         "environment": "aws",
@@ -312,11 +313,10 @@ The next lines of the declaration set the route failover functionality.
 |
 
 
-
 Discovery via Tag example:
-
-
+   
 .. code-block:: json
+
          "failoverRoutes": {
             "enabled": true,
             "scopingTags": {
@@ -337,8 +337,8 @@ Discovery via Tag example:
 
 |
 
-Explicit Configuration example:
 
+Explicit Configuration example:
 
 .. code-block:: json
 
@@ -456,26 +456,28 @@ On any initial configuration or re-configuration, it is recommended you validate
 On the **Standby** instance:
 
 1. Inspect the configuration: To confirm all the BIG-IPs interfaces have been identified.
+    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_:  to list associated cloud objects.
 
-Use the /inspect endpoint: 
-- `Inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.
+    For example:
 
-For example:
-.. code-block:: bash
-curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
-|
+    .. code-block:: bash
+
+        curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+    
+    |
 
 2. Peform a Dry-Run of the Failover: To confirm what addresses or routes have been identified and will be remapped. 
+    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with '{"action":"dry-run"}' payload
 
-Use the /trigger endpoint with '{"action":"dry-run"}' payload: 
-- `Trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: use this endpoint to trigger failover.
+    For example:
 
-For example:
-.. code-block:: bash
-curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
-|
+    .. code-block:: bash
 
-If you run into any issues or errors, see the Troubleshooting section for more details.
+        curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+    
+    |
+
+If you run into any issues or errors, see the :ref:`troubleshooting` for more details.
 
 
 
