@@ -131,8 +131,16 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 Does CFE support IPv6?
 ``````````````````````
-- IPv6 route failover is currently supported for AWS only. To see an example confguration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
+- IPv6 route failover is currently supported for AWS and Azure only. To see an example configuration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
 - IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
+- Limitations: 
+
+  - All BIG-IP NICs (including Management) must be dual IPV6 + IPV4 stack.
+  - See your cloud provider for additional limitations. For example:
+
+    - https://docs.microsoft.com/en-us/azure/virtual-network/ipv6-overview#limitations
+    - https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface-addresses#ipv6
+    - https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address
 
 
 -----------------------------------------
