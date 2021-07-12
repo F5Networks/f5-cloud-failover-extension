@@ -306,12 +306,14 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check forwarding rule target matches instance (primary)', function () {
-        this.retries(RETRIES.LONG);
+    if (deploymentInfo.forwardingRule === 'true') {
+        it('should check forwarding rule target matches instance (primary)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkForwardingRules(dutPrimary.hostname)
-            .catch(err => Promise.reject(err));
-    });
+            return checkForwardingRules(dutPrimary.hostname)
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('should check route(s) next hop matches self IP (primary)', function () {
         this.retries(RETRIES.LONG);
@@ -331,12 +333,14 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check forwarding rule target matches instance (secondary)', function () {
-        this.retries(RETRIES.LONG);
+    if (deploymentInfo.forwardingRule === 'true') {
+        it('should check forwarding rule target matches instance (secondary)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkForwardingRules(dutSecondary.hostname)
-            .catch(err => Promise.reject(err));
-    });
+            return checkForwardingRules(dutSecondary.hostname)
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('should check route(s) next hop matches self IP (secondary)', function () {
         this.retries(RETRIES.LONG);
@@ -364,12 +368,14 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('should check forwarding rule target matches instance (primary)', function () {
-        this.retries(RETRIES.LONG);
+    if (deploymentInfo.forwardingRule === 'true') {
+        it('should check forwarding rule target matches instance (primary)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkForwardingRules(dutPrimary.hostname)
-            .catch(err => Promise.reject(err));
-    });
+            return checkForwardingRules(dutPrimary.hostname)
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('should check route(s) next hop matches self IP (primary)', function () {
         this.retries(RETRIES.LONG);
@@ -457,12 +463,14 @@ describe('Provider: GCP', () => {
             .catch(err => Promise.reject(err));
     });
 
-    it('Flapping scenario: should check forwarding rule target matches instance (primary)', function () {
-        this.retries(RETRIES.LONG);
+    if (deploymentInfo.forwardingRule === 'true') {
+        it('Flapping scenario: should check forwarding rule target matches instance (primary)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkForwardingRules(dutPrimary.hostname)
-            .catch(err => Promise.reject(err));
-    });
+            return checkForwardingRules(dutPrimary.hostname)
+                .catch(err => Promise.reject(err));
+        });
+    }
 
     it('Flapping scenario: should check route(s) next hop matches self IP (primary)', function () {
         this.retries(RETRIES.LONG);
