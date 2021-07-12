@@ -870,9 +870,9 @@ class Cloud extends AbstractCloud {
                 this.fwdRules.forEach((rule) => {
                     let match = [];
 
-                    if (discoverOperations.type === 'address' && rule.IPAddress) {
+                    if (discoverOperations.type === 'address' && rule !== undefined && rule.IPAddress) {
                         match = this._matchIps([rule.IPAddress], discoverOperations.ipAddresses);
-                    } else if (discoverOperations.type === 'name' && rule.name) {
+                    } else if (discoverOperations.type === 'name' && rule !== undefined && rule.name) {
                         match = this._matchFwdRuleNames([rule.name], discoverOperations.fwdRuleNames);
                     }
                     if (!match.length) {
