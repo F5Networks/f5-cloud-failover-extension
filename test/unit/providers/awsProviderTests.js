@@ -501,11 +501,14 @@ describe('Provider - AWS', () => {
 
         it('should reject upon error', () => {
             const expectedError = 'cannot describe the EIP adddresses';
+            provider.maxRetries = 10;
+            let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
                     provider.ec2.describeAddresses = sinon.stub()
                         .callsFake(() => ({
                             promise() {
+                                retryCount += 1;
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
@@ -516,10 +519,31 @@ describe('Provider - AWS', () => {
                 })
                 .catch((err) => {
                     assert.strictEqual(err.message, expectedError);
+                    assert.strictEqual(retryCount - 1, provider.maxRetries);
                 });
         });
     });
 
+    describe('function _getSubnets', () => {
+        const describeSubnetsResponse = { Subnets: [{ foo: 1, bar: 2 }] };
+
+        it('should verify _getSubnets method resolution', () => provider.init(mockInitData)
+            .then(() => {
+                provider.ec2.describeSubnets = sinon.stub()
+                    .callsFake(() => ({
+                        promise() {
+                            return Promise.resolve(describeSubnetsResponse);
+                        }
+                    }));
+                return provider._getSubnets();
+            })
+            .then(() => {
+                assert.strictEqual(provider.subnets, describeSubnetsResponse);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
     describe('function _getPrivateSecondaryIPs', () => {
         const describeNetworkInterfacesResponse = {
             NetworkInterfaces: [
@@ -603,11 +627,14 @@ describe('Provider - AWS', () => {
 
         it('should reject upon error', () => {
             const expectedError = 'cannot describe the Network Interfaces';
+            provider.maxRetries = 10;
+            let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
                         .callsFake(() => ({
                             promise() {
+                                retryCount += 1;
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
@@ -617,6 +644,7 @@ describe('Provider - AWS', () => {
                     assert.ok(false, 'should have rejected');
                 })
                 .catch((err) => {
+                    assert.strictEqual(retryCount - 1, provider.maxRetries);
                     assert.strictEqual(err.message, expectedError);
                 });
         });
@@ -1247,10 +1275,20 @@ describe('Provider - AWS', () => {
                         return Promise.resolve(describeAddressesResponse);
                     }
                 }));
+
+            let isRetryOccured = false;
+            provider.maxRetries = 1;
             provider.ec2.describeNetworkInterfaces = sinon.stub()
                 .returns({
                     promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
+                        provider.ec2.describeNetworkInterfaces = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve(describeNetworkInterfacesResponse);
+                                }
+                            });
+                        isRetryOccured = true;
+                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
                     }
                 });
             provider.ec2.describeSubnets = sinon.stub()
@@ -1276,6 +1314,7 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.10.10');
                     assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 4);
                     assert.strictEqual(response.interfaces.associate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.ok(isRetryOccured);
                 })
                 .catch(err => assert.fail(err));
         });
