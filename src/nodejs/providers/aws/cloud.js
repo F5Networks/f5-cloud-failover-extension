@@ -1342,7 +1342,8 @@ class Cloud extends AbstractCloud {
         if (privateAddress) {
             params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
         }
-        return this.ec2.describeAddresses(params).promise()
+        const func = _params => this.ec2.describeAddresses(_params).promise();
+        return this._retrier(func, [params])
             .catch(err => Promise.reject(err));
     }
 
@@ -1540,7 +1541,7 @@ class Cloud extends AbstractCloud {
     _getSubnets() {
         this.logger.debug('Trying to get subnets');
         const func = () => this.ec2.describeSubnets().promise();
-        return this._retrier(func, [], { maxRetries: 1 })
+        return this._retrier(func, [])
             .then((subnets) => {
                 if (!subnets.Subnets.length) {
                     this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
