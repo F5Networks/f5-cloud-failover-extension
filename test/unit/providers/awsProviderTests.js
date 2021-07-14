@@ -1245,6 +1245,14 @@ describe('Provider - AWS', () => {
                                 Association: {}
                             }
                         ],
+                        Ipv6Addresses: [
+                            {
+                                Ipv6Address: '2600:1f13:5f9:5703:45bf:420f:442:c576'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:32a2'
+                            }
+                        ],
                         TagSet: [],
                         SubnetId: 'subnet-02d5ddf8d8383ac1e'
                     }
@@ -1302,18 +1310,22 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
                     assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000002');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '10.10.10.10');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].publicAddress, '2.2.2.2');
                     assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000001');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.10.11');
                     assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].publicAddress, '2.2.2.2');
                     assert.ok(isRetryOccured);
                 })
                 .catch(err => assert.fail(err));
