@@ -1033,7 +1033,10 @@ class Cloud extends AbstractCloud {
         // add nics to 'mine' or 'their' array based on address match
         nics.forEach((nic) => {
             // identify 'my' and 'their' nics
-            const nicAddresses = nic.PrivateIpAddresses.map(i => i.PrivateIpAddress);
+            let nicAddresses = nic.PrivateIpAddresses.map(i => i.PrivateIpAddress);
+            if (nic.Ipv6Addresses) {
+                nicAddresses = nicAddresses.concat(nic.Ipv6Addresses.map(i => i.Ipv6Address));
+            }
             localAddresses.forEach((address) => {
                 const myNicIds = myNics.map(i => i.nic.NetworkInterfaceId);
                 if (nicAddresses.indexOf(address) !== -1
