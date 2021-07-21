@@ -1175,7 +1175,8 @@ class Cloud extends AbstractCloud {
                             });
                         } else if (theirNicAddresses[i].Ipv6Address
                             && util.validateIpv6Address(failoverAddresses[t])
-                            && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                            && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address
+                            && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                             this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                             addressesToTake.push({
                                 address: failoverAddresses[t],
@@ -1189,7 +1190,6 @@ class Cloud extends AbstractCloud {
                     && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
                     && theirNicAddresses[i].Primary !== true) {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
-
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
                         publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp'),
@@ -1197,7 +1197,8 @@ class Cloud extends AbstractCloud {
                     });
                 } else if (theirNicAddresses[i].Ipv6Address
                     && util.validateIpv6Address(failoverAddresses[t])
-                    && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                    && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address
+                    && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                     this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                     addressesToTake.push({
                         address: failoverAddresses[t],
