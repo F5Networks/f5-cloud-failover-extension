@@ -383,7 +383,7 @@ The property ``routeGroupDefinitions`` provides more granular per-route table op
 .. table::
 
    ======================== ======================= ===================================================================
-   property                 Options                 Description/Notes
+   Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
    scopingTags              -                       Provide a key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option )
    ------------------------ ----------------------- -------------------------------------------------------------------

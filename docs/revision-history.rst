@@ -12,6 +12,10 @@ Document Revision History
         - Date
 
       * - 2.2
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| •  |br| •  |br| • Updated the :ref:`faq`.
+        - 07-29-21
+
+      * - 2.2
         - Updated the documentation for Cloud Failover Extension v1.9.0 with the following changes: |br| • Added clarifying notes to :ref:`aws` and :ref:'aws-same-az' concerning primary IPs and their associated EIPs. |br| • Added section :ref:`aws-custom-cert` to :ref:`aws` and :ref:`aws-same-az`. |br| • Updated the :ref:`faq`.
         - 06-24-21
 

@@ -280,7 +280,7 @@ Define the Storage Account
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``scopingName`` was added in CFE version 1.7.0.
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 
 Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
@@ -406,7 +406,7 @@ See :ref:`advanced-routing-examples-aws` for additional examples of more advance
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``routeGroupDefinitions`` was added in CFE version 1.5.0.
+   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
 
 Alternatively, if you are using the Discovery via Tag option, tag the route tables containing the routes you want to manage.

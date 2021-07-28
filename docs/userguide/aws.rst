@@ -283,7 +283,7 @@ Define the Storage Account in AWS
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``scopingName`` was added in CFE version 1.7.0.
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 
 Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.

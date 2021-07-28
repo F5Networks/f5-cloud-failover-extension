@@ -4,7 +4,7 @@ Logging
 =======
 
 Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
-The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'. The default value is **info**. This controls object is sent via a POST /declare.
+The logging level is set in the ``controls`` class with possible values of ``silly``, ``verbose``, ``debug``, ``info``, ``warning``, and ``error``. The default value is ``info``. This controls object is sent via a POST /declare.
 
 .. code-block:: json
 
@@ -23,9 +23,7 @@ Example log entries for different levels
 
 Silly
 `````
-The silly value logs everything.
-
-Note: silly level is recommended for troubleshooting/debugging as it will log all the events in the systems including retries to API REST calls.
+The silly value logs everything. Silly level is recommended for troubleshooting/debugging as it will log all the events in the systems including retries to API REST calls.
 
 .. code-block:: bash
 

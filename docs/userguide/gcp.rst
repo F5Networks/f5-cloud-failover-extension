@@ -162,7 +162,7 @@ Label your infrastructure with the the keys and values that you will send in you
 .. _gcp-define-storage:
 
 Define the Storage Account in GCP
-````````````````````````````````
+`````````````````````````````````
 
 Create a `storage bucket <https://cloud.google.com/storage/docs/creating-buckets>`_ for Cloud Failover Extension cluster-wide file(s).
 
@@ -181,7 +181,7 @@ Update/modify the Cloud Failover scopingName value with name of your storage buc
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   scopingName added in CFE version 1.7.0.
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 
 Or if using the Discovery via Tag option, label the bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
