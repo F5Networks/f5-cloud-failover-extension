@@ -43,11 +43,11 @@ Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Befo
             - :ref:`installcurl-ref`
 
    3.       :ref:`azure-msi`
-   4.       :ref:`azure-tag-objects`
+   4.       :ref:`azure-define-objects`
 
-            - :ref:`azure-storage`
-            - :ref:`azure-nictagging`
-            - :ref:`azure-udrtagging`
+            - :ref:`azure-define-storage`
+            - :ref:`azure-define-addresses`
+            - :ref:`azure-define-routes`
 
    5.       :ref:`azure-ims`
    6.       Modify and POST the :ref:`azure-example`
@@ -81,13 +81,13 @@ Example Azure Declaration
 This example declaration shows the minimum information needed to update the cloud resources in Azure. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
 
-.. literalinclude:: ../../examples/declarations/azure.json
+.. literalinclude:: ../../examples/declarations/azure-1.7.0.json
    :language: json
    :caption: Example Azure Declaration with Single Routing Table
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`azure.json <../../examples/declarations/azure.json>`
+:fonticon:`fa fa-download` :download:`azure.json <../../examples/declarations/azure-1.7.0.json>`
 
 |
 
@@ -153,39 +153,112 @@ Below is an example Azure role definition with permissions required by CFE.
 |
 
 
-.. _azure-tag-objects:
+.. _azure-define-objects:
 
-Tag your Azure Network Infrastructure Objects
----------------------------------------------
+Define your Azure Network Infrastructure Objects
+------------------------------------------------
 
-Tag your infrastructure with the the names and values that you will send in your CFE declaration.
+Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
-.. IMPORTANT:: You must tag the following resources. Even if you only have routes to update during failover (for example, there are no NIC IP configuration objects to re-map) you still have to tag the NICs on the Virtual Machines associated with the IPs in your CFE declaration.
+.. _azure-define-storage:
 
-
-.. _azure-storage:
-
-Tag the Storage Account in Azure
-````````````````````````````````
-Add a storage account to your resource group, and tag with a name/value pair that corresponds to the name/value pair in the `externalStorage.scopingTags` section of the CFE declaration.
-
-.. WARNING:: Ensure the required storage accounts do not have public access.
-
-.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
-
-.. image:: ../images/azure/AzureStorageTags.png
-
-|
-
-|
-
-
-.. _azure-nictagging:
-
-Tag the Network Interfaces in Azure
+Define the Storage Account in Azure
 ```````````````````````````````````
 
-#. Within Azure, go to **NIC > Tags**. Create two sets of tags for Network Interfaces:
+Add a storage account in Azure to your resource group for Cloud Failover to use. 
+
+1. Create a `Storage Account in Azure <https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal>`_ for Cloud Failover Extension cluster-wide file(s).
+
+   .. WARNING:: Ensure the required storage accounts do not have public access. See your cloud provider for Best Practices.
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+
+2. Update/modify the Cloud Failover ``scopingName`` value with name of your Storage Account:
+
+   .. code-block:: json
+
+      "externalStorage":{
+        "scopingName": "yourStorageAccountforCloudFailover"
+      },
+
+   |
+
+
+   Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+
+   .. code-block:: json
+
+      "externalStorage":{
+         "scopingTags":{
+            "f5_cloud_failover_label":"mydeployment"
+         }
+      },
+
+
+   .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+   .. image:: ../images/azure/AzureStorageTags.png
+
+|
+
+|
+
+
+.. _azure-define-addresses:
+
+Define the Failover Addresses
+`````````````````````````````
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
+
+1. Update/modify the ``addressGroupDefiniitions`` list to match the addresses in your deployment. In the example below, there are two services defined on secondary IP adddress:
+
+   - Virtual Service 1 (10.0.12.101): Mapped to an Azure secondary IP (10.0.12.101)
+   - Virtual Service 2 (10.0.12.102): Mapped to an Azure secondary IP (10.0.12.102)
+
+   .. code-block:: json
+
+     "failoverAddresses":{
+        "enabled":true,
+        "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+        },
+         "addressGroupDefinitions": [
+           {
+             "type": "networkInterfaceAddress",
+             "scopingAddress": "10.0.12.101"
+           },
+           {
+             "type": "networkInterfaceAddress",
+             "scopingAddress": "10.0.12.102"
+           }
+         ]
+     },
+
+|
+
+
+Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs, tag your NICs.
+
+.. code-block:: json
+
+  "failoverAddresses": {
+     "enabled": true,
+     "scopingTags": {
+        "f5_cloud_failover_label": "mydeployment"
+     }
+  },
+
+|
+
+
+a. Within Azure, go to **NIC > Tags**. 
+
+b. Create two sets of tags for Network Interfaces:
 
    - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
@@ -202,16 +275,17 @@ Tag the Network Interfaces in Azure
 
 |
 
-.. _azure-udrtagging:
+|
 
-Tag the User-Defined routes in Azure
-````````````````````````````````````
+.. _azure-define-routes:
 
+Define the User Defined Routes
+``````````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   Use these steps for CFE version 1.5.0 and newer.
+   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
-In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allows more granular route operations and you are not required to tag the routes. Provide the name of the route you want to manage with ``scopingName``.  See :ref:`failover-routes` for more information. 
+Update/modify the ``routeGroupDefinitions`` list to the desired route tables and prefixes to manage. The ``routeGroupDefinitions`` property allows more granular route-table operations. See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
@@ -219,7 +293,7 @@ In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allo
        "enabled":true,
        "routeGroupDefinitions":[
            {
-             "scopingName":"myroutetable-1",
+             "scopingName":"route-table-1",
              "scopingAddressRanges":[
                  {
                    "range":"0.0.0.0/0"
@@ -229,7 +303,7 @@ In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allo
                  "discoveryType":"static",
                  "items":[
                    "10.0.13.11",
-                   "10.0.13.12"
+                   "10.0.23.11"
                  ]
              }
            }
@@ -243,20 +317,16 @@ In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allo
 
 |
 
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+Alternatively, if you are using the Discovery via Tag option, tag your NICs (see Defining Failover Addresses above), and the route tables containing the routes you want to manage.
 
-   Use these steps for CFE versions earlier than 1.5.0.
-
-To enable route failover in versions earlier than 1.5.0, tag the route tables containing the routes that you want to manage:
-
-1. In Azure, create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
    .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
 
-2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table, or you can provide them statically in the cloud failover configuration.
+2. In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the CFE configuration.
 
-   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.13.12"``. 
-
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
+   
    |
 
    .. code-block:: json
@@ -276,9 +346,10 @@ To enable route failover in versions earlier than 1.5.0, tag the route tables co
          ]
        }
 
-   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
+   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.
 
-| 
+   |
+
 
 3. Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
 

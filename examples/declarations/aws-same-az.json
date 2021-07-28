@@ -16,24 +16,18 @@
           "f5_cloud_failover_label":"mydeployment"
        }
     },
-    "failoverRoutes":{
-       "enabled":true,
-       "routeGroupDefinitions":[
+    "failoverRoutes": {
+        "enabled": true,
+        "scopingTags": {
+          "f5_cloud_failover_label": "mydeployment"
+        },
+        "scopingAddressRanges": [
           {
-             "scopingName":"rtb-11111111111111111",
-             "scopingAddressRanges":[
-                {
-                   "range":"0.0.0.0/0"
-                }
-             ],
-             "defaultNextHopAddresses":{
-                "discoveryType":"static",
-                "items":[
-                   "10.0.13.11",
-                   "10.0.13.12"
-                ]
-             }
+            "range": "0.0.0.0/0",
+            "nextHopAddresses": {
+                "discoveryType": "routeTag"
+            }
           }
-       ]
+        ]
     }
   }

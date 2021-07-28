@@ -36,12 +36,11 @@ Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting s
             - :ref:`installcurl-ref`
 
    3.       :ref:`gcp-iam`
-   4.       :ref:`gcp-tag-objects`
+   4.       :ref:`gcp-define-objects`
 
-            - :ref:`gcp-tag-storage`
-            - :ref:`gcp-tag-addresses`
-            - :ref:`gcp-tag-forwarding-rules`
-            - :ref:`gcp-tag-routes`
+            - :ref:`gcp-define-storage`
+            - :ref:`gcp-define-addresses`
+            - :ref:`gcp-define-routes`
 
    5.       Modify and POST the :ref:`gcp-example`
    6.       :ref:`update-revert`
@@ -67,13 +66,13 @@ Example GCP Declaration
 -----------------------
 This example declaration shows the minimum information needed to update the cloud resources in Google Cloud. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
-.. literalinclude:: ../../examples/declarations/gcp.json
+.. literalinclude:: ../../examples/declarations/gcp-1.7.0.json
    :language: json
    :caption: Example GCP Declaration
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`gcp.json <../../examples/declarations/gcp.json>`
+:fonticon:`fa fa-download` :download:`gcp.json <../../examples/declarations/gcp-1.7.0.json>`
 
   
 
@@ -146,7 +145,7 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
 
 |
 
-.. _gcp-tag-objects:
+.. _gcp-define-objects:
 
 Label your Google Cloud Network Infrastructure Objects
 ------------------------------------------------------
@@ -160,62 +159,134 @@ Label your infrastructure with the the keys and values that you will send in you
    - To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see :ref:`isolated-env`.
 
 
-.. _gcp-tag-storage:
+.. _gcp-define-storage:
 
-Label the Storage Account in GCP
-````````````````````````````````
-You need to add a label to the storage bucket for Cloud Failover Extension cluster-wide file(s) and then specify a key and value for the label. This key/value will correspond to the key/value you use in the `externalStorage.scopingTags` section of the CFE configuration.
-
-.. WARNING:: Ensure the required storage accounts do not have public access.
-
-#. Open the Cloud Storage browser in the Google Cloud Console.
-
-#. In the bucket list, find the bucket you want to apply a label to, and click its :guilabel:`Bucket overflow menu (...)`.
-
-#. Click :guilabel:`Edit labels`.
-
-#. In the side panel that appears, click the :guilabel:`+ Add label` button.
-
-#. Specify a ``key`` and ``value`` for your label.
-
-#. Click :guilabel:`Save`.
-
-|
-
-.. _gcp-tag-addresses:
-
-Label the Virtual Machine Instances in GCP
-``````````````````````````````````````````
-
-Now you need to label the virtual machine instances with a key and value. 
-
-.. Note:: GCP does not have NICs as independent objects of the instance, so you only need to label the instance. 
-
-This key/value will correspond to the key/value you use in the `failoverAddresses.scopingTags` section of the CFE configuration.
-
-#. Go to the VM instances page.
-
-#. Select an instance.
-
-#. On the `VM instance details` page, click :guilabel:`Edit`.
-
-#. In the :guilabel:`Labels` section, specify a name and a value
-
-#. Click :guilabel:`Save`.
-
-
-.. image:: ../images/gcp/gcp-network-tags.png
-
-
-|
-|
-
-.. _gcp-tag-forwarding-rules:
-
-Label the Forwarding Rules in GCP
+Define the Storage Account in GCP
 `````````````````````````````````
 
+1. Create a `storage bucket in GCP <https://cloud.google.com/storage/docs/creating-buckets>`_ for Cloud Failover Extension cluster-wide file(s).
+
+   .. WARNING:: To avoid a potential data breach, ensure the required storage buckets are properly secured and do not have public access. See your cloud provider for best practices.
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+
+2. Update/modify the Cloud Failover ``scopingName`` value with name of your storage bucket:
+
+   .. code-block:: json
+
+      "externalStorage":{
+        "scopingName": "yourBucketforCloudFailover"
+      },
+
+   |
+
+
+
+
+   Alternatively, if you are using the Discovery via Tag option, label the bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+
+   .. code-block:: json
+
+      "externalStorage":{
+         "scopingTags":{
+            "f5_cloud_failover_label":"mydeployment"
+         }
+      },
+
+
+   a. Open the Cloud Storage browser in the Google Cloud Console.
+
+   b. In the bucket list, find the bucket you want to apply a label to, and click its :guilabel:`Bucket overflow menu (...)`.
+
+   c. Click :guilabel:`Edit labels`.
+
+   d. In the side panel that appears, click the :guilabel:`+ Add label` button.
+
+   e. Specify a ``key`` and ``value`` for your label.
+
+   d. Click :guilabel:`Save`.
+
+|
+
+.. _gcp-define-addresses:
+
+Define the Failover Addresses
+`````````````````````````````
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
+
+1. Update/modify the ``addressGroupDefiniitions`` list to match the addresses in your deployment. In the example below, there are two virtual services defined:
+
+   - Virtual Service 1 (1.1.1.1): On a Forwarding Rule 
+   - Virtual Service 2 (10.0.12.101): On an alias range 
+
+   .. code-block:: json
+
+      "failoverAddresses": {
+        "enabled": true,
+        "addressGroupDefinitions": [
+          {
+            "type": "forwardingRule",
+            "scopingName": "forwarding-rule-1-1-1-1",
+            "targetInstances": [
+              "ti-cluster-1-a",
+              "ti-cluster-1-b"
+            ]
+          },
+          {
+            "type": "aliasAddress",
+            "scopingAddress": "10.0.12.101/28"
+          }
+        ]
+      },
+ 
+   |
+
+
+   Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below.
+
+   .. code-block:: json
+
+      "failoverAddresses":{
+         "enabled":true,
+         "scopingTags":{
+            "f5_cloud_failover_label":"mydeployment"
+         }
+       },
+
+   |
+
+
+
+2. Label the virtual machine instances with a key and value. This key/value will correspond to the key/value you use in the `failoverAddresses.scopingTags` section of the CFE configuration.
+
+   .. Note:: GCP does not have NICs as independent objects of the instance, so you only need to label the instance. 
+
+   a. Go to the VM instances page.
+
+   b. Select an instance.
+
+   c. On the `VM instance details` page, click :guilabel:`Edit`.
+
+   d. In the :guilabel:`Labels` section, specify a name and a value
+
+   e. Click :guilabel:`Save`.
+
+
+   .. image:: ../images/gcp/gcp-network-tags.png
+
+
+|
+
+|
+
+
 By default, you do not need to tag forwarding rules. You only need to create a `target instance <https://cloud.google.com/sdk/gcloud/reference/compute/target-instances>`_ object for each BIG-IP. CFE will match Virtual Addresses configured on the BIG-IP to any forwarding rules with same IPs pointed at a BIG-IP target instance.
+
 
 **Performance Note:**
 
@@ -225,7 +296,7 @@ CFE sends update requests asynchronously. For instance, if CFE updates 10 forwar
 
 To leverage this optimization, for every Forwarding Rule:
 
-#. Create another target instance object for each BIG-IP instance in the cluster. For example, for Forwarding Rule 1:
+1. Create another target instance object for each BIG-IP instance in the cluster. For example, for Forwarding Rule 1:
 
    .. code-block:: python
 
@@ -245,18 +316,18 @@ To leverage this optimization, for every Forwarding Rule:
      ``"f5_target_instance_pair":"<target-instance-1-name>,<target-instance-2-name>"``
 
 
-For example, if you have a failoverAddresses declaration with arbitrary ``scopingTags`` of "my_deployment_scoping_label":"cluster1":
+For example, if you have a failoverAddresses declaration with arbitrary ``scopingTags`` of ``"my_deployment_scoping_label":"cluster1"``:
 
-.. code-block:: json
+   .. code-block:: json
 
-    "failoverAddresses":{
-       "enabled":true,
-       "scopingTags":{
+      "failoverAddresses":{
+        "enabled":true,
+        "scopingTags":{
           "my_deployment_scoping_label":"cluster1"
-       }
-    },
+        }
+      },
 
-|
+   |
 
 and 4 forwarding rules (one IP 1.1.1.1 for four different protocols, tcp,udp,icmp,esp): 
 
@@ -321,129 +392,126 @@ and 4 forwarding rules (one IP 1.1.1.1 for four different protocols, tcp,udp,icm
 |
 
 
-*Introduced in 1.6.0*
+**Introduced in 1.6.0**
 
 In some cases you may have forwarding rules that match an IP address configured on BIG-IP, but you do not want BIG-IP to own that address. To manage only Forwarding Rules that are explicitly tagged, set ``requireTags`` to ``true`` in the CFE configuration.
 
 .. code-block:: json
 
-    "failoverAddresses":{
-       "enabled":true,
-       "requireTags": true, 
-       "scopingTags":{
-          "f5_cloud_failover_label":"mydeployment"
-       }
-    },
-
-|
-
-
-.. _gcp-tag-routes:
-
-Label the User-Defined routes in GCP
-````````````````````````````````````
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   Use these steps for CFE version 1.5.0 and newer.
-
-In CFE version 1.5.0, the parameter ``routeGroupDefinitions`` was added. It allows more granular route operations and you are not required to tag the routes. Simply provide the name of the route you want to manage with ``scopingName``.  See :ref:`failover-routes` for more information. 
-
-.. code-block:: json
-
-  "failoverRoutes":{
+   "failoverAddresses":{
       "enabled":true,
-      "routeGroupDefinitions":[
-          {
-            "scopingName":"example-route-1",
-            "defaultNextHopAddresses":{
-                "discoveryType":"static",
-                "items":[
-                  "10.0.13.11",
-                  "10.0.13.12"
-                ]
-            }
-          }
-      ]
-  }
-
-
-See :ref:`advanced-routing-examples-gcp` for additional examples of more advanced configurations.
+      "requireTags": true, 
+      "scopingTags":{
+         "f5_cloud_failover_label":"mydeployment"
+      }
+   },
 
 |
 
+
+.. _gcp-define-routes:
+
+Label the Routes in GCP
+```````````````````````
+
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   Use these steps for CFE versions earlier than 1.5.0.
+   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
-To enable route failover in versions earlier than 1.5.0, tag the routes that you want to manage:
-
-1. Tag by adding a description that contains the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. For example, the description will contain:
-
-   ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``
-
-2. In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table, or you can provide them statically in the cloud failover configuration.
-
-   - If you use discoveryType ``routeTag``, you will need to add another key-value pair to the route in your cloud environment with the reserved key ``f5_self_ips``. For example, the description will contain: ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment","f5_self_ips":"10.0.13.11,10.0.13.12"}``
-
-   |
+Update/modify the ``routeGroupDefinitions`` list to the desired route tables and prefixes to manage. The ``routeGroupDefinitions`` property allows more granular route-table operations. See :ref:`failover-routes` for more information. See :ref:`advanced-routing-examples-gcp` for additional examples of more advanced configurations.
 
    .. code-block:: json
 
-       "failoverRoutes": {
-         "enabled": true,
-         "scopingTags": {
-           "f5_cloud_failover_label": "mydeployment"
-         },
-         "scopingAddressRanges": [
-           {
-             "range": "0.0.0.0/0",
-             "nextHopAddresses": {
-                 "discoveryType":"routeTag"
-             }
-           }
-         ]
-       }
-
+      "failoverRoutes":{
+          "enabled":true,
+          "routeGroupDefinitions":[
+              {
+                "scopingName":"route-table-1",
+                "scopingAddressRanges":[
+                    {
+                      "range":"0.0.0.0/0"
+                    }
+                ],
+                "defaultNextHopAddresses":{
+                    "discoveryType":"static",
+                    "items":[
+                      "10.0.13.11",
+                      "10.0.23.11"
+                    ]
+                }
+              }
+          ]
+      }
 
    |
 
+
+   Alternatively, if you are using the Discovery via Tag option, tag your NICs (see Defining Failover Addresses above) and the route tables containing the routes you want to manage.
+
+   1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+      .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
+
+   2. In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route or provide them statically in the cloud failover configuration.
+
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
+
+
+      .. code-block:: json
+
+         "failoverRoutes": {
+            "enabled": true,
+            "scopingTags": {
+              "f5_cloud_failover_label": "mydeployment"
+            },
+            "scopingAddressRanges": [
+              {
+                "range": "0.0.0.0/0",
+                "nextHopAddresses": {
+                    "discoveryType":"routeTag"
+                }
+              }
+            ]
+         }
+
    - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
-
-
-
-For example, to add a ``Description`` with key:pair: 
-
-#. Go to the Routes page in the Google Cloud Console.
-
-#. Click :guilabel:`Create route`.
-
-#. Specify a :guilabel:`Name` and a :guilabel:`Description` for the route.
-
-#. Select an existing :guilabel:`Network` where the route will apply.
-
-#. Specify a :guilabel:`Destination IP range` to define the destination of the route.
-
-#. Select a :guilabel:`Priority` for the route. 
-
-#. Go to the :guilabel:`Instance tags` field to create a tag. For example ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``.
-
-#. Select a :guilabel:`Next hop` for the route and :guilabel:`Specify a forwarding rule of internal TCP/UDP load balancer` to specify the BIG-IP as a next hop.
-
-   .. TIP:: Make sure the route targets a ``next-hop-address`` instead of a ``next-hop-instance``.
-
-#. Click :guilabel:`Create`.
-
-#. In your CFE declaration, enter the key/value in the `failoverRoutes.scopingTags` section that matches the tag that you attached to the routing table in GCP. Then update the list of destination routes in the `failoverRoutes.scopingAddressRanges` section.
 
 |
 
-or via gcloud CLI:
+**Adding a Description with key:pair**
+
+a. Go to the Routes page in the Google Cloud Console.
+
+b. Click :guilabel:`Create route`.
+
+c. Specify a :guilabel:`Name` and a :guilabel:`Description` for the route.
+
+d. Select an existing :guilabel:`Network` where the route will apply.
+
+e. Specify a :guilabel:`Destination IP range` to define the destination of the route.
+
+f. Select a :guilabel:`Priority` for the route. 
+
+g. Go to the :guilabel:`Instance tags` field to create a tag. For example ``f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}``.
+
+h. Select a :guilabel:`Next hop` for the route and :guilabel:`Specify a forwarding rule of internal TCP/UDP load balancer` to specify the BIG-IP as a next hop.
+
+   .. TIP:: Make sure the route targets a ``next-hop-address`` instead of a ``next-hop-instance``.
+
+i. Click :guilabel:`Create`.
+
+j. In your CFE declaration, enter the key/value in the `failoverRoutes.scopingTags` section that matches the tag that you attached to the routing table in GCP. Then update the list of destination routes in the `failoverRoutes.scopingAddressRanges` section.
+
+|
+
+**Adding a Description with gcloud CLI**
 
 .. code-block:: python
    :caption: Example of a gcloud compute command to create a route
 
     gcloud compute routes create example-route-1 --destination-range=0.0.0.0/0 --network=example-network --next-hop-address=10.0.13.11 --description='f5_cloud_failover_labels={"f5_cloud_failover_label":"mydeployment"}'
+
+|
 
 |
 

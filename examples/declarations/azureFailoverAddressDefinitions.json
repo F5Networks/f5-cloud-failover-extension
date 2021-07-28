@@ -6,9 +6,7 @@
       "logLevel":"silly"
    },
    "externalStorage":{
-      "scopingTags":{
-         "f5_cloud_failover_label":"mydeployment"
-      }
+      "scopingName": "myCloudFailoverStorage"
    },
    "failoverAddresses":{
       "enabled":true,
