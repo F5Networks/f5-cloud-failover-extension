@@ -225,7 +225,7 @@ Tag the Network Interfaces in AWS:
 .. Important:: Tagging the NICs is required for all AWS deployments regardless of which configuration option you choose to define external resources.
 
 
-#. Create two sets of tags for Network Interfaces: 
+1. Create two sets of tags for Network Interfaces: 
 
   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. If you use the declaration example below, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``.
 
@@ -261,53 +261,53 @@ Tag the Network Interfaces in AWS:
 
 .. _aws-same-az-define-storage:
 
-Define the Storage Account
-``````````````````````````
+Define the Storage Account in AWS
+`````````````````````````````````
 
-1. Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s).
+1. Create an `S3 bucket in AWS <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s).
 
-.. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access. See your cloud provider for best practices.
-
-
-2. Update/modify the Cloud Failover ``scopingName`` value with name of your S3 bucket:
-
-  .. code-block:: json
-  
-    "externalStorage":{
-      "scopingName": "yourS3BucketforCloudFailover"
-    },
+   .. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access. See your cloud provider for best practices.
 
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
    The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
+2. Update/modify the Cloud Failover ``scopingName`` value with name of your S3 bucket:
 
-Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+   .. code-block:: json
+  
+     "externalStorage":{
+       "scopingName": "yourS3BucketforCloudFailover"
+     },
 
-.. code-block:: json
 
-  "externalStorage":{
-     "scopingTags":{
-        "f5_cloud_failover_label":"mydeployment"
-     }
-  },
 
-a. Sign in to the AWS Management Console and open the Amazon S3 console.
+   Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
 
-b. In the :guilabel:`Bucket name` list, choose the name of the bucket.
+   .. code-block:: json
 
-c. In the :guilabel:`Name` list, choose the name of the object you want to add tags to.
+     "externalStorage":{
+        "scopingTags":{
+           "f5_cloud_failover_label":"mydeployment"
+        }
+     },
 
-d. Select :guilabel:`Properties`.
+   a. Sign in to the AWS Management Console and open the Amazon S3 console.
 
-e. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`.
+   b. In the :guilabel:`Bucket name` list, choose the name of the bucket.
 
-f. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
+   c. In the :guilabel:`Name` list, choose the name of the object you want to add tags to.
 
-.. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+   d. Select :guilabel:`Properties`.
 
-.. image:: ../images/aws/AWS-S3-Tags.png
+   e. Select :guilabel:`Tags` and then select :guilabel:`Add Tag`.
+
+   f. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` of your choosing. This key-value pair will match the key-value pair you enter in the `externalStorage.scopingTags` section of the CFE declaration. Then select :guilabel:`Save`
+
+   .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+   .. image:: ../images/aws/AWS-S3-Tags.png
 
 |
 
@@ -318,6 +318,10 @@ f. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` 
 
 Define the Failover Addresses
 `````````````````````````````
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
 
 Update/modify the ``addressGroupDefinitions`` list to match the addresses in your deployment. In the Same AZ example below, there are two services defined:
 
@@ -345,12 +349,10 @@ Update/modify the ``addressGroupDefinitions`` list to match the addresses in you
 
 |
 
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
 
 
-Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+
+Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
 .. code-block:: json
 
@@ -363,7 +365,7 @@ Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket 
 
 |
 
-which will look for BIG-IPs Virtual Addresses (on traffic-group 1) try to match them to Secondary IPs.
+This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.
 
 |
 
@@ -372,6 +374,9 @@ which will look for BIG-IPs Virtual Addresses (on traffic-group 1) try to match 
 
 Define the Route Tables
 ```````````````````````
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
 Update/modify the ``routeGroupDefinitions`` list to the desired route tables and prefixes to manage. 
 The ``routeGroupDefinitions`` property allows more granular route-table operations. See :ref:`failover-routes` for more information. 
@@ -402,11 +407,6 @@ The ``routeGroupDefinitions`` property allows more granular route-table operatio
 |
 
 See :ref:`advanced-routing-examples-aws` for additional examples of more advanced configurations.
-
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
 
 Alternatively, if you are using the Discovery via Tag option, tag the route tables containing the routes you want to manage.

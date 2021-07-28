@@ -137,10 +137,10 @@ The logging level is set in the ``controls`` class with possible values of 'sill
 
 .. code-block:: json
 
-        "controls": {
-            "class": "Controls",
-            "logLevel": "info"
-        }
+   "controls": {
+       "class": "Controls",
+       "logLevel": "info"
+   }
 
 |
 
@@ -468,7 +468,7 @@ On the **Standby** instance:
     |
 
 2. Peform a Dry-Run of the Failover: To confirm what addresses or routes have been identified and will be remapped. 
-    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with '{"action":"dry-run"}' payload
+    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with ``'{"action":"dry-run"}'`` payload.
 
     For example:
 

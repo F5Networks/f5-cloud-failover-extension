@@ -177,7 +177,7 @@ CFE will work across Availability Zones by remapping elastic public IPs to those
 
 Is SNAT required?
 `````````````````
-SNAT is not required if your application server’s default route points through the BIG-IPs NICs. If you are using SNAT in AWS HA Across AZ, please see :ref:`aws-tag-addresses-acrossnet`.
+SNAT is not required if your application server’s default route points through the BIG-IPs NICs. If you are using SNAT in AWS HA Across AZ, please see :ref:`aws-define-addresses-acrossnet`.
 
 Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active.
 

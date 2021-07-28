@@ -61,3 +61,5 @@ The error value will log only errors.
    Thu, 19 Dec 2019 19:39:26 GMT - info: [f5-cloud-failover] Global logLevel set to 'error'
    Thu, 19 Dec 2019 19:41:26 GMT - error: [f5-cloud-failover] uploadDataToStorage error: {...}
 
+
+.. include:: /_static/reuse/feedback.rst
