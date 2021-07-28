@@ -52,6 +52,7 @@ Additional Information:
 - :ref:`aws-as3-same-az-example`
 - :ref:`aws-same-az-custom-cert`
 
+|
 
 .. _aws-same-az-diagram:
 
@@ -221,7 +222,7 @@ Define or Tag your cloud resources with the keys and values that you configure i
 Tag the Network Interfaces in AWS:
 ``````````````````````````````````
 
-.. Important:: Tagging the NICs is required for all AWS deployments regardless of which configuration option you chose to define external resources.
+.. Important:: Tagging the NICs is required for all AWS deployments regardless of which configuration option you choose to define external resources.
 
 
 #. Create two sets of tags for Network Interfaces: 
@@ -315,8 +316,8 @@ f. Each tag is a key-value pair. Type a :guilabel:`Key` and a :guilabel:`Value` 
 
 .. _aws-same-az-define-addresses:
 
-Define the Failover Addresses:
-````````````````````````````````
+Define the Failover Addresses
+`````````````````````````````
 
 Update/modify the ``addressGroupDefinitions`` list to match the addresses in your deployment. In the Same AZ example below, there are two services defined:
 
@@ -405,10 +406,10 @@ See :ref:`advanced-routing-examples-aws` for additional examples of more advance
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   routeGroupDefinitions was added in CFE version 1.5.0.
+   The property ``routeGroupDefinitions`` was added in CFE version 1.5.0.
 
 
-Or if using the Discovery via Tag option, tag the route tables containing the routes you want to manage.
+Alternatively, if you are using the Discovery via Tag option, tag the route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
