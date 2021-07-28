@@ -49,7 +49,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 Components of the Declaration
 -----------------------------
 
-This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the parameters. If there is a default value, it is shown in **bold** in the Options column.
+This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the properties. If there is a default value, it is shown in **bold** in the Options column.
 
 IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include
    - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
@@ -73,11 +73,11 @@ First you define the environment in which Cloud Failover will be running.
 |
 
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                        | Description/Notes                                                                                                                                                            |
+| Property           | Options                        | Description/Notes                                                                                                                                                            |
 +====================+================================+==============================================================================================================================================================================+
-| class              | Cloud_Failover                 | Top-level Cloud Failover class. Do not change this value.                                                                                                        |
+| class              | Cloud_Failover                 | Top-level Cloud Failover class. Do not change this value.                                                                                                                    |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| environment        | aws, gcp, azure                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                        |
+| environment        | aws, gcp, azure                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                                     |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
@@ -99,20 +99,20 @@ Explicit Configuration example:
 
 .. code-block:: json
 
-        "externalStorage":{
-            "scopingName": "CloudFailoverBucket"
-        },
+   "externalStorage":{
+      "scopingName": "CloudFailoverBucket"
+   },
 
 |
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The parameter ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 |
 
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                        | Description/Notes                                                                                                                                                                               |
+| Property           | Options                        | Description/Notes                                                                                                                                                                               |
 +====================+================================+=================================================================================================================================================================================================+
 | externalStorage    | -                              | Provide scopingTags or scopingName object to define Cloud Failover's storage. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of what storage objects are used.      |
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -145,11 +145,11 @@ The logging level is set in the ``controls`` class with possible values of 'sill
 |
 
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                                      | Description/Notes                                                                                                                                              |
+| Property           | Options                                      | Description/Notes                                                                                                                                              |
 +====================+==============================================+================================================================================================================================================================+
-| controls           | -                                            | Provide various controls options                                                                                                                                           |
+| controls           | -                                            | Provide various controls options                                                                                                                               |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| class              | Controls                                     | Controls class. Do not change this value.                                                                                                                                            |
+| class              | Controls                                     | Controls class. Do not change this value.                                                                                                                      |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.           |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -176,18 +176,18 @@ As part of floating object mapping validation, this feature is added to have the
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The parameter ``retryFailover`` is available in Cloud Failover Extension v1.6.0 and later.
+   The property ``retryFailover`` is available in Cloud Failover Extension v1.6.0 and later.
 
 |
 
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Parameter          | Options                        | Description/Notes                                                                                                                                              |
+| Property           | Options                        | Description/Notes                                                                                                                                              |
 +====================+================================+================================================================================================================================================================+
-| retryFailover      | -                              | Provide retry options.                                                                                                           |
+| retryFailover      | -                              | Provide retry options.                                                                                                                                         |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| enabled            | true, false                    | Specify if retrying failover is enabled. The default value is **false**                                                                                                                                 |
+| enabled            | true, false                    | Specify if retrying failover is enabled. The default value is **false**                                                                                        |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                                                                   |
+| interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                          |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
@@ -208,7 +208,7 @@ The next lines of the declaration set the address failover functionality.
 .. table::
 
    ======================== ======================= ===================================================================
-   Parameter                Options                 Description/Notes
+   Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
    failoverAddresses        -                       Provide **address** failover configurations.
    ------------------------ ----------------------- -------------------------------------------------------------------
@@ -256,7 +256,7 @@ Explicit Configuration example:
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The parameter ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
+   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
 
 |
 
@@ -264,7 +264,7 @@ Explicit Configuration example:
 .. table::
 
    ======================== ======================= ===================================================================
-   Parameter                Options                 Description/Notes
+   Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
    scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details on required additional tags.
    ------------------------ ----------------------- -------------------------------------------------------------------
@@ -276,6 +276,7 @@ Explicit Configuration example:
 IMPORTANT: In AWS, the scopingTags is required in all configurations (for example, even when failoverAddresses is disabled and only failing over routes):
 
 .. code-block:: json
+
         "failoverAddresses":{
             "scopingTags": {
                 "f5_cloud_failover_label": "mydeployment"
@@ -303,7 +304,7 @@ The next lines of the declaration set the route failover functionality.
 .. table::
 
    ======================== ======================= ===================================================================
-   Parameter                Options                 Description/Notes
+   Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
    failoverRoutes           -                       Provide **route** failover configurations.
    ------------------------ ----------------------- -------------------------------------------------------------------
@@ -372,17 +373,17 @@ Explicit Configuration example:
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The parameter ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
+   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
 
 |
 
-The parameter ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
+The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
 
 
 .. table::
 
    ======================== ======================= ===================================================================
-   Parameter                Options                 Description/Notes
+   property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
    scopingTags              -                       Provide a key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option )
    ------------------------ ----------------------- -------------------------------------------------------------------

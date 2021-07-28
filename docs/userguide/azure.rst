@@ -156,12 +156,12 @@ Below is an example Azure role definition with permissions required by CFE.
 .. _azure-define-objects:
 
 Define your Azure Network Infrastructure Objects
----------------------------------------------
+------------------------------------------------
 
 .. _azure-define-storage:
 
 Define the Storage Account in Azure
-````````````````````````````````
+```````````````````````````````````
 
 Add a storage account to your resource group for Cloud Failover to use. 
 
@@ -237,7 +237,7 @@ Update/modify the addressGroupDefiniitions list to match the addresses in your d
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   addressGroupDefinitions was added in CFE version 1.7.0.
+   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
 
 
 Or if using the Discovery via Tag option:
@@ -281,7 +281,7 @@ Define the User-Defined routes
 ``````````````````````````````
 
 Update/modify the routeGroupDefinitions list to the desired route tables and prefixes to manage. 
-The ``routeGroupDefinitions`` parameter allows more granular route-table operations. See :ref:`failover-routes` for more information. 
+The ``routeGroupDefinitions`` property allows more granular route-table operations. See :ref:`failover-routes` for more information. 
 
 .. code-block:: json
 
