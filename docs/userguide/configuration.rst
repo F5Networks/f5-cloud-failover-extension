@@ -51,18 +51,19 @@ Components of the Declaration
 
 This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the properties. If there is a default value, it is shown in **bold** in the Options column.
 
-IMPORTANT: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include
-   - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
-   - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
-      - NOTE: Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
+.. Important:: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
+
+    - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
+    - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
+    - Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
 
 Base components
 ```````````````
-The first few lines of your declaration are a part of the base components and are required. The
+The first few lines of your declaration are a part of the base components and are **required**.
 
-First you define the environment in which Cloud Failover will be running.
+First, you define the environment in which Cloud Failover will be running.
 
 .. code-block:: json
 
@@ -80,8 +81,9 @@ First you define the environment in which Cloud Failover will be running.
 | environment        | aws, gcp, azure                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                                     |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+|
 
-Next you define the external storage Cloud Failover will use for its state file. 
+Next, you define the external storage Cloud Failover will use for its state file. 
 
 Discovery via Tag example:
 
@@ -95,6 +97,10 @@ Discovery via Tag example:
 
 |
 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+
 Explicit Configuration example:
 
 .. code-block:: json
@@ -105,9 +111,7 @@ Explicit Configuration example:
 
 |
 
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 |
 
@@ -123,7 +127,8 @@ Explicit Configuration example:
 
 When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
 
-The following base components are optional.
+
+The following base components are **optional**.
 
 
 .. _base_comps-logging:
@@ -131,9 +136,7 @@ The following base components are optional.
 Logging
 ```````
 
-Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**.
-
-The logging level is set in the ``controls`` class with possible values of 'silly', 'verbose', 'debug', 'info', 'warning', and 'error'.
+Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**. The logging level is set in the ``controls`` class with possible values of ``silly``, ``verbose``, ``debug``, ``info``, ``warning``, and ``error``.
 
 .. code-block:: json
 
@@ -147,23 +150,23 @@ The logging level is set in the ``controls`` class with possible values of 'sill
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Property           | Options                                      | Description/Notes                                                                                                                                              |
 +====================+==============================================+================================================================================================================================================================+
-| controls           | -                                            | Provide various controls options                                                                                                                               |
+| controls           | -                                            | Provide various controls options.                                                                                                                              |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | class              | Controls                                     | Controls class. Do not change this value.                                                                                                                      |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting and debugging.           |
+| logLevel           | silly, verbose, debug, info, warning, error  | Provide the logging level to use. The default value is **info** although "silly" is highly recommended for first use, troubleshooting, and debugging.          |
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 See :ref:`logging-ref` for more details and example output levels.
 
+|
 
 .. _base_comps-retry:
 
-
 Retry Failover Interval
 ```````````````````````
-As part of floating object mapping validation, this feature is added to have the failover trigger periodically on a user-defined interval.
+This feature is **optional** and, as part of floating object mapping validation, allows you to trigger failover periodically at an interval of your choosing.
 
 .. code-block:: json
 
@@ -190,7 +193,7 @@ As part of floating object mapping validation, this feature is added to have the
 | interval           | -                              | Provide the failover retry interval. The interval unit is in minutes.                                                                                          |
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-
+|
 
 .. _failover-addresses:
 
@@ -212,7 +215,7 @@ The next lines of the declaration set the address failover functionality.
    ======================== ======================= ===================================================================
    failoverAddresses        -                       Provide **address** failover configurations.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   enabled                  true,false              Enables or disables the address failover functionality. 
+   enabled                  true, false             Enables or disables the address failover functionality. 
    ======================== ======================= ===================================================================
 
 |
@@ -266,14 +269,14 @@ Explicit Configuration example:
    ======================== ======================= ===================================================================
    Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
-   scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details on required additional tags.
+   scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag. This property is required for AWS configurations. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details on required additional tags.
    ------------------------ ----------------------- -------------------------------------------------------------------
    addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of address types. 
    ======================== ======================= ===================================================================
 
 |
 
-IMPORTANT: In AWS, the scopingTags is required in all configurations (for example, even when failoverAddresses is disabled and only failing over routes):
+.. Important:: In AWS, the ``scopingTags`` property is required in all configurations (for example, even when failoverAddresses is disabled and only failing over routes) as it is leveraged internally to map the peer BIG-IP's NICs.
 
 .. code-block:: json
 
@@ -284,7 +287,7 @@ IMPORTANT: In AWS, the scopingTags is required in all configurations (for exampl
 
 |
 
-as it is leveraged internally to map the peer BIG-IP's NICs. 
+ 
 
 
 
@@ -308,7 +311,7 @@ The next lines of the declaration set the route failover functionality.
    ======================== ======================= ===================================================================
    failoverRoutes           -                       Provide **route** failover configurations.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   enabled                  true,false              Enables or disables the route failover functionality. If the failoverAddresses section is provided, the default is **true**.
+   enabled                  true, false             Enables or disables the route failover functionality. If the failoverAddresses section is provided, the default is **true**.
    ======================== ======================= ===================================================================
 
 |
@@ -379,19 +382,22 @@ Explicit Configuration example:
 
 The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
 
+|
+
+|
 
 .. table::
 
    ======================== ======================= ===================================================================
    Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
-   scopingTags              -                       Provide a key/value pair used to discover route tables to perform updates on.  The route table(s) are required to have this tag regardless of the discoveryType method used for the nextHopAddresses (or self-IP mappings). NOTE: Although can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table, use the "routeGroupDefinitions" option )
+   scopingTags              -                       Provide a key/value pair used to discover route tables to perform updates on. The route table(s) are required to have this tag regardless of the ``discoveryType`` method used for the ``nextHopAddresses`` (or self IP mappings). NOTE: Although it can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table), use the ``routeGroupDefinitions`` option.
    ------------------------ ----------------------- -------------------------------------------------------------------
    scopingAddressRanges     -                       A list of destination routes (prefixes) to update in the event of failover.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   defaultNextHopAddresses  -                       This is the default list of BIG-IP's Self-IPs to point the routes (prefixes) to for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
+   defaultNextHopAddresses  -                       This is the default list of BIG-IP's Self IPs to point the routes (prefixes) to for any routes listed in ``scopingAddressRanges`` that do not have a more specific set of ``nextHopAddresses`` defined. See :ref:`example-multiple-next-hop` for an example declaration for multiple routing tables pointing to different nexthops.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self-IPs associated with those NICs. You can either define the Self-IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
+   discoveryType            static, **routeTag**    In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self IPs associated with those NICs. You can either define the Self IPs statically in the configuration `OR` in an additional cloud tag on the route table and have CFE discover them via tag.
 
                                                     - If you use ``static``, you will need to provide the Self-IPs in the ``items`` area of the CFE configuration.
                                                     - If you use ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``f5_self_ips:192.0.2.10,192.0.2.11``. See :ref:`example-route-tag` for an example configuration.
@@ -399,9 +405,9 @@ The property ``routeGroupDefinitions`` provides more granular per-route table op
    ------------------------ ----------------------- -------------------------------------------------------------------
    items                    -                       List the Self IP address of each instance to route traffic to. This is only required when discoveryType is ``static``.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   routeGroupDefinitions    -                       List of route tables or route groups to update in the event of failover (Released in v1.5.0 to support advanced routing scenarios). NOTE: In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have route tables so it translates to groups or collections of routes. This option is intended for use in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) and require per-route table granularity. For example, if you have routes that you specificially want update in one table vs. another (ex. 0.0.0.0 for only the internal routing table and not on the external routing table). See :ref:`advanced-routing-examples` for example declarations.
+   routeGroupDefinitions    -                       List of route tables or route groups to update in the event of failover. This feature is available in CFE v1.5.0+ to support advanced routing scenarios. In AWS and Azure, ``routeGroupDefintions`` translates to route tables. GCP does not have route tables so it translates to groups or collections of routes. This option is intended for use in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) and require per-route table granularity. For example, if you have routes that you specificially want update in one table vs. another (ex. 0.0.0.0 for only the internal routing table and not on the external routing table). See :ref:`advanced-routing-examples` for example declarations.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   scopingName              -                       String containing name or id of routing table to update. If you use this, you do not need to tag the route tables. See :ref:`advanced-routing-examples` for example declarations.
+   scopingName              -                       String containing the name or ID of routing table to update. If you use this, you do not need to tag the route tables. See :ref:`advanced-routing-examples` for example declarations.
    ======================== ======================= ===================================================================
 
 |
@@ -430,7 +436,7 @@ For more information see the `API Reference <https://clouddocs.f5.com/products/e
 Using a Proxy
 -------------
 
-This extension supports making API calls through a proxy server for most cloud providers.  It looks at the BIG-IP proxy configuration defined in system db variables, these can be viewed by running `tmsh list sys db proxy.*`.
+This extension supports making API calls through a proxy server for most cloud providers. It looks at the BIG-IP proxy configuration defined in system db variables. These can be viewed by running ``tmsh list sys db proxy``.
 
 - AWS: All API calls will use the proxy.
 - Azure: All control plane API calls will use the proxy. Storage upload/download (data-plane) calls will not use the proxy.
@@ -448,15 +454,16 @@ Configuring BIG-IP proxy configuration:
 
 |
 
+.. _config-validation:
 
 Validation
 ----------
 
-On any initial configuration or re-configuration, it is recommended you validate Cloud Failover Extension's configuration to confirm it can properlycommunicate with the cloud environment and what actions will be performed.
+On any initial configuration or re-configuration, F5 recommends that you validate Cloud Failover Extension's configuration to confirm it can properly communicate with the cloud environment and what actions will be performed.
 
 On the **Standby** instance:
 
-1. Inspect the configuration: To confirm all the BIG-IPs interfaces have been identified.
+1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
     Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_:  to list associated cloud objects.
 
     For example:
@@ -467,7 +474,7 @@ On the **Standby** instance:
     
     |
 
-2. Peform a Dry-Run of the Failover: To confirm what addresses or routes have been identified and will be remapped. 
+2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
     Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with ``'{"action":"dry-run"}'`` payload.
 
     For example:
