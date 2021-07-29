@@ -5,12 +5,15 @@ Configure Cloud Failover Extension
 
 Once the Package is installed, you will use the REST endpoints to configure the Cloud Failover Extension.
 
-#. Using a RESTful API client like Postman, send a GET request to the URI
+#. Using a RESTful API client, send a GET request to the URI
    ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is running
-   properly. You should receive an expect response of `success` after you have posted this declaration. For example:
+   properly. You should receive an expect response of `success` after you have posted this declaration. 
+   
+   For illustration purposes, the example below uses `curl` on the BIG-IP itself and the utililty `jq` to pretty print the json output:
 
    .. code-block:: shell
 
+   [admin@bigip-A:Active:In Sync] config # curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .
     {
         "message": "success"
     }
@@ -23,7 +26,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
    - :ref:`azure`
 
 
-#. Paste the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
+#. Paste or copy the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
    .. code-block:: shell
 
@@ -33,14 +36,28 @@ Once the Package is installed, you will use the REST endpoints to configure the 
              }
 
 
+#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare`. 
 
-#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``
+Example where cfe.json is file that has been uploaded or edited locally to contain the contents of your CFE declaration above. 
+
+.. code-block:: shell
+
+    [admin@bigip-A:Active:In Sync] config # vim cfe.json 
+    [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+
+
 
    .. IMPORTANT::
 
       You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.
 
-#. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
+
+   .. code-block:: shell
+
+   [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+
+      
+#. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
 
 |
 
