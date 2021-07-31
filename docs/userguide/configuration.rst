@@ -27,12 +27,12 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 
 3. Paste or copy the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
-   .. code-block:: shell
+   .. code-block:: json
 
-     "failoverAddresses": {
-             "scopingTags": {
-               "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
-             }
+      "failoverAddresses": {
+         "scopingTags": {
+            "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
+          }
 
 
 4. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``. 
@@ -51,7 +51,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
       You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.
 
       
-5. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
+5. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``.
 
 |
 
@@ -65,7 +65,7 @@ On any initial configuration or re-configuration, F5 recommends that you validat
 On the **Standby** instance:
 
 1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
-    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_:  to list associated cloud objects.
+    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  to list associated cloud objects.
 
     For example:
 
@@ -76,7 +76,7 @@ On the **Standby** instance:
     |
 
 2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
-    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with ``'{"action":"dry-run"}'`` payload.
+    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ with ``'{"action":"dry-run"}'`` payload.
 
     For example:
 
@@ -97,10 +97,13 @@ Components of the Declaration
 
 This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the properties. If there is a default value, it is shown in **bold** in the Options column.
 
-.. Important:: Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
+.. Important:: 
 
-    - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
-    - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
+    - Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
+
+      - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
+      - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
+    
     - Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
@@ -113,9 +116,9 @@ First, you define the environment in which Cloud Failover will be running.
 
 .. code-block:: json
 
-    {
-        "class": "Cloud_Failover",
-        "environment": "aws",
+   {
+       "class": "Cloud_Failover",
+       "environment": "aws",
 
 |
 
@@ -129,17 +132,17 @@ First, you define the environment in which Cloud Failover will be running.
 
 |
 
-Next, you define the external storage Cloud Failover will use for its state file. 
+Next, you define the external storage Cloud Failover will use for its state file.
 
-Discovery via Tag example:
+- Discovery via Tag example:
 
-.. code-block:: json
+    .. code-block:: json
 
-        "externalStorage": {
-            "scopingTags": {
-                 "f5_cloud_failover_label": "mydeployment"
-            }
-        },
+       "externalStorage": {
+          "scopingTags": {
+             "f5_cloud_failover_label": "mydeployment"
+          }
+       },
 
 |
 
@@ -147,13 +150,13 @@ Discovery via Tag example:
 
    The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
-Explicit Configuration example:
+- Explicit Configuration example:
 
-.. code-block:: json
+  .. code-block:: json
 
-   "externalStorage":{
-      "scopingName": "CloudFailoverBucket"
-   },
+     "externalStorage":{
+        "scopingName": "CloudFailoverBucket"
+     },
 
 |
 
@@ -174,8 +177,11 @@ Explicit Configuration example:
 When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
 
 
-The following base components are **optional**.
 
+
+.. Note:: The following base components are **optional**.
+
+|
 
 .. _base_comps-logging:
 
@@ -187,8 +193,8 @@ Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**. The loggi
 .. code-block:: json
 
    "controls": {
-       "class": "Controls",
-       "logLevel": "info"
+      "class": "Controls",
+      "logLevel": "info"
    }
 
 |
@@ -216,10 +222,10 @@ This feature is **optional** and, as part of floating object mapping validation,
 
 .. code-block:: json
 
-        "retryFailover": {
-            "enabled": true,
-            "interval": 2
-        }
+   "retryFailover": {
+      "enabled": true,
+      "interval": 2
+   }
 
 |
 
@@ -267,39 +273,39 @@ The next lines of the declaration set the address failover functionality.
 |
 
 
-Discovery via Tag example:
+- Discovery via Tag example:
 
-.. code-block:: json
+    .. code-block:: json
 
-        "failoverAddresses": {
-            "enabled": true,
-            "scopingTags": {
-                "f5_cloud_failover_label": "mydeployment"
-            }
-        },
+       "failoverAddresses": {
+          "enabled": true,
+          "scopingTags": {
+             "f5_cloud_failover_label": "mydeployment"
+          }
+       },
 
 |
 
-Explicit Configuration example:
+- Explicit Configuration example:
 
-.. code-block:: json
+   .. code-block:: json
 
-        "failoverAddresses":{
-            "enabled":true,
-            "scopingTags": {
-                "f5_cloud_failover_label": "mydeployment"
+      "failoverAddresses":{
+         "enabled":true,
+         "scopingTags": {
+            "f5_cloud_failover_label": "mydeployment"
+         }
+         "addressGroupDefinitions": [
+            {
+               "type": "networkInterfaceAddress",
+               "scopingAddress": "10.0.1.100"
+            },
+            {
+               "type": "networkInterfaceAddress",
+               "scopingAddress": "10.0.1.101"
             }
-            "addressGroupDefinitions": [
-                {
-                    "type": "networkInterfaceAddress",
-                    "scopingAddress": "10.0.1.100"
-                },
-                {
-                    "type": "networkInterfaceAddress",
-                    "scopingAddress": "10.0.1.101"
-                }
-            ]
-        },
+         ]
+      },
 
 |
 
@@ -345,8 +351,8 @@ The next lines of the declaration set the route failover functionality.
 
 .. code-block:: json
 
-         "failoverRoutes": {
-            "enabled": true,
+   "failoverRoutes": {
+      "enabled": true,
 
 |
 
@@ -363,14 +369,14 @@ The next lines of the declaration set the route failover functionality.
 |
 
 
-Discovery via Tag example:
+- Discovery via Tag example:
    
-.. code-block:: json
+    .. code-block:: json
 
-         "failoverRoutes": {
-            "enabled": true,
-            "scopingTags": {
-               "f5_cloud_failover_label": "mydeployment"
+       "failoverRoutes": {
+          "enabled": true,
+          "scopingTags": {
+            "f5_cloud_failover_label": "mydeployment"
             },
             "scopingAddressRanges": [
                {
@@ -388,34 +394,34 @@ Discovery via Tag example:
 |
 
 
-Explicit Configuration example:
+- Explicit Configuration example:
 
-.. code-block:: json
+    .. code-block:: json
 
-         "failoverRoutes": {
-            "enabled": true,
-            "routeGroupDefinitions": [
-               {
-                  "scopingName": "rtb-11111111111111111",
-                  "scopingAddressRanges": [
-                     {
-                        "range": "192.168.1.0/24",
-                     },
-                     {
-                        "range": "192.168.1.1/24"
-                     }
-                  ],
-                  "defaultNextHopAddresses": {
-                     "discoveryType": "static",
-                     "items": [
-                        "192.0.2.10",
-                        "192.0.2.11"
-                     ]
-                  }
-               }
-            ]
-         }
-      }
+       "failoverRoutes": {
+          "enabled": true,
+          "routeGroupDefinitions": [
+             {
+                "scopingName": "rtb-11111111111111111",
+                "scopingAddressRanges": [
+                   {
+                      "range": "192.168.1.0/24",
+                   },
+                   {
+                      "range": "192.168.1.1/24"
+                   }
+                ],
+                "defaultNextHopAddresses": {
+                   "discoveryType": "static",
+                   "items": [
+                      "192.0.2.10",
+                      "192.0.2.11"
+                   ]
+                }
+             }
+          ]
+       }
+
 
 
 |

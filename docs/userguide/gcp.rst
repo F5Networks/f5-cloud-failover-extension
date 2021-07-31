@@ -454,25 +454,25 @@ Alternatively, if you are using the Discovery via Tag option, tag your NICs (see
 
 2. In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the ``nextHopAddresses`` using an additional tag on the route or provide them statically in the Cloud Failover configuration.
 
-  - If you use discoveryType ``routeTag``, you will need to add another tag to the route in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
+   - If you use discoveryType ``routeTag``, you will need to add another tag to the route in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
 
 
-   .. code-block:: json
+    .. code-block:: json
 
-      "failoverRoutes": {
-         "enabled": true,
-         "scopingTags": {
-           "f5_cloud_failover_label": "mydeployment"
-         },
-         "scopingAddressRanges": [
-           {
-             "range": "0.0.0.0/0",
-             "nextHopAddresses": {
-                 "discoveryType":"routeTag"
-             }
-           }
-         ]
-      }
+       "failoverRoutes": {
+          "enabled": true,
+          "scopingTags": {
+            "f5_cloud_failover_label": "mydeployment"
+          },
+          "scopingAddressRanges": [
+            {
+              "range": "0.0.0.0/0",
+              "nextHopAddresses": {
+                  "discoveryType":"routeTag"
+              }
+            }
+          ]
+       }
 
   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
 

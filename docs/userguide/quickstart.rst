@@ -50,45 +50,43 @@ up and running with Cloud Failover.
    .. code-block:: shell
 
       [admin@bigip-A:Active:In Sync] config # curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .
-       {
-           "message": "success"
-       }
+      {
+         "message": "success"
+      }
 
 
 7. Copy one of the example declarations which best matches the configuration you want to use. There are example declarations in the sections for :ref:`gcp`, :ref:`aws`, and :ref:`azure` as well as the :ref:`example-declarations` section.
 
 8. Paste the declaration into your API client, and modify names and IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
-   .. code-block:: shell
+   .. code-block:: json
    
      "failoverAddresses": {
-             "scopingTags": {
-               "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
-             }
+        "scopingTags": {
+           "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
+         }
 
 
 
-#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``.
+9. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``.
 
    Below is an example where cfe.json is the file that has been uploaded or edited locally to contain the contents of your CFE declaration. 
 
-.. code-block:: shell
+   .. code-block:: shell
 
-    [admin@bigip-A:Active:In Sync] config # vim cfe.json 
-    [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+      [admin@bigip-A:Active:In Sync] config # vim cfe.json 
+      [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+      [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+   
 
 
    .. IMPORTANT::
       
       You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.
 
-      .. code-block:: shell
+        
 
-      [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
-   
-         
-
-#. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
+10. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
 
 
 Quick Start Example
