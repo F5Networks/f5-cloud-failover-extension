@@ -226,7 +226,7 @@ Below is an example F5 policy that includes IAM roles.
 .. _aws-define-objects:
 
 Define AWS Network Infrastructure Objects
--------------------------------------------
+-----------------------------------------
 
 Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
@@ -317,8 +317,8 @@ Define the Storage Account in AWS
 
 .. _aws-define-addresses-acrossnet:
 
-Define the Failover Addresses
-`````````````````````````````
+Define the Failover Addresses in AWS
+````````````````````````````````````
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
@@ -389,8 +389,8 @@ Define the Failover Addresses
 
 .. _aws-define-routes:
 
-Define the Route Tables
-```````````````````````
+Define the Routes in AWS
+````````````````````````
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
@@ -476,7 +476,7 @@ See below for example Virtual Services created with `AS3 <https://clouddocs.f5.c
 :fonticon:`fa fa-download` :download:`aws-as3-across-az.json <../../examples/toolchain/as3/aws-as3-across-az.json>`
 
 
-.. Note: Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1. 
+.. Note:: Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1. 
 
 
 .. _aws-custom-cert:

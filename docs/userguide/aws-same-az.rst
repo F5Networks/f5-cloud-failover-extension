@@ -316,8 +316,8 @@ Define the Storage Account in AWS
 
 .. _aws-same-az-define-addresses:
 
-Define the Failover Addresses
-`````````````````````````````
+Define the Failover Addresses in AWS
+````````````````````````````````````
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
@@ -372,8 +372,8 @@ This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to mat
 
 .. _aws-same-az-define-routes:
 
-Define the Route Tables
-```````````````````````
+Define the Routes in AWS
+````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
    The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.

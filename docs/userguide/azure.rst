@@ -208,8 +208,8 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
 
 .. _azure-define-addresses:
 
-Define the Failover Addresses
-`````````````````````````````
+Define the Failover Addresses in Azure
+``````````````````````````````````````
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
@@ -279,8 +279,8 @@ b. Create two sets of tags for Network Interfaces:
 
 .. _azure-define-routes:
 
-Define the User Defined Routes
-``````````````````````````````
+Define the Routes in Azure
+``````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
    The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.

@@ -5,28 +5,27 @@ Configure Cloud Failover Extension
 
 Once the Package is installed, you will use the REST endpoints to configure the Cloud Failover Extension.
 
-#. Using a RESTful API client, send a GET request to the URI
-   ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is running
+1. Using a RESTful API client, send a GET request to the URI ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is running
    properly. You should receive an expect response of `success` after you have posted this declaration. 
    
-   For illustration purposes, the example below uses `curl` on the BIG-IP itself and the utililty `jq` to pretty print the json output:
+   For illustration purposes, the example below uses `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output:
 
    .. code-block:: shell
 
-   [admin@bigip-A:Active:In Sync] config # curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .
-    {
-        "message": "success"
-    }
+      [admin@bigip-A:Active:In Sync] config # curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .
+      {
+          "message": "success"
+      }
 
 
-#. Copy one of the :ref:`example-declarations` which best matches the configuration you want to use. See each provider section for additional details and requirements.
+2. Copy one of the :ref:`example-declarations` which best matches the configuration you want to use. See each provider section for additional details and requirements.
 
    - :ref:`aws`
    - :ref:`gcp`
    - :ref:`azure`
 
 
-#. Paste or copy the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
+3. Paste or copy the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
    .. code-block:: shell
 
@@ -36,30 +35,60 @@ Once the Package is installed, you will use the REST endpoints to configure the 
              }
 
 
-#. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare`. 
+4. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``. 
 
-Example where cfe.json is file that has been uploaded or edited locally to contain the contents of your CFE declaration above. 
+   Below is an example where `cfe.json` is the name of the file that has been uploaded or edited locally to contain the contents of your CFE declaration. 
 
-.. code-block:: shell
+   .. code-block:: shell
 
-    [admin@bigip-A:Active:In Sync] config # vim cfe.json 
-    [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
-
+      [admin@bigip-A:Active:In Sync] config # vim cfe.json 
+      [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+      [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
 
 
    .. IMPORTANT::
 
       You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.
 
-
-   .. code-block:: shell
-
-   [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
-
       
-#. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
+5. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``
 
 |
+
+.. _config-validation:
+
+Validation
+----------
+
+On any initial configuration or re-configuration, F5 recommends that you validate Cloud Failover Extension's configuration to confirm it can properly communicate with the cloud environment and what actions will be performed.
+
+On the **Standby** instance:
+
+1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
+    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_:  to list associated cloud objects.
+
+    For example:
+
+    .. code-block:: bash
+
+        curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+    
+    |
+
+2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
+    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with ``'{"action":"dry-run"}'`` payload.
+
+    For example:
+
+    .. code-block:: bash
+
+        curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+    
+    |
+
+If you run into any issues or errors, see the :ref:`troubleshooting` for more details.
+
+
 
 .. _declaration-components:
 
@@ -470,40 +499,6 @@ Configuring BIG-IP proxy configuration:
    modify sys db proxy.protocol value https
 
 |
-
-.. _config-validation:
-
-Validation
-----------
-
-On any initial configuration or re-configuration, F5 recommends that you validate Cloud Failover Extension's configuration to confirm it can properly communicate with the cloud environment and what actions will be performed.
-
-On the **Standby** instance:
-
-1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
-    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_:  to list associated cloud objects.
-
-    For example:
-
-    .. code-block:: bash
-
-        curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
-    
-    |
-
-2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
-    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: with ``'{"action":"dry-run"}'`` payload.
-
-    For example:
-
-    .. code-block:: bash
-
-        curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
-    
-    |
-
-If you run into any issues or errors, see the :ref:`troubleshooting` for more details.
-
 
 
 Cloud Environments
