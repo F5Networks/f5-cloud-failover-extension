@@ -95,7 +95,7 @@ Create and assign an IAM Role
 -----------------------------
 In order to successfully implement CFE in AWS, you need an AWS Identity and Access Management (IAM) role with sufficient access. To create and assign an IAM role you must have a user role of `iam:CreateUser`.
 
-#. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
+1. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
    - ec2:DescribeInstances
    - ec2:DescribeInstanceStatus
@@ -121,27 +121,28 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
    |
 
    For example, to create a role for an EC2 service follow these steps:
-       1. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
 
-       2. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
+   a. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
 
-       3. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy.
+   b. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
 
-       4. Select the EC2 service, expand :guilabel:`Write box` and select the :guilabel:`CreateRoute/ReplaceRoutes` boxes that you want the service to have.
+   c. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy.
 
-       5. Specify the route-table resource ARN for the ReplaceRoute and CreateRoute action.
+   d. Select the EC2 service, expand :guilabel:`Write box` and select the :guilabel:`CreateRoute/ReplaceRoutes` boxes that you want the service to have.
 
-       6. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
+   e. Specify the route-table resource ARN for the ReplaceRoute and CreateRoute action.
 
-       7. Optionally, add a Request Condition.
+   f. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
 
-       8. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
+   g. Optionally, add a Request Condition.
+
+   h. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
    .. image:: ../images/aws/AWSIAMRoleSummary.png
 
    |
 
-#. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
 
    For example:
 

@@ -217,27 +217,27 @@ Define the Failover Addresses in Azure
 
 Update/modify the ``addressGroupDefiniitions`` list to match the addresses in your deployment. In the example below, there are two services defined on secondary IP adddress:
 
-  - Virtual Service 1 (10.0.12.101): Mapped to an Azure secondary IP (10.0.12.101)
-  - Virtual Service 2 (10.0.12.102): Mapped to an Azure secondary IP (10.0.12.102)
+- Virtual Service 1 (10.0.12.101): Mapped to an Azure secondary IP (10.0.12.101)
+- Virtual Service 2 (10.0.12.102): Mapped to an Azure secondary IP (10.0.12.102)
 
-  .. code-block:: json
+.. code-block:: json
 
-     "failoverAddresses":{
-        "enabled":true,
-        "scopingTags": {
-           "f5_cloud_failover_label": "mydeployment"
-        },
-         "addressGroupDefinitions": [
-           {
-             "type": "networkInterfaceAddress",
-             "scopingAddress": "10.0.12.101"
-           },
-           {
-             "type": "networkInterfaceAddress",
-             "scopingAddress": "10.0.12.102"
-           }
-         ]
-     },
+   "failoverAddresses":{
+      "enabled":true,
+      "scopingTags": {
+         "f5_cloud_failover_label": "mydeployment"
+      },
+       "addressGroupDefinitions": [
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.101"
+         },
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.102"
+         }
+       ]
+   },
 
 |
 
