@@ -95,7 +95,7 @@ Create and assign an IAM Role
 -----------------------------
 In order to successfully implement CFE in AWS, you need an AWS Identity and Access Management (IAM) role with sufficient access. To create and assign an IAM role you must have a user role of `iam:CreateUser`.
 
-#. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
+1. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
    - EC2 Read/Write
    - S3 Read/Write
@@ -105,21 +105,21 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    For example, to create a role for an EC2 service follow these steps:
    
-       a. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
+   a. In the navigation pane of the console, click :guilabel:`Roles` and then select :guilabel:`Create role`.
 
-       b. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
+   b. Select the EC2 service that you will use for this role. Then click :guilabel:`Next: Permissions`.
 
-       c. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy.
+   c. Click :guilabel:`Create policy` to open a new browser tab and then create a new policy.
 
-       d. Select the EC2 service, expand :guilabel:`Write box` and select the :guilabel:`CreateRoute/ReplaceRoutes` boxes that you want the service to have.
+   d. Select the EC2 service, expand :guilabel:`Write box` and select the :guilabel:`CreateRoute/ReplaceRoutes` boxes that you want the service to have.
 
-       e. Specify the route-table resource ARN for the ReplaceRoute and CreateRoute action.
+   e. Specify the route-table resource ARN for the ReplaceRoute and CreateRoute action.
 
-       f. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
+   f. Add a route table ARN with the following syntax: ``arn:aws:ec2:region:account:route-table/route-table-id``
 
-       g. Optionally, add a Request Condition.
+   g. Optionally, add a Request Condition.
 
-       h. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
+   h. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
    .. image:: ../images/aws/AWSIAMRoleSummary.png
 
@@ -227,18 +227,18 @@ Tag the Network Interfaces in AWS:
 
 1. Create two sets of tags for Network Interfaces: 
 
-  - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. If you use the declaration example below, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``.
+   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. If you use the declaration example below, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``.
 
 
-    .. code-block:: json
+     .. code-block:: json
 
-       "failoverAddresses":{
-           "scopingTags": {
-               "f5_cloud_failover_label": "mydeployment"
-           },
+        "failoverAddresses":{
+            "scopingTags": {
+                "f5_cloud_failover_label": "mydeployment"
+            },
 
 
-  - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
+   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
 
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
@@ -325,8 +325,8 @@ Define the Failover Addresses in AWS
 
 Update/modify the ``addressGroupDefinitions`` list to match the addresses in your deployment. In the Same AZ example below, there are two services defined:
 
-  - Virtual Service 1 (10.0.12.101): Mapped to an AWS secondary IP (10.0.12.101)
-  - Virtual Service 2 (10.0.12.102): Mapped to an AWS secondary IP (10.0.12.102) 
+- Virtual Service 1 (10.0.12.101): Mapped to an AWS secondary IP (10.0.12.101)
+- Virtual Service 2 (10.0.12.102): Mapped to an AWS secondary IP (10.0.12.102) 
 
 .. code-block:: json
 
@@ -419,6 +419,7 @@ Alternatively, if you are using the Discovery via Tag option, tag the route tabl
 
    - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
 
+   |
 
    .. code-block:: json
 

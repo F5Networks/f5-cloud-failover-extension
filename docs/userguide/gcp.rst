@@ -305,7 +305,7 @@ To leverage this optimization, for every Forwarding Rule:
 
    |
 
-#. Tag the Fowarding Rule (using `Description` field) with the following two tags:
+2. Tag the Fowarding Rule (using `Description` field) with the following two tags:
    
    - **Deployment scoping tag**: an arbitrary key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
@@ -316,7 +316,7 @@ To leverage this optimization, for every Forwarding Rule:
      ``"f5_target_instance_pair":"<target-instance-1-name>,<target-instance-2-name>"``
 
 
-For example, if you have a failoverAddresses declaration with arbitrary ``scopingTags`` of ``"my_deployment_scoping_label":"cluster1"``:
+   For example, if you have a failoverAddresses declaration with arbitrary ``scopingTags`` of ``"my_deployment_scoping_label":"cluster1"``:
 
    .. code-block:: json
 
@@ -329,65 +329,65 @@ For example, if you have a failoverAddresses declaration with arbitrary ``scopin
 
    |
 
-and 4 forwarding rules (one IP 1.1.1.1 for four different protocols, tcp,udp,icmp,esp): 
+   and 4 forwarding rules (one IP 1.1.1.1 for four different protocols, tcp,udp,icmp,esp): 
 
-.. code-block:: python
+   .. code-block:: python
 
-   # Create unique Target Instances for each Forwarding Rule
-   # where the BIG-IP's instance names are cluster1-a and cluster1-b
+      # Create unique Target Instances for each Forwarding Rule
+      # where the BIG-IP's instance names are cluster1-a and cluster1-b
 
-   # 1.1.1.1:TCP
-   gcloud compute target-instances create ti-cluster1-a-1 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
-   gcloud compute target-instances create ti-cluster1-b-1 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+      # 1.1.1.1:TCP
+      gcloud compute target-instances create ti-cluster1-a-1 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+      gcloud compute target-instances create ti-cluster1-b-1 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+    
+      # 1.1.1.1:UDP
+      gcloud compute target-instances create ti-cluster1-a-2 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+      gcloud compute target-instances create ti-cluster1-b-2 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+    
+      # 1.1.1.1:ICMP
+      gcloud compute target-instances create ti-cluster1-a-3 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+      gcloud compute target-instances create ti-cluster1-b-3 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+    
+      # 1.1.1.1:ESP
+      gcloud compute target-instances create ti-cluster1-a-4 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+      gcloud compute target-instances create ti-cluster1-b-4 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+    
+      $ gcloud compute target-instances list
+      NAME                               ZONE        INSTANCE            NAT_POLICY
+      ti-cluster1-a-1                    us-west1-a  cluster1-a          NO_NAT
+      ti-cluster1-a-2                    us-west1-a  cluster1-a          NO_NAT
+      ti-cluster1-a-3                    us-west1-a  cluster1-a          NO_NAT
+      ti-cluster1-a-4                    us-west1-a  cluster1-a          NO_NAT
+      ti-cluster1-b-1                    us-west1-a  cluster1-b          NO_NAT
+      ti-cluster1-b-2                    us-west1-a  cluster1-b          NO_NAT
+      ti-cluster1-b-3                    us-west1-a  cluster1-b          NO_NAT
+      ti-cluster1-b-4                    us-west1-a  cluster1-b          NO_NAT
  
-   # 1.1.1.1:UDP
-   gcloud compute target-instances create ti-cluster1-a-2 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
-   gcloud compute target-instances create ti-cluster1-b-2 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
- 
-   # 1.1.1.1:ICMP
-   gcloud compute target-instances create ti-cluster1-a-3 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
-   gcloud compute target-instances create ti-cluster1-b-3 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
- 
-   # 1.1.1.1:ESP
-   gcloud compute target-instances create ti-cluster1-a-4 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
-   gcloud compute target-instances create ti-cluster1-b-4 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
- 
-   $ gcloud compute target-instances list
-   NAME                               ZONE        INSTANCE            NAT_POLICY
-   ti-cluster1-a-1                    us-west1-a  cluster1-a          NO_NAT
-   ti-cluster1-a-2                    us-west1-a  cluster1-a          NO_NAT
-   ti-cluster1-a-3                    us-west1-a  cluster1-a          NO_NAT
-   ti-cluster1-a-4                    us-west1-a  cluster1-a          NO_NAT
-   ti-cluster1-b-1                    us-west1-a  cluster1-b          NO_NAT
-   ti-cluster1-b-2                    us-west1-a  cluster1-b          NO_NAT
-   ti-cluster1-b-3                    us-west1-a  cluster1-b          NO_NAT
-   ti-cluster1-b-4                    us-west1-a  cluster1-b          NO_NAT
- 
-   # Create Forwarding Rules with a Description containing Deployment Scoping Tag and Target Instance Pair mappings, pointed first at target-instance objects associated with cluster-1a.
-
-   $ gcloud compute forwarding-rules create forwrule-1 --address 1.1.1.1 --target-instance='ti-cluster1-a-1' --ip-protocol=TCP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-1,ti-cluster1-b-1\"}"
-   $ gcloud compute forwarding-rules create forwrule-2 --address 1.1.1.1 --target-instance='ti-cluster1-a-2' --ip-protocol=UDP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-2,ti-cluster1-b-2\"}"
-   $ gcloud compute forwarding-rules create forwrule-3 --address 1.1.1.1 --target-instance='ti-cluster1-a-3' --ip-protocol=ICMP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-3,ti-cluster1-b-3\"}"
-   $ gcloud compute forwarding-rules create forwrule-4 --address 1.1.1.1 --target-instance='ti-cluster1-a-4' --ip-protocol=ESP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-4,ti-cluster1-b-4\"}"
-
-
-   # Before Failover (pointed at BIG-IP cluster-1a target-instances):
-
-   $ gcloud compute forwarding-rules list
-   NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
-   forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-a-1
-   forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-a-2
-   forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-a-3
-   forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-a-4
- 
-   # After Failover (pointed at BIG-IP cluster-1b target-instances):
-
-   $ gcloud compute forwarding-rules list
-   NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
-   forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-b-1
-   forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-b-2
-   forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-b-3
-   forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-b-4
+      # Create Forwarding Rules with a Description containing Deployment Scoping Tag and Target Instance Pair mappings, pointed first at target-instance objects associated with cluster-1a.
+   
+      $ gcloud compute forwarding-rules create forwrule-1 --address 1.1.1.1 --target-instance='ti-cluster1-a-1' --ip-protocol=TCP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-1,ti-cluster1-b-1\"}"
+      $ gcloud compute forwarding-rules create forwrule-2 --address 1.1.1.1 --target-instance='ti-cluster1-a-2' --ip-protocol=UDP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-2,ti-cluster1-b-2\"}"
+      $ gcloud compute forwarding-rules create forwrule-3 --address 1.1.1.1 --target-instance='ti-cluster1-a-3' --ip-protocol=ICMP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-3,ti-cluster1-b-3\"}"
+      $ gcloud compute forwarding-rules create forwrule-4 --address 1.1.1.1 --target-instance='ti-cluster1-a-4' --ip-protocol=ESP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description "f5_cloud_failover_labels={\"my_deployment_scoping_label\":\"cluster1\",\"f5_target_instance_pair\":\"ti-cluster1-a-4,ti-cluster1-b-4\"}"
+   
+   
+      # Before Failover (pointed at BIG-IP cluster-1a target-instances):
+   
+      $ gcloud compute forwarding-rules list
+      NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
+      forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-a-1
+      forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-a-2
+      forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-a-3
+      forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-a-4
+    
+      # After Failover (pointed at BIG-IP cluster-1b target-instances):
+   
+      $ gcloud compute forwarding-rules list
+      NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
+      forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-b-1
+      forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-b-2
+      forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-b-3
+      forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-b-4
 
 |
 
@@ -457,24 +457,24 @@ Alternatively, if you are using the Discovery via Tag option, tag your NICs (see
    - If you use discoveryType ``routeTag``, you will need to add another tag to the route in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
 
 
-    .. code-block:: json
+   .. code-block:: json
 
-       "failoverRoutes": {
-          "enabled": true,
-          "scopingTags": {
-            "f5_cloud_failover_label": "mydeployment"
-          },
-          "scopingAddressRanges": [
-            {
-              "range": "0.0.0.0/0",
-              "nextHopAddresses": {
-                  "discoveryType":"routeTag"
-              }
-            }
-          ]
-       }
+      "failoverRoutes": {
+         "enabled": true,
+         "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+         },
+         "scopingAddressRanges": [
+           {
+             "range": "0.0.0.0/0",
+             "nextHopAddresses": {
+                 "discoveryType":"routeTag"
+             }
+           }
+         ]
+      }
 
-  - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
+   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.  
 
 |
 

@@ -241,18 +241,18 @@ Tag the Network Interfaces in AWS:
 
 1. Create two sets of tags for Network Interfaces. 
 
-  - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. If you use the declaration example below, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration. If you use the declaration example below, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
 
-    .. code-block:: json
+     .. code-block:: json
 
-       "failoverAddresses":{
-           "scopingTags": {
-               "f5_cloud_failover_label": "mydeployment"
-           },
+        "failoverAddresses":{
+            "scopingTags": {
+                "f5_cloud_failover_label": "mydeployment"
+            },
 
 
 
-  - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
+   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
 
      .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
 
@@ -357,9 +357,6 @@ Define the Failover Addresses in AWS
       },
 
    |
-
-
-
 
    Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `failoverAddresses.scopingTags` section of the CFE declaration.
 

@@ -32,7 +32,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
       "failoverAddresses": {
          "scopingTags": {
             "i_am_an_arbitrary_key": "i_am_an_arbitrary_value"
-          }
+         }
 
 
 4. POST to the URI ``https://<BIG-IP>/mgmt/shared/cloud-failover/declare``. 
@@ -66,27 +66,27 @@ On the **Standby** instance:
 
 1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
 
-    Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  to list associated cloud objects.
+   Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  to list associated cloud objects.
 
-    For example:
+   For example:
 
-    .. code-block:: bash
+   .. code-block:: bash
 
-        curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+      curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
     
-    |
+   |
 
 2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
 
-    Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ with ``'{"action":"dry-run"}'`` payload.
+   Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ with ``'{"action":"dry-run"}'`` payload.
 
-    For example:
+   For example:
 
-    .. code-block:: bash
+   .. code-block:: bash
 
-        curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+      curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
     
-    |
+   |
 
 If you run into any issues or errors, see the :ref:`troubleshooting` for more details.
 
@@ -136,13 +136,13 @@ Next, you define the external storage Cloud Failover will use for its state file
 
 - Discovery via Tag example:
 
-    .. code-block:: json
+  .. code-block:: json
 
-       "externalStorage": {
-          "scopingTags": {
-             "f5_cloud_failover_label": "mydeployment"
-          }
-       },
+     "externalStorage": {
+        "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+        }
+     },
 
 |
 
@@ -174,12 +174,10 @@ Next, you define the external storage Cloud Failover will use for its state file
 | scopingName        | -                              | Provide the name of external storage in your cloud environment.                                                                                                                                 |
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
+.. Note:: When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
 
 
-
-
-.. Note:: The following base components are **optional**.
+The following base components are **optional**.
 
 |
 
@@ -275,37 +273,37 @@ The next lines of the declaration set the address failover functionality.
 
 - Discovery via Tag example:
 
-    .. code-block:: json
+  .. code-block:: json
 
-       "failoverAddresses": {
-          "enabled": true,
-          "scopingTags": {
-             "f5_cloud_failover_label": "mydeployment"
-          }
-       },
+     "failoverAddresses": {
+        "enabled": true,
+        "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+        }
+     },
 
 |
 
 - Explicit Configuration example:
 
-   .. code-block:: json
+  .. code-block:: json
 
-      "failoverAddresses":{
-         "enabled":true,
-         "scopingTags": {
-            "f5_cloud_failover_label": "mydeployment"
-         }
-         "addressGroupDefinitions": [
-            {
-               "type": "networkInterfaceAddress",
-               "scopingAddress": "10.0.1.100"
-            },
-            {
-               "type": "networkInterfaceAddress",
-               "scopingAddress": "10.0.1.101"
-            }
-         ]
-      },
+     "failoverAddresses":{
+        "enabled":true,
+        "scopingTags": {
+           "f5_cloud_failover_label": "mydeployment"
+        }
+        "addressGroupDefinitions": [
+           {
+              "type": "networkInterfaceAddress",
+              "scopingAddress": "10.0.1.100"
+           },
+           {
+              "type": "networkInterfaceAddress",
+              "scopingAddress": "10.0.1.101"
+           }
+        ]
+     },
 
 |
 
@@ -371,61 +369,61 @@ The next lines of the declaration set the route failover functionality.
 
 - Discovery via Tag example:
    
-    .. code-block:: json
+  .. code-block:: json
 
-       "failoverRoutes": {
-          "enabled": true,
-          "scopingTags": {
-            "f5_cloud_failover_label": "mydeployment"
-            },
-            "scopingAddressRanges": [
-               {
-                  "range": "192.168.1.0/24"
-               },
-               {
-                  "range": "192.168.1.1/24"
-               }
-            ],
-            "defaultNextHopAddresses": {
-               "discoveryType": "routetag"
-            }
-         }
+     "failoverRoutes": {
+        "enabled": true,
+        "scopingTags": {
+          "f5_cloud_failover_label": "mydeployment"
+          },
+          "scopingAddressRanges": [
+             {
+                "range": "192.168.1.0/24"
+             },
+             {
+                "range": "192.168.1.1/24"
+             }
+          ],
+          "defaultNextHopAddresses": {
+             "discoveryType": "routetag"
+          }
+       }
 
 |
 
 
 - Explicit Configuration example:
 
-    .. code-block:: json
+  .. code-block:: json
 
-       "failoverRoutes": {
-          "enabled": true,
-          "routeGroupDefinitions": [
-             {
-                "scopingName": "rtb-11111111111111111",
-                "scopingAddressRanges": [
-                   {
-                      "range": "192.168.1.0/24",
-                   },
-                   {
-                      "range": "192.168.1.1/24"
-                   }
-                ],
-                "defaultNextHopAddresses": {
-                   "discoveryType": "static",
-                   "items": [
-                      "192.0.2.10",
-                      "192.0.2.11"
-                   ]
-                }
-             }
-          ]
-       }
-
-
+     "failoverRoutes": {
+        "enabled": true,
+        "routeGroupDefinitions": [
+           {
+              "scopingName": "rtb-11111111111111111",
+              "scopingAddressRanges": [
+                 {
+                    "range": "192.168.1.0/24",
+                 },
+                 {
+                    "range": "192.168.1.1/24"
+                 }
+              ],
+              "defaultNextHopAddresses": {
+                 "discoveryType": "static",
+                 "items": [
+                    "192.0.2.10",
+                    "192.0.2.11"
+                 ]
+              }
+           }
+        ]
+     }
 
 
-    The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example above, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
+
+
+  The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example above, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
 
 |
 
