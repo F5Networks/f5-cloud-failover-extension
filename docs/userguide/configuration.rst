@@ -65,6 +65,7 @@ On any initial configuration or re-configuration, F5 recommends that you validat
 On the **Standby** instance:
 
 1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
+
     Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  to list associated cloud objects.
 
     For example:
@@ -76,6 +77,7 @@ On the **Standby** instance:
     |
 
 2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
+
     Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ with ``'{"action":"dry-run"}'`` payload.
 
     For example:
@@ -102,9 +104,7 @@ This section provides more information about the options in a Cloud Failover con
     - Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
 
       - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
-      - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. 
-    
-    - Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See your provider :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
+      - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
 
 .. _base-comps:
 
@@ -424,6 +424,9 @@ The next lines of the declaration set the route failover functionality.
 
 
 
+
+    The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example above, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
+
 |
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
@@ -432,9 +435,7 @@ The next lines of the declaration set the route failover functionality.
 
 |
 
-The property ``routeGroupDefinitions`` provides more granular per-route table operations (F5 recommends using this option going forward). In the example below, ``scopingName`` is used to specify the exact route table to operate on and ``static`` in defaultNextHopAddresses to specify the nexthop Self-IP mappings.
 
-|
 
 |
 
