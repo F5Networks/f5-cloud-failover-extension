@@ -242,7 +242,7 @@ Update/modify the ``addressGroupDefiniitions`` list to match the addresses in yo
 |
 
 
-Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs, tag your NICs.
+Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below and tag your NICs. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.
 
 .. code-block:: json
 

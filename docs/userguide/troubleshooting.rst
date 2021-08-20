@@ -12,42 +12,41 @@ Cloud Failover Extension general troubleshooting tips
   - A 400-level response will carry an error message. See Troubleshooting Index below.
   - If this message is missing, incorrect, or misleading, please let us know by filing a |github|.
 
-- If CFE is installed and configured but not functioning as expected, use your preferred REST client to run these steps on the *Standby* instance: 
+- If CFE is installed and configured but not functioning as expected, use your preferred REST client to run these steps on the *Standby* instance. For illustration purposes, the examples below use `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output.
 
-  1. Set :ref:`logging-ref` to Silly.
-  2. Download the config: 
+  1. Enable Debug Logging: Set CFE configuration :ref:`logging-ref` level to `silly`.
+
+     - Download the config: 
   
-    .. code-block:: bash
+     .. code-block:: bash
     
-       curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare > cfe.json | jq.
+        curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare |  jq .declaration > cfe.json
 
-  3. Use your preferred editor to edit the config to enable debug logging (if not already enabled) and repost:
 
-    .. code-block:: bash
+     - Use your preferred editor to edit the config to enable debug logging and repost:
+
+     .. code-block:: bash
     
-       vim cfe.json
-       curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+        vim cfe.json
+        curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .
 
 
-  4. Reset the Statefile:
+  2. Reset the Statefile:
 
-    .. code-block:: bash
+     .. code-block:: bash
     
-       curl -su admin: -X POST -d '{"resetStateFile":true}' {http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
+        curl -su admin: -X POST -d '{"resetStateFile":true}' {http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
 
 
-  5. Validate by using additional CFE endpoints to run Inspect and Dry-Run on the Standby Instance:
+  3. Validate by using additional CFE endpoints to run Inspect and Dry-Run on the Standby Instance:
 
-    .. code-block:: bash
+     .. code-block:: bash
     
-       curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
-       curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
+        curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
+        curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
 
-  6. Look at the Debug Logs:
+  4. Review the debug logs.
 
-    .. code-block:: bash
-    
-       tail -f /var/log/restnoded/restnoded.log
 
 
 |

@@ -131,7 +131,7 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 Does CFE support IPv6?
 ``````````````````````
-- IPv6 route failover is currently supported for AWS only. To see an example confguration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
+- IPv6 route failover is currently supported for AWS and Azure only. To see an example configuration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
 - IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
 
 
@@ -190,9 +190,9 @@ The lack of floating addresses has implications on the BIG-IP system’s SNAT (S
 
 .. _faq-tg-none:
 
-Why does the failover diagram show that VIPs must be in traffic group 'none'?
-`````````````````````````````````````````````````````````````````````````````
-See Active/Active explanation above: :ref:`faq-active-active`
+Why does the AWS failover diagram show that VIPs must be in traffic group 'none'?
+`````````````````````````````````````````````````````````````````````````````````
+Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1.  
 
 
 ------------------------------------------

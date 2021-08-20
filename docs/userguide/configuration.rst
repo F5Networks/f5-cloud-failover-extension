@@ -5,27 +5,30 @@ Configure Cloud Failover Extension
 
 Once the Package is installed, you will use the REST endpoints to configure the Cloud Failover Extension.
 
-1. Using a RESTful API client, send a GET request to the URI ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is running
-   properly. You should receive an expect response of `success` after you have posted this declaration. 
+1. Using a RESTful API client, send a GET request to the URI ``https://{{host}}/mgmt/shared/cloud-failover/info`` to ensure Cloud Failover Extension is installed and running.
    
-   For illustration purposes, the example below uses `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output:
+   For illustration purposes, the examples below use `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output:
 
    .. code-block:: shell
 
       [admin@bigip-A:Active:In Sync] config # curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .
       {
-          "message": "success"
+         "version": "1.2.3",
+         "release": "0",
+         "schemaCurrent": "1.2.3",
+         "schemaMinimum": "1.2.3"
       }
 
 
-2. Copy one of the :ref:`example-declarations` which best matches the configuration you want to use. See each provider section for additional details and requirements.
+
+2. Copy one of the example declarations from the individual cloud provider sections or one of the :ref:`example-declarations` which best matches the desired configuration. See each provider section for additional details and requirements.
 
    - :ref:`aws`
    - :ref:`gcp`
    - :ref:`azure`
 
 
-3. Paste or copy the declaration into your API client, and modify names and/or IP addresses as applicable. The key and value pair can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
+3. Paste or copy the declaration into your API client, and modify any names, addresses, routes, or properties as applicable. If the configuration requires tags, the key and value pair in the configuration can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
    .. code-block:: json
 
@@ -42,8 +45,21 @@ Once the Package is installed, you will use the REST endpoints to configure the 
    .. code-block:: shell
 
       [admin@bigip-A:Active:In Sync] config # vim cfe.json 
-      [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
-      [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq.
+      [admin@bigip-A:Active:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .
+      [admin@bigip-B:Standby:In Sync] config # curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .
+
+   |
+
+   You should receive an expected response of `success` after you have posted this declaration. For example:
+
+   .. code-block:: json
+
+        {
+            "message": "success",
+                "declaration": {
+                    "class": "Cloud_Failover",
+                    ... rest of your declaration ...
+
 
 
    .. IMPORTANT::
@@ -51,7 +67,11 @@ Once the Package is installed, you will use the REST endpoints to configure the 
       You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.
 
       
-5. Validate: See Validation Section below. To stream the output of restnoded, use the tail command: ``tail –f /var/log/restnoded/restnoded.log``.
+5. Validate.
+   
+   - See the :ref:`config-validation` section below. 
+   - Review the logs: ``tail –f /var/log/restnoded/restnoded.log``.
+
 
 |
 
@@ -66,7 +86,7 @@ On the **Standby** instance:
 
 1. Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.
 
-   Use the `/inspect endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  to list associated cloud objects.
+   Use the `/inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_  endpoint to list associated cloud objects.
 
    For example:
 
@@ -78,7 +98,7 @@ On the **Standby** instance:
 
 2. Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped. 
 
-   Use the `/trigger endpoint <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ with ``'{"action":"dry-run"}'`` payload.
+   Use the `/trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_ endpoint with ``'{"action":"dry-run"}'`` payload.
 
    For example:
 
@@ -88,9 +108,9 @@ On the **Standby** instance:
     
    |
 
-If you run into any issues or errors, see the :ref:`troubleshooting` for more details.
+If you run into any issues or errors, see the :ref:`troubleshooting` section for more details.
 
-
+|
 
 .. _declaration-components:
 
@@ -469,13 +489,15 @@ Endpoints
 ---------
 
 
-- `Info <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information>`_: use this endpoint to get information on CFE, such as the version number.
+- `declare <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration>`_: user this endpoint to configure CFE.
 
-- `Inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.
+- `info <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information>`_: use this endpoint to get information on CFE, such as the version number.
 
-- `Reset <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Reset>`_: use this endpoint to reset the failover state file.
+- `inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.
 
-- `Trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: use this endpoint to trigger failover.
+- `reset <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Reset>`_: use this endpoint to reset the failover state file.
+
+- `trigger <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger>`_: use this endpoint to trigger failover.
 
 
 
