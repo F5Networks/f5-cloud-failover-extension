@@ -1,6 +1,6 @@
 {
   "class": "Cloud_Failover",
-  "environment": "azure",
+  "environment": "aws",
   "controls": {
     "class": "Controls",
     "logLevel": "silly"

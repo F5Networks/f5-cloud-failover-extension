@@ -185,7 +185,7 @@ CFE will work across Availability Zones by remapping elastic public IPs to those
 
 Is SNAT required?
 `````````````````
-SNAT is not required if your application server’s default route points through the BIG-IPs NICs. If you are using SNAT in AWS HA Across AZ, please see :ref:`aws-tag-addresses-acrossnet`.
+SNAT is not required if your application server’s default route points through the BIG-IPs NICs. If you are using SNAT in AWS HA Across AZ, please see :ref:`aws-define-addresses-acrossnet`.
 
 Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active.
 
@@ -198,9 +198,9 @@ The lack of floating addresses has implications on the BIG-IP system’s SNAT (S
 
 .. _faq-tg-none:
 
-Why does the failover diagram show that VIPs must be in traffic group 'none'?
-`````````````````````````````````````````````````````````````````````````````
-See Active/Active explanation above: :ref:`faq-active-active`
+Why does the AWS failover diagram show that VIPs must be in traffic group 'none'?
+`````````````````````````````````````````````````````````````````````````````````
+Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1.  
 
 
 ------------------------------------------
@@ -284,7 +284,8 @@ IP configurations may reassociate with the NIC in a different order, but all pri
 
 Do I always have to tag my resources?
 `````````````````````````````````````
-Yes. Even when you only have routes to update during failover (for example, there are no Elastic IPs to re-map) you still have to tag the NICs on the VMs associated with the IPs in your CFE configuration.
+
+Beginning with version v1.7.0, there are two options for configuring CFE. With the explicit configuration option, tagging external resources is no longer required. However, tagging BIG-IPs own NICs own cloud resources may still be required. See :ref:`declaration-components` and your cloud providers specific configuration sections for more details.
 
 
 -----------------------------------------
