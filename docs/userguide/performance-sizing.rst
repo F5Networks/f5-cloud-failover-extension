@@ -88,3 +88,6 @@ Azure
   - `AWS <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_
   - `GCP <https://cloud.google.com/docs/quota>`_
   - `Azure <https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits>`_
+
+
+.. include:: /_static/reuse/feedback.rst

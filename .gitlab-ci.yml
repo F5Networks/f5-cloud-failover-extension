@@ -71,6 +71,10 @@ check_content:
 build_package:
     image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
     stage: build_package
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - echo 'CI BUILD'
         # install packages: jq
@@ -90,6 +94,10 @@ build_package:
 test_node4:
     stage: test
     image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:4
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - npm install --global npm@5.10.0
         - npm install mocha@5.2.0
@@ -102,6 +110,10 @@ test_node4:
 # test package
 test_package:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - apt-get update && apt-get install -y jq && npm install
         # linter
@@ -114,6 +126,10 @@ test_package:
 # audit packages for vulnerabilities
 test_audit:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         # npm audit - uses custom audit processor wrapper
         - npm install
@@ -129,6 +145,10 @@ test_audit:
 # job must be called coverage
 coverage:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - apt-get update && apt-get install -y jq && npm install
         # unit tests + coverage report
@@ -292,7 +312,7 @@ test_functional_init_gcp_no_forwarding:
         - apt-get update
         - apt-get install -y jq
         # install node (and package dependencies)
-        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
