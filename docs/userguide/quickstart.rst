@@ -102,8 +102,8 @@ up and running with Cloud Failover.
          
 10. Validate.
       
-   - See the :ref:`config-validation` section. 
-   - Review the logs: ``tail –f /var/log/restnoded/restnoded.log``.
+- See the :ref:`config-validation` section. 
+- Review the logs: ``tail –f /var/log/restnoded/restnoded.log``.
 
 |
 
