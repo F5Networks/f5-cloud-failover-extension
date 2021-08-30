@@ -142,7 +142,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    |
 
-2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**.
 
    For example:
 
