@@ -45,7 +45,7 @@ Cloud Failover Extension general troubleshooting tips
         curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
         curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
 
-  4. Review the debug logs.
+  4. Review the debug logs. (``/var/log/restnoded/restnoded.log``).
 
 
 
