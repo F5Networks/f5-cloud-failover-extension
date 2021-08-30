@@ -57,6 +57,7 @@ up and running with Cloud Failover.
          "schemaMinimum": "1.2.3"
       }
 
+7. Copy one of the example declarations which best matches the configuration you want to use. There are additional examples in the individual provider sections :ref:`aws`, :ref:`gcp` and :ref:`azure` as well as the :ref:`example-declarations` section.
 
 
 7. Copy one of the example declarations that best matches the configuration you want to use. There are additional examples in the individual provider sections for :ref:`aws`, :ref:`gcp`, and :ref:`azure` as well as the :ref:`example-declarations` section.

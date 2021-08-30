@@ -19,7 +19,6 @@ Document Revision History
         - Updated the documentation for Cloud Failover Extension v1.9.0 with the following changes: |br| • Added clarifying notes to :ref:`aws` and :ref:`aws-same-az` concerning primary IPs and their associated EIPs. |br| • Added section :ref:`aws-custom-cert` to :ref:`aws` and :ref:`aws-same-az`. |br| • Updated the :ref:`faq`.
         - 07-01-21
 
-
       * - 2.1
         - Updated the documentation for Cloud Failover Extension v1.8.0 with the following changes: |br| • Added :ref:`azure-iso-env` to :ref:`isolated-env`. 
         - 03-18-21

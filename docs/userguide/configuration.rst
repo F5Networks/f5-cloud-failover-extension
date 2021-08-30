@@ -61,6 +61,7 @@ Once the Package is installed, you will use the REST endpoints to configure the 
                     ... rest of your declaration ...
 
 
+   |
 
    .. IMPORTANT::
 
@@ -488,6 +489,7 @@ The next lines of the declaration set the route failover functionality.
 Endpoints
 ---------
 
+- `declare <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration>`_: user this endpoint to configure CFE
 
 - `declare <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration>`_: user this endpoint to configure CFE.
 

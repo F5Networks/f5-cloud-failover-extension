@@ -47,6 +47,7 @@ variables:
     # topology var
     CF_ENV_NETWORK_TOPOLOGY: 'same_network'
     CF_ENV_NIC_COUNT: 3
+    CF_ENV_USE_FORWARDING_RULE: 'true'
 
 
 # check for disallowed content within any file in source control, this
@@ -70,6 +71,10 @@ check_content:
 build_package:
     image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
     stage: build_package
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - echo 'CI BUILD'
         # install packages: jq
@@ -89,6 +94,10 @@ build_package:
 test_node4:
     stage: test
     image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:4
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - npm install --global npm@5.10.0
         - npm install mocha@5.2.0
@@ -101,6 +110,10 @@ test_node4:
 # test package
 test_package:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - apt-get update && apt-get install -y jq && npm install
         # linter
@@ -113,6 +126,10 @@ test_package:
 # audit packages for vulnerabilities
 test_audit:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         # npm audit - uses custom audit processor wrapper
         - npm install
@@ -128,6 +145,10 @@ test_audit:
 # job must be called coverage
 coverage:
     stage: test
+    except:
+      variables:
+        - $CI_COMMIT_REF_NAME == "docs_production"
+        - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         - apt-get update && apt-get install -y jq && npm install
         # unit tests + coverage report
@@ -150,7 +171,7 @@ coverage:
         max: 1
     script:
         # deploy environment - required artifacts will be place in output folder
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\"
+        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
     tags:
         - cm-official-docker-executor
     only:
@@ -272,6 +293,16 @@ test_functional_init_gcp:
         variables:
             - $TESTS_TIER == "2"
 
+# init functional tests: gcp no forwarding
+test_functional_init_gcp_no_forwarding:
+    <<: *test_functional_init_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
+        CF_ENV_USE_FORWARDING_RULE: 'false'
+    except:
+        variables:
+            - $TESTS_TIER == "2"
 # Functional Tests - Execute phase (with no retries)
 .test_functional_execute_generic: &test_functional_execute_generic
     stage: test_functional_execute
@@ -281,7 +312,7 @@ test_functional_init_gcp:
         - apt-get update
         - apt-get install -y jq
         # install node (and package dependencies)
-        - curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get -y install nodejs
+        - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs
         - npm install
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
@@ -422,7 +453,7 @@ test_functional_execute_aws_1nic:
             - $TESTS_TIER == "1"
             - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
-# run functional tests: gcp
+# run functional tests: gcp with forwarding rule
 test_functional_execute_gcp:
     <<: *test_functional_execute_generic
     variables:
@@ -430,6 +461,19 @@ test_functional_execute_gcp:
         CF_ENV_REGION: "us-west1"
     dependencies:
         - test_functional_init_gcp
+        - build_package
+    except:
+        variables:
+            - $TESTS_TIER == "2"
+
+# run functional tests: gcp without forwarding rules
+test_functional_execute_gcp_no_forwarding_rule:
+    <<: *test_functional_execute_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
+    dependencies:
+        - test_functional_init_gcp_no_forwarding
         - build_package
     except:
         variables:
@@ -446,7 +490,7 @@ test_functional_execute_gcp:
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
         # teardown environment
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\"
+        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
     tags:
         - cm-official-docker-executor
     only:
@@ -574,6 +618,19 @@ test_functional_cleanup_gcp:
         CF_ENV_REGION: "us-west1"
     dependencies:
         - test_functional_init_gcp
+    except:
+        variables:
+            - $TESTS_TIER == "2"
+
+# run functional tests: gcp no forwarding rule
+test_functional_cleanup_gcp_no_forwarding_rule:
+    <<: *test_functional_cleanup_generic
+    variables:
+        CF_ENV_CLOUD: "gcp"
+        CF_ENV_REGION: "us-west1"
+        CF_ENV_USE_FORWARDING_RULE: 'false'
+    dependencies:
+        - test_functional_init_gcp_no_forwarding
     except:
         variables:
             - $TESTS_TIER == "2"

@@ -1033,7 +1033,10 @@ class Cloud extends AbstractCloud {
         // add nics to 'mine' or 'their' array based on address match
         nics.forEach((nic) => {
             // identify 'my' and 'their' nics
-            const nicAddresses = nic.PrivateIpAddresses.map(i => i.PrivateIpAddress);
+            let nicAddresses = nic.PrivateIpAddresses.map(i => i.PrivateIpAddress);
+            if (nic.Ipv6Addresses) {
+                nicAddresses = nicAddresses.concat(nic.Ipv6Addresses.map(i => i.Ipv6Address));
+            }
             localAddresses.forEach((address) => {
                 const myNicIds = myNics.map(i => i.nic.NetworkInterfaceId);
                 if (nicAddresses.indexOf(address) !== -1
@@ -1172,7 +1175,8 @@ class Cloud extends AbstractCloud {
                             });
                         } else if (theirNicAddresses[i].Ipv6Address
                             && util.validateIpv6Address(failoverAddresses[t])
-                            && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                            && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                            && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                             this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                             addressesToTake.push({
                                 address: failoverAddresses[t],
@@ -1186,7 +1190,6 @@ class Cloud extends AbstractCloud {
                     && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
                     && theirNicAddresses[i].Primary !== true) {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
-
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
                         publicAddress: util.getDataByKey(theirNicAddresses[i], 'Association.PublicIp'),
@@ -1194,7 +1197,8 @@ class Cloud extends AbstractCloud {
                     });
                 } else if (theirNicAddresses[i].Ipv6Address
                     && util.validateIpv6Address(failoverAddresses[t])
-                    && failoverAddresses[t] !== theirNicAddresses[i].Ipv6Address) {
+                    && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                    && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                     this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                     addressesToTake.push({
                         address: failoverAddresses[t],
@@ -1342,7 +1346,8 @@ class Cloud extends AbstractCloud {
         if (privateAddress) {
             params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
         }
-        return this.ec2.describeAddresses(params).promise()
+        const func = _params => this.ec2.describeAddresses(_params).promise();
+        return this._retrier(func, [params])
             .catch(err => Promise.reject(err));
     }
 
@@ -1540,7 +1545,7 @@ class Cloud extends AbstractCloud {
     _getSubnets() {
         this.logger.debug('Trying to get subnets');
         const func = () => this.ec2.describeSubnets().promise();
-        return this._retrier(func, [], { maxRetries: 1 })
+        return this._retrier(func, [])
             .then((subnets) => {
                 if (!subnets.Subnets.length) {
                     this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');

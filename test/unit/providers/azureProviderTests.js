@@ -604,7 +604,7 @@ describe('Provider - Azure', () => {
 
     describe('function updateRoutes should', () => {
         const secondarySubscriptionId = 'yyyy';
-        const localAddresses = ['10.0.1.11', '10.0.1.13'];
+        const localAddresses = ['10.0.1.11', '10.0.1.13', 'ace:cab:deca:deee::5'];
         const routeTablesBySubscription = {
             [mockSubscriptionId]: [
                 {
@@ -613,7 +613,7 @@ describe('Provider - Azure', () => {
                     provisioningState: 'Succeeded',
                     tags: {
                         F5_LABEL: 'foo',
-                        F5_SELF_IPS: '10.0.1.10,10.0.1.11'
+                        F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                     },
                     routes: [
                         {
@@ -622,7 +622,15 @@ describe('Provider - Azure', () => {
                             addressPrefix: '192.0.0.0/24',
                             nextHopType: 'VirtualAppliance',
                             nextHopIpAddress: '10.0.1.10'
-                        }]
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            addressPrefix: 'ace:cab:deca:defe::/64',
+                            nextHopType: 'VirtualAppliance',
+                            nextHopIpAddress: 'ace:cab:deca:deee::4'
+                        }
+                    ]
                 },
                 {
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt02`,
@@ -634,7 +642,7 @@ describe('Provider - Azure', () => {
                     },
                     routes: [
                         {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route02`,
                             name: 'route02',
                             addressPrefix: '192.0.1.0/24',
                             nextHopType: 'VirtualAppliance',
@@ -758,6 +766,24 @@ describe('Provider - Azure', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('update IPv6 routes using next hop discovery method: static', () => {
+            provider.routeGroupDefinitions[0].routeAddressRanges.push({
+                routeAddresses: ['ace:cab:deca:defe::/64'],
+                routeNextHopAddresses: {
+                    type: 'static',
+                    items: ['ace:cab:deca:deee::4', 'ace:cab:deca:deee::5']
+                }
+            });
+
+            return provider.updateRoutes({ localAddresses, discoverOnly: true })
+                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then(() => {
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('not update routes when matching next hop address is not found', () => {
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
@@ -819,6 +845,18 @@ describe('Provider - Azure', () => {
                             }
                         }
                     ]
+                },
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['ace:cab:deca:defe::/64'],
+                            routeNextHopAddresses: {
+                                type: 'static',
+                                items: ['ace:cab:deca:deee::4', 'ace:cab:deca:deee::5']
+                            }
+                        }
+                    ]
                 }
             ];
 
@@ -828,6 +866,7 @@ describe('Provider - Azure', () => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                     assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
+                    assert.strictEqual(routeUpdateSpy.args[2][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
                 })
                 .catch(err => Promise.reject(err));
         });
@@ -967,6 +1006,9 @@ describe('Provider - Azure', () => {
                                 publicIpAddress: '100.100.100.100'
                             }]
                         },
+                        ipv6: {
+                            ipAddress: []
+                        },
                         macAddress: '000000070FD1'
                     }]
                 }
@@ -1020,6 +1062,110 @@ describe('Provider - Azure', () => {
                 .catch(err => Promise.reject(err));
         });
 
+        it('should return addresses and routes for active device (IPv6) ', () => {
+            const expectedData = {
+                instance: 'vm-1',
+                addresses: [
+                    {
+                        privateIpAddress: '1.1.1.1',
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: null
+                    },
+                    {
+                        privateIpAddress: 'ace:cab:deca:deee::4',
+                        networkInterfaceId: null
+                    }
+                ],
+                routes: [
+                    {
+                        routeTableId: '/foo/foo/foo/rg01/id_rt01',
+                        routeTableName: 'rt01',
+                        networkId: '/foo/foo/foo/rg01/subnets/internal'
+                    },
+                    {
+                        routeTableId: '/foo/foo/foo/rg01/id_rt01',
+                        routeTableName: 'rt01',
+                        networkId: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+            };
+            const mockInstanceMetadata = {
+                compute: {
+                    vmId: 'vm-1'
+                },
+                network: {
+                    interface: [{
+                        ipv4: {
+                            ipAddress: [{
+                                privateIpAddress: '1.1.1.1',
+                                publicIpAddress: '100.100.100.100'
+                            }]
+                        },
+                        ipv6: {
+                            ipAddress: [{
+                                privateIpAddress: 'ace:cab:deca:deee::4'
+                            }]
+                        },
+                        macAddress: '000000070FD1'
+                    }]
+                }
+
+
+            };
+            const routeTable01 = {
+                id: '/foo/foo/foo/rg01/id_rt01',
+                name: 'rt01',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '1.1.1.1, 2.2.2.2, ace:cab:deca:deee::4, ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: 'id_route01',
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '1.1.1.1'
+                    },
+                    {
+                        id: 'id_route02',
+                        name: 'route02',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4'
+                    }
+                ],
+                subnets: [
+                    {
+                        id: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+
+            };
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._getRouteTables = sinon.stub().resolves([routeTable01]);
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24', 'ace:cab:deca:defe::/64'],
+                            routeNextHopAddresses: {
+                                type: 'routeTag',
+                                tag: 'F5_SELF_IPS'
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.getAssociatedAddressAndRouteInfo()
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch(err => Promise.reject(err));
+        });
+
         it('should return addresses and not routes for standby device ', () => {
             const expectedData = {
                 instance: 'vm-1',
@@ -1043,6 +1189,9 @@ describe('Provider - Azure', () => {
                                 privateIpAddress: '1.1.1.1',
                                 publicIpAddress: '100.100.100.100'
                             }]
+                        },
+                        ipv6: {
+                            ipAddress: []
                         },
                         macAddress: '000000070FD1'
                     }]
