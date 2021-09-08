@@ -902,6 +902,9 @@ class Cloud extends AbstractCloud {
         routeTables.forEach((routeTable) => {
             this.logger.silly('Discovering updates for route table', routeTable.name);
             routeTable.routes.forEach((route) => {
+                this.logger.silly(`Route.name: ${route.name}`);
+                this.logger.silly(`Route.nextHopIpAddress: ${route.nextHopIpAddress}`);
+                this.logger.silly(`Route.addressPrefix: ${route.addressPrefix}`);
                 const matchedAddressRange = this._matchRouteToAddressRange(
                     route.addressPrefix,
                     routeGroup.routeAddressRanges
