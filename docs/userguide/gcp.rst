@@ -118,11 +118,23 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
    - storage.objects.list
    - storage.objects.update
 
+   
+
    |
 
 #. Select :guilabel:`Create` to finish creating the custom role.
 
-   .. NOTE:: These permissions are also included in by default in GCP primitives roles (Editor/Owner) and pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role bind to it with all the necessary permissions then it should be sufficient.
+   .. NOTE:: 
+
+      - Both `Owner` and `Editor` GCP basic roles are affected. These two roles do **not** include the following permissions:
+
+        - storage.objects.create
+        - storage.objects.delete
+        - storage.objects.get
+        - storage.objects.list
+        - storage.objects.update
+   
+      - A combination of `Compute Admin` and `Storage Admin` roles would also provide all of the required permissions. If using the `Owner` or `Editor` roles, ensure that you add the permissions listed above (which are missing from these GCP basic roles). See Google documentation on `GCP basic role definitions <https://cloud.google.com/iam/docs/understanding-roles#basic-definitions>`_, `Storage IAM permissions and roles <https://cloud.google.com/storage/docs/access-control/iam-roles#basic-roles-intrinsic>`_, and `General IAM permissions reference <https://cloud.google.com/iam/docs/permissions-reference>`_ for more information.
 
    .. image:: ../images/gcp/GCPIAMRoleSummary.png
       :scale: 50%
