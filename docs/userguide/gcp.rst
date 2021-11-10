@@ -126,7 +126,7 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
 
    .. NOTE:: 
 
-      These permissions are also included, by default, in GCP pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role to bind to it with all the necessary permissions, then it should be sufficient. Please see your cloud provider for the latest best practices.
+      These permissions are also included, by default, in GCP pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role to bind to it with all the necessary permissions, then it should be sufficient. Please see your `cloud provider <https://cloud.google.com/iam/docs/overview>`_ for the latest best practices.
 
    .. image:: ../images/gcp/GCPIAMRoleSummary.png
       :scale: 50%
