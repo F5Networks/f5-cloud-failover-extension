@@ -79,7 +79,7 @@ class Cloud extends AbstractCloud {
             })
             .then((storageName) => {
                 this.logger.silly('Storage name: ', storageName);
-                return this._retrier(this._getStorageAccountKey, [storageName]);
+                return this._retrier(this._getStorageAccountKey, [storageName], { maxRetries: 5 });
             })
             .then((storageAccountInfo) => {
                 this.logger.silly('Storage Account Information: ', storageAccountInfo.name);
