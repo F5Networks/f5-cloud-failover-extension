@@ -113,16 +113,16 @@ class AbstractCloud {
 
         if (discoverOnly === true) {
             return this._discoverRouteOperations(localAddresses)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         }
         if (updateOperations) {
             return this._updateRoutes(updateOperations.operations)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverRouteOperations(localAddresses)
-            .then(operations => this._updateRoutes(operations.operations))
-            .catch(err => Promise.reject(err));
+            .then((operations) => this._updateRoutes(operations.operations))
+            .catch((err) => Promise.reject(err));
     }
 
     _checkForNicOperations() {
@@ -157,14 +157,14 @@ class AbstractCloud {
             if (Array.isArray(routeTableTags[discoveryOptions.tag])) {
                 potentialAddresses = routeTableTags[discoveryOptions.tag];
             } else {
-                potentialAddresses = routeTableTags[discoveryOptions.tag].split(',').map(i => i.trim());
+                potentialAddresses = routeTableTags[discoveryOptions.tag].split(',').map((i) => i.trim());
             }
             break;
         default:
             throw new Error(`Invalid discovery type was provided: ${discoveryOptions.type}`);
         }
 
-        const nextHopAddressToUse = potentialAddresses.filter(item => localAddresses.indexOf(item) !== -1)[0];
+        const nextHopAddressToUse = potentialAddresses.filter((item) => localAddresses.indexOf(item) !== -1)[0];
         if (!nextHopAddressToUse) {
             this.logger.warning(`Next hop address to use is empty: ${localAddresses} ${potentialAddresses}`);
         }
@@ -182,8 +182,8 @@ class AbstractCloud {
     */
     _discoverRouteOperations(localAddresses) {
         return this._getRouteTables()
-            .then(routeTables => Promise.all(this.routeGroupDefinitions.map(
-                routeGroup => this._discoverRouteOperationsPerGroup(
+            .then((routeTables) => Promise.all(this.routeGroupDefinitions.map(
+                (routeGroup) => this._discoverRouteOperationsPerGroup(
                     localAddresses,
                     routeGroup,
                     routeTables
@@ -198,7 +198,7 @@ class AbstractCloud {
                 });
                 return Promise.resolve({ operations });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -228,7 +228,7 @@ class AbstractCloud {
             });
         }
         if (options.name) {
-            return routeTables.filter(item => (item.name || item.RouteTableId) === options.name);
+            return routeTables.filter((item) => (item.name || item.RouteTableId) === options.name);
         }
         return [];
     }
@@ -270,7 +270,7 @@ class AbstractCloud {
         }
         // simply compare this cidr to the route address ranges array and look for a match
         const matchingRouteAddressRange = routeAddressRanges.filter(
-            routeAddressRange => routeAddressRange.routeAddresses.indexOf(cidr) !== -1
+            (routeAddressRange) => routeAddressRange.routeAddresses.indexOf(cidr) !== -1
         );
         return matchingRouteAddressRange.length ? matchingRouteAddressRange[0] : null;
     }
@@ -324,7 +324,7 @@ class AbstractCloud {
             thisArg: options.thisArg || this,
             logger: options.logger || this.logger
         })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**

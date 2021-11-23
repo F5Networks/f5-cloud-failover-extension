@@ -101,7 +101,7 @@ describe('Config Worker', () => {
         .then((response) => {
             assert.strictEqual(response.class, declaration.class);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';
@@ -142,7 +142,7 @@ describe('Config Worker', () => {
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}`);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should check failover script(s) get trigger call updated', () => {
@@ -160,7 +160,7 @@ describe('Config Worker', () => {
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}`);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should check failover script(s) get trigger call updated (leaves additional text intact)', () => {
@@ -178,7 +178,7 @@ describe('Config Worker', () => {
                     const scriptContents = getFailoverScriptContents(updateScriptCommand);
                     assert.strictEqual(scriptContents, `${originalContents}\n${triggerCommand}\n\necho keepme`);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should check failover script(s) do not add trigger call when already added', () => {
@@ -190,7 +190,7 @@ describe('Config Worker', () => {
                     // should be called 2 times, list for tgactive/tgrefresh
                     assert.strictEqual(mockExecuteBigIpBashCmd.callCount, 2);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should check Azure legacy failover script call gets disabled', () => {
@@ -209,7 +209,7 @@ describe('Config Worker', () => {
                         `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.AZURE}\n${triggerCommand}`
                     );
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should check GCP legacy failover script call gets disabled', () => {
@@ -228,7 +228,7 @@ describe('Config Worker', () => {
                         `${originalContents}\n${constants.LEGACY_TRIGGER_COMMENT}\n#${constants.LEGACY_TRIGGER_COMMAND.GCP}\n${triggerCommand}`
                     );
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });

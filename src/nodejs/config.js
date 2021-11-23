@@ -56,7 +56,7 @@ class ConfigWorker {
         };
 
         return util.retrier(func, [], options)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -66,8 +66,8 @@ class ConfigWorker {
      */
     getConfig() {
         return this._loadStateFromStore()
-            .then(state => Promise.resolve(state.config))
-            .catch(err => Promise.reject(err));
+            .then((state) => Promise.resolve(state.config))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -119,7 +119,7 @@ class ConfigWorker {
                 }
                 return Promise.resolve(this._parseStateFromDataGroup(dataGroup.data));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -141,7 +141,7 @@ class ConfigWorker {
             ]
         )
             .then(() => Promise.resolve({ saved: true }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -209,7 +209,7 @@ class ConfigWorker {
                     `'echo "${util.base64('encode', contents)}" | base64 --decode > ${scriptPath}'`
                 );
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**

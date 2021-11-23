@@ -23,8 +23,8 @@ const funcUtils = require('../../shared/util.js');
 const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
-const dutPrimary = duts.filter(dut => dut.primary)[0];
-const dutSecondary = duts.filter(dut => !dut.primary)[0];
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 
@@ -69,7 +69,7 @@ describe('Provider: GCP', () => {
             return utils.makeRequest(dutPrimary.ip, uri, options);
         })
         .then((data) => {
-            primarySelfIps = data.items.map(i => i.address.split('/')[0]);
+            primarySelfIps = data.items.map((i) => i.address.split('/')[0]);
             return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password);
         })
         .then(() => {
@@ -79,7 +79,7 @@ describe('Provider: GCP', () => {
             return utils.makeRequest(dutPrimary.ip, uri, options);
         })
         .then((data) => {
-            virtualAddresses = data.items.map(i => i.address.split('/')[0]);
+            virtualAddresses = data.items.map((i) => i.address.split('/')[0]);
         })
         .then(() => utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username,
             dutSecondary.password))
@@ -91,9 +91,9 @@ describe('Provider: GCP', () => {
             return utils.makeRequest(dutSecondary.ip, uri, options);
         })
         .then((data) => {
-            secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
+            secondarySelfIps = data.items.map((i) => i.address.split('/')[0]);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -123,7 +123,7 @@ describe('Provider: GCP', () => {
                 });
                 return Promise.resolve(instances);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function listFwdRules() {
@@ -148,7 +148,7 @@ describe('Provider: GCP', () => {
                 });
                 return Promise.resolve(objects);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function listRoutes() {
@@ -157,8 +157,8 @@ describe('Provider: GCP', () => {
             auth: authClient,
             region: deploymentInfo.region
         })
-            .then(routes => Promise.resolve(routes.data.items))
-            .catch(err => Promise.reject(err));
+            .then((routes) => Promise.resolve(routes.data.items))
+            .catch((err) => Promise.reject(err));
     }
 
     function getVmByHostname(hostname) {
@@ -180,7 +180,7 @@ describe('Provider: GCP', () => {
                 });
                 return Promise.resolve(results[0]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function getRoutes(selfIps) {
@@ -196,7 +196,7 @@ describe('Provider: GCP', () => {
                 });
                 return Promise.resolve(result);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function checkAliasIPs(hostname, _virtualAddresses) {
@@ -217,7 +217,7 @@ describe('Provider: GCP', () => {
                     assert.fail('Matching alias IPs not found', aliasIpRanges);
                 }
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function checkForwardingRules(hostname) {
@@ -236,7 +236,7 @@ describe('Provider: GCP', () => {
                     assert.fail(`Forwarding rules not found ${fwdRules}`);
                 }
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function checkRoutes(selfIps) {
@@ -253,7 +253,7 @@ describe('Provider: GCP', () => {
                     assert.fail('Route not found');
                 }
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     it('validate Google Primary VM IP Addresess', function () {
@@ -292,7 +292,7 @@ describe('Provider: GCP', () => {
                     }
                 });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
@@ -303,7 +303,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (deploymentInfo.forwardingRule === 'true') {
@@ -311,7 +311,7 @@ describe('Provider: GCP', () => {
             this.retries(RETRIES.LONG);
 
             return checkForwardingRules(dutPrimary.hostname)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -319,7 +319,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkRoutes(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -330,7 +330,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkAliasIPs(dutSecondary.hostname, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (deploymentInfo.forwardingRule === 'true') {
@@ -338,7 +338,7 @@ describe('Provider: GCP', () => {
             this.retries(RETRIES.LONG);
 
             return checkForwardingRules(dutSecondary.hostname)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -346,11 +346,11 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkRoutes(secondarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should wait 30 seconds before force standby', () => new Promise(
-        resolve => setTimeout(resolve, 30000)
+        (resolve) => setTimeout(resolve, 30000)
     ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
@@ -365,7 +365,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (deploymentInfo.forwardingRule === 'true') {
@@ -373,7 +373,7 @@ describe('Provider: GCP', () => {
             this.retries(RETRIES.LONG);
 
             return checkForwardingRules(dutPrimary.hostname)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -381,7 +381,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkRoutes(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
@@ -395,7 +395,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -407,7 +407,7 @@ describe('Provider: GCP', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -418,7 +418,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 1000)
+            (resolve) => setTimeout(resolve, 1000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -430,7 +430,7 @@ describe('Provider: GCP', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
@@ -441,7 +441,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -453,14 +453,14 @@ describe('Provider: GCP', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should check network interface alias IP(s) contains virtual addresses (primary)', function () {
         this.retries(RETRIES.LONG);
 
         return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (deploymentInfo.forwardingRule === 'true') {
@@ -468,7 +468,7 @@ describe('Provider: GCP', () => {
             this.retries(RETRIES.LONG);
 
             return checkForwardingRules(dutPrimary.hostname)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -476,7 +476,7 @@ describe('Provider: GCP', () => {
         this.retries(RETRIES.LONG);
 
         return checkRoutes(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and routes for primary BIG-IP', function () {
@@ -528,7 +528,7 @@ describe('Provider: GCP', () => {
                 assert.deepStrictEqual(data.addresses, expectedResult.addresses);
                 assert.deepStrictEqual(data.routes, expectedResult.routes);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and not routes for secondary BIG-IP', function () {
@@ -571,7 +571,7 @@ describe('Provider: GCP', () => {
                 assert.deepStrictEqual(data.addresses, expectedResult.addresses);
                 assert.deepStrictEqual(data.routes, []);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
@@ -594,6 +594,6 @@ describe('Provider: GCP', () => {
                 assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
                 assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

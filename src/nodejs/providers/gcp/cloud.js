@@ -94,7 +94,7 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Cloud provider found targetInstances:', this.targetInstances);
                 this.logger.silly('Cloud Provider initialization complete');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -110,7 +110,7 @@ class Cloud extends AbstractCloud {
 
         const file = this.bucket.file(`${storageContainerName}/${fileName}`);
         return this._retrier(file.save, [util.stringify(data)], { thisArg: file })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -144,7 +144,7 @@ class Cloud extends AbstractCloud {
                         });
                 });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -175,11 +175,10 @@ class Cloud extends AbstractCloud {
                 }
                 // default - discover and update
                 return this._discoverAddressOperations(failoverAddresses, discoverOperations)
-                    .then(operations => this._updateAddresses(operations));
+                    .then((operations) => this._updateAddresses(operations));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
-
 
     /**
      * Discover Addresses - discovers addresses
@@ -201,7 +200,7 @@ class Cloud extends AbstractCloud {
                 this.vms = vms || [];
                 return this._discoverAddressOperations(failoverAddresses, discoverOperations);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -282,7 +281,7 @@ class Cloud extends AbstractCloud {
             `http://metadata.google.internal/computeMetadata/v1/${entry}`,
             options
         )
-            .then(data => Promise.resolve(data))
+            .then((data) => Promise.resolve(data))
             .catch((err) => {
                 const message = `Error getting local metadata ${err.message}`;
                 return Promise.reject(new Error(message));
@@ -307,12 +306,12 @@ class Cloud extends AbstractCloud {
         // helper function
         function getBucketLabels(bucket) {
             return bucket.getLabels()
-                .then(bucketLabels => Promise.resolve({
+                .then((bucketLabels) => Promise.resolve({
                     name: bucket.name,
                     labels: bucketLabels,
                     bucketObject: bucket
                 }))
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         }
 
         return this.storage.getBuckets()
@@ -370,7 +369,7 @@ class Cloud extends AbstractCloud {
                 const metadata = data[0];
                 return Promise.resolve(metadata);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -401,7 +400,7 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -441,7 +440,7 @@ class Cloud extends AbstractCloud {
                 });
                 return Promise.all(promises);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -480,7 +479,7 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(fwdRules);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -491,7 +490,7 @@ class Cloud extends AbstractCloud {
      */
     _getTargetInstances() {
         return this._getItemsUsingNextPageToken(`zones/${this.zone}/targetInstances`, [], '')
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -524,7 +523,7 @@ class Cloud extends AbstractCloud {
                         resolve(list);
                     }
                 })
-                .catch(err => reject(err));
+                .catch((err) => reject(err));
         });
     }
 
@@ -557,9 +556,8 @@ class Cloud extends AbstractCloud {
         const pageToken = options.pageToken || '';
         const routesList = [];
         return this._getItemsUsingNextPageToken('global/routes/', routesList, pageToken)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
-
 
     /**
      * Match IPs against a filter set of IPs
@@ -658,7 +656,7 @@ class Cloud extends AbstractCloud {
                 });
                 this.routeGroupDefinitions.forEach((routeGroup) => {
                     const filteredRouteTables = this._filterRouteTables(
-                        result[1].map(routeTable => Object.assign(
+                        result[1].map((routeTable) => Object.assign(
                             routeTable,
                             { parsedTags: gcpLabelParse(routeTable.description || '') }
                         )),
@@ -681,7 +679,7 @@ class Cloud extends AbstractCloud {
                 });
                 return Promise.resolve(data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -711,12 +709,12 @@ class Cloud extends AbstractCloud {
             this._discoverNicOperations(failoverAddresses),
             this._discoverFwdRuleOperations(discoverOperations)
         ])
-            .then(operations => Promise.resolve({
+            .then((operations) => Promise.resolve({
                 publicAddresses: {},
                 interfaces: operations[0],
                 loadBalancerAddresses: operations[1]
             }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -903,7 +901,7 @@ class Cloud extends AbstractCloud {
 
                 return Promise.resolve({ operations: fwdRulesToUpdate });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -916,7 +914,7 @@ class Cloud extends AbstractCloud {
     _discoverRouteOperationsPerGroup(localAddresses, routeGroup, routeTables) {
         const operations = [];
         const filteredRouteTables = this._filterRouteTables(
-            routeTables.map(routeTable => Object.assign(
+            routeTables.map((routeTable) => Object.assign(
                 routeTable,
                 { parsedTags: gcpLabelParse(routeTable.description) }
             )),
@@ -972,7 +970,7 @@ class Cloud extends AbstractCloud {
             this._updateNics(nicOperations.disassociate, nicOperations.associate),
             this._updateFwdRules(fwdRuleOperations.operations)
         ])
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1009,7 +1007,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Associate NICs successful.');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1035,7 +1033,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Updated forwarding rules successfully');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1070,7 +1068,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Updated routes successfully');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1134,7 +1132,7 @@ class Cloud extends AbstractCloud {
                 const operation = this.computeRegion.operation(operationName);
                 return operation.promise();
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1150,7 +1148,7 @@ class Cloud extends AbstractCloud {
         const targetInstanceNames = gcpLabelParse(rule.description)[GCP_FWD_RULE_PAIR_LABEL];
         if (targetInstanceNames) {
             return this.targetInstances.filter(
-                targetInstance => targetInstanceNames.split(/[ ,]+/).indexOf(targetInstance.name) !== -1
+                (targetInstance) => targetInstanceNames.split(/[ ,]+/).indexOf(targetInstance.name) !== -1
             );
         }
         return null;

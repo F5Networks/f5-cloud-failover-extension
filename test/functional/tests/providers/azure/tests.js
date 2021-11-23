@@ -22,8 +22,8 @@ const funcUtils = require('../../shared/util.js');
 const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
-const dutPrimary = duts.filter(dut => dut.primary)[0];
-const dutSecondary = duts.filter(dut => !dut.primary)[0];
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const rgName = deploymentInfo.deploymentId;
@@ -39,7 +39,7 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
     let match = false;
     const myNics = [];
     // filter
-    networkInterfaces = networkInterfaces.filter(i => i.tags
+    networkInterfaces = networkInterfaces.filter((i) => i.tags
         && Object.keys(i.tags).indexOf(networkInterfaceTagKey) !== -1
         && i.tags[networkInterfaceTagKey] === networkInterfaceTagValue);
     networkInterfaces.forEach((nic) => {
@@ -68,7 +68,7 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
 }
 
 function _filterRouteTablesBasedOnTags(routeTables) {
-    return routeTables.filter(i => i.tags
+    return routeTables.filter((i) => i.tags
         && Object.keys(i.tags).indexOf(routeTagKey) !== -1
         && i.tags[routeTagKey] === routeTagValue);
 }
@@ -115,14 +115,14 @@ describe('Provider: Azure', () => {
                     const credentials = data.credentials;
                     return { credentials, subscriptionId };
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         } else {
             promise = AzureCliCredentials.create()
                 .then((data) => {
                     const credentials = data;
                     return { credentials, subscriptionId: data.tokenInfo.subscription };
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         }
 
         return Promise.resolve(promise)
@@ -138,7 +138,7 @@ describe('Provider: Azure', () => {
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((data) => {
-                virtualAddresses = data.items.map(i => i.address.split('/')[0]);
+                virtualAddresses = data.items.map((i) => i.address.split('/')[0]);
                 return utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username,
                     dutPrimary.password);
             })
@@ -148,7 +148,7 @@ describe('Provider: Azure', () => {
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
-                primarySelfIps = data.items.map(i => i.address.split('/')[0]);
+                primarySelfIps = data.items.map((i) => i.address.split('/')[0]);
                 return utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username,
                     dutSecondary.password);
             })
@@ -159,9 +159,9 @@ describe('Provider: Azure', () => {
                 return utils.makeRequest(dutSecondary.ip, '/mgmt/tm/net/self', options);
             })
             .then((data) => {
-                secondarySelfIps = data.items.map(i => i.address.split('/')[0]);
+                secondarySelfIps = data.items.map((i) => i.address.split('/')[0]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -174,14 +174,14 @@ describe('Provider: Azure', () => {
             .then((networkInterfaces) => {
                 networkInterfaceMatch(networkInterfaces, selfIps, virtualAddressesArg);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
     function checkRouteTables(selfIps) {
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
                 routeMatch(routeTables, selfIps);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function getAssociatedRouteTables(selfIps) {
@@ -204,7 +204,7 @@ describe('Provider: Azure', () => {
                 });
                 return Promise.resolve(result);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     it('should ensure secondary is not primary', () => funcUtils.forceStandby(
@@ -214,13 +214,13 @@ describe('Provider: Azure', () => {
     it('should check network interfaces contains virtual address (primary)', function () {
         this.retries(RETRIES.LONG);
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
         this.retries(RETRIES.MEDIUM);
         return checkRouteTables(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -231,18 +231,18 @@ describe('Provider: Azure', () => {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(secondarySelfIps, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (secondary)', function () {
         this.retries(RETRIES.MEDIUM);
 
         return checkRouteTables(secondarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should wait 30 seconds before force standby', () => new Promise(
-        resolve => setTimeout(resolve, 30000)
+        (resolve) => setTimeout(resolve, 30000)
     ));
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
@@ -253,14 +253,14 @@ describe('Provider: Azure', () => {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should check Azure route table route(s) next hop matches self IP (primary) ', function () {
         this.retries(RETRIES.MEDIUM);
 
         return checkRouteTables(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
@@ -269,7 +269,7 @@ describe('Provider: Azure', () => {
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -281,7 +281,7 @@ describe('Provider: Azure', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -291,7 +291,7 @@ describe('Provider: Azure', () => {
     it('wait until taskState is running on standby BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 1000)
+            (resolve) => setTimeout(resolve, 1000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -303,9 +303,8 @@ describe('Provider: Azure', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
-
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
@@ -314,7 +313,7 @@ describe('Provider: Azure', () => {
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -326,21 +325,21 @@ describe('Provider: Azure', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should check network interfaces contains virtual address (primary) ', function () {
         this.retries(RETRIES.LONG);
 
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should check route table route(s) next hop matches self IP (primary) ', function () {
         this.retries(RETRIES.MEDIUM);
 
         return checkRouteTables(primarySelfIps)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and routes for primary', function () {
@@ -364,7 +363,7 @@ describe('Provider: Azure', () => {
                     }
                 });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and not routes for secondary', function () {
@@ -383,7 +382,7 @@ describe('Provider: Azure', () => {
                     }
                 });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
@@ -397,5 +396,5 @@ describe('Provider: Azure', () => {
             assert.deepStrictEqual(addressesInterfaceId, rgName);
             assert.deepStrictEqual(routeTableId, rgName);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 });

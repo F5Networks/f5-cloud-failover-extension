@@ -110,6 +110,7 @@ test_node4:
 # test package
 test_package:
     stage: test
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
     except:
       variables:
         - $CI_COMMIT_REF_NAME == "docs_production"

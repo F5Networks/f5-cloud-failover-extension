@@ -89,7 +89,7 @@ module.exports = {
             .catch((error) => {
                 logger.silly(`Function error, retrying: ${error.message} Retries left: ${maxRetries}`);
 
-                return new Promise(resolve => setTimeout(resolve, retryInterval))
+                return new Promise((resolve) => setTimeout(resolve, retryInterval))
                     .then(() => this.retrier(func, args, {
                         maxRetries: maxRetries - 1,
                         retryInterval,

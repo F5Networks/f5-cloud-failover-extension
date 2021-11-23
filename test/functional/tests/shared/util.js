@@ -76,7 +76,7 @@ module.exports = {
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            zones: deploymentInfo.instances.map(i => i.zone), // optional: used by GCP
+            zones: deploymentInfo.instances.map((i) => i.zone), // optional: used by GCP
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
             nextHopAddresses,
             routeTables: deploymentInfo.routeTables
@@ -92,8 +92,8 @@ module.exports = {
         const environmentInfo = this.getEnvironmentInfo();
 
         const collapsedRoutes = Array.prototype.concat.apply(
-            [], environmentInfo.routeTables.map(routeTable => routeTable.routes)
-        ).filter(route => route !== '');
+            [], environmentInfo.routeTables.map((routeTable) => routeTable.routes)
+        ).filter((route) => route !== '');
         const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
@@ -150,7 +150,7 @@ module.exports = {
                 options.port = port;
                 return utils.makeRequest(host, uri, options);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     },
 
     /**
@@ -183,7 +183,7 @@ module.exports = {
                 }
                 return Promise.resolve({ boolean: true, taskStateResponse: data });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     },
 
     /**
@@ -206,8 +206,8 @@ module.exports = {
         httpOptions.port = options.port;
         httpOptions.body = { action: 'dry-run' };
         return utils.makeRequest(host, uri, httpOptions)
-            .then(data => Promise.resolve(data))
-            .catch(err => Promise.reject(err));
+            .then((data) => Promise.resolve(data))
+            .catch((err) => Promise.reject(err));
     },
 
     /**
@@ -327,7 +327,7 @@ module.exports = {
     getPackageDetails() {
         const dir = `${__dirname}/../../../../dist/new_build`;
         const distFiles = fs.readdirSync(dir);
-        const packageFiles = distFiles.filter(f => f.endsWith('.rpm'));
+        const packageFiles = distFiles.filter((f) => f.endsWith('.rpm'));
 
         // get latest rpm file (by timestamp since epoch)
         // note: this might not work if the artifact resets the timestamps
@@ -343,7 +343,6 @@ module.exports = {
 
         return { name: packageFile, path: dir };
     },
-
 
     /** Create directory
      *
