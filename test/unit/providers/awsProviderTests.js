@@ -199,7 +199,7 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(provider.region, mockMetadata.region);
                     assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should reject if error', () => {
@@ -223,7 +223,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert.strictEqual(provider.storageName, 's3BucketName');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         describe('_getS3BucketByTags', () => {
@@ -901,13 +901,13 @@ describe('Provider - AWS', () => {
                             };
                         });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateAddresses(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate private+public address gets reassociated', () => {
@@ -1007,7 +1007,7 @@ describe('Provider - AWS', () => {
                         AllowReassociation: true
                     }]);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate private+public address gets reassociated without Subnet information', () => {
@@ -1097,7 +1097,7 @@ describe('Provider - AWS', () => {
                         AllowReassociation: true
                     }]);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         // validate
@@ -1175,7 +1175,7 @@ describe('Provider - AWS', () => {
                     });
 
                 return provider.discoverAddresses()
-                    .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                    .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                     .then(() => {
                         // assert public address gets reassociated properly
                         assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
@@ -1186,7 +1186,7 @@ describe('Provider - AWS', () => {
                             AllowReassociation: true
                         }]);
                     })
-                    .catch(err => Promise.reject(err));
+                    .catch((err) => Promise.reject(err));
             });
         });
     });
@@ -1344,7 +1344,7 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(response.interfaces.associate[0].addresses[4].publicAddress, '2.2.2.2');
                     assert.ok(isRetryOccured);
                 })
-                .catch(err => assert.fail(err));
+                .catch((err) => assert.fail(err));
         });
 
         it('should validate across-net case', () => {
@@ -1598,7 +1598,7 @@ describe('Provider - AWS', () => {
                 assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
                 assert.deepStrictEqual(data, mockResponseBody);
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
 
         it('should return empty object if listObjects is empty', () => provider.init(mockInitData)
             .then(() => {
@@ -1618,7 +1618,7 @@ describe('Provider - AWS', () => {
             .then((data) => {
                 assert.deepStrictEqual(data, {});
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
     });
 
     describe('function updateRoutes should', () => {
@@ -1687,7 +1687,6 @@ describe('Provider - AWS', () => {
                 tag: 'F5_SELF_IPS'
             };
 
-
             return provider.init(thisMockInitData)
                 .then(() => {
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
@@ -1709,20 +1708,20 @@ describe('Provider - AWS', () => {
                             }
                         });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateRoutes(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({
             localAddresses,
             discoverOnly: true
         })
-            .then(operations => provider.updateRoutes({ updateOperations: operations }))
+            .then((operations) => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert(provider.ec2.replaceRoute.calledOnce);
                 assert(provider.ec2.replaceRoute.calledWith({
@@ -1731,7 +1730,7 @@ describe('Provider - AWS', () => {
                     RouteTableId: 'rtb-123'
                 }));
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
@@ -1740,7 +1739,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert(provider.ec2.replaceRoute.notCalled);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static', () => {
@@ -1761,7 +1760,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple next hop discovery method: static', () => {
@@ -1813,7 +1812,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
@@ -1834,7 +1833,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static (with retries)', () => {
@@ -1870,7 +1869,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name', () => {
@@ -1898,7 +1897,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('not update routes when matching next hop address is not found', () => {
@@ -1914,7 +1913,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert(provider.ec2.replaceRoute.notCalled);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
@@ -1969,7 +1968,7 @@ describe('Provider - AWS', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('return addresses and not routes for standby device ', () => {
@@ -1999,10 +1998,9 @@ describe('Provider - AWS', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
-
 
     describe('IPv6 testing', () => {
         const addresses = {
@@ -2157,7 +2155,7 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(response.interfaces.associate[0].addresses[4].publicAddress, '2.2.2.2');
                     assert.ok(isRetryOccured);
                 })
-                .catch(err => assert.fail(err));
+                .catch((err) => assert.fail(err));
         });
     });
 });

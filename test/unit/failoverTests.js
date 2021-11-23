@@ -16,7 +16,6 @@ const util = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 
-
 /* eslint-disable global-require */
 
 describe('Failover', () => {
@@ -219,7 +218,7 @@ describe('Failover', () => {
         .then(() => {
             validateFailover();
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should execute failover with only ip address enabled', () => config.init()
         .then(() => {
@@ -234,7 +233,7 @@ describe('Failover', () => {
             validateFailover({ isRouteOperationsEnabled: false });
             assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should execute failover with only route enabled', () => config.init()
         .then(() => {
@@ -250,7 +249,7 @@ describe('Failover', () => {
             assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
             assert.deepStrictEqual(spyOnUpdateRoutes.calledTwice, true);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should not update ip addresses and routes when disabled', () => config.init()
         .then(() => {
@@ -267,7 +266,7 @@ describe('Failover', () => {
             assert.deepStrictEqual(spyOnUpdateAddresses.notCalled, true);
             assert.deepStrictEqual(spyOnUpdateRoutes.notCalled, true);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should execute failover with retry', () => {
         // ensure RUN then PASS results in successful failover operation
@@ -281,7 +280,7 @@ describe('Failover', () => {
             .then(() => {
                 validateFailover();
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute failover with virtual and snat addresses', () => {
@@ -300,7 +299,7 @@ describe('Failover', () => {
             .then(() => {
                 validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3'] });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute failover with virtual, snat and nat addresses', () => {
@@ -327,7 +326,7 @@ describe('Failover', () => {
             .then(() => {
                 validateFailover({ failoverAddresses: ['2.2.2.2', '2.2.2.3', '2.2.2.4'] });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute get failover discovery for dry run', () => config.init()
@@ -344,8 +343,7 @@ describe('Failover', () => {
             const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
             assert.strictEqual(updateRoutesUpdateCall.discoverOnly, true);
         })
-        .catch(err => Promise.reject(err)));
-
+        .catch((err) => Promise.reject(err)));
 
     it('should result in no failover addresses when no virtual addresses exist', () => {
         deviceGetVirtualAddressesMock.returns([]);
@@ -390,7 +388,7 @@ describe('Failover', () => {
             .then(() => config.processConfigRequest(declaration))
             .then(() => failover.init())
             .then(() => failover.execute())
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should recover from a previous failover failure', () => {
@@ -419,7 +417,7 @@ describe('Failover', () => {
                 assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Complete');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should failover virtual addresses in non Common partitions', () => {
@@ -443,7 +441,7 @@ describe('Failover', () => {
             .then(() => {
                 validateFailover({ failoverAddresses: ['2.2.2.2', '3.3.3.3'] });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should reject when an error occurs during failover execution', () => {
@@ -485,7 +483,7 @@ describe('Failover', () => {
             assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].message, constants.STATE_FILE_RESET_MESSAGE);
             assert.deepStrictEqual(uploadDataToStorageSpy.lastCall.args[1].failoverOperations, {});
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should reset state file when reset state file function is called before declaration', () => failover.init()
         .then(() => failover.resetFailoverState({ resetStateFile: true }))
@@ -494,7 +492,7 @@ describe('Failover', () => {
             assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].message, constants.STATE_FILE_RESET_MESSAGE);
             assert.deepStrictEqual(uploadDataToStorageSpy.lastCall.args[1].failoverOperations, {});
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should not reset state file when reset state file key is set to false', () => config.init()
         .then(() => config.processConfigRequest(declaration))
@@ -503,7 +501,7 @@ describe('Failover', () => {
         .then(() => {
             assert(uploadDataToStorageSpy.notCalled);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should retrieve a task state of "pass"', () => config.init()
         .then(() => config.processConfigRequest(declaration))
@@ -512,7 +510,7 @@ describe('Failover', () => {
         .then((result) => {
             assert.strictEqual(result.taskState, constants.FAILOVER_STATES.PASS);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should retrieve a task state of "never run"', () => {
         downloadDataFromStorageMock.onCall(0).resolves({});
@@ -524,7 +522,7 @@ describe('Failover', () => {
             .then((result) => {
                 assert.strictEqual(result.taskState, constants.FAILOVER_STATES.NEVER_RUN);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should get current HA status and mapped cloud objects', () => config.init()
@@ -616,7 +614,7 @@ describe('Failover', () => {
                     === defaultNextHopAddressDeclaration.failoverRoutes.scopingAddressRanges[1]
                         .nextHopAddresses.discoveryType);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should parse global route config into a single route group definition', () => {
@@ -671,7 +669,7 @@ describe('Failover', () => {
                     localDeclaration.failoverRoutes.defaultNextHopAddresses.items
                 );
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should parse config for specific route group definitions', () => {
@@ -713,7 +711,7 @@ describe('Failover', () => {
             .then(() => {
                 validateRouteProperties(spyOnCloudProviderInit, localDeclaration, '192.0.2.0/24');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should parse config for route group definitions without scoping address ranges', () => {
@@ -750,7 +748,7 @@ describe('Failover', () => {
             .then(() => {
                 validateRouteProperties(spyOnCloudProviderInit, localDeclaration, 'all');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should send telemetry on failover success', () => config.init()
@@ -764,7 +762,7 @@ describe('Failover', () => {
             assert.strictEqual(callArg.operation.result, 'SUCCEEDED');
             assert.strictEqual(callArg.operation.resultSummary, 'Failover Successful');
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should send telemetry on failover failure', () => {
         spyOnUpdateAddresses.restore();
@@ -816,6 +814,6 @@ describe('Failover', () => {
             .then(() => {
                 validateFailover({ failoverAddresses: ['2.2.2.2'], localAddresses: ['1.1.1.1'] });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

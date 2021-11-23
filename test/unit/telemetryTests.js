@@ -60,7 +60,7 @@ describe('Telemetry Client', () => {
             ];
             assert.deepStrictEqual(actualCallArgs, expectedCallArgs);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('should send telemetry with feature flags set to false', () => {
         delete this.configuration[constants.FEATURE_FLAG_KEY_NAMES.IP_FAILOVER];
@@ -83,6 +83,6 @@ describe('Telemetry Client', () => {
                 ];
                 assert.deepStrictEqual(actualCallArgs, expectedCallArgs);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

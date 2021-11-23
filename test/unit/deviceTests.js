@@ -23,7 +23,6 @@ const assert = require('assert');
 const constants = require('../constants.js');
 const Device = require('../../src/nodejs/device');
 
-
 describe('Device', () => {
     let device;
 
@@ -53,7 +52,7 @@ describe('Device', () => {
         .then(() => {
             assert.ok(true);
         })
-        .catch(err => Promise.reject(err)));
+        .catch((err) => Promise.reject(err)));
 
     it('validate initialize using discover mgmt port', () => {
         sinon.stub(Device.prototype, '_connectAddress')
@@ -66,7 +65,7 @@ describe('Device', () => {
             .then(() => {
                 assert.strictEqual(device.mgmtPort, 443);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate initialize using discover mgmt port discovers 8443', () => {
@@ -81,7 +80,7 @@ describe('Device', () => {
             .then(() => {
                 assert.strictEqual(device.mgmtPort, 8443);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getConfig', () => {
@@ -94,7 +93,7 @@ describe('Device', () => {
             .then((data) => {
                 assert.deepStrictEqual('foo', data[0]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate executeBigIpBashCmd', () => {
@@ -109,9 +108,8 @@ describe('Device', () => {
             .then((data) => {
                 assert.strictEqual(data, 'foo');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
-
 
     it('validate getGlobalSettings', () => {
         nock('https://localhost')
@@ -123,7 +121,7 @@ describe('Device', () => {
             .then((globalSettings) => {
                 assert.strictEqual(globalSettings, 'globalSettings');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getProxySettings', () => {
@@ -159,7 +157,7 @@ describe('Device', () => {
             .then((proxySettings) => {
                 assert.deepStrictEqual(proxySettings, expectedProxySettings);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getTrafficGroupsStats', () => {
@@ -172,7 +170,7 @@ describe('Device', () => {
             .then((trafficGroupStats) => {
                 assert.strictEqual(trafficGroupStats, 'trafficGroupStats');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getSelfAddresses', () => {
@@ -185,7 +183,7 @@ describe('Device', () => {
             .then((selfAddresses) => {
                 assert.strictEqual(selfAddresses, 'selfAddresses');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getVirtualAddresses', () => {
@@ -198,7 +196,7 @@ describe('Device', () => {
             .then((virtualAddresses) => {
                 assert.deepStrictEqual(virtualAddresses, [{ address: '10.10.10.10/24' }]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getVirtualAddresses with "any" address', () => {
@@ -211,7 +209,7 @@ describe('Device', () => {
             .then((virtualAddresses) => {
                 assert.deepStrictEqual(virtualAddresses, [{ address: '0.0.0.0/0' }]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getVirtualAddresses with "any6" address', () => {
@@ -224,7 +222,7 @@ describe('Device', () => {
             .then((virtualAddresses) => {
                 assert.deepStrictEqual(virtualAddresses, [{ address: '::/0' }]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getSnatTranslationAddresses', () => {
@@ -237,7 +235,7 @@ describe('Device', () => {
             .then((snatTranslationAddresses) => {
                 assert.strictEqual(snatTranslationAddresses, 'snatTranslationAddresses');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getNatAddresses', () => {
@@ -250,7 +248,7 @@ describe('Device', () => {
             .then((natAddresses) => {
                 assert.strictEqual(natAddresses, 'natAddresses');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getDataGroups', () => {
@@ -263,7 +261,7 @@ describe('Device', () => {
             .then((dataGroups) => {
                 assert.strictEqual(dataGroups, 'dataGroups');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getDataGroups with optional name', () => {
@@ -276,7 +274,7 @@ describe('Device', () => {
             .then((dataGroups) => {
                 assert.deepStrictEqual(dataGroups, { exists: true, data: constants.DATA_GROUP_OBJECT });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate createDataGroup creates data group and saves config', () => {
@@ -298,7 +296,7 @@ describe('Device', () => {
                 constants.DATA_GROUP_OBJECT.name,
                 constants.DATA_GROUP_OBJECT.records
             ))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate createDataGroup updates existing data group and saves config', () => {
@@ -320,7 +318,7 @@ describe('Device', () => {
                 constants.DATA_GROUP_OBJECT.name,
                 constants.DATA_GROUP_OBJECT.records
             ))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate getCMDeviceInfo', () => {
@@ -333,6 +331,6 @@ describe('Device', () => {
             .then((cmDeviceInfo) => {
                 assert.strictEqual(cmDeviceInfo, 'cmDeviceInfo');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

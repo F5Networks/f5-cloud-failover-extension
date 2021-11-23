@@ -19,15 +19,15 @@ const funcUtils = require('./shared/util.js');
 const version = constants.PKG_VERSION;
 
 const duts = funcUtils.getHostInfo();
-const dutPrimary = duts.filter(dut => dut.primary)[0];
-const dutSecondary = duts.filter(dut => !dut.primary)[0];
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const packageDetails = funcUtils.getPackageDetails();
 const packageFile = packageDetails.name;
 const packagePath = packageDetails.path;
 
 const clusterMembers = [dutPrimary, dutSecondary];
-const clusterMemberIps = clusterMembers.map(member => member.ip);
+const clusterMemberIps = clusterMembers.map((member) => member.ip);
 
 clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
@@ -62,21 +62,21 @@ clusterMembers.forEach((dut) => {
             return funcUtils.queryPackages(dutHost, dutPort, authToken)
                 .then((data) => {
                     data = data.queryResponse || [];
-                    return Promise.resolve(data.filter(pkg => pkg.packageName.includes(packageName)));
+                    return Promise.resolve(data.filter((pkg) => pkg.packageName.includes(packageName)));
                 })
-                .then(pkgs => Promise.all(pkgs
-                    .map(pkg => funcUtils.uninstallPackage(dutHost, dutPort, authToken, pkg.packageName))))
-                .catch(err => Promise.reject(err));
+                .then((pkgs) => Promise.all(pkgs
+                    .map((pkg) => funcUtils.uninstallPackage(dutHost, dutPort, authToken, pkg.packageName))))
+                .catch((err) => Promise.reject(err));
         });
 
         it(`should install package: ${packageFile}`, () => {
             const fullPath = `${packagePath}/${packageFile}`;
             return funcUtils.installPackage(dutHost, dutPort, authToken, fullPath)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should wait 5 seconds before verify installation', () => new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         ));
 
         it('should verify installation', function () {
@@ -88,7 +88,7 @@ clusterMembers.forEach((dut) => {
                     data = data || {};
                     assert.strictEqual(data.version, version);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should get version info', () => {
@@ -100,7 +100,7 @@ clusterMembers.forEach((dut) => {
                     data = data || {};
                     assert.strictEqual(data.version, version);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should post declaration', () => {
@@ -112,7 +112,7 @@ clusterMembers.forEach((dut) => {
                     data = data || {};
                     assert.strictEqual(data.message, 'success');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should reset failover state file', () => {
@@ -125,13 +125,13 @@ clusterMembers.forEach((dut) => {
                     data = data || {};
                     assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         // note: errors such as 'connection refused' may occurr without this waiting
         // should figure out a better mechanism to determine 'ready' state
         it('should wait 10 seconds before post trigger', () => new Promise(
-            resolve => setTimeout(resolve, 10000)
+            (resolve) => setTimeout(resolve, 10000)
         ));
 
         it('should post trigger', () => {
@@ -144,13 +144,13 @@ clusterMembers.forEach((dut) => {
                     data = data || {};
                     assert.strictEqual(data.taskState, 'SUCCEEDED');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });
 
 describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () => {
-    const dutPort = duts.filter(dut => dut.port)[0].port;
+    const dutPort = duts.filter((dut) => dut.port)[0].port;
     before(() => {
         const promises = [];
         clusterMembers.forEach((member) => {
@@ -158,10 +158,10 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                 .then((authToken) => {
                     member.authToken = authToken.token;
                 })
-                .catch(err => Promise.reject(err)));
+                .catch((err) => Promise.reject(err)));
         });
         return Promise.all(promises)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     beforeEach(() => {
     });
@@ -191,7 +191,7 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                 .then((data) => {
                     assert.strictEqual(data.message, 'success');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should get declaration (secondary) and verify it synced', function () {
@@ -213,7 +213,7 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                         modifiedBody.failoverAddresses.scopingTags
                     );
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should post original declaration (primary)', () => {
@@ -232,7 +232,7 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                 .then((data) => {
                     assert.strictEqual(data.message, 'success');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });

@@ -13,7 +13,6 @@
 const assert = require('assert');
 const sinon = require('sinon');
 
-
 const cloud = 'azure';
 
 describe('Provider - Azure', () => {
@@ -84,7 +83,7 @@ describe('Provider - Azure', () => {
 
                 assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should initialize azure provider and throw error about missing storage account', () => {
@@ -119,7 +118,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(listStorageAccountsSpy.called, false);
                 assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate if storageTags are set and storageName is not then return _listStorageAccounts', () => {
@@ -140,7 +139,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(provider._listStorageAccounts.called, true);
                 assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should _getInstanceMetadata with promise rejection', () => {
@@ -179,7 +178,7 @@ describe('Provider - Azure', () => {
             .then((storageAccounts) => {
                 assert.deepStrictEqual(listResponse, storageAccounts);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _listStorageAccounts returns tagged instances', () => {
@@ -204,7 +203,7 @@ describe('Provider - Azure', () => {
             .then((storageAccounts) => {
                 assert.deepStrictEqual([listResponse[0]], storageAccounts);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getStorageAccountKey returns first key', () => {
@@ -224,7 +223,7 @@ describe('Provider - Azure', () => {
             .then((keyInfo) => {
                 assert.deepStrictEqual({ name: 'mysa', key: 'foo' }, keyInfo);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _initStorageAccountContainer returns promise', () => {
@@ -237,7 +236,7 @@ describe('Provider - Azure', () => {
                     provider.storageOperationsClient.createContainerIfNotExists.called, true
                 );
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _initStorageAccountContainer returns reject promise', () => {
@@ -256,7 +255,7 @@ describe('Provider - Azure', () => {
     it('should validate updateAddresses does not throw error if update operations is empty', () => {
         const opts = { updateOperations: { interfaces: {} } };
         return provider.updateAddresses(opts)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should validate updateAddresses performs discovery', () => {
@@ -312,7 +311,7 @@ describe('Provider - Azure', () => {
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
         return provider.discoverAddresses({ localAddresses, failoverAddresses })
-            .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
+            .then((operations) => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0].disassociate;
                 assert.strictEqual(disassociateArgs[0][1], 'nic01');
@@ -324,7 +323,7 @@ describe('Provider - Azure', () => {
                 assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
                 assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].subnet.id, 'my-subnet-resource-location');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     it('should validate updateAddresses does not perform discovery due to mismatched nic tags', () => {
         const localAddresses = ['2.2.2.2'];
@@ -372,12 +371,12 @@ describe('Provider - Azure', () => {
         const updateAddressesSpy = sinon.stub(provider, '_updateAddresses').resolves();
 
         return provider.discoverAddresses({ localAddresses, failoverAddresses })
-            .then(operations => provider.updateAddresses({ updateOperations: operations.interfaces }))
+            .then((operations) => provider.updateAddresses({ updateOperations: operations.interfaces }))
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0][0];
                 assert.strictEqual(disassociateArgs, undefined);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     it('validate _updateNic promise callback for valid case', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
@@ -388,7 +387,6 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(callback(false, 'some_data'), 'some_data');
                 return Promise.resolve();
             });
-
 
         const nicParams = {
             enableIPForwarding: true,
@@ -402,7 +400,7 @@ describe('Provider - Azure', () => {
             .then((updateNicsResponse) => {
                 assert.strictEqual(updateNicsResponse, 'some_data');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _updateNic promise rejection', () => {
@@ -414,7 +412,6 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(callback(true, 'some_data'), 'some_data');
                 return Promise.resolve();
             });
-
 
         const nicParams = {
             enableIPForwarding: true,
@@ -443,7 +440,7 @@ describe('Provider - Azure', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _updateAddresses method with valid parameters', () => {
@@ -480,7 +477,7 @@ describe('Provider - Azure', () => {
                 // suceeds when promise gets resolved
                 assert.ok(true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _listNics with resolved promise', () => {
@@ -542,7 +539,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(response[1].location, 'location02');
                 assert.strictEqual(response[1].networkSecurityGroup, 'nsgNic02');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _listNics returns empty array when no tags exist', () => {
@@ -575,9 +572,8 @@ describe('Provider - Azure', () => {
             .then((response) => {
                 assert.deepStrictEqual(response, []);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
-
 
     it('validate _listNics rejection', () => {
         const options = {
@@ -715,22 +711,22 @@ describe('Provider - Azure', () => {
                         );
                     });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateRoutes(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({ localAddresses, discoverOnly: true })
-            .then(operations => provider.updateRoutes({ updateOperations: operations }))
+            .then((operations) => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                 assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
 
         it('update routes using next hop discovery method: static', () => {
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
@@ -739,12 +735,12 @@ describe('Provider - Azure', () => {
             };
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update multiple routes using next hop discovery method: static', () => {
@@ -757,13 +753,13 @@ describe('Provider - Azure', () => {
             });
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                     assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update IPv6 routes using next hop discovery method: static', () => {
@@ -776,12 +772,12 @@ describe('Provider - Azure', () => {
             });
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('not update routes when matching next hop address is not found', () => {
@@ -791,12 +787,12 @@ describe('Provider - Azure', () => {
             };
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.called, false);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes across multiple subscriptions', () => {
@@ -809,7 +805,7 @@ describe('Provider - Azure', () => {
             });
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     let routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
@@ -817,7 +813,7 @@ describe('Provider - Azure', () => {
                     routeUpdateSpy = provider.networkClients[secondarySubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions', () => {
@@ -861,14 +857,14 @@ describe('Provider - Azure', () => {
             ];
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                     assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
                     assert.strictEqual(routeUpdateSpy.args[2][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name', () => {
@@ -888,12 +884,12 @@ describe('Provider - Azure', () => {
             ];
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 
@@ -908,7 +904,7 @@ describe('Provider - Azure', () => {
             .then((data) => {
                 assert.strictEqual(data.foo, 'bar');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute downloadDataFromStorage and return empty object if file does not exist', () => {
@@ -919,7 +915,7 @@ describe('Provider - Azure', () => {
             .then((data) => {
                 assert.deepStrictEqual(data, {});
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute downloadDataFromStorage and retry upon failure', () => {
@@ -938,7 +934,7 @@ describe('Provider - Azure', () => {
                 assert.deepStrictEqual(data, {});
                 assert.strictEqual(downloadDataFromStorageSpy.calledTwice, true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute uploadDataToStorage', () => {
@@ -951,7 +947,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
                 assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should execute uploadDataToStorage and retry upon failure', () => {
@@ -972,7 +968,7 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
                 assert.strictEqual(uploadDataToStorageSpy.calledTwice, true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     describe('function getAssociatedAddressAndRouteInfo', () => {
@@ -1012,7 +1008,6 @@ describe('Provider - Azure', () => {
                         macAddress: '000000070FD1'
                     }]
                 }
-
 
             };
             const routeTable01 = {
@@ -1059,7 +1054,7 @@ describe('Provider - Azure', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should return addresses and routes for active device (IPv6) ', () => {
@@ -1109,7 +1104,6 @@ describe('Provider - Azure', () => {
                         macAddress: '000000070FD1'
                     }]
                 }
-
 
             };
             const routeTable01 = {
@@ -1163,7 +1157,7 @@ describe('Provider - Azure', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should return addresses and not routes for standby device ', () => {
@@ -1210,7 +1204,7 @@ describe('Provider - Azure', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 
@@ -1258,7 +1252,7 @@ describe('Provider - Azure', () => {
                     // succeeds when promise gets resolved
                     assert.ok(true);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 
@@ -1405,7 +1399,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(response.publicAddresses[0].target.name, 'nic02');
                     assert.strictEqual(response.publicAddresses[0].target.privateIPAddress, '10.10.10.100');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate across-net public IP address gets reassociated when resourceId provided as scoping name', () => {
@@ -1445,7 +1439,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(response.publicAddresses[0].target.name, 'nic02');
                     assert.strictEqual(response.publicAddresses[0].target.privateIPAddress, '10.10.10.100');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate across-net addressGroupDefinitions vipAddresses are empty', () => {
@@ -1494,7 +1488,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.20');
                     assert.strictEqual(associate[0][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip6');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 
@@ -1522,7 +1516,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(response.ipAddress, '13.13.13.13');
                     assert.strictEqual(response.type, 'Microsoft.Network/publicIPAddresses');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
         it('should validate _getPublicIpAddress name was not found', () => {
             const options = {
@@ -1538,7 +1532,7 @@ describe('Provider - Azure', () => {
                 .then((response) => {
                     assert.strictEqual(response, undefined);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
         it('should _getPublicIpAddress with promise rejection', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
@@ -1588,7 +1582,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(response.name, 'nic01');
                     assert.strictEqual(response.provisioningState, 'Succeeded');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
         it('should validate provided network interface name was not found', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
@@ -1601,7 +1595,7 @@ describe('Provider - Azure', () => {
                 .then((response) => {
                     assert.strictEqual(response, undefined);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
         it('should _getNetworkInterfaceByName with promise rejection', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
@@ -1666,7 +1660,7 @@ describe('Provider - Azure', () => {
                 .then(() => {
                     assert.ok(true);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });

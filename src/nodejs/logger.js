@@ -164,7 +164,7 @@ function getLevelName(level) {
     if (level === undefined || (level > LOG_LEVELS.error || level < LOG_LEVELS.silly)) {
         level = currentLogLevel;
     }
-    const levelName = Object.keys(LOG_LEVELS).find(key => LOG_LEVELS[key] === level);
+    const levelName = Object.keys(LOG_LEVELS).find((key) => LOG_LEVELS[key] === level);
     return levelName;
 }
 
