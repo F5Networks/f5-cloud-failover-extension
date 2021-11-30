@@ -77,6 +77,10 @@ class AbstractCloud {
         throw new Error('Method must be implemented in child class!');
     }
 
+    getRegion() {
+        throw new Error('Method must be implemented in child class!');
+    }
+
     updateAddresses() {
         throw new Error('Method must be implemented in child class!');
     }

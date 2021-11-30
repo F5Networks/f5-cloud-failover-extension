@@ -758,6 +758,7 @@ class FailoverClient {
             result: options.result,
             resultSummary: options.resultSummary,
             environment: this.config.environment,
+            region: this.cloudProvider.getRegion(),
             ipFailover: this.isAddressOperationsEnabled,
             routeFailover: this.isRouteOperationsEnabled,
             resourceCount: options.resourceCount

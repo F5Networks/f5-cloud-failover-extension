@@ -58,6 +58,7 @@
         "azure-arm-storage": "^8.1.0",
         "azure-storage": "^2.10.4",
         "commander": "^2.19.0",
+        "get-user-locale": "^1.4.0",
         "googleapis": "^60.0.1",
         "gtoken": "5.0.3",
         "hooks": "^0.3.2",

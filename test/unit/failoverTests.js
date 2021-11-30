@@ -87,6 +87,7 @@ describe('Failover', () => {
 
         cloudProviderMock = {
             init: () => Promise.resolve({}),
+            getRegion: () => Promise.resolve(),
             updateAddresses: () => Promise.resolve({}),
             discoverAddresses: () => Promise.resolve({}),
             updateRoutes: () => Promise.resolve({}),
