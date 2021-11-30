@@ -98,6 +98,16 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Returns region name (cloud)
+     *
+     *
+     * @returns {Promise}
+     */
+    getRegion() {
+        return this.region;
+    }
+
+    /**
      * Upload data to storage (cloud)
      *
      * @param {Object} fileName - file name where data should be uploaded

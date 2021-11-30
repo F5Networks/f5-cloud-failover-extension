@@ -43,7 +43,7 @@ Index
 
 What is Cloud Failover Extension?
 `````````````````````````````````
-Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing CFE on BIG-IP provides L3 failover functionality in cloud environments. 
+Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing CFE on BIG-IP provides L3 failover functionality in cloud environments.
 
 *Cloud Failover Extension is:*
 
@@ -64,7 +64,7 @@ When is CFE a good fit and when it is not?
 *Cloud Failover is a good fit where:*
 
 - You are using an HA Pair in an Active/Standby configuration.
-- You require a simple method to deploy and upgrade an HA solution without having to deploy a cloud native template. 
+- You require a simple method to deploy and upgrade an HA solution without having to deploy a cloud native template.
 
 
 *Cloud Failover may not be a good fit where:*
@@ -78,7 +78,7 @@ When is CFE a good fit and when it is not?
 
 Is Active/Active supported?
 ```````````````````````````
-Active/Active or ScaleN (multiple traffic groups) is not supported at this time. CFE is currently not multiple-traffic-group-aware. ScaleN is a powerful feature to increase service density (each instance owns a particular set of IP addresses known as traffic groups) but can add more complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The global instance level Active/Standby status (provided at the CLI prompt or GUI) is leveraged to provide an easy visual queue for which instance the NATs and/or routes should be pointing. 
+Active/Active or ScaleN (multiple traffic groups) is not supported at this time. CFE is currently not multiple-traffic-group-aware. ScaleN is a powerful feature to increase service density (each instance owns a particular set of IP addresses known as traffic groups) but can add more complexity in determining which instance should handle traffic at any given time. It also makes troubleshooting more difficult. The global instance level Active/Standby status (provided at the CLI prompt or GUI) is leveraged to provide an easy visual queue for which instance the NATs and/or routes should be pointing.
 
 .. Note:: VIPs can be placed in ``traffic-group-none`` so `each` instance can actively process traffic regardless of the Active/Standby status. This is done to reduce service interruption during cloud resource re-mapping. However, on the cloud side, NATs/routes are only mapped to the single Active instance.
 
@@ -101,7 +101,7 @@ What are some of the caveats of failover in Cloud environments?
 
   - In Same AZ, IP failover via API takes longer than typical TCP connection timers allow.
   - In Across AZ, IPs cannot float.
-  
+
 - The persistence strategies are limited to `stateless` strategies like HTTP Cookie/CARP. You do not need to mirror TCP connections with HTTP because the HTTP protocol allows individual connections to fail without losing the entire session. In a failover scenario, connections are dropped but the clients can re-initiate connections to the same IP on the new instance without needing a DNS update.
 
 |
@@ -131,9 +131,9 @@ Cloud Failover Extension supports TMOS 14.1.x and later.
 
 Does CFE support IPv6?
 ``````````````````````
-- IPv6 route failover is currently supported for AWS and Azure only. To see an example configuration for AWS that enables IPv6 route failover, see :ref:`example-declarations`. 
+- IPv6 route failover is currently supported for AWS and Azure only. To see an example configuration for AWS that enables IPv6 route failover, see :ref:`example-declarations`.
 - IPv6 IP address failover (for addresses in traffic-groups like VIPS, SNATS, and NATs) is not yet supported for any clouds.
-- Limitations: 
+- Limitations:
 
   - All BIG-IP NICs (including Management) must be dual IPV6 + IPV4 stack.
   - See your cloud provider for additional limitations. For example:
@@ -171,11 +171,11 @@ Does it matter if I use CFE in same network or across network?
 .. seealso::
    :class: sidebar
 
-   `Deploying BIG-IP High Availability Across AWS Availability Zones <https://www.f5.com/pdf/deployment-guides/f5-aws-ha-dg.pdf>`_. 
+   `Deploying BIG-IP High Availability Across AWS Availability Zones <https://www.f5.com/pdf/deployment-guides/f5-aws-ha-dg.pdf>`_.
 
 Cloud Failover Extension is agnostic to same-network and across-network topologies.
 
-CFE will work across Availability Zones by remapping elastic public IPs to those internal IPs that remain on each BIG-IP in different Availability Zones. In Same Availability Zones, CFE will move the internal IPs from one BIG-IP system to another. 
+CFE will work across Availability Zones by remapping elastic public IPs to those internal IPs that remain on each BIG-IP in different Availability Zones. In Same Availability Zones, CFE will move the internal IPs from one BIG-IP system to another.
 
 
 
@@ -189,9 +189,9 @@ SNAT is not required if your application server’s default route points through
 
 Because subnets/address space are different in each Availability Zone, you cannot use floating IP addresses. The only traffic-group (which typically contains floating addresses) that should exist is the default traffic-group-1. The presence of this traffic-group determines which BIG-IP is active.
 
-.. Note:: If BIG-IP systems are used to manage outbound traffic, the only address traffic-group-1 might have is a wildcard (0.0.0.0) address used for a forwarding virtual server. 
+.. Note:: If BIG-IP systems are used to manage outbound traffic, the only address traffic-group-1 might have is a wildcard (0.0.0.0) address used for a forwarding virtual server.
 
-The lack of floating addresses has implications on the BIG-IP system’s SNAT (Source Network Address Translation) functionality. If using SNAT on the virtual servers (for example, the BIG-IP systems are not the default gateway/route for your application servers), SNAT Auto Map is the only supported SNAT method. SNAT Auto Map uses the unique Self IP of each BIG-IP system for the source address instead of the traditional floating Self IP. If `NOT` using SNAT, you need the BIG-IP systems to be the default gateway/route for your applications. In this case, you need to configure Route Management. For more information about SNAT Auto Map, see `this article <https://support.f5.com/kb/en-us/solutions/public/7000/300/sol7336.html>`_. 
+The lack of floating addresses has implications on the BIG-IP system’s SNAT (Source Network Address Translation) functionality. If using SNAT on the virtual servers (for example, the BIG-IP systems are not the default gateway/route for your application servers), SNAT Auto Map is the only supported SNAT method. SNAT Auto Map uses the unique Self IP of each BIG-IP system for the source address instead of the traditional floating Self IP. If `NOT` using SNAT, you need the BIG-IP systems to be the default gateway/route for your applications. In this case, you need to configure Route Management. For more information about SNAT Auto Map, see `this article <https://support.f5.com/kb/en-us/solutions/public/7000/300/sol7336.html>`_.
 
 
 ------------------------------------------
@@ -200,7 +200,7 @@ The lack of floating addresses has implications on the BIG-IP system’s SNAT (S
 
 Why does the AWS failover diagram show that VIPs must be in traffic group 'none'?
 `````````````````````````````````````````````````````````````````````````````````
-Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1.  
+Beginning with CFE version 1.9.0., Virtual Addresses or services are no longer required to be in Traffic Group None and can be placed in Traffic Group 1.
 
 
 ------------------------------------------
@@ -231,7 +231,7 @@ Must the web servers' default route be pointed at the BIG-IPs internal interface
 `````````````````````````````````````````````````````````````````````````````````
 This depends on the solution:
 
-- For Same AZ clusters, if you point Webservers default gateway at BIG-IP, you do not have to SNAT. 
+- For Same AZ clusters, if you point Webservers default gateway at BIG-IP, you do not have to SNAT.
 - For HA-Across-AZ clusters, you have to SNAT incoming traffic anyway so you do not need to point the default route to BIG-IP. You would only do it for outbound traffic (if you want to direct traffic initiated by webserver to go through the BIG-IP system)
 
 
@@ -268,7 +268,7 @@ Yes, the BIG-IP instances and related instance objects, such as network interfac
 
 Does CFE eliminate the delay time observed with previous failover templates when calling the Azure APIs?
 ````````````````````````````````````````````````````````````````````````````````````````````````````````
-To failover cloud resource objects such as private IP addresses and route tables, CFE does make calls to the Azure APIs. These calls may vary significantly in response time. 
+To failover cloud resource objects such as private IP addresses and route tables, CFE does make calls to the Azure APIs. These calls may vary significantly in response time.
 
 -----------------------------------------
 
@@ -294,9 +294,9 @@ Beginning with version v1.7.0, there are two options for configuring CFE. With t
 
 How does CFE work on an existing BIG-IP cluster using legacy failover scripts installed by Cloud Templates?
 ```````````````````````````````````````````````````````````````````````````````````````````````````````````
-As of CFE version 1.1, CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user. If you are using an older version of CFE and would like to have legacy scripts automatically disabled, you should :ref:`update-cfe`. Otherwise you will have to manually comment out the older failover scripts that the template installs: 
+As of CFE version 1.1, CFE disables the existing failover scripts installed by the Cloud Templates transparently to the user. If you are using an older version of CFE and would like to have legacy scripts automatically disabled, you should :ref:`update-cfe`. Otherwise you will have to manually comment out the older failover scripts that the template installs:
 
-- In ``/config/failover/tgactive`` and ``/config/failover/tgrefresh`` comment out the failover.js script with ``/config/cloud/cloud-libs/XXXXXX/failover.js``. 
+- In ``/config/failover/tgactive`` and ``/config/failover/tgrefresh`` comment out the failover.js script with ``/config/cloud/cloud-libs/XXXXXX/failover.js``.
 - After you POST the declaration, CFE will write out a new line that looks like this: ``curl -u admin:admin -d {} -X POST http://localhost:8100/mgmt/shared/cloud-failover/trigger``.
 
 
@@ -335,27 +335,53 @@ F5 collects non-personal telemetry data to help improve the Cloud Failover Exten
 .. code-block:: json
 
     {
-        "documentType": "f5-cloud-failover-data",
-        "documentVersion": "1",
-        "digitalAssetId": "xxxx",
-        "digitalAssetName": "f5-cloud-failover",
-        "digitalAssetVersion": "1.0.0",
-        "observationStartTime": "xxxx",
-        "observationEndTime": "xxxx",
-        "epochTime": "123581321",
-        "telemetryId": "xxxx",
-        "telemetryRecords": [
-            {
-                "environment": "azure",
-                "Failover": 1,
-                "platform": "BIG-IP",
-                "platformVersion": "14.1.0.5",
-                "featureFlags": {
-                    "ipFailover": true,
-                    "routeFailover": false
-                }
-            }
-        ]
+      "documentType": "f5-cloud-failover-data",
+      "documentVersion": "1",
+      "digitalAssetId": "xxxxx-xxxx-xxxx-xxxx-xxxxx",
+      "digitalAssetName": "f5-cloud-failover",
+      "digitalAssetVersion": "1.9.0",
+      "observationStartTime": "2021-11-29T20:52:08.833Z",
+      "observationEndTime": "2021-11-29T20:52:08.833Z",
+      "epochTime": 1638219128833,
+      "telemetryId": "xxxxx-xxxx-xxxx-xxxx-xxxxx",
+      "telemetryRecords": [
+        {
+          "regkey": "xxxxx-xxxx-xxxx-xxxx-xxxxx",
+          "customerId": "xxxxx-xxxx-xxxx-xxxx-xxxxx",
+          "failover": {
+            "event": true,
+            "success": true,
+            "totalRoutes": 4,
+            "totalIps": 1,
+            "startTime": "2021-11-29T20:50:27.786Z",
+            "endTime": "2021-11-29T20:52:05.953Z"
+          },
+          "product": {
+            "version": "1.9.0",
+            "locale": "en-US",
+            "installDate": "2021-11-29T20:52:05.953Z",
+            "installationId": "",
+            "environment": "azure",
+            "region": "westus"
+          },
+          "featureFlags": {
+            "ipFailover": true,
+            "routeFailover": true
+          },
+          "operation": {
+            "clientRequestId": "xxxxx-xxxx-xxxx-xxxx-xxxxx",
+            "action": "POST",
+            "endpoint": "trigger",
+            "userAgent": "f5-cloud-failover/1.9.0",
+            "result": "SUCCEEDED",
+            "resultSummary": "Failover Successful"
+          },
+          "platform": "BIG-IP",
+          "platformVersion": "14.1.4",
+          "nicConfiguration": "multi",
+          "cloudAccountId": "xxxxx-xxxx-xxxx-xxxx-xxxxx"
+        }
+      ]
     }
 
 
@@ -367,7 +393,7 @@ How do I disable Automatic Phone Home?
 ``````````````````````````````````````
 
 - For more information on how to disable Automatic Phone Home, see this `Overview of the Automatic Update Check and Automatic Phone Home features <https://support.f5.com/csp/article/K15000#1>`_.
-- If you are using Declarative Onboarding (DO), you can `disable the autoPhonehome property <https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/schema-reference.html#system>`_. 
+- If you are using Declarative Onboarding (DO), you can `disable the autoPhonehome property <https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/schema-reference.html#system>`_.
 
 -----------------------------------------
 

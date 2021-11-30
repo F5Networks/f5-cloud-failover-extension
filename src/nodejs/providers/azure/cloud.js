@@ -37,6 +37,7 @@ class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
         this.nics = null;
+        this.region = null;
         this.resourceGroup = null;
         this.primarySubscriptionId = null;
         this.storageClient = null;
@@ -56,7 +57,7 @@ class Cloud extends AbstractCloud {
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.primarySubscriptionId = metadata.compute.subscriptionId;
-
+                this.region = metadata.compute.location;
                 this.environment = this._getAzureEnvironment(metadata);
                 const credentials = new msRestAzure.MSIVmTokenCredentials({
                     resource: this.environment.resourceManagerEndpointUrl,
@@ -95,6 +96,16 @@ class Cloud extends AbstractCloud {
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch((err) => Promise.reject(err));
+    }
+
+    /**
+    * Returns region name (cloud)
+    *
+    *
+    * @returns {Promise}
+    */
+    getRegion() {
+        return this.region;
     }
 
     /**

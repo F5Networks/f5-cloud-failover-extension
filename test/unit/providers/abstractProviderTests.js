@@ -31,7 +31,8 @@ describe('Provider - Abstract', () => {
         const methods = [
             'updateAddresses',
             'uploadDataToStorage',
-            'downloadDataFromStorage'
+            'downloadDataFromStorage',
+            'getRegion'
         ];
         methods.forEach((func) => {
             assert.throws(

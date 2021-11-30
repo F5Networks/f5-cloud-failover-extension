@@ -207,6 +207,7 @@ Worker.prototype.processRequest = function (restOperation) {
                                 },
                                 customerId: this.cloudProvider.customerId,
                                 startTime: startTimestamp,
+                                region: this.cloudProvider.getRegion(),
                                 result: 'SUCCESS',
                                 resultSummary: 'Configuration Successful',
                                 environment: config.environment,
