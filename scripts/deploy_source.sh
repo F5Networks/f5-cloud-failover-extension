@@ -10,7 +10,6 @@ PASSWORD=$(echo $INSTANCES | jq '.[] | select(.primary == true) | .admin_passwor
 
 for HOST in ${FIRST_IP} ${SECOND_IP}; do
 	echo "IP: ${HOST} USER: ${USERNAME} PASSWORD: ${PASSWORD}"
-    sshpass -p $PASSWORD ssh -o "StrictHostKeyChecking no" ${USERNAME}@${HOST} 'mkdir -p /var/config/rest/iapps/f5-cloud-failover/nodejs'
     sshpass -p $PASSWORD scp -o "StrictHostKeyChecking no" -r src/nodejs/* ${USERNAME}@${HOST}:/var/config/rest/iapps/f5-cloud-failover/nodejs
     sshpass -p $PASSWORD ssh -o "StrictHostKeyChecking no" ${USERNAME}@${HOST} 'bigstart restart restnoded'
     echo "done with ${HOST}"

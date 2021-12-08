@@ -289,15 +289,9 @@ class Cloud extends AbstractCloud {
         if (addressGroupDefinitions.length === 0) {
             return Promise.resolve();
         }
-        const promises = [];
         this.logger.debug('Discover network interface address - same-net');
-        addressGroupDefinitions.forEach((item) => {
-            promises.push(this._generateNetworkInterfaceOperations(addresses, item));
-        });
 
-        return Promise.all(promises)
-            .then((response) => response.pop())
-            .catch((err) => Promise.reject(err));
+        return Promise.resolve(this._generateNetworkInterfaceOperations(addresses, addressGroupDefinitions));
     }
 
     /**
@@ -793,7 +787,6 @@ class Cloud extends AbstractCloud {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
                 if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
                     this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
-
                     myNicIpConfigs.push(theirNicIpConfigs[i]);
                     theirNicIpConfigs.splice(i, 1);
                     break;
@@ -1104,7 +1097,7 @@ class Cloud extends AbstractCloud {
      *
      * @returns {Promise} - A Promise that is resolved network interface operations
      */
-    _generateNetworkInterfaceOperations(addresses, providedDeclaration) {
+    _generateNetworkInterfaceOperations(addresses, addressGroupDefinitions) {
         const operations = {
             disassociate: [],
             associate: []
@@ -1114,25 +1107,28 @@ class Cloud extends AbstractCloud {
         ])
             .then((results) => {
                 const nics = results[0];
-                const failoverAddresses = [providedDeclaration.scopingAddress];
-                const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
-                if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
-                    this.logger.warning('Problem with discovering network interfaces parsedNics');
-                    return Promise.resolve({
-                        publicAddresses: {},
-                        interfaces: operations,
-                        loadBalancerAddresses: {}
-                    });
-                }
-                const nicOperations = this._checkForNicOperations(
-                    parsedNics.mine[0].nic,
-                    parsedNics.theirs[0].nic,
-                    failoverAddresses
-                );
-                if (nicOperations.disassociate && nicOperations.associate) {
-                    operations.disassociate.push(nicOperations.disassociate);
-                    operations.associate.push(nicOperations.associate);
-                }
+                addressGroupDefinitions.forEach((item) => {
+                    const failoverAddresses = [item.scopingAddress];
+                    const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
+                    if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
+                        this.logger.warning('Problem with discovering network interfaces parsedNics');
+                        return Promise.resolve({
+                            publicAddresses: {},
+                            interfaces: operations,
+                            loadBalancerAddresses: {}
+                        });
+                    }
+                    const nicOperations = this._checkForNicOperations(
+                        parsedNics.mine[0].nic,
+                        parsedNics.theirs[0].nic,
+                        failoverAddresses
+                    );
+                    if (nicOperations.disassociate && nicOperations.associate) {
+                        operations.disassociate.push(nicOperations.disassociate);
+                        operations.associate.push(nicOperations.associate);
+                    }
+                    return item;
+                });
                 this.resultAction.interfaces = operations;
                 return Promise.resolve();
             })

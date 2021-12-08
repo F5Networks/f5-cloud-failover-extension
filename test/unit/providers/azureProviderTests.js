@@ -1335,6 +1335,14 @@ describe('Provider - Azure', () => {
                         id: 'vip-pip6'
                     },
                     provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.10.21',
+                    primary: false,
+                    publicIPAddress: {
+                        id: 'vip-pip7'
+                    },
+                    provisioningState: 'Succeeded'
                 }
             ]
         };
@@ -1466,6 +1474,14 @@ describe('Provider - Azure', () => {
                         'nic03',
                         'nic04'
                     ]
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.10.21',
+                    networkInterfaces: [
+                        'nic03',
+                        'nic04'
+                    ]
                 }
             ];
             provider.primarySubscriptionId = mockSubscriptionId;
@@ -1486,6 +1502,7 @@ describe('Provider - Azure', () => {
                     assert.strictEqual(associate[0][2].name, 'nic04');
                     assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '10.10.10.4');
                     assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.20');
+                    assert.strictEqual(associate[0][2].ipConfigurations[2].privateIPAddress, '10.10.10.21');
                     assert.strictEqual(associate[0][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip6');
                 })
                 .catch((err) => Promise.reject(err));
