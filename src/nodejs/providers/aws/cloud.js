@@ -36,6 +36,7 @@ class Cloud extends AbstractCloud {
         this.s3 = {};
         this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.ec2 = {};
+        this._sessionToken = null;
     }
 
     /**
@@ -44,7 +45,8 @@ class Cloud extends AbstractCloud {
     init(options) {
         super.init(options);
 
-        return this._getInstanceIdentityDoc()
+        return this._fetchMetadataSessionToken()
+            .then(() => this._getInstanceIdentityDoc())
             .then((metadata) => {
                 this.region = metadata.region;
                 this.instanceId = metadata.instanceId;
@@ -84,6 +86,22 @@ class Cloud extends AbstractCloud {
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Fetches IMDSv2 session token
+     */
+    _fetchMetadataSessionToken() {
+        return new Promise((resolve, reject) => {
+            const sessionTokenPath = '/latest/api/token';
+            this.metadata.request(sessionTokenPath, { method: 'PUT', headers: { 'X-aws-ec2-metadata-token-ttl-seconds': '3600' } }, (err, data) => {
+                if (err) {
+                    reject(err);
+                }
+                this._sessionToken = data;
+                resolve();
+            });
+        });
     }
 
     /**
@@ -1369,7 +1387,7 @@ class Cloud extends AbstractCloud {
     _getInstanceIdentityDoc() {
         return new Promise((resolve, reject) => {
             const iidPath = '/latest/dynamic/instance-identity/document';
-            this.metadata.request(iidPath, (err, data) => {
+            this.metadata.request(iidPath, { headers: { 'x-aws-ec2-metadata-token': this._sessionToken } }, (err, data) => {
                 if (err) {
                     this.logger.error('Unable to retrieve Instance Identity');
                     reject(err);

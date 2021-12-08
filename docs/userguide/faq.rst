@@ -31,6 +31,7 @@ Index
 - :ref:`faq-info-store`
 - :ref:`faq-telemetry`
 - :ref:`faq-auto-phone-home`
+- :ref:`faq-imds-v2`
 - :ref:`faq-routetag`
 - :ref:`faq-persistent-config`
 - :ref:`faq-troubleshoot`
@@ -394,6 +395,16 @@ How do I disable Automatic Phone Home?
 
 - For more information on how to disable Automatic Phone Home, see this `Overview of the Automatic Update Check and Automatic Phone Home features <https://support.f5.com/csp/article/K15000#1>`_.
 - If you are using Declarative Onboarding (DO), you can `disable the autoPhonehome property <https://clouddocs.f5.com/products/extensions/f5-declarative-onboarding/latest/schema-reference.html#system>`_.
+
+-----------------------------------------
+
+.. _faq-imds-v2:
+
+Does CFE support accessing AWS Instance Metadata Service using session-oriented method (aka IMDSv2)?
+````````````````````````````````````````````````````````````````````````````````````````````````````
+
+- For more information on AWS IMDSv2, see this `Use IMDSv2 <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html>`_.
+- CFE always uses a session oriented-method for accessing AWS Instance Metadata Service since this method is always enabled on EC2 instances.
 
 -----------------------------------------
 

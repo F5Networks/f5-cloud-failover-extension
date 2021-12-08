@@ -57,6 +57,8 @@ describe('Provider - AWS', () => {
         storageName: 's3BucketName'
     };
 
+    const mockMetadataSessionToken = 'this-test-session-token';
+
     const _getPrivateSecondaryIPsStubResponse = {
         '2.3.4.5': {
             NetworkInterfaceId: 'eni-2345'
@@ -159,10 +161,13 @@ describe('Provider - AWS', () => {
         provider.retryInterval = 100;
 
         provider.metadata.request = sinon.stub()
-            .callsFake((path, callback) => {
+            .callsFake((path, headers, callback) => {
                 metadataPathRequest = path;
-                callback(null, JSON.stringify(mockMetadata));
+                if (metadataPathRequest === '/latest/dynamic/instance-identity/document') {
+                    callback(null, JSON.stringify(mockMetadata));
+                }
             });
+        provider._fetchMetadataSessionToken = sinon.stub().resolves(mockMetadataSessionToken);
         originalgetS3BucketByTags = provider._getS3BucketByTags;
         provider._getS3BucketByTags = sinon.stub()
             .resolves(_s3FileParamsStub.Bucket);
@@ -443,7 +448,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     // eslint-disable-next-line arrow-body-style
                     provider.metadata.request = sinon.stub()
-                        .callsFake((path, callback) => {
+                        .callsFake((path, headers, callback) => {
                             callback(new Error(expectedError, null));
                         });
                     return provider._getInstanceIdentityDoc();
