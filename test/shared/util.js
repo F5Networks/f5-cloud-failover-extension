@@ -120,7 +120,7 @@ module.exports = {
         };
 
         return this.makeRequest(host, uri, postOptions)
-            .then(data => ({ token: data.token.token }))
+            .then((data) => ({ token: data.token.token }))
             .catch((err) => {
                 const msg = `getAuthToken: ${err}`;
                 throw new Error(msg);

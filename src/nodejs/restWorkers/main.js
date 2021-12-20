@@ -157,7 +157,6 @@ Worker.prototype.onDelete = function (restOperation) {
     return this.processRequest(restOperation);
 };
 
-
 /**
  * Process Requests - helper function which handles all requests to keep
  * any dependency on the native LX framework minimal
@@ -208,6 +207,7 @@ Worker.prototype.processRequest = function (restOperation) {
                                 },
                                 customerId: this.cloudProvider.customerId,
                                 startTime: startTimestamp,
+                                region: this.cloudProvider.getRegion(),
                                 result: 'SUCCESS',
                                 resultSummary: 'Configuration Successful',
                                 environment: config.environment,
@@ -225,18 +225,18 @@ Worker.prototype.processRequest = function (restOperation) {
                             declaration: config
                         });
                 })
-                .catch(err => util.restOperationResponder(restOperation, 500,
+                .catch((err) => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(`${err.message} -> ${errorMessageDetail}`)
                     }));
         case 'GET':
             return configWorker.getConfig()
-                .then(config => util.restOperationResponder(restOperation, 200,
+                .then((config) => util.restOperationResponder(restOperation, 200,
                     {
                         message: 'success',
                         declaration: config
                     }))
-                .catch(err => util.restOperationResponder(restOperation, 500,
+                .catch((err) => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(err.message)
                     }));
@@ -249,11 +249,11 @@ Worker.prototype.processRequest = function (restOperation) {
             if (body && body.action && body.action === 'dry-run') {
                 return failover.init()
                     .then(() => failover.dryRun())
-                    .then(results => util.restOperationResponder(restOperation, 200, {
+                    .then((results) => util.restOperationResponder(restOperation, 200, {
                         addresses: results[0],
                         routes: results[1]
                     }))
-                    .catch(err => util.restOperationResponder(restOperation, 500,
+                    .catch((err) => util.restOperationResponder(restOperation, 500,
                         {
                             message: util.stringify(err.message)
                         }));
@@ -266,12 +266,12 @@ Worker.prototype.processRequest = function (restOperation) {
         case 'GET':
             return failover.init()
                 .then(() => failover.getTaskStateFile())
-                .then(taskState => util.restOperationResponder(
+                .then((taskState) => util.restOperationResponder(
                     restOperation,
                     mapStatusToCode(taskState.taskState),
                     taskState
                 ))
-                .catch(err => util.restOperationResponder(restOperation, 500,
+                .catch((err) => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(err.message)
                     }));
@@ -282,8 +282,8 @@ Worker.prototype.processRequest = function (restOperation) {
         if (method === 'POST') {
             return failover.init()
                 .then(() => failover.resetFailoverState(body))
-                .then(response => util.restOperationResponder(restOperation, 200, { message: response.message }))
-                .catch(err => util.restOperationResponder(restOperation, 500,
+                .then((response) => util.restOperationResponder(restOperation, 200, { message: response.message }))
+                .catch((err) => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(err.message)
                     }));
@@ -293,8 +293,8 @@ Worker.prototype.processRequest = function (restOperation) {
         if (method === 'GET') {
             return failover.init()
                 .then(() => failover.getFailoverStatusAndObjects())
-                .then(statusAndObjects => util.restOperationResponder(restOperation, 200, statusAndObjects))
-                .catch(err => util.restOperationResponder(restOperation, 500,
+                .then((statusAndObjects) => util.restOperationResponder(restOperation, 200, statusAndObjects))
+                .catch((err) => util.restOperationResponder(restOperation, 500,
                     {
                         message: util.stringify(err.message)
                     }));

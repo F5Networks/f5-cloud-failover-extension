@@ -31,7 +31,6 @@ const PACKAGE_JSON = path.join(process.cwd(), 'package.json');
 const AUDIT_REPORT = path.join(process.cwd(), '.auditReport.json');
 const DEFAULT_EXIT_CODE = 0;
 
-
 class AuditProcessor {
     constructor() {
         this.report = {};
@@ -83,7 +82,7 @@ class AuditProcessor {
         });
         // determine if any vulnerabilities should be ignored
         if (whitelist.length) {
-            this.vulnerabilities = this.vulnerabilities.filter(vuln => !whitelist.includes(vuln.vulnerability.id));
+            this.vulnerabilities = this.vulnerabilities.filter((vuln) => !whitelist.includes(vuln.vulnerability.id));
         }
     }
 
@@ -121,7 +120,7 @@ function main() {
     const auditProcessor = new AuditProcessor();
     auditProcessor.loadReport();
     auditProcessor.processReport({
-        whitelist: parsedArgs.whitelist.toString().split(',').map(item => parseInt(item, 10))
+        whitelist: parsedArgs.whitelist.toString().split(',').map((item) => parseInt(item, 10))
     });
     auditProcessor.notify();
 }

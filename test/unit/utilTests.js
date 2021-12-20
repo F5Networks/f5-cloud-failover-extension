@@ -75,7 +75,7 @@ describe('Util', () => {
                 .then(() => {
                     assert.strictEqual(fakeFuncSpy.callCount, 1);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate reject', () => {

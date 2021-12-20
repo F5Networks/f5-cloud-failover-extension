@@ -31,7 +31,7 @@ const BASIC_AUTH_CONFIG = {
 };
 
 // Deep copy by converting object to / from JSON
-const deepCopy = obj => JSON.parse(JSON.stringify(obj));
+const deepCopy = (obj) => JSON.parse(JSON.stringify(obj));
 
 // Only need to get the Updates
 const environmentRequest = (endpoint, env) => {

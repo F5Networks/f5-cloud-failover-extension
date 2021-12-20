@@ -49,15 +49,16 @@
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
-        "@f5devcentral/f5-teem": "^1.4.7",
+        "@f5devcentral/f5-teem": "1.5.0",
         "@google-cloud/compute": "^1.2.0",
         "@google-cloud/storage": "^4.3.1",
         "ajv": "^6.10.0",
-        "aws-sdk": "^2.369.0",
+        "aws-sdk": "^2.1034.0",
         "azure-arm-network": "^13.0.0",
         "azure-arm-storage": "^8.1.0",
         "azure-storage": "^2.10.4",
         "commander": "^2.19.0",
+        "get-user-locale": "^1.4.0",
         "googleapis": "^60.0.1",
         "gtoken": "5.0.3",
         "hooks": "^0.3.2",
@@ -72,10 +73,10 @@
     "devDependencies": {
         "@azure/arm-network": "^14.0.0",
         "@azure/ms-rest-nodeauth": "^3.0.1",
-        "@f5devcentral/eslint-config-f5-atg": "^0.1.1",
+        "@f5devcentral/eslint-config-f5-atg": "^0.1.5",
         "acorn": "^6.4.1",
-        "eslint": "^5.16.0",
-        "eslint-config-airbnb-base": "^13.1.0",
+        "eslint": "^7.32.0",
+        "eslint-config-airbnb-base": "^14.2.1",
         "eslint-plugin-import": "^2.17.3",
         "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^7.2.0",
@@ -96,6 +97,7 @@
     "eslintConfig": {
         "extends": "@f5devcentral/eslint-config-f5-atg",
         "rules": {
+            "max-classes-per-file": "off",
             "func-names": "off",
             "import/no-extraneous-dependencies": [
                 "error",
@@ -114,7 +116,9 @@
             "1500",
             "1561",
             "1690",
-            "1769"
+            "1769",
+            "1005067",
+            "1004963"
         ]
     }
 }

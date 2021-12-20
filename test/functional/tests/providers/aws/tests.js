@@ -19,8 +19,8 @@ const funcUtils = require('../../shared/util.js');
 const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
-const dutPrimary = duts.filter(dut => dut.primary)[0];
-const dutSecondary = duts.filter(dut => !dut.primary)[0];
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
@@ -28,7 +28,7 @@ const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
 // Helper functions
 function matchElasticIpsToInstance(eips, instance) {
     const privateAddresses = Array.prototype.concat.apply(
-        [], instance.NetworkInterfaces.map(nic => nic.PrivateIpAddresses.map(ip => ip.PrivateIpAddress))
+        [], instance.NetworkInterfaces.map((nic) => nic.PrivateIpAddresses.map((ip) => ip.PrivateIpAddress))
     );
 
     eips.forEach((eip) => {
@@ -43,12 +43,12 @@ function matchElasticIpsToInstance(eips, instance) {
 function matchRouteTables(routeTables, nics) {
     const routeGroupDefinitions = deploymentDeclaration.failoverRoutes.routeGroupDefinitions;
     const routes = Array.prototype.concat.apply(
-        [], routeTables.map(routeTable => routeTable.Routes.map(route => route))
+        [], routeTables.map((routeTable) => routeTable.Routes.map((route) => route))
     );
 
     routes.forEach((route) => {
         const cidrBlock = route.DestinationCidrBlock || route.DestinationIpv6CidrBlock;
-        if (routeGroupDefinitions[0].scopingAddressRanges.map(i => i.range).includes(cidrBlock)) {
+        if (routeGroupDefinitions[0].scopingAddressRanges.map((i) => i.range).includes(cidrBlock)) {
             assert.strictEqual(
                 nics.includes(route.NetworkInterfaceId),
                 true,
@@ -68,7 +68,6 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         AWS.config.update({ region: deploymentInfo.region });
         ec2 = new AWS.EC2();
 
-
         return Promise.all([
             utils.getAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password),
             utils.getAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password)
@@ -81,9 +80,9 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((result) => {
-                virtualAddresses = result.items.map(i => i.address.split('/')[0]);
+                virtualAddresses = result.items.map((i) => i.address.split('/')[0]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -111,16 +110,16 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                     });
                     resolve(instances);
                 })
-                .catch(err => reject(err));
+                .catch((err) => reject(err));
         });
     }
 
     function getElasticIpAddressesInfo() {
         return getElasticIps()
-            .then(data => data.Addresses.map((address => ({
+            .then((data) => data.Addresses.map(((address) => ({
                 privateAddress: address.PrivateIpAddress
             }))))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function getIpv6Addresses(instanceId) {
@@ -169,8 +168,8 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         return new Promise((resolve, reject) => {
             ec2.describeAddresses(params).promise()
-                .then(data => resolve(data))
-                .catch(err => reject(err));
+                .then((data) => resolve(data))
+                .catch((err) => reject(err));
         });
     }
 
@@ -186,10 +185,10 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         return new Promise((resolve, reject) => {
             ec2.describeNetworkInterfaces(params).promise()
                 .then((data) => {
-                    const nics = data.NetworkInterfaces.map(nic => nic.NetworkInterfaceId);
+                    const nics = data.NetworkInterfaces.map((nic) => nic.NetworkInterfaceId);
                     resolve(nics);
                 })
-                .catch(err => reject(err));
+                .catch((err) => reject(err));
         });
     }
 
@@ -219,7 +218,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .then((routeTables) => {
                     resolve(routeTables.RouteTables);
                 })
-                .catch(err => reject(err));
+                .catch((err) => reject(err));
         });
     }
 
@@ -241,7 +240,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 });
                 matchElasticIpsToInstance(eips, privateIpToInstance[instance.ip]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function checkRouteTables(instance) {
@@ -253,7 +252,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((responses) => {
                 matchRouteTables(responses[0], responses[1]);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     function checkForIpv6Addresses(addresses) {
@@ -288,7 +287,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 data = data || {};
                 assert.strictEqual(data.message, 'success');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     // Test IP and Route failover
@@ -296,7 +295,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         this.retries(RETRIES.LONG);
 
         return checkElasticIPs(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
@@ -306,7 +305,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .then((addresses) => {
                     checkForIpv6Addresses(addresses);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -314,7 +313,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         this.retries(RETRIES.LONG);
 
         return checkRouteTables(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -325,7 +324,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         this.retries(RETRIES.LONG);
 
         return checkElasticIPs(dutSecondary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
@@ -335,7 +334,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .then((addresses) => {
                     checkForIpv6Addresses(addresses);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     }
 
@@ -343,14 +342,14 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         this.retries(RETRIES.LONG);
 
         return checkRouteTables(dutSecondary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('wait until taskState is success on secondary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -362,7 +361,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
@@ -373,14 +372,14 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         this.retries(RETRIES.LONG);
 
         return checkElasticIPs(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should check AWS route table routes for next hop matches primary', function () {
         this.retries(RETRIES.LONG);
 
         return checkRouteTables(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
@@ -388,7 +387,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -400,7 +399,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
@@ -410,7 +409,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     it('wait until taskState is running (or succeeded) on standby BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 1000)
+            (resolve) => setTimeout(resolve, 1000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -422,7 +421,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
@@ -432,7 +431,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
     it('wait until taskState is success on primary BIG-IP', function () {
         this.retries(RETRIES.MEDIUM);
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -444,23 +443,22 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should check that Elastic IP is mapped to primary', function () {
         this.retries(RETRIES.LONG);
 
         return checkElasticIPs(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Flapping scenario: should check AWS route table routes for next hop matches primary', function () {
         this.retries(RETRIES.LONG);
 
         return checkRouteTables(dutPrimary)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
-
 
     it('Should retrieve addresses and routes for primary', function () {
         this.retries(RETRIES.LONG);
@@ -502,7 +500,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 assert.deepStrictEqual(data.hostName, expectedResult.hostName);
                 assert.deepStrictEqual(data.routes, expectedResult.routes);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and not routes for secondary', function () {
@@ -540,7 +538,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 assert.deepStrictEqual(data.instance, expectedResult.instance);
                 assert.deepStrictEqual(data.routes, []);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
@@ -564,6 +562,6 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 assert(addresses.indexOf(expectedResult.publicIp) !== -1);
                 assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

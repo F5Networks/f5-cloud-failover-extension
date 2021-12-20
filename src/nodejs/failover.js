@@ -284,7 +284,7 @@ class FailoverClient {
         const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
         const routeAddressRanges = (util.getDataByKey(
             this.config, 'failoverRoutes.scopingAddressRanges'
-        ) || [{ range: 'all' }]).map(range => ({
+        ) || [{ range: 'all' }]).map((range) => ({
             routeAddresses: range.range,
             routeNextHopAddresses: this._nextHopAddressResolver(range,
                 util.getDataByKey(this.config, 'failoverRoutes.defaultNextHopAddresses') || [])
@@ -296,10 +296,10 @@ class FailoverClient {
                 routeAddressRanges
             }];
         } else {
-            routeGroupDefinitions = routeGroupDefinitions.map(routeGroupInfo => ({
+            routeGroupDefinitions = routeGroupDefinitions.map((routeGroupInfo) => ({
                 routeName: routeGroupInfo.scopingName,
                 routeTags: routeGroupInfo.scopingTags,
-                routeAddressRanges: (routeGroupInfo.scopingAddressRanges || [{ range: 'all' }]).map(range => ({
+                routeAddressRanges: (routeGroupInfo.scopingAddressRanges || [{ range: 'all' }]).map((range) => ({
                     routeAddresses: range.range,
                     routeNextHopAddresses: this._nextHopAddressResolver(range, routeGroupInfo.defaultNextHopAddresses)
                 }))
@@ -314,7 +314,7 @@ class FailoverClient {
             storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
             subscriptions: (util.getDataByKey(
                 this.config, 'failoverRoutes.defaultResourceLocations'
-            ) || []).map(location => location.subscriptionId),
+            ) || []).map((location) => location.subscriptionId),
             proxySettings: util.getDataByKey(this.proxySettings, 'host') ? {
                 protocol: this.proxySettings.protocol || 'https',
                 host: this.proxySettings.host,
@@ -444,7 +444,7 @@ class FailoverClient {
         logger.info('Performing dry run');
         return this._getDeviceObjects()
             .then(() => this._getFailoverDiscovery(this.trafficGroupStats, this.cmDeviceInfo, { dryRun: true }))
-            .then(results => Promise.resolve(results))
+            .then((results) => Promise.resolve(results))
             .catch((err) => {
                 logger.error(`error: ${util.stringify(err)}`);
                 return Promise.reject(err);
@@ -477,7 +477,7 @@ class FailoverClient {
                 this.recoveryOperations.addresses,
                 this.recoveryOperations.routes
             ]))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -601,7 +601,7 @@ class FailoverClient {
                 // default reponse - reject and retry
                 return Promise.reject(new Error('retry'));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -614,7 +614,7 @@ class FailoverClient {
         const options = { maxRetries: 400, retryInterval: 3 * 1000, thisArg: this };
 
         return util.retrier(this._checkTaskState, [], options)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -628,7 +628,7 @@ class FailoverClient {
      */
     _getTrafficGroups(trafficGroupStats, cmDeviceInfo, failoverStatus) {
         const trafficGroups = [];
-        const localCMDevice = cmDeviceInfo.filter(item => item.selfDevice === true || item.selfDevice === 'true')[0];
+        const localCMDevice = cmDeviceInfo.filter((item) => item.selfDevice === true || item.selfDevice === 'true')[0];
         const entries = trafficGroupStats.entries;
         Object.keys(entries).forEach((key) => {
             const local = failoverStatus
@@ -758,11 +758,12 @@ class FailoverClient {
             result: options.result,
             resultSummary: options.resultSummary,
             environment: this.config.environment,
+            region: this.cloudProvider.getRegion(),
             ipFailover: this.isAddressOperationsEnabled,
             routeFailover: this.isRouteOperationsEnabled,
             resourceCount: options.resourceCount
         }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
