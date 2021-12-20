@@ -1,10 +1,8 @@
 {
   "class": "Cloud_Failover",
   "environment": "gcp",
-  "externalStorage": {
-    "scopingTags": {
-      "f5_cloud_failover_label": "mydeployment"
-    }
+  "externalStorage":{
+    "scopingName": "myCloudFailoverBucket"
   },
   "failoverAddresses": {
     "enabled": true,

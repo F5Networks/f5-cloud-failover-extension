@@ -63,7 +63,7 @@ duts.forEach((dut) => {
                         data.commandResult
                     );
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });

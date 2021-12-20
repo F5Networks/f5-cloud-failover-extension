@@ -79,7 +79,7 @@ class Device {
             .then(() => {
                 logger.silly('Device initialization complete');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -108,7 +108,7 @@ class Device {
 
                 return Promise.reject(new Error('Port discovery failed!'));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -132,7 +132,7 @@ class Device {
                 resolve({ connected: false, port });
             });
         })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -161,8 +161,8 @@ class Device {
         return this.getConfig([
             '/tm/cm/device'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -174,8 +174,8 @@ class Device {
         return this.getConfig([
             '/tm/sys/global-settings'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -219,7 +219,7 @@ class Device {
                 logger.silly(`Fetched proxy settings: ${util.stringify(settings)}`);
                 return Promise.resolve(settings);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -231,8 +231,8 @@ class Device {
         return this.getConfig([
             '/tm/cm/traffic-group/stats'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -244,8 +244,8 @@ class Device {
         return this.getConfig([
             '/tm/net/self'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -269,7 +269,7 @@ class Device {
                 });
                 return Promise.resolve(virtualAddresses);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -284,8 +284,8 @@ class Device {
         return this.getConfig([
             '/tm/ltm/snat-translation'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -297,8 +297,8 @@ class Device {
         return this.getConfig([
             '/tm/ltm/nat'
         ])
-            .then(results => Promise.resolve(results[0]))
-            .catch(err => Promise.reject(err));
+            .then((results) => Promise.resolve(results[0]))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -340,7 +340,7 @@ class Device {
 
                 return Promise.resolve({ exists: true, data: dataGroupsToReturn[0] });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -368,7 +368,7 @@ class Device {
                 return this.bigip.create(DATA_GROUP_URI, body);
             })
             .then(() => this.saveConfig())
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -382,7 +382,7 @@ class Device {
         };
 
         return this.bigip.create('/tm/sys/config', body)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -399,10 +399,9 @@ class Device {
             utilCmdArgs: `-c ${command}`
         };
         return this.bigip.create('/tm/util/bash', commandBody, undefined, cloudUtils.NO_RETRY)
-            .then(response => response.commandResult)
-            .catch(err => Promise.reject(err));
+            .then((response) => response.commandResult)
+            .catch((err) => Promise.reject(err));
     }
 }
-
 
 module.exports = Device;

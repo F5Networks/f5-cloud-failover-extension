@@ -49,6 +49,7 @@ Prereqs:
 - The `automation-sdk/deployment-tool` MUST be cloned to the same parent folder
 - Prereqs declared in the `automation-sdk/deployment-tool` documentation MUST be met
 - Environment Variable `CF_ENV_CLOUD` MUST be set (azure, aws, gcp)
+- Environment Variable `F5_DISABLE_CERT_VERIFY` MUST be set to 'true' (for f5 cli > AT requests to succeed)
 
 Execute:
 
@@ -56,4 +57,7 @@ Execute:
 
 ## Misc Notes
 
+- Build RPM for use by system tests: bash `scripts/build_rpm.sh`
 - Deploy source code on to the environment BIG-IP(s) using scp: `bash scripts/deploy_source.sh`
+- Run provider tests only (if you ran deploy_source.sh and want to skip building/uploading RPM): `export CF_SYSTEM_TESTS=disabled && npm run functional-test`
+- Clean up: `npm run deployment-delete`

@@ -93,7 +93,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process POST to the configuration endpoint', () => {
@@ -122,7 +122,7 @@ describe('Rest Operations', () => {
                 assert.strictEqual(callArg.operation.result, 'SUCCESS');
                 assert.strictEqual(callArg.operation.resultSummary, 'Configuration Successful');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process POST to the trigger endpoint', () => {
@@ -138,7 +138,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process POST dry-run to the trigger endpoint', () => {
@@ -154,7 +154,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process GET to the trigger endpoint', () => {
@@ -168,7 +168,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process GET to the trigger endpoint (failover failed)', () => {
@@ -182,7 +182,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 500, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process POST to the reset endpoint', () => {
@@ -194,7 +194,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process GET to the inspect endpoint', () => {
@@ -206,7 +206,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process GET to the info endpoint', () => {
@@ -216,7 +216,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     ['onGet', 'onPost', 'onPut', 'onPatch', 'onDelete'].forEach((methodHook) => {
@@ -227,7 +227,7 @@ describe('Rest Operations', () => {
                 .then((data) => {
                     assert.strictEqual(data.status, 200, JSON.stringify(data.body));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 
@@ -243,7 +243,7 @@ describe('Rest Operations', () => {
             .then((data) => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should process retry failover on POST to the configuration endpoint', () => {
@@ -275,6 +275,6 @@ describe('Rest Operations', () => {
                 assert.strictEqual(data.status, 200, JSON.stringify(data.body));
                 assert.strictEqual(worker.retryInterval, null);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 });

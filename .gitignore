@@ -39,3 +39,5 @@ deployment_info.json
 .idea/*
 temp_*
 sdk/dist/*
+env.sh
+test/test/*

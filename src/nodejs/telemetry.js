@@ -17,6 +17,9 @@
 'use strict';
 
 const F5TeemDevice = require('@f5devcentral/f5-teem').Device;
+const Record = require('@f5devcentral/f5-teem').Record;
+const localeFunc = require('get-user-locale');
+const uuidv4 = require('uuid');
 const constants = require('./constants.js');
 const logger = require('./logger.js');
 
@@ -32,14 +35,18 @@ class TelemetryClient {
     }
 
     send(configuration) {
-        const teemClient = new F5TeemDevice(this.teemAssetInfo);
-
-        const extraFields = this._processExtraFields(configuration);
-
         // send telemetry - this can be disabled using the phone home setting
-        return teemClient.report(this.telemetryType, this.telemetryTypeVersion, configuration, extraFields)
+        const teemClient = new F5TeemDevice(this.teemAssetInfo);
+        const record = new Record(constants.TELEMETRY_TYPE, constants.TELEMETRY_TYPE_VERSION);
+        return Promise.resolve()
+            .then(() => record.addRegKey())
+            .then(() => record.calculateAssetId())
+            .then(() => record.addJsonObject(configuration))
+            .then(() => record.addPlatformInfo())
+            .then(() => teemClient.reportRecord(record))
             .then(() => {
                 logger.silly('Telemetry submitted successfully');
+                logger.silly(`Telemetry payload: ${JSON.stringify(configuration)}`);
                 return Promise.resolve({ sent: true });
             })
             .catch((err) => {
@@ -50,10 +57,9 @@ class TelemetryClient {
     }
 
     _processExtraFields(configuration) {
-        return {
-            environment: configuration[constants.ENVIRONMENT_KEY_NAME] || 'none',
-            featureFlags: this._processFeatureFlags(configuration)
-        };
+        configuration.environment = configuration[constants.ENVIRONMENT_KEY_NAME] || 'none';
+        configuration.featureFlags = this._processFeatureFlags(configuration);
+        return configuration;
     }
 
     _processFeatureFlags(configuration) {
@@ -81,20 +87,21 @@ class TelemetryClient {
             failover: options.failover,
             product: {
                 version: constants.VERSION,
-                locale: '',
-                installDate: '',
+                locale: localeFunc.getUserLocale(),
+                installDate: (new Date()).toISOString(),
                 installationId: '',
-                environment: options.environment
+                environment: options.environment,
+                region: options.region
+            },
+            featureFlags: {
+                ipFailover: options.ipFailover || false,
+                routeFailover: options.routeFailover || false
             },
             operation: {
-                featureFlags: {
-                    ipFailover: options.ipFailover,
-                    routeFailover: options.routeFailover
-                },
-                clientRequestId: '',
+                clientRequestId: uuidv4(),
                 action: options.action,
                 endpoint: options.endpoint,
-                userAgent: '',
+                userAgent: options.userAgent || `f5-cloud-failover/${constants.VERSION}`,
                 result: options.result,
                 resultSummary: options.resultSummary
             }

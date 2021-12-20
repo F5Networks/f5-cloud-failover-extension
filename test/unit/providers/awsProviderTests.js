@@ -57,6 +57,8 @@ describe('Provider - AWS', () => {
         storageName: 's3BucketName'
     };
 
+    const mockMetadataSessionToken = 'this-test-session-token';
+
     const _getPrivateSecondaryIPsStubResponse = {
         '2.3.4.5': {
             NetworkInterfaceId: 'eni-2345'
@@ -159,10 +161,13 @@ describe('Provider - AWS', () => {
         provider.retryInterval = 100;
 
         provider.metadata.request = sinon.stub()
-            .callsFake((path, callback) => {
+            .callsFake((path, headers, callback) => {
                 metadataPathRequest = path;
-                callback(null, JSON.stringify(mockMetadata));
+                if (metadataPathRequest === '/latest/dynamic/instance-identity/document') {
+                    callback(null, JSON.stringify(mockMetadata));
+                }
             });
+        provider._fetchMetadataSessionToken = sinon.stub().resolves(mockMetadataSessionToken);
         originalgetS3BucketByTags = provider._getS3BucketByTags;
         provider._getS3BucketByTags = sinon.stub()
             .resolves(_s3FileParamsStub.Bucket);
@@ -199,7 +204,7 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(provider.region, mockMetadata.region);
                     assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should reject if error', () => {
@@ -223,7 +228,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert.strictEqual(provider.storageName, 's3BucketName');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         describe('_getS3BucketByTags', () => {
@@ -443,7 +448,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     // eslint-disable-next-line arrow-body-style
                     provider.metadata.request = sinon.stub()
-                        .callsFake((path, callback) => {
+                        .callsFake((path, headers, callback) => {
                             callback(new Error(expectedError, null));
                         });
                     return provider._getInstanceIdentityDoc();
@@ -501,11 +506,14 @@ describe('Provider - AWS', () => {
 
         it('should reject upon error', () => {
             const expectedError = 'cannot describe the EIP adddresses';
+            provider.maxRetries = 10;
+            let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
                     provider.ec2.describeAddresses = sinon.stub()
                         .callsFake(() => ({
                             promise() {
+                                retryCount += 1;
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
@@ -516,10 +524,31 @@ describe('Provider - AWS', () => {
                 })
                 .catch((err) => {
                     assert.strictEqual(err.message, expectedError);
+                    assert.strictEqual(retryCount - 1, provider.maxRetries);
                 });
         });
     });
 
+    describe('function _getSubnets', () => {
+        const describeSubnetsResponse = { Subnets: [{ foo: 1, bar: 2 }] };
+
+        it('should verify _getSubnets method resolution', () => provider.init(mockInitData)
+            .then(() => {
+                provider.ec2.describeSubnets = sinon.stub()
+                    .callsFake(() => ({
+                        promise() {
+                            return Promise.resolve(describeSubnetsResponse);
+                        }
+                    }));
+                return provider._getSubnets();
+            })
+            .then(() => {
+                assert.strictEqual(provider.subnets, describeSubnetsResponse);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
     describe('function _getPrivateSecondaryIPs', () => {
         const describeNetworkInterfacesResponse = {
             NetworkInterfaces: [
@@ -603,11 +632,14 @@ describe('Provider - AWS', () => {
 
         it('should reject upon error', () => {
             const expectedError = 'cannot describe the Network Interfaces';
+            provider.maxRetries = 10;
+            let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
                         .callsFake(() => ({
                             promise() {
+                                retryCount += 1;
                                 return Promise.reject(new Error(expectedError));
                             }
                         }));
@@ -617,6 +649,7 @@ describe('Provider - AWS', () => {
                     assert.ok(false, 'should have rejected');
                 })
                 .catch((err) => {
+                    assert.strictEqual(retryCount - 1, provider.maxRetries);
                     assert.strictEqual(err.message, expectedError);
                 });
         });
@@ -873,13 +906,13 @@ describe('Provider - AWS', () => {
                             };
                         });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateAddresses(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate private+public address gets reassociated', () => {
@@ -979,7 +1012,7 @@ describe('Provider - AWS', () => {
                         AllowReassociation: true
                     }]);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should validate private+public address gets reassociated without Subnet information', () => {
@@ -1069,7 +1102,7 @@ describe('Provider - AWS', () => {
                         AllowReassociation: true
                     }]);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         // validate
@@ -1147,7 +1180,7 @@ describe('Provider - AWS', () => {
                     });
 
                 return provider.discoverAddresses()
-                    .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                    .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                     .then(() => {
                         // assert public address gets reassociated properly
                         assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
@@ -1158,7 +1191,7 @@ describe('Provider - AWS', () => {
                             AllowReassociation: true
                         }]);
                     })
-                    .catch(err => Promise.reject(err));
+                    .catch((err) => Promise.reject(err));
             });
         });
     });
@@ -1166,7 +1199,7 @@ describe('Provider - AWS', () => {
     describe('function discoverAddressOperationsUsingDefinitions', () => {
         const addresses = {
             localAddresses: ['1.2.3.4'],
-            failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2']
+            failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2', '2600:1f14:92a:bc03:8459:976:1950:33a2', '2600:1f14:92a:bc03:8459:976:1950:34a2']
         };
         const options = {};
         it('should validate same-net case', () => {
@@ -1217,6 +1250,20 @@ describe('Provider - AWS', () => {
                                 Association: {}
                             }
                         ],
+                        Ipv6Addresses: [
+                            {
+                                Ipv6Address: '2600:1f13:5f9:5703:45bf:420f:442:c576'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:32a2'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:33a2'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:34a2'
+                            }
+                        ],
                         TagSet: [],
                         SubnetId: 'subnet-02d5ddf8d8383ac1e'
                     }
@@ -1247,10 +1294,20 @@ describe('Provider - AWS', () => {
                         return Promise.resolve(describeAddressesResponse);
                     }
                 }));
+
+            let isRetryOccured = false;
+            provider.maxRetries = 1;
             provider.ec2.describeNetworkInterfaces = sinon.stub()
                 .returns({
                     promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
+                        provider.ec2.describeNetworkInterfaces = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve(describeNetworkInterfacesResponse);
+                                }
+                            });
+                        isRetryOccured = true;
+                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
                     }
                 });
             provider.ec2.describeSubnets = sinon.stub()
@@ -1264,20 +1321,35 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
                     assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000002');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '10.10.10.10');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].publicAddress, '2.2.2.2');
                     assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000001');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.10.10');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].publicAddress, '2.2.2.2');
+                    assert.ok(isRetryOccured);
                 })
-                .catch(err => assert.fail(err));
+                .catch((err) => assert.fail(err));
         });
 
         it('should validate across-net case', () => {
@@ -1531,7 +1603,7 @@ describe('Provider - AWS', () => {
                 assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
                 assert.deepStrictEqual(data, mockResponseBody);
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
 
         it('should return empty object if listObjects is empty', () => provider.init(mockInitData)
             .then(() => {
@@ -1551,7 +1623,7 @@ describe('Provider - AWS', () => {
             .then((data) => {
                 assert.deepStrictEqual(data, {});
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
     });
 
     describe('function updateRoutes should', () => {
@@ -1620,7 +1692,6 @@ describe('Provider - AWS', () => {
                 tag: 'F5_SELF_IPS'
             };
 
-
             return provider.init(thisMockInitData)
                 .then(() => {
                     provider.ec2.describeNetworkInterfaces = sinon.stub()
@@ -1642,20 +1713,20 @@ describe('Provider - AWS', () => {
                             }
                         });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateRoutes(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({
             localAddresses,
             discoverOnly: true
         })
-            .then(operations => provider.updateRoutes({ updateOperations: operations }))
+            .then((operations) => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
                 assert(provider.ec2.replaceRoute.calledOnce);
                 assert(provider.ec2.replaceRoute.calledWith({
@@ -1664,7 +1735,7 @@ describe('Provider - AWS', () => {
                     RouteTableId: 'rtb-123'
                 }));
             })
-            .catch(err => Promise.reject(err)));
+            .catch((err) => Promise.reject(err)));
 
         it('not update routes if matching route is not found', () => {
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
@@ -1673,7 +1744,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert(provider.ec2.replaceRoute.notCalled);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static', () => {
@@ -1694,7 +1765,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple next hop discovery method: static', () => {
@@ -1746,7 +1817,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
@@ -1767,7 +1838,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static (with retries)', () => {
@@ -1803,7 +1874,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name', () => {
@@ -1831,7 +1902,7 @@ describe('Provider - AWS', () => {
                         RouteTableId: 'rtb-123'
                     }));
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('not update routes when matching next hop address is not found', () => {
@@ -1847,7 +1918,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert(provider.ec2.replaceRoute.notCalled);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
@@ -1902,7 +1973,7 @@ describe('Provider - AWS', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('return addresses and not routes for standby device ', () => {
@@ -1932,7 +2003,164 @@ describe('Provider - AWS', () => {
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
+        });
+    });
+
+    describe('IPv6 testing', () => {
+        const addresses = {
+            localAddresses: ['1.2.3.4'],
+            failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32b2', '2600:1f14:92a:bc03:8459:976:1950:32a2', '2600:1f14:92a:bc03:8459:976:1950:33a2', '2600:1f14:92a:bc03:8459:976:1950:34a2', '2600:1f14:92a:bc03:8459:976:1950:32c2']
+        };
+        const options = {};
+        it('should ignore additional failoverAddress', () => {
+            const describeAddressesResponse = {
+                Addresses: [
+                    {
+                        PublicIp: '2.2.2.2',
+                        PrivateIpAddress: '10.10.10.10',
+                        AssociationId: 'association-id',
+                        AllocationId: 'allocation-id',
+                        Tags: []
+                    }
+                ],
+                Tags: []
+            };
+            const describeNetworkInterfacesResponse = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-000001',
+                        PrivateIpAddress: '1.2.3.4',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.4'
+                            }
+                        ],
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-000002',
+                        PrivateIpAddress: '1.2.3.5',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '1.2.3.5'
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.10',
+                                Association: {
+                                    PublicIp: '2.2.2.2'
+                                }
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.10.11',
+                                Association: {}
+                            }
+                        ],
+                        Ipv6Addresses: [
+                            {
+                                Ipv6Address: '2600:1f13:5f9:5703:45bf:420f:442:c576'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:32a2'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:33a2'
+                            },
+                            {
+                                Ipv6Address: '2600:1f14:92a:bc03:8459:976:1950:34a2'
+                            }
+                        ],
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    }
+                ],
+                Tags: []
+            };
+            const addressGroupDefinitions = [
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2.2.2.2',
+                    networkInterfaces: [
+                        'eni-000001',
+                        'eni-000002'
+                    ]
+                }
+            ];
+            const describeSubnetsResponse = {
+                Subnets: [
+                    {
+                        CidrBlock: '1.2.3.0/24',
+                        SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    }
+                ]
+            };
+            provider.ec2.describeAddresses = sinon.stub()
+                .callsFake(() => ({
+                    promise() {
+                        return Promise.resolve(describeAddressesResponse);
+                    }
+                }));
+
+            let isRetryOccured = false;
+            provider.maxRetries = 1;
+            provider.ec2.describeNetworkInterfaces = sinon.stub()
+                .returns({
+                    promise() {
+                        provider.ec2.describeNetworkInterfaces = sinon.stub()
+                            .returns({
+                                promise() {
+                                    return Promise.resolve(describeNetworkInterfacesResponse);
+                                }
+                            });
+                        isRetryOccured = true;
+                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
+                    }
+                });
+            provider.ec2.describeSubnets = sinon.stub()
+                .returns({
+                    promise() {
+                        return Promise.resolve(describeSubnetsResponse);
+                    }
+                });
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+                .then((response) => {
+                    assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
+                    assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
+                    assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000002');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000001');
+                    assert.strictEqual(response.interfaces.associate[0].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[4].publicAddress, '2.2.2.2');
+                    assert.ok(isRetryOccured);
+                })
+                .catch((err) => assert.fail(err));
         });
     });
 });
