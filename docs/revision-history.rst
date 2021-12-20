@@ -11,7 +11,11 @@ Document Revision History
         - Description
         - Date
 
-      * - 2.3
+      * - 2.2.2
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated a note in :ref:`gcp-iam`.
+        - 11-10-21
+
+      * - 2.2.1
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated :ref:`configure` to include version notices, more descriptions, and information on configuration :ref:`config-validation`. |br| • Updated the example declarations for :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`. |br| • Updated sections for defining your network infrastructure objects on all clouds.  |br| • Updated the :ref:`faq`. |br| • Updated :ref:`troubleshooting`.
         - 07-29-21
 
