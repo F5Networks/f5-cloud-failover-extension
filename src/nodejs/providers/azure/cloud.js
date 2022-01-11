@@ -37,6 +37,7 @@ class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
         this.nics = null;
+        this.region = null;
         this.resourceGroup = null;
         this.primarySubscriptionId = null;
         this.storageClient = null;
@@ -56,7 +57,7 @@ class Cloud extends AbstractCloud {
             .then((metadata) => {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.primarySubscriptionId = metadata.compute.subscriptionId;
-
+                this.region = metadata.compute.location;
                 this.environment = this._getAzureEnvironment(metadata);
                 const credentials = new msRestAzure.MSIVmTokenCredentials({
                     resource: this.environment.resourceManagerEndpointUrl,
@@ -79,7 +80,7 @@ class Cloud extends AbstractCloud {
             })
             .then((storageName) => {
                 this.logger.silly('Storage name: ', storageName);
-                return this._retrier(this._getStorageAccountKey, [storageName]);
+                return this._retrier(this._getStorageAccountKey, [storageName], { maxRetries: 5 });
             })
             .then((storageAccountInfo) => {
                 this.logger.silly('Storage Account Information: ', storageAccountInfo.name);
@@ -94,7 +95,17 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.silly('Cloud Provider initialization complete');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+    * Returns region name (cloud)
+    *
+    *
+    * @returns {Promise}
+    */
+    getRegion() {
+        return this.region;
     }
 
     /**
@@ -117,12 +128,12 @@ class Cloud extends AbstractCloud {
 
         if (updateOperations) {
             return this._updateAddresses(updateOperations)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         }
         // default - discover and update
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
-            .then(operations => this._updateAddresses(operations))
-            .catch(err => Promise.reject(err));
+            .then((operations) => this._updateAddresses(operations))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -140,7 +151,7 @@ class Cloud extends AbstractCloud {
         const failoverAddresses = options.failoverAddresses || [];
         this.logger.silly('discoverAddresses: ', options);
         return this._discoverAddressOperations(localAddresses, failoverAddresses)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -172,7 +183,7 @@ class Cloud extends AbstractCloud {
                 }
             );
         }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
         return this._retrier(uploadObject, [],
             { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
     }
@@ -218,7 +229,7 @@ class Cloud extends AbstractCloud {
                     );
                 }));
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
         return this._retrier(downloadObject, [],
             { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
     }
@@ -243,16 +254,15 @@ class Cloud extends AbstractCloud {
             loadBalancerAddresses: {}
         };
 
-        const publicAddresses = addressGroupDefinitions.filter(item => item.type === 'publicIpAddress');
-        const networkInterfaceAddress = addressGroupDefinitions.filter(item => item.type === 'networkInterfaceAddress');
+        const publicAddresses = addressGroupDefinitions.filter((item) => item.type === 'publicIpAddress');
+        const networkInterfaceAddress = addressGroupDefinitions.filter((item) => item.type === 'networkInterfaceAddress');
         return Promise.all([
             this._discoverPublicIpAddressOperations(publicAddresses),
             this._discoverNetworkInterfaceAddress(networkInterfaceAddress, addresses)
         ])
             .then(() => this.resultAction)
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
-
 
     _discoverPublicIpAddressOperations(addressGroupDefinitions) {
         if (addressGroupDefinitions.length === 0) {
@@ -272,22 +282,16 @@ class Cloud extends AbstractCloud {
                 });
                 return Promise.resolve(this.resultAction);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     _discoverNetworkInterfaceAddress(addressGroupDefinitions, addresses) {
         if (addressGroupDefinitions.length === 0) {
             return Promise.resolve();
         }
-        const promises = [];
         this.logger.debug('Discover network interface address - same-net');
-        addressGroupDefinitions.forEach((item) => {
-            promises.push(this._generateNetworkInterfaceOperations(addresses, item));
-        });
 
-        return Promise.all(promises)
-            .then(response => response.pop())
-            .catch(err => Promise.reject(err));
+        return Promise.resolve(this._generateNetworkInterfaceOperations(addresses, addressGroupDefinitions));
     }
 
     /**
@@ -336,7 +340,7 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Returning associated address and route info');
                 return Promise.resolve(data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -411,7 +415,7 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(storageAccounts[0].name); // only need one
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -453,7 +457,7 @@ class Cloud extends AbstractCloud {
                 });
         });
         return this._retrier(func, [])
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -489,7 +493,7 @@ class Cloud extends AbstractCloud {
                 this.logger.silly('Filtered Storage Accounts', storageAccounts);
                 return Promise.resolve(storageAccounts);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -507,7 +511,7 @@ class Cloud extends AbstractCloud {
                 const key = data.keys[0].value;
                 return Promise.resolve({ name, key });
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -528,7 +532,7 @@ class Cloud extends AbstractCloud {
                 }
             });
         }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -573,7 +577,7 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(nics);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -640,16 +644,16 @@ class Cloud extends AbstractCloud {
                 this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
             }
             // identify 'my' and 'their' nics
-            const nicAddresses = nic.ipConfigurations.map(i => i.privateIPAddress);
+            const nicAddresses = nic.ipConfigurations.map((i) => i.privateIPAddress);
             localAddresses.forEach((address) => {
-                const myNicIds = myNics.map(i => i.nic.id);
+                const myNicIds = myNics.map((i) => i.nic.id);
                 if (nicAddresses.indexOf(address) !== -1
                     && myNicIds.indexOf(nic.id) === -1) {
                     myNics.push({ nic });
                 }
             });
             failoverAddresses.forEach((address) => {
-                const theirNicIds = theirNics.map(i => i.nic.id);
+                const theirNicIds = theirNics.map((i) => i.nic.id);
                 if (nicAddresses.indexOf(address) !== -1
                     && theirNicIds.indexOf(nic.id) === -1) {
                     theirNics.push({ nic });
@@ -695,12 +699,12 @@ class Cloud extends AbstractCloud {
                 return this._generateAddressOperations(localAddresses, failoverAddresses,
                     parsedNics);
             })
-            .then(operations => Promise.resolve({
+            .then((operations) => Promise.resolve({
                 publicAddresses: [],
                 interfaces: operations,
                 loadBalancerAddresses: {}
             }))
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -723,7 +727,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Addresses reassociated successfully');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -763,7 +767,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Associate NICs successful.');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -783,7 +787,6 @@ class Cloud extends AbstractCloud {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
                 if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
                     this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
-
                     myNicIpConfigs.push(theirNicIpConfigs[i]);
                     theirNicIpConfigs.splice(i, 1);
                     break;
@@ -814,9 +817,9 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getRouteTables() {
-        return Promise.all(Object.keys(this.networkClients).map(id => this._listRouteTablesBySubscription(id)))
-            .then(routeTables => Promise.resolve(Array.prototype.concat.apply([], routeTables)))
-            .catch(err => Promise.reject(err));
+        return Promise.all(Object.keys(this.networkClients).map((id) => this._listRouteTablesBySubscription(id)))
+            .then((routeTables) => Promise.resolve(Array.prototype.concat.apply([], routeTables)))
+            .catch((err) => Promise.reject(err));
     }
 
     _listRouteTablesBySubscription(id) {
@@ -963,7 +966,7 @@ class Cloud extends AbstractCloud {
             .then(() => {
                 this.logger.info('Update routes successful.');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1094,7 +1097,7 @@ class Cloud extends AbstractCloud {
      *
      * @returns {Promise} - A Promise that is resolved network interface operations
      */
-    _generateNetworkInterfaceOperations(addresses, providedDeclaration) {
+    _generateNetworkInterfaceOperations(addresses, addressGroupDefinitions) {
         const operations = {
             disassociate: [],
             associate: []
@@ -1104,29 +1107,32 @@ class Cloud extends AbstractCloud {
         ])
             .then((results) => {
                 const nics = results[0];
-                const failoverAddresses = [providedDeclaration.scopingAddress];
-                const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
-                if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
-                    this.logger.warning('Problem with discovering network interfaces parsedNics');
-                    return Promise.resolve({
-                        publicAddresses: {},
-                        interfaces: operations,
-                        loadBalancerAddresses: {}
-                    });
-                }
-                const nicOperations = this._checkForNicOperations(
-                    parsedNics.mine[0].nic,
-                    parsedNics.theirs[0].nic,
-                    failoverAddresses
-                );
-                if (nicOperations.disassociate && nicOperations.associate) {
-                    operations.disassociate.push(nicOperations.disassociate);
-                    operations.associate.push(nicOperations.associate);
-                }
+                addressGroupDefinitions.forEach((item) => {
+                    const failoverAddresses = [item.scopingAddress];
+                    const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
+                    if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
+                        this.logger.warning('Problem with discovering network interfaces parsedNics');
+                        return Promise.resolve({
+                            publicAddresses: {},
+                            interfaces: operations,
+                            loadBalancerAddresses: {}
+                        });
+                    }
+                    const nicOperations = this._checkForNicOperations(
+                        parsedNics.mine[0].nic,
+                        parsedNics.theirs[0].nic,
+                        failoverAddresses
+                    );
+                    if (nicOperations.disassociate && nicOperations.associate) {
+                        operations.disassociate.push(nicOperations.disassociate);
+                        operations.associate.push(nicOperations.associate);
+                    }
+                    return item;
+                });
                 this.resultAction.interfaces = operations;
                 return Promise.resolve();
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1202,8 +1208,8 @@ class Cloud extends AbstractCloud {
         let currentNic;
         let targetNic;
         operations.forEach((operation) => {
-            currentNic = this.nics.find(nic => nic.name === operation.current.name);
-            targetNic = this.nics.find(nic => nic.name === operation.target.name);
+            currentNic = this.nics.find((nic) => nic.name === operation.current.name);
+            targetNic = this.nics.find((nic) => nic.name === operation.target.name);
             if (processedNics.current[currentNic.name] !== undefined) {
                 currentNic = processedNics.current[currentNic.name];
             }
@@ -1238,7 +1244,7 @@ class Cloud extends AbstractCloud {
                 this.logger.info('Public IP Addresses were associated with target nic.');
                 return Promise.resolve();
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     }
 }
 

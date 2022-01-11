@@ -173,7 +173,7 @@ describe('Provider - GCP', () => {
                 assert.strictEqual(provider.targetInstances, 'targetInstanceResponse');
                 assert.strictEqual(provider.bucket, 'bucketResponse');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate promise rejection for init method', () => {
@@ -208,7 +208,7 @@ describe('Provider - GCP', () => {
             .then(() => {
                 assert.strictEqual(provider.bucket, 'bucketName');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate uploadDataToStorage', () => {
@@ -232,7 +232,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(JSON.parse(data).status, payload.status);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate downloadDataFromStorage', () => {
@@ -256,7 +256,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data.status, payload.status);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     describe('updateAddresses should', () => {
@@ -313,7 +313,7 @@ describe('Provider - GCP', () => {
 
         it('should validate method does not throw error if update operations is empty', () => {
             return provider.updateAddresses({ updateOperations: {} })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover', () => {
@@ -323,12 +323,12 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover with forwarding rules provided via label', () => {
@@ -347,12 +347,12 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover with forwarding rules parameter', () => {
@@ -370,12 +370,12 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover with forwarding rules not requiring scoping tag', () => {
@@ -396,12 +396,12 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy, { getTags: null });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate alias IP failover (without any fwd rules or target instances)', () => {
@@ -421,7 +421,7 @@ describe('Provider - GCP', () => {
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate alias IP failover (with unrelated fwd rule and no target instances)', () => {
@@ -439,11 +439,11 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate fwd rule failover (without any alias IPs)', () => {
@@ -475,11 +475,11 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateFwdRuleOperations(getFwdRulesStub, updateFwdRulesSpy);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover with all instances in a single zone', () => {
@@ -491,11 +491,11 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover does not attempt to update access configs', () => {
@@ -507,13 +507,13 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     validateAliasIpOperations(updateNicSpy, { zone: 'us-west1-a' });
                     assert.strictEqual(updateNicSpy.args[0][2].accessConfigs, undefined);
                     assert.strictEqual(updateNicSpy.args[1][2].accessConfigs, undefined);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('validate updateAddresses method, promise rejection', () => {
@@ -522,7 +522,7 @@ describe('Provider - GCP', () => {
             return provider.updateAddresses({
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
-                .then(operations => provider.updateAddresses({ updateOperations: operations }))
+                .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                 .then(() => {
                     assert.ok(false, 'Expected an error');
                 })
@@ -584,7 +584,6 @@ describe('Provider - GCP', () => {
                 })
                 .catch(() => assert.fail());
         });
-
 
         it('validate correct execution for aliasAddress type', () => {
             provider.updateAddresses = sinon.stub().callsFake((parameters) => {
@@ -690,7 +689,7 @@ describe('Provider - GCP', () => {
         it('not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
             return provider.updateRoutes(opts)
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
@@ -700,13 +699,13 @@ describe('Provider - GCP', () => {
             };
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static', () => {
@@ -716,13 +715,13 @@ describe('Provider - GCP', () => {
             };
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update multiple routes using next hop discovery method', () => {
@@ -747,7 +746,7 @@ describe('Provider - GCP', () => {
             });
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
@@ -756,7 +755,7 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions', () => {
@@ -791,7 +790,7 @@ describe('Provider - GCP', () => {
             });
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
@@ -800,7 +799,7 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions with mix name and tag', () => {
@@ -835,7 +834,7 @@ describe('Provider - GCP', () => {
             });
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
@@ -844,7 +843,7 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions with routes names', () => {
@@ -879,7 +878,7 @@ describe('Provider - GCP', () => {
             });
 
             return provider.updateRoutes({ localAddresses: ['1.1.1.1', '2.2.2.2'], discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
@@ -888,7 +887,7 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name and special "all" route address', () => {
@@ -908,16 +907,15 @@ describe('Provider - GCP', () => {
             ];
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
-                .then(operations => provider.updateRoutes({ updateOperations: operations }))
+                .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
-
 
     it('validate _getRouteTables method execution', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
@@ -940,7 +938,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data[0].name, 'ourRoute');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getRouteTables method execution with page token', () => {
@@ -979,7 +977,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data[1].name, 'ourPaginatedRoute');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getRouteTables method execution no routes found', () => {
@@ -998,9 +996,8 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.ok(data.length === 0);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
-
 
     it('validate _getRouteTables method promise rejection', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
@@ -1029,7 +1026,7 @@ describe('Provider - GCP', () => {
                 assert.ok(true);
                 assert.strictEqual(data, 'test-data');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate promise rejection for _getLocalMetadata', () => {
@@ -1071,7 +1068,7 @@ describe('Provider - GCP', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getVmInfo', () => {
@@ -1085,7 +1082,7 @@ describe('Provider - GCP', () => {
                 assert.ok(true);
                 assert.strictEqual(data.status, '200');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate promise rejection for _getVmInfo due to failOnStatusCodes', () => {
@@ -1108,7 +1105,7 @@ describe('Provider - GCP', () => {
                 assert.ok(data.length > 0);
                 assert.strictEqual(data[0], 'test_data');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate promise rejection for _getTargetInstances', () => {
@@ -1142,7 +1139,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data[0].name, 'testFwdRule');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getFwdRules filters based on tag', () => {
@@ -1166,7 +1163,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data[0].name, 'testFwdRule');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _getFwdRules returned promise even with pageTokens', () => {
@@ -1224,7 +1221,7 @@ describe('Provider - GCP', () => {
                 assert.strictEqual(data[3], 'test_data4');
                 assert.strictEqual(data[4], 'test_data5');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     /* eslint-disable arrow-body-style */
@@ -1249,7 +1246,7 @@ describe('Provider - GCP', () => {
             .then(() => {
                 assert.ok(true);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('validate _updateFwdRule method promise rejection', () => {
@@ -1322,7 +1319,7 @@ describe('Provider - GCP', () => {
             .then((data) => {
                 assert.strictEqual(data.name, 'ourBucket');
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     describe('function getAssociatedAddressAndRouteInfo', () => {
@@ -1384,7 +1381,7 @@ describe('Provider - GCP', () => {
                 .then((data) => {
                     assert.deepStrictEqual(data, expectedData);
                 })
-                .catch(err => Promise.reject(new Error(`${err.stack}`)));
+                .catch((err) => Promise.reject(new Error(`${err.stack}`)));
         });
 
         it('validate return addresses and not routes for standby device', () => {
@@ -1398,7 +1395,7 @@ describe('Provider - GCP', () => {
                 .then((data) => {
                     assert.deepStrictEqual(data, expectedData);
                 })
-                .catch(err => Promise.reject(err));
+                .catch((err) => Promise.reject(err));
         });
     });
 });

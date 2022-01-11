@@ -18,8 +18,8 @@ const funcUtils = require('./shared/util.js');
 const RETRIES = constants.RETRIES;
 
 const duts = funcUtils.getHostInfo();
-const dutPrimary = duts.filter(dut => dut.primary)[0];
-const dutSecondary = duts.filter(dut => !dut.primary)[0];
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 describe('Performance Tests', () => {
     let startTimestamp;
@@ -35,7 +35,7 @@ describe('Performance Tests', () => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
     after(() => {
         Object.keys(require.cache).forEach((key) => {
@@ -51,7 +51,7 @@ describe('Performance Tests', () => {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
                 {
@@ -62,7 +62,7 @@ describe('Performance Tests', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should reset failover state file', () => {
@@ -79,7 +79,7 @@ describe('Performance Tests', () => {
                 data = data || {};
                 assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should set start timestamp', () => {
@@ -94,7 +94,7 @@ describe('Performance Tests', () => {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -106,14 +106,14 @@ describe('Performance Tests', () => {
             .then((data) => {
                 assert(data.boolean, data);
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should collect task state information', function () {
         this.retries(RETRIES.SHORT);
 
         return new Promise(
-            resolve => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 5000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
@@ -143,7 +143,7 @@ describe('Performance Tests', () => {
                     })
                 );
             })
-            .catch(err => Promise.reject(err));
+            .catch((err) => Promise.reject(err));
     });
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
