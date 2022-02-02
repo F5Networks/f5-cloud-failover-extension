@@ -279,7 +279,6 @@ class FailoverClient {
      * Parses config from the declaration that is to be passed to cloud provider init
      */
     _parseConfig() {
-        const customEnvironmentSettings = util.getDataByKey(this.config, 'customEnvironment') || [];
         let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
         const trustedCertBundle = util.getDataByKey(this.config, 'trustedCertBundle') || '';
         const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
@@ -309,7 +308,6 @@ class FailoverClient {
         return {
             addressTags: util.getDataByKey(this.config, 'failoverAddresses.scopingTags'),
             addressTagsRequired: util.getDataByKey(this.config, 'failoverAddresses.requireScopingTags'),
-            customEnvironment: customEnvironmentSettings,
             routeGroupDefinitions,
             trustedCertBundle,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
