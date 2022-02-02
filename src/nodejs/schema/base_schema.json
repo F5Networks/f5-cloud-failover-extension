@@ -148,6 +148,11 @@
                 "gcp"
             ]
         },
+        "customEnvironment": {
+            "title": "Custom Environment",
+            "description": "Custom environment settings for Azure cloud instance.",
+            "type": "object"
+        },
         "failoverAddresses": {
             "title": "Failover Addresses",
             "description": "Addresses this deployment will manage.",
