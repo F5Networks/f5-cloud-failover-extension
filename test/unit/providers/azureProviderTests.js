@@ -86,50 +86,6 @@ describe('Provider - Azure', () => {
             .catch((err) => Promise.reject(err));
     });
 
-    it('should initialize azure provider with custom enviroments', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
-
-        const storageAccounts = [
-            {
-                name: 'foo',
-                tags: {
-                    foo: 'bar'
-                }
-            }
-        ];
-        provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
-        provider._initStorageAccountContainer = sinon.stub().resolves();
-        return provider.init({
-            customEnvironment: {
-                name: 'CustomAzureSettings',
-                portalUrl: 'https://portal.azure.com',
-                publishingProfileUrl: 'http://go.microsoft.com/fwlink/?LinkId=254432',
-                managementEndpointUrl: 'https://management.core.windows.net',
-                resourceManagerEndpointUrl: 'https://management.azure.com/',
-                sqlManagementEndpointUrl: 'https://management.core.windows.net:8443/',
-                sqlServerHostnameSuffix: '.database.windows.net',
-                galleryEndpointUrl: 'https://gallery.azure.com/',
-                activeDirectoryEndpointUrl: 'https://login.microsoftonline.com/',
-                activeDirectoryResourceId: 'https://management.core.windows.net/',
-                activeDirectoryGraphResourceId: 'https://graph.windows.net/',
-                batchResourceId: 'https://batch.core.windows.net/',
-                activeDirectoryGraphApiVersion: '2013-04-05',
-                storageEndpointSuffix: '.core.windows.net',
-                keyVaultDnsSuffix: '.vault.azure.net',
-                azureDataLakeStoreFileSystemEndpointSuffix: 'azuredatalakestore.net',
-                azureDataLakeAnalyticsCatalogAndJobEndpointSuffix: 'azuredatalakeanalytics.net'
-            }
-        })
-            .then(() => {
-                assert.strictEqual(provider.resourceGroup, mockResourceGroup);
-                assert.strictEqual(provider.primarySubscriptionId, mockSubscriptionId);
-                assert.strictEqual(provider.customEnvironment.name, 'CustomAzureSettings');
-                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
     it('should initialize azure provider and throw error about missing storage account', () => {
         sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
