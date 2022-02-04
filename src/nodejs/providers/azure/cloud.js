@@ -424,6 +424,9 @@ class Cloud extends AbstractCloud {
     * @returns {String}
     */
     _getAzureEnvironment(metadata) {
+        if (Object.keys(this.customEnvironment).length > 0) {
+            return azureEnvironment.add(this.customEnvironment);
+        }
         const specialLocations = {
             AzurePublicCloud: 'Azure',
             AzureUSGovernmentCloud: 'AzureUSGovernment',
