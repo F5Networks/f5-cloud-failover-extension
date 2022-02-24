@@ -1023,7 +1023,7 @@ describe('Provider - Azure', () => {
                     {
                         privateIpAddress: '1.1.1.1',
                         publicIpAddress: '100.100.100.100',
-                        networkInterfaceId: null
+                        networkInterfaceId: '/some-path/nic/id'
                     }
                 ],
                 routes: [
@@ -1036,7 +1036,8 @@ describe('Provider - Azure', () => {
             };
             const mockInstanceMetadata = {
                 compute: {
-                    vmId: 'vm-1'
+                    vmId: 'vm-1',
+                    name: 'test-vm'
                 },
                 network: {
                     interface: [{
@@ -1077,7 +1078,27 @@ describe('Provider - Azure', () => {
                 ]
 
             };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                }
+            ];
+            const mockPublicIpData = {
+                id: '/some-path/public-ip-name',
+                ipAddress: '100.100.100.100'
+            };
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider._getPublicIpAddress = sinon.stub().resolves(mockPublicIpData);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
             provider.routeGroupDefinitions = [
                 {
@@ -1108,11 +1129,12 @@ describe('Provider - Azure', () => {
                     {
                         privateIpAddress: '1.1.1.1',
                         publicIpAddress: '100.100.100.100',
-                        networkInterfaceId: null
+                        networkInterfaceId: '/some-path/nic/id'
                     },
                     {
                         privateIpAddress: 'ace:cab:deca:deee::4',
-                        networkInterfaceId: null
+                        networkInterfaceId: '/some-path/nic/another-id',
+                        publicIpAddress: '100.100.100.100'
                     }
                 ],
                 routes: [
@@ -1130,7 +1152,8 @@ describe('Provider - Azure', () => {
             };
             const mockInstanceMetadata = {
                 compute: {
-                    vmId: 'vm-1'
+                    vmId: 'vm-1',
+                    name: 'test-vm'
                 },
                 network: {
                     interface: [{
@@ -1180,6 +1203,38 @@ describe('Provider - Azure', () => {
                 ]
 
             };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: '/some-path/nic/another-id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: 'ace:cab:deca:deee::4',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                }
+            ];
+            const mockPublicIpData = {
+                id: '/some-path/public-ip-name',
+                ipAddress: '100.100.100.100'
+            };
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider._getPublicIpAddress = sinon.stub().resolves(mockPublicIpData);
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
             provider._getRouteTables = sinon.stub().resolves([routeTable01]);
             provider.routeGroupDefinitions = [
@@ -1211,14 +1266,15 @@ describe('Provider - Azure', () => {
                     {
                         privateIpAddress: '1.1.1.1',
                         publicIpAddress: '100.100.100.100',
-                        networkInterfaceId: null
+                        networkInterfaceId: '/some-path/nic/id'
                     }
                 ],
                 routes: []
             };
             const mockInstanceMetadataStandby = {
                 compute: {
-                    vmId: 'vm-1'
+                    vmId: 'vm-1',
+                    name: 'test-vm'
                 },
                 network: {
                     interface: [{
@@ -1235,6 +1291,26 @@ describe('Provider - Azure', () => {
                     }]
                 }
             };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                }
+            ];
+            const mockPublicIpData = {
+                id: '/some-path/public-ip-name',
+                ipAddress: '100.100.100.100'
+            };
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider._getPublicIpAddress = sinon.stub().resolves(mockPublicIpData);
             provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadataStandby);
             provider._getRouteTables = sinon.stub().resolves([]);
             provider.routeGroupDefinitions = [
