@@ -227,6 +227,10 @@ describe('Provider: Azure', () => {
         dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
 
+    it('should wait 30 seconds after force standby', () => new Promise(
+        (resolve) => setTimeout(resolve, 30000)
+    ));
+
     it('should check network interfaces contains virtual address (secondary)', function () {
         this.retries(RETRIES.LONG);
 
@@ -247,6 +251,10 @@ describe('Provider: Azure', () => {
 
     it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+    ));
+
+    it('should wait 30 seconds after force standby', () => new Promise(
+        (resolve) => setTimeout(resolve, 30000)
     ));
 
     it('should check network interfaces contains virtual address (primary) ', function () {
