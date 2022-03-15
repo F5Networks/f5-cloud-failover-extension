@@ -128,21 +128,21 @@ clusterMembers.forEach((dut) => {
                 .catch((err) => Promise.reject(err));
         });
 
-        // note: errors such as 'connection refused' may occurr without this waiting
+        // note: errors such as 'connection refused' may occur without this waiting
         // should figure out a better mechanism to determine 'ready' state
-        it('should wait 10 seconds before post trigger', () => new Promise(
-            (resolve) => setTimeout(resolve, 10000)
+        it('should wait 30 seconds before post dry run', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
         ));
 
-        it('should post trigger', () => {
+        it('should verify dry run', () => {
             const uri = constants.TRIGGER_ENDPOINT;
 
             options.method = 'POST';
-            options.body = {};
+            options.body = { action: 'dry-run' };
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
-                    assert.strictEqual(data.taskState, 'SUCCEEDED');
+                    assert.ok('addresses' in data);
                 })
                 .catch((err) => Promise.reject(err));
         });
