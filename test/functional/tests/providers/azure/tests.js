@@ -55,7 +55,7 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
     myNics.forEach((nic) => {
         nic.ipConfigurations.forEach((ipConfiguration) => {
             virtualAddresses.forEach((address) => {
-                if (ipConfiguration.privateIPAddress === address) {
+                if (ipConfiguration.privateIPAddress === address && nic.provisioningState === 'Succeeded') {
                     match = true;
                 }
             });
@@ -176,6 +176,7 @@ describe('Provider: Azure', () => {
             })
             .catch((err) => Promise.reject(err));
     }
+
     function checkRouteTables(selfIps) {
         return networkClient.routeTables.listAll()
             .then((routeTables) => {
@@ -207,151 +208,125 @@ describe('Provider: Azure', () => {
             .catch((err) => Promise.reject(err));
     }
 
-    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
+    it('Should ensure secondary is not primary', () => funcUtils.forceStandby(
         dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
     ));
 
-    it('should check network interfaces contains virtual address (primary)', function () {
+    it('Should check network interfaces contains virtual address (primary)', function () {
         this.retries(RETRIES.LONG);
         return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
             .catch((err) => Promise.reject(err));
     });
 
-    it('should check Azure route table route(s) next hop matches self IP (primary)', function () {
-        this.retries(RETRIES.MEDIUM);
+    it('Should check Azure route table route(s) next hop matches self IP (primary)', function () {
+        this.retries(RETRIES.SHORT);
         return checkRouteTables(primarySelfIps)
             .catch((err) => Promise.reject(err));
     });
 
-    it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
+    // Disabling these tests until release of new Azure data plane
+    // Supplement with v2 failover template tests for now
+    // it('Should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
+    //     dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+    // ));
 
-    it('should wait 30 seconds after force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
+    // it('Should wait 30 seconds after force standby', () => new Promise(
+    //     (resolve) => setTimeout(resolve, 30000)
+    // ));
 
-    it('should check network interfaces contains virtual address (secondary)', function () {
-        this.retries(RETRIES.LONG);
+    // it('Should check network interfaces contains virtual address (secondary)', function () {
+    //     this.retries(RETRIES.LONG);
+    //     return checkNetworkInterfaces(secondarySelfIps, virtualAddresses)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-        return checkNetworkInterfaces(secondarySelfIps, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
+    // it('Should check Azure route table route(s) next hop matches self IP (secondary)', function () {
+    //     this.retries(RETRIES.SHORT);
+    //     return checkRouteTables(secondarySelfIps)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-    it('should check Azure route table route(s) next hop matches self IP (secondary)', function () {
-        this.retries(RETRIES.MEDIUM);
+    // it('Should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
+    //     dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+    // ));
 
-        return checkRouteTables(secondarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
+    // it('Should wait 30 seconds after force standby', () => new Promise(
+    //     (resolve) => setTimeout(resolve, 30000)
+    // ));
 
-    it('should wait 30 seconds before force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
+    // it('Should check network interfaces contains virtual address (primary) ', function () {
+    //     this.retries(RETRIES.LONG);
+    //     return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-    it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
+    // it('Should check Azure route table route(s) next hop matches self IP (primary) ', function () {
+    //     this.retries(RETRIES.SHORT);
+    //     return checkRouteTables(primarySelfIps)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-    it('should wait 30 seconds after force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
+    // // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+    // // ideally this would be replaced by a check for previous failover task success completion
+    // it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
+    //     dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+    // ));
 
-    it('should check network interfaces contains virtual address (primary) ', function () {
-        this.retries(RETRIES.LONG);
+    // it('Should wait until taskState is running on standby BIG-IP', function () {
+    //     this.retries(RETRIES.LONG);
+    //     return new Promise(
+    //         (resolve) => setTimeout(resolve, 1000)
+    //     )
+    //         .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+    //             {
+    //                 taskState: constants.FAILOVER_STATES.RUN,
+    //                 authToken: dutSecondary.authData.token,
+    //                 hostname: dutSecondary.hostname,
+    //                 port: dutSecondary.port
+    //             }))
+    //         .then((data) => {
+    //             assert(data.boolean, data);
+    //         })
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-        return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
+    // it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
+    //     dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+    // ));
 
-    it('should check Azure route table route(s) next hop matches self IP (primary) ', function () {
-        this.retries(RETRIES.MEDIUM);
+    // it('Should wait until taskState is success on primary BIG-IP', function () {
+    //     this.retries(RETRIES.LONG);
+    //     return new Promise(
+    //         (resolve) => setTimeout(resolve, 5000)
+    //     )
+    //         .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+    //             {
+    //                 taskState: constants.FAILOVER_STATES.PASS,
+    //                 authToken: dutPrimary.authData.token,
+    //                 hostname: dutPrimary.hostname,
+    //                 port: dutPrimary.port
+    //             }))
+    //         .then((data) => {
+    //             assert(data.boolean, data);
+    //         })
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-        return checkRouteTables(primarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
+    // it('Flapping scenario: should check network interfaces contains virtual address (primary) ', function () {
+    //     this.retries(RETRIES.LONG);
+    //     return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
-    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
-
-    // ideally this would be replaced by a check for previous failover task success completion
-    it('wait until taskState is success on primary BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.PASS,
-                    authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname,
-                    port: dutPrimary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
-
-    it('wait until taskState is running on standby BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 1000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.RUN,
-                    authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname,
-                    port: dutSecondary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('wait until taskState is success on primary BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.PASS,
-                    authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname,
-                    port: dutPrimary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should check network interfaces contains virtual address (primary) ', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkNetworkInterfaces(primarySelfIps, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should check route table route(s) next hop matches self IP (primary) ', function () {
-        this.retries(RETRIES.MEDIUM);
-
-        return checkRouteTables(primarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
+    // it('Flapping scenario: should check route table route(s) next hop matches self IP (primary) ', function () {
+    //     this.retries(RETRIES.SHORT);
+    //     return checkRouteTables(primarySelfIps)
+    //         .catch((err) => Promise.reject(err));
+    // });
 
     it('Should retrieve addresses and routes for primary', function () {
-        this.retries(RETRIES.LONG);
+        this.retries(RETRIES.SHORT);
+        let addresses;
         let expectedRoutes;
         return getAssociatedRouteTables(primarySelfIps)
             .then((routes) => {
@@ -365,17 +340,17 @@ describe('Provider: Azure', () => {
             .then((data) => {
                 assert.ok(data.hostName === dutPrimary.hostname);
                 assert.deepStrictEqual(data.routes, expectedRoutes);
-                data.addresses.forEach((address) => {
-                    if (address.publicIpAddress === '') {
-                        assert.ok(primarySelfIps.includes(address.privateIpAddress));
-                    }
+                addresses = data.addresses.map((i) => i.privateIpAddress);
+                primarySelfIps.forEach((selfIp) => {
+                    assert.ok(addresses.includes(selfIp));
                 });
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('Should retrieve addresses and not routes for secondary', function () {
-        this.retries(RETRIES.LONG);
+        this.retries(RETRIES.SHORT);
+        let addresses;
         return funcUtils.getInspectStatus(dutSecondary.ip,
             {
                 authToken: dutSecondary.authData.token,
@@ -384,16 +359,15 @@ describe('Provider: Azure', () => {
             .then((data) => {
                 assert.deepStrictEqual(data.hostName, dutSecondary.hostname);
                 assert.deepStrictEqual(data.routes, []);
-                data.addresses.forEach((address) => {
-                    if (address.publicIpAddress === '') {
-                        assert.ok(secondarySelfIps.includes(address.privateIpAddress));
-                    }
+                addresses = data.addresses.map((i) => i.privateIpAddress);
+                secondarySelfIps.forEach((selfIp) => {
+                    assert.ok(addresses.includes(selfIp));
                 });
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+    it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active', () => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
         {
             authToken: dutSecondary.authData.token,
             port: dutSecondary.port
