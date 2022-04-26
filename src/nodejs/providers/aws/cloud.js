@@ -237,7 +237,7 @@ class Cloud extends AbstractCloud {
         };
         const promises = [];
         addressGroupDefinitions.forEach((item) => {
-            this.logger.silly(`aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinition for elasticIpAddress ${item.type}`);
+            this.logger.silly(`aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinition for item ${item.type}`);
             if (item.type === 'elasticIpAddress') {
                 promises.push(this._createActionForElasticIpAddress(resultAction, item));
             } else if (item.type === 'networkInterfaceAddress') {
@@ -348,14 +348,6 @@ class Cloud extends AbstractCloud {
                 this.logger.debug('Discover address operations found Nics', nics);
                 const parsedNics = this._parseNics(nics, addresses.localAddresses, addresses.failoverAddresses);
                 this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
-                if (parsedNics.mine.length !== 1 || parsedNics.theirs.length !== 1) {
-                    this.logger.warning(`Problem with discovering network interfaces; nics: ${JSON.stringify(parsedNics)}`);
-                    return Promise.resolve({
-                        publicAddresses: {},
-                        interfaces: operations,
-                        loadBalancerAddresses: {}
-                    });
-                }
                 const nicOperations = this._checkForNicOperations(
                     parsedNics.mine[0].nic,
                     parsedNics.theirs[0].nic,

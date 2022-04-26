@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.9.0",
+    "version": "1.10.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "audit": "npm audit --json > .auditReport.json; node scripts/auditProcessor.js",
-        "install-production": "npm install --production --no-optional",
+        "install-production": "npm install --production --no-optional --unsafe-perm",
         "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
         "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --timeout 300000",
@@ -44,8 +44,11 @@
     "resolutions": {
         "google-p12-pem": "^3.0.3",
         "gcp-metadata": "^4.2.0",
-        "node-forge": "^0.10.0",
-        "json-bigint": "^1.0.0"
+        "node-forge": "^1.3.0",
+        "json-bigint": "^1.0.0",
+        "ansi-regex": "^4.1.1",
+        "minimist": "^1.2.6",
+        "moment": "^2.29.2"
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
@@ -113,40 +116,13 @@
     },
     "auditProcessor": {
         "whitelist": [
-            "1500",
-            "1561",
-            "1690",
-            "1769",
-            "1005067",
-            "1004963",
-            "1006820",
-            "1006898",
-            "1006854",
-            "1006852",
-            "1004946",
-            "1005510",
-            "1006724",
-            "1006854",
-            "1004876",
-            "1005271",
-            "1059599",
-            "1059617",
-            "1060254",
-            "1059413",
-            "1059432",
-            "1059434",
-            "1059442",
-            "1059524",
-            "1059988",
-            "1064843",
-            "1064861",
-            "1065498",
-            "1064657",
-            "1064676",
-            "1064678",
-            "1064686",
-            "1064768",
-            "1065232"
+            "1067300",
+            "1067651",
+            "1068285",
+            "1067480",
+            "1067560",
+            "1070206",
+            "1070207"
         ]
     }
 }

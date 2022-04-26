@@ -133,7 +133,7 @@ test_audit:
         - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         # npm audit - uses custom audit processor wrapper
-        - npm install
+        - npm install --unsafe-perm
         - npm run audit
     tags:
         - cm-official-docker-executor
