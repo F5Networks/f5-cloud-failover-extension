@@ -8,5 +8,8 @@
 .*github.com/f5devcentral
 .*f5cloudsolutions.herokuapp.com
 
+# cfe config
+f5_cloud_failover_label
+
 # don't match the regex itself
 \.\*f5

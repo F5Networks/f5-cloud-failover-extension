@@ -24,9 +24,10 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 2. Copy one of the example declarations from the individual cloud provider sections or one of the :ref:`example-declarations` which best matches the desired configuration. See each provider section for additional details and requirements.
 
    - :ref:`aws`
+   - :ref:`aws-same-az`
    - :ref:`gcp`
    - :ref:`azure`
-
+  
 
 3. Paste or copy the declaration into your API client, and modify any names, addresses, routes, or properties as applicable. If the configuration requires tags, the key and value pair in the configuration can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
 
@@ -541,6 +542,7 @@ Choose the cloud environment you are working in to continue implementing CFE:
    :glob:
 
    aws
+   aws-same-az
    gcp
    azure
 

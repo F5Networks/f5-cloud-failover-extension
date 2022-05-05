@@ -330,75 +330,107 @@ Use this section to set up a private endpoint for accessing Azure APIs. Before y
 
 1. Within Azure, convert the storage account from V1 to V2:
 
-   a. Select the storage account used by CFE.
-   
-   b. Go to the :guilabel:`Configuration` tab and select the :guilabel:`Upgrade` button. 
+   a. Select the storage account used by CFE (if deployed by F5's ARM template, the storage account will have "cfedata" in the name).
 
-   .. image:: ../images/azure/azure-private-endpoint-1.png
+      .. image:: ../images/azure/azure-private-endpoint1.png
+       :scale: 50%
 
+   |
+
+
+   b. Go to the :guilabel:`Settings > Configuration` tab and select the :guilabel:`Upgrade` button. 
+
+      .. image:: ../images/azure/azure-private-endpoint2.png
+       :scale: 50%
 
    |   
 
 
-2. Go to :guilabel:`Firewalls and virtual networks` tab and select :guilabel:`Selected networks`. Ensure that the Exception *Allow trusted Microsoft services to access this storage account* is checked.
+2. Go to :guilabel:`Security + networking > Networking > Firewalls and virtual networks` tab and select :guilabel:`Selected networks`. Ensure that the Exception *Allow Azure services on the trusted services list to access this storage account* is checked.
 
-   .. image:: ../images/azure/azure-private-endpoint-2.png
-      :width: 800
+   .. image:: ../images/azure/azure-private-endpoint5.png
+      :scale: 50%
+
+   |
+
+3. Go to :guilabel:`Security + networking > Networking > Private endpoint connections > + Private endpoint` to create a private endpoint for the storage account.
+
+   .. image:: ../images/azure/azure-private-endpoint6.png
+    :scale: 75%
 
    |
 
-3. Go to :guilabel:`Private Link Center > Private endpoints` to create a private endpoint.
-
-   .. image:: ../images/azure/azure-private-endpoint-3.png
-
+   .. image:: ../images/azure/azure-private-endpoint7.png
+    :scale: 75%
 
    |
+
 
 4. On the Resource configuration page change the :guilabel:`Target sub-resource` to :guilabel:`blob`.
 
-   .. image:: ../images/azure/azure-private-endpoint-4.png
+   .. image:: ../images/azure/azure-private-endpoint8.png
+    :scale: 75%
 
    |
 
 5. On the Configuration page, select the subnet in which you want the private endpoint to be created. Select the external subnet of the BIG-IPs. 
 
-   .. image:: ../images/azure/azure-private-endpoint-5.png
-     :scale: 50%
+   .. image:: ../images/azure/azure-private-endpoint9.png
+     :scale: 75%
  
+   |
+
+   .. image:: ../images/azure/azure-private-endpoint10.png
+    :scale: 75%
 
    |
 
-   .. image:: ../images/azure/azure-private-endpoint-6.png
-    :scale: 50%
+   .. image:: ../images/azure/azure-private-endpoint11.png
+    :scale: 75%
+
+   |
+
+   .. image:: ../images/azure/azure-private-endpoint12.png
+    :scale: 75%
 
    |
 
 
 6. The resource, once created, should show a private IP in the external subnet: 
 
-   .. image:: ../images/azure/azure-private-endpoint-7.png
+   .. image:: ../images/azure/azure-private-endpoint13.png
+    :scale: 75%
 
    |
 
-7. Restrict outbound connections to AzureResourceManager API and Azure’s Instance Metadata Service API. On the Network Security Group (NSG) of your external subnet, add the following rules: 
+7. Restrict outbound connections to the AzureResourceManager API and the Azure Instance Metadata Service API. On the Network Security Group (NSG) of your external subnet, add the following rules: 
 
-   .. image:: ../images/azure/azure-private-endpoint-8.png
+   .. image:: ../images/azure/azure-private-endpoint15.png
+    :scale: 100%
 
    |
+
 
 +----------------------------+--------------------------+--------+------------+-----------+
 | Source                     | Destination              | Port   | Protocol   | Action    |
 +============================+==========================+========+============+===========+
 | Self IPs of both BIG-IPs   | ``169.254.169.254/32``,  | Any    | TCP        | Allow     |
-| in external subnet.        | ``13.69.67.32/28`` *     |        |            |           |
-|                            | ``13.69.114.0/23`` *     |        |            |           |
+| in external subnet.        | ``13.69.67.32/28``       |        |            |           |
+|                            | ``13.69.114.0/23``       |        |            |           |
 +----------------------------+--------------------------+--------+------------+-----------+
 | Self IPs of both BIG-IPs   | Service tag Internet     | Any    | TCP        | Deny      |
 | in external subnet.        |                          |        |            |           |
 +----------------------------+--------------------------+--------+------------+-----------+
 
-.. Important:: Only use the destination addresses with asterisks(*) if you are in the West Europe region. If you are deploying elsewhere you can find the subnets to be referenced in the ServiceTags_Public_xxxxx.json file available for download in `Azure website <https://www.microsoft.com/en-us/download/details.aspx?id=56519>`_. 
 
+.. Important:: The Azure Resource Manager system service destination addresses used in the above example apply only to the West Europe region. You must locate the appropriate addresses for your region using the address prefixes referenced in the ServiceTags_Public_xxxxx.json file. This file is available for download from this `Azure website <https://www.microsoft.com/en-us/download/details.aspx?id=56519>`_. 
+
+Example Azure Resource Manager system service configuration for the West US region:
+
+   .. image:: ../images/azure/azure-private-endpoint17.png
+    :scale: 100%
+
+   |
 
 
 .. include:: /_static/reuse/feedback.rst
