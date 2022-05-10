@@ -84,44 +84,44 @@ Create and assign an IAM Role
 -----------------------------
 In order to successfully implement CFE in GCP, you need to have a GCP Identity and Access Management (IAM) service account with sufficient access. To create and assign an IAM role you must have a user role of `Editor`.
 
-#. In GCP, go to **IAM > Roles**.
+1. In GCP, go to **IAM > Roles**.
   
-#. Select :guilabel:`Create Role` and fill in the required fields.
+2. Select :guilabel:`Create Role` and fill in the required fields.
    
-#. Ensure that Role launch stage is set to :guilabel:`General Availability`.
+3. Ensure that Role launch stage is set to :guilabel:`General Availability`.
 
-#. Select :guilabel:`Add Permissions` and select the required permissions.
+4. Select :guilabel:`Add Permissions` and select the required permissions.
 
- ======================================================== ==================================== ======================= ============================================================================= 
-  Name                                                     Scope                                CFE Component           Description   
- ======================================================== ==================================== ======================= =============================================================================  
-  compute.forwardingRules.get                              Project                              failoverAddresses       To get information about a forwarding rule.
-  compute.forwardingRules.list                             Project                              failoverAddresses       To list the forwarding rules in a project.
-  compute.forwardingRules.setTarget                        Project                              failoverAddresses       To update the forwarding rule to use the active BIG-IP instance.
-  compute.instances.get                                    Project                              All                     To get information about the BIG-IP instance.
-  compute.instances.list                                   Project                              All                     To list the instances in a project.
-  compute.instances.updateNetworkInterface                 Project                              All                     To update the instance network interface.
-  compute.networks.updatePolicy                            Project                              All                     To update the network policy.
-  compute.routes.create                                    Project                              failoverRoutes          To update the route to use the active BIG-IP instance as next hop.
-  compute.routes.delete                                    Project                              failoverRoutes          To delete a route.
-  compute.routes.get                                       Project                              failoverRoutes          To get information about a route.
-  compute.routes.list                                      Project                              failoverRoutes          To list the routes in a project.
-  compute.targetInstances.get                              Project                              failoverAddresses       To get information about a target instance.
-  compute.targetInstances.list                             Project                              failoverAddresses       To list the target instances in a project.
-  compute.targetInstances.use                              Project                              failoverAddresses       To update the target instance to use the active BIG-IP instance.
-  storage.buckets.get                                      Project                              externalStorage         To get information about a storage bucket for the failover state file.
-  storage.buckets.list                                     Project                              externalStorage         To list the storage buckets in a project.
-  storage.buckets.update                                   Project                              externalStorage         To update the storage bucket for the failover state file.
-  storage.objects.create                                   Project                              externalStorage         To create the failover state file.
-  storage.objects.delete                                   Project                              externalStorage         To delete the failover state file.
-  storage.objects.get                                      Project                              externalStorage         To get information about the failover state file.
-  storage.objects.list                                     Project                              externalStorage         To list files in a storage bucket.
-  storage.objects.update                                   Project                              externalStorage         To update the failover state file.
- ======================================================== ==================================== =======================  =============================================================================  
+    ======================================================== ==================================== ======================= ============================================================================= 
+     Name                                                     Scope                                CFE Component           Description   
+    ======================================================== ==================================== ======================= =============================================================================  
+     compute.forwardingRules.get                              Project                              failoverAddresses       To get information about a forwarding rule.
+     compute.forwardingRules.list                             Project                              failoverAddresses       To list the forwarding rules in a project.
+     compute.forwardingRules.setTarget                        Project                              failoverAddresses       To update the forwarding rule to use the active BIG-IP instance.
+     compute.instances.get                                    Project                              All                     To get information about the BIG-IP instance.
+     compute.instances.list                                   Project                              All                     To list the instances in a project.
+     compute.instances.updateNetworkInterface                 Project                              All                     To update the instance network interface.
+     compute.networks.updatePolicy                            Project                              All                     To update the network policy.
+     compute.routes.create                                    Project                              failoverRoutes          To update the route to use the active BIG-IP instance as next hop.
+     compute.routes.delete                                    Project                              failoverRoutes          To delete a route.
+     compute.routes.get                                       Project                              failoverRoutes          To get information about a route.
+     compute.routes.list                                      Project                              failoverRoutes          To list the routes in a project.
+     compute.targetInstances.get                              Project                              failoverAddresses       To get information about a target instance.
+     compute.targetInstances.list                             Project                              failoverAddresses       To list the target instances in a project.
+     compute.targetInstances.use                              Project                              failoverAddresses       To update the target instance to use the active BIG-IP instance.
+     storage.buckets.get                                      Project                              externalStorage         To get information about a storage bucket for the failover state file.
+     storage.buckets.list                                     Project                              externalStorage         To list the storage buckets in a project.
+     storage.buckets.update                                   Project                              externalStorage         To update the storage bucket for the failover state file.
+     storage.objects.create                                   Project                              externalStorage         To create the failover state file.
+     storage.objects.delete                                   Project                              externalStorage         To delete the failover state file.
+     storage.objects.get                                      Project                              externalStorage         To get information about the failover state file.
+     storage.objects.list                                     Project                              externalStorage         To list files in a storage bucket.
+     storage.objects.update                                   Project                              externalStorage         To update the failover state file.
+    ======================================================== ==================================== ======================= ============================================================================= 
 
    |
 
-#. Select :guilabel:`Create` to finish creating the custom role.
+5. Select :guilabel:`Create` to finish creating the custom role.
 
    .. NOTE:: 
 
@@ -131,15 +131,15 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
       :scale: 50%
 
 
-#. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM**.
+6. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM**.
 
-#. Select the edit icon next to the service account for binding.
+7. Select the edit icon next to the service account for binding.
 
-#. Select :guilabel:`Add Another Role` and choose the custom role to add.
+8. Select :guilabel:`Add Another Role` and choose the custom role to add.
 
-#. Select :guilabel:`Save` to update the service account.
+9. Select :guilabel:`Save` to update the service account.
   
-#. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select :guilabel:`Edit`, and then update the Service Account.
+10. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select :guilabel:`Edit`, and then update the Service Account.
 
    For example:
 

@@ -212,7 +212,7 @@ Steps
 
    b. Set your browser to proxy HTTP and HTTPS traffic through localhost:8888
 
-       .. image:: ../images/gcp/gcp-private-endpoints3.png
+      .. image:: ../images/gcp/gcp-private-endpoints3.png
          :scale: 50%
 
       |     
@@ -220,7 +220,7 @@ Steps
 
    c. Retrieve the random admin password from Secret Manager.
 
-       .. image:: ../images/gcp/gcp-private-endpoints4.png
+      .. image:: ../images/gcp/gcp-private-endpoints4.png
          :scale: 50%
 
       |
@@ -228,7 +228,7 @@ Steps
 
    d. Login to a BIG-IP instance using the ``admin`` account and password from step 3.
 
-       .. image:: ../images/gcp/gcp-private-endpoints5.png
+      .. image:: ../images/gcp/gcp-private-endpoints5.png
 
       |       
 
@@ -379,6 +379,7 @@ Use this section to set up a private endpoint for accessing Azure APIs. Before y
      :scale: 75%
  
    |
+   
 
    .. image:: ../images/azure/azure-private-endpoint10.png
     :scale: 75%
@@ -427,10 +428,10 @@ Use this section to set up a private endpoint for accessing Azure APIs. Before y
 
 Example Azure Resource Manager system service configuration for the West US region:
 
-   .. image:: ../images/azure/azure-private-endpoint17.png
-    :scale: 100%
+.. image:: ../images/azure/azure-private-endpoint17.png
+   :scale: 100%
 
-   |
 
+|
 
 .. include:: /_static/reuse/feedback.rst
