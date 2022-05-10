@@ -94,36 +94,36 @@ This example declaration shows a configuration used for the diagram above. See t
 Create and assign an IAM Role
 -----------------------------
 
-.. IMPORTANT::  You are responsible for following the provider's IAM best practices.  See your cloud provider resources for IAM Best Practices (for example, `IAM Best Practices <https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html>`_). 
+.. IMPORTANT:: You are responsible for following the provider's IAM best practices. See your cloud provider resources for IAM Best Practices (for example, `IAM Best Practices <https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html>`_). 
 
 
 In order to successfully implement CFE in AWS, you need an AWS Identity and Access Management (IAM) role with sufficient access. To create and assign an IAM role you must have a user role of `iam:CreateUser`.
 
 1. In AWS, go to **IAM > Roles** and create a policy with the following permissions:
 
- ======================================== ============================== ======================= ======================= ===================================================================================================================== 
-  IAM Action                               IAM Resource Element           IAM Resource Condition  CFE Component           Description                                       
- ======================================== ============================== ======================= ======================= ===================================================================================================================== 
-  ec2:AssociateAddress                     Elastic IP ID                  Tag (Optional)          failoverAddresses       To associate Elastic IP addresses to the network interface of the active BIG-IP instance.             
-  ec2:CreateRoute                          Route Table ID                 Tag (Optional)          failoverRoutes          To update a route's next hop to use the active BIG-IP's NIC.
-  ec2:DescribeAddresses                    \*                             Current Account/Region  failoverAddresses       To get information about an Elastic IP addresses in the current account/region.            
-  ec2:DescribeInstances                    \*                             Current Account/Region  All                     To get information about BIG-IP instances in the current account/region.             
-  ec2:DescribeInstanceStatus               \*                             Current Account/Region  All                     To get status of BIG-IP instances in the current account/region.               
-  ec2:DescribeNetworkInterfaceAttribute    \*                             Current Account/Region  All                     To get attributes of BIG-IP network interfaces in the current account/region.    
-  ec2:DescribeNetworkInterfaces            \*                             Current Account/Region  All                     To get information about BIG-IP network interfaces in the current account/region.  
-  ec2:DescribeRouteTables                  \*                             Current Account/Region  failoverRoutes          To get information about route tables in the current account/region.        
-  ec2:DescribeSubnets                      \*                             Current Account/Region  All                     To get information about subnets in the current account/region.
-  ec2:DisassociateAddress                  Elastic IP ID                  Tag (Optional)          failoverAddresses       To disassociate Elastic IP address from instance or network interface of standby BIG-IP instance.         
-  s3:DeleteObject                          S3 Bucket ID/Key               Optional                externalStorage         To delete failover state file.                     
-  s3:GetBucketLocation                     S3 Bucket ID                   Optional                externalStorage         To discover (using scopingTags) bucket location used for failover state file.
-  s3:GetBucketTagging                      S3 Bucket ID                   Optional                externalStorage         To discover (using scopingTags) bucket used for failover state file.    
-  s3:GetObject                             S3 Bucket ID/Key               Optional                externalStorage         To retrieve failover state file.                        
-  s3:ListAllMyBuckets                      \*                             Current Account         externalStorage         To discover (using scopingTags) bucket used for failover state file.
-  s3:ListBucket                            S3 Bucket ID                   Optional                externalStorage         To return information about a bucket.
-  s3:PutObject                             S3 Bucket ID/Key               Optional                externalStorage         To write failover state file.
- ======================================== ============================== ======================= ======================= ===================================================================================================================== 
+   ======================================== ============================== ======================= ======================= ===================================================================================================================== 
+   IAM Action                               IAM Resource Element           IAM Resource Condition  CFE Component           Description                                       
+   ======================================== ============================== ======================= ======================= ===================================================================================================================== 
+   ec2:AssociateAddress                     Elastic IP ID                  Tag (Optional)          failoverAddresses       To associate Elastic IP addresses to the network interface of the active BIG-IP instance.             
+   ec2:CreateRoute                          Route Table ID                 Tag (Optional)          failoverRoutes          To update a route's next hop to use the active BIG-IP's NIC.
+   ec2:DescribeAddresses                    \*                             Current Account/Region  failoverAddresses       To get information about an Elastic IP addresses in the current account/region.            
+   ec2:DescribeInstances                    \*                             Current Account/Region  All                     To get information about BIG-IP instances in the current account/region.             
+   ec2:DescribeInstanceStatus               \*                             Current Account/Region  All                     To get status of BIG-IP instances in the current account/region.               
+   ec2:DescribeNetworkInterfaceAttribute    \*                             Current Account/Region  All                     To get attributes of BIG-IP network interfaces in the current account/region.    
+   ec2:DescribeNetworkInterfaces            \*                             Current Account/Region  All                     To get information about BIG-IP network interfaces in the current account/region.  
+   ec2:DescribeRouteTables                  \*                             Current Account/Region  failoverRoutes          To get information about route tables in the current account/region.        
+   ec2:DescribeSubnets                      \*                             Current Account/Region  All                     To get information about subnets in the current account/region.
+   ec2:DisassociateAddress                  Elastic IP ID                  Tag (Optional)          failoverAddresses       To disassociate Elastic IP address from instance or network interface of standby BIG-IP instance.         
+   s3:DeleteObject                          S3 Bucket ID/Key               Optional                externalStorage         To delete failover state file.                     
+   s3:GetBucketLocation                     S3 Bucket ID                   Optional                externalStorage         To discover (using scopingTags) bucket location used for failover state file.
+   s3:GetBucketTagging                      S3 Bucket ID                   Optional                externalStorage         To discover (using scopingTags) bucket used for failover state file.    
+   s3:GetObject                             S3 Bucket ID/Key               Optional                externalStorage         To retrieve failover state file.                        
+   s3:ListAllMyBuckets                      \*                             Current Account         externalStorage         To discover (using scopingTags) bucket used for failover state file.
+   s3:ListBucket                            S3 Bucket ID                   Optional                externalStorage         To return information about a bucket.
+   s3:PutObject                             S3 Bucket ID/Key               Optional                externalStorage         To write failover state file.
+   ======================================== ============================== ======================= ======================= ===================================================================================================================== 
 
-|
+   |
 
 
 
@@ -147,7 +147,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    |
 
-1. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**.
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**.
 
    For example:
 
@@ -162,7 +162,7 @@ IAM Role Example Declaration
 Below is an example F5 policy that includes IAM roles.
 
 
-.. IMPORTANT:: The example below provides the minimum permissions required and serves as an illustration. *Resource* statements should be limited as much as possible. For *Actions* that **do not** allow resource level permissions and require a wildcard "*", this example uses *Condition* statements to restrict resources to a specific Account and Region. For *Actions* that **do** allow resource level permissions, provide the specific Resource IDs. *NOTE: Some Actions like ec2:AssociateAddress may require access to multiple types of Resources. In the snippet below, the resource IDs for ec2:AssociateAddress action include the two EIPs for the Virtual Service, the external NICs those EIPs are attached to and both BIG-IP instances.*
+.. IMPORTANT:: The example below provides the minimum permissions required and serves as an illustration. *Resource* statements should be limited as much as possible. For *Actions* that **do not** allow resource level permissions and require a wildcard "*", this example uses *Condition* statements to restrict resources to a specific Account and Region. For *Actions* that **do** allow resource level permissions, provide the specific Resource IDs. Some Actions like ec2:AssociateAddress may require access to multiple types of Resources. In the snippet below, the resource IDs for ec2:AssociateAddress action include the two EIPs for the Virtual Service, the external NICs those EIPs are attached to, and both BIG-IP instances.
 
 .. code-block:: json
 
