@@ -61,6 +61,7 @@ class AbstractCloud {
         options = options || {};
         this.addressTags = options.addressTags || {};
         this.addressTagsRequired = options.addressTagsRequired || false;
+        this.customEnvironment = options.customEnvironment || {};
         this.proxySettings = options.proxySettings || null;
         this.routeGroupDefinitions = options.routeGroupDefinitions || {};
         this.storageTags = options.storageTags || {};

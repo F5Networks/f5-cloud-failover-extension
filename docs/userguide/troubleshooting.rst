@@ -35,7 +35,7 @@ Cloud Failover Extension general troubleshooting tips
 
      .. code-block:: bash
     
-        curl -su admin: -X POST -d '{"resetStateFile":true}' {http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
+        curl -su admin: -X POST -d '{"resetStateFile":true}' http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
 
 
   3. Validate by using additional CFE endpoints to run Inspect and Dry-Run on the Standby Instance:

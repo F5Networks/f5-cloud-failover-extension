@@ -79,6 +79,14 @@ Azure
    25 addresses                     100 routes           155 seconds
    ================================ ==================== ==============================================================
 
+.. Note:: You can produce faster results with other methods that use upstream load balancers. Please consult the following `Microsoft documentation <https://docs.microsoft.com/en-us/azure/load-balancer/tutorial-load-balancer-ip-backend-portal>`_.
+
+|
+
+------------------------------------------
+
+|
+
 
 *TESTING NOTES:* 
 
