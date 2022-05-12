@@ -84,45 +84,44 @@ Create and assign an IAM Role
 -----------------------------
 In order to successfully implement CFE in GCP, you need to have a GCP Identity and Access Management (IAM) service account with sufficient access. To create and assign an IAM role you must have a user role of `Editor`.
 
-#. In GCP, go to **IAM > Roles**.
+1. In GCP, go to **IAM > Roles**.
   
-#. Select :guilabel:`Create Role` and fill in the required fields.
+2. Select :guilabel:`Create Role` and fill in the required fields.
    
-#. Ensure that Role launch stage is set to :guilabel:`General Availability`.
+3. Ensure that Role launch stage is set to :guilabel:`General Availability`.
 
-#. Select :guilabel:`Add Permissions` and select the required permissions.
+4. Select :guilabel:`Add Permissions` and select the required permissions.
 
-   - compute.forwardingRules.get
-   - compute.forwardingRules.list
-   - compute.forwardingRules.setTarget
-   - compute.instances.create
-   - compute.instances.get
-   - compute.instances.list
-   - compute.instances.updateNetworkInterface
-   - compute.networks.updatePolicy
-   - compute.routes.create
-   - compute.routes.delete
-   - compute.routes.get
-   - compute.routes.list
-   - compute.targetInstances.get
-   - compute.targetInstances.list
-   - compute.targetInstances.use
-   - storage.buckets.create
-   - storage.buckets.delete
-   - storage.buckets.get
-   - storage.buckets.list
-   - storage.buckets.update
-   - storage.objects.create
-   - storage.objects.delete
-   - storage.objects.get
-   - storage.objects.list
-   - storage.objects.update
-
-   
+    ======================================================== ==================================== ======================= ============================================================================= 
+     Name                                                     Scope                                CFE Component           Description   
+    ======================================================== ==================================== ======================= =============================================================================  
+     compute.forwardingRules.get                              Project                              failoverAddresses       To get information about a forwarding rule.
+     compute.forwardingRules.list                             Project                              failoverAddresses       To list the forwarding rules in a project.
+     compute.forwardingRules.setTarget                        Project                              failoverAddresses       To update the forwarding rule to use the active BIG-IP instance.
+     compute.instances.get                                    Project                              All                     To get information about the BIG-IP instance.
+     compute.instances.list                                   Project                              All                     To list the instances in a project.
+     compute.instances.updateNetworkInterface                 Project                              All                     To update the instance network interface.
+     compute.networks.updatePolicy                            Project                              All                     To update the network policy.
+     compute.routes.create                                    Project                              failoverRoutes          To update the route to use the active BIG-IP instance as next hop.
+     compute.routes.delete                                    Project                              failoverRoutes          To delete a route.
+     compute.routes.get                                       Project                              failoverRoutes          To get information about a route.
+     compute.routes.list                                      Project                              failoverRoutes          To list the routes in a project.
+     compute.targetInstances.get                              Project                              failoverAddresses       To get information about a target instance.
+     compute.targetInstances.list                             Project                              failoverAddresses       To list the target instances in a project.
+     compute.targetInstances.use                              Project                              failoverAddresses       To update the target instance to use the active BIG-IP instance.
+     storage.buckets.get                                      Project                              externalStorage         To get information about a storage bucket for the failover state file.
+     storage.buckets.list                                     Project                              externalStorage         To list the storage buckets in a project.
+     storage.buckets.update                                   Project                              externalStorage         To update the storage bucket for the failover state file.
+     storage.objects.create                                   Project                              externalStorage         To create the failover state file.
+     storage.objects.delete                                   Project                              externalStorage         To delete the failover state file.
+     storage.objects.get                                      Project                              externalStorage         To get information about the failover state file.
+     storage.objects.list                                     Project                              externalStorage         To list files in a storage bucket.
+     storage.objects.update                                   Project                              externalStorage         To update the failover state file.
+    ======================================================== ==================================== ======================= ============================================================================= 
 
    |
 
-#. Select :guilabel:`Create` to finish creating the custom role.
+5. Select :guilabel:`Create` to finish creating the custom role.
 
    .. NOTE:: 
 
@@ -132,15 +131,15 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
       :scale: 50%
 
 
-#. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM**.
+6. Bind the custom role in the step above to a service account by navigating to **IAM & admin > IAM**.
 
-#. Select the edit icon next to the service account for binding.
+7. Select the edit icon next to the service account for binding.
 
-#. Select :guilabel:`Add Another Role` and choose the custom role to add.
+8. Select :guilabel:`Add Another Role` and choose the custom role to add.
 
-#. Select :guilabel:`Save` to update the service account.
+9. Select :guilabel:`Save` to update the service account.
   
-#. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select :guilabel:`Edit`, and then update the Service Account.
+10. Assign an IAM member to each instance by navigating to **Compute Engine > VM Instances > Instance**, select :guilabel:`Edit`, and then update the Service Account.
 
    For example:
 
@@ -542,10 +541,10 @@ See below for example Virtual Services created with `AS3 <https://clouddocs.f5.c
 Shared VPC Configuration
 ------------------------
 
-A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multuple projects to a common VPC. CFE works with Shared VPC in the following topologies:
+A `Shared VPC <https://cloud.google.com/vpc/docs/shared-vpc>`_ allows an organization to connect resources from multipleProjects to a common VPC. CFE works with Shared VPC in the following topologies:
 
-- BIG-IP cluster deployed in the Shard VPC Host project: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the host project will continue to failover per normal conditions.
-- BIG-IP cluster deployed in a Shared VPC Service project where NIC 0 is attached to a Shared VPC in the Host project: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the service project will continue to failover per normal conditions. However, any objects in the Shared VPC Host project will not be discovered/updated during a failover event.
+- BIG-IP cluster deployed in the Shard VPC HostProject: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the hostProject will continue to failover per normal conditions.
+- BIG-IP cluster deployed in a Shared VPC ServiceProject where NIC 0 is attached to a Shared VPC in the HostProject: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the serviceProject will continue to failover per normal conditions. However, any objects in the Shared VPC HostProject will not be discovered/updated during a failover event.
 
 |
 

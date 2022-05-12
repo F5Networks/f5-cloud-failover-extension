@@ -301,26 +301,44 @@ class Cloud extends AbstractCloud {
      */
     getAssociatedAddressAndRouteInfo() {
         const localAddresses = [];
+        const publicIpIds = [];
+        let vmName = '';
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         return this._getInstanceMetadata()
             .then((metadata) => {
                 this.logger.info('Fetching instance metadata');
                 data.instance = metadata.compute.vmId;
-                metadata.network.interface.forEach((nic) => {
-                    const addresses = nic.ipv4.ipAddress[0];
-                    addresses.networkInterfaceId = null;
-                    data.addresses.push(addresses);
-                    localAddresses.push(nic.ipv4.ipAddress[0].privateIpAddress);
-
-                    const ipv6Addresses = nic.ipv6.ipAddress[0] || {};
-                    if ('privateIpAddress' in ipv6Addresses) {
-                        ipv6Addresses.networkInterfaceId = null;
-                        data.addresses.push(ipv6Addresses);
-                        localAddresses.push(nic.ipv6.ipAddress[0].privateIpAddress);
+                vmName = metadata.compute.name;
+                return this._listNics({ tags: this.addressTags || null });
+            })
+            .then((result) => {
+                result.forEach((nic) => {
+                    if (nic.virtualMachine.id.indexOf(vmName) !== -1) {
+                        nic.ipConfigurations.forEach((conf) => {
+                            data.addresses.push({
+                                privateIpAddress: conf.privateIPAddress,
+                                publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
+                                networkInterfaceId: nic.id
+                            });
+                            localAddresses.push(conf.privateIPAddress);
+                            if (conf.publicIPAddress) {
+                                publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                            }
+                        });
                     }
                 });
+                return Promise.all(publicIpIds);
             })
-            .then(() => this._getRouteTables())
+            .then((results) => {
+                results.forEach((pip) => {
+                    data.addresses.forEach((address) => {
+                        if (address.publicIpAddress === pip.id) {
+                            address.publicIpAddress = pip.ipAddress;
+                        }
+                    });
+                });
+                return this._getRouteTables();
+            })
             .then((routeTables) => {
                 this.routeGroupDefinitions.forEach((routeGroup) => {
                     const filteredRouteTables = this._filterRouteTables(
@@ -424,6 +442,9 @@ class Cloud extends AbstractCloud {
     * @returns {String}
     */
     _getAzureEnvironment(metadata) {
+        if (Object.keys(this.customEnvironment).length > 0) {
+            return azureEnvironment.add(this.customEnvironment);
+        }
         const specialLocations = {
             AzurePublicCloud: 'Azure',
             AzureUSGovernmentCloud: 'AzureUSGovernment',

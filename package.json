@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.10.0",
+    "version": "1.11.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "audit": "npm audit --json > .auditReport.json; node scripts/auditProcessor.js",
-        "install-production": "npm install --production --no-optional",
+        "install-production": "npm install --production --no-optional --unsafe-perm",
         "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
         "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --timeout 300000",
@@ -17,9 +17,9 @@
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
         "functional-test": "mocha --recursive \"./test/functional/tests/testRunner.js\"",
-        "deployment-create": "bash ../deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create",
-        "deployment-delete": "bash ../deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete",
-        "deployment-show": "bash ../deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action show",
+        "deployment-create": "bash deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create",
+        "deployment-delete": "bash deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete",
+        "deployment-show": "bash deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action show",
         "deployment-setup": "bash scripts/build_rpm.sh && npm run deployment-create && npm run functional-test",
         "build-rpm": "bash scripts/build_rpm.sh",
         "make-docs": "make html",
@@ -44,8 +44,11 @@
     "resolutions": {
         "google-p12-pem": "^3.0.3",
         "gcp-metadata": "^4.2.0",
-        "node-forge": "^0.10.0",
-        "json-bigint": "^1.0.0"
+        "node-forge": "^1.3.0",
+        "json-bigint": "^1.0.0",
+        "ansi-regex": "^4.1.1",
+        "minimist": "^1.2.6",
+        "moment": "^2.29.2"
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
@@ -78,7 +81,7 @@
         "eslint": "^7.32.0",
         "eslint-config-airbnb-base": "^14.2.1",
         "eslint-plugin-import": "^2.17.3",
-        "icrdk": "git://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
+        "icrdk": "https://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^7.2.0",
         "mustache": "^3.0.1",
         "nock": "^9.6.1",
@@ -113,12 +116,13 @@
     },
     "auditProcessor": {
         "whitelist": [
-            "1500",
-            "1561",
-            "1690",
-            "1769",
-            "1005067",
-            "1004963"
+            "1067300",
+            "1067651",
+            "1068285",
+            "1067480",
+            "1067560",
+            "1070206",
+            "1070207"
         ]
     }
 }
