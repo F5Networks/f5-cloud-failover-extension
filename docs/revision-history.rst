@@ -11,9 +11,13 @@ Document Revision History
         - Description
         - Date
 
+      * - 2.2.4
+        - Updated the documentation for Cloud Failover Extension v1.11.0 with the following changes: |br| • Updated images in :ref:`aws`, :ref:`aws-same-az`, and :ref:`azure`. |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.
+        - 5-12-22
+
       * - 2.2.3
-        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated images in :ref:`aws`, :ref:`aws-same-az`, and :ref:`azure`. |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.
-        - 5-11-22
+        - Updated the documentation for Cloud Failover Extension v1.10.0 with the following changes: |br| • Updated documentation with new TEEM payload.
+        - 12-20-21
 
       * - 2.2.2
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated a note in :ref:`gcp-iam`.
