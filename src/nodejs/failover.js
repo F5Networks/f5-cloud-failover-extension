@@ -147,7 +147,7 @@ class FailoverClient {
                 });
             })
             .then(() => {
-                if (!this.hasActiveTrafficGroups) {
+                if (!this.recoverPreviousTask && !this.hasActiveTrafficGroups) {
                     // Troubleshooting Notes
                     // - does device hostname (list sys global-settings hostname) match
                     // the device name in configuration management (list cm device)?
