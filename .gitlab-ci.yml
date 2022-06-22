@@ -90,24 +90,6 @@ build_package:
             - dist
         expire_in: 1 month
 
-# test package against node 4.x
-test_node4:
-    stage: test
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:4
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        - npm install --global npm@5.10.0
-        - npm install mocha@5.2.0
-        - npm install nyc@14.0.0
-        - npm install --no-optional
-        - npm run test-only-node-4
-    tags:
-        - docker-executor
-    allow_failure: true
-
 # test package
 test_package:
     stage: test
