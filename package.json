@@ -76,7 +76,7 @@
     },
     "devDependencies": {
         "@azure/arm-network": "^14.0.0",
-        "@azure/ms-rest-nodeauth": "^3.0.1",
+        "@azure/ms-rest-nodeauth": "^3.0.8",
         "@f5devcentral/eslint-config-f5-atg": "^0.1.5",
         "acorn": "^6.4.1",
         "eslint": "^7.32.0",
