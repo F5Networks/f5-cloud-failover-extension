@@ -106,6 +106,7 @@ test_node4:
         - npm run test-only-node-4
     tags:
         - docker-executor
+    allow_failure: true
 
 # test package
 test_package:
