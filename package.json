@@ -48,7 +48,8 @@
         "json-bigint": "^1.0.0",
         "ansi-regex": "^4.1.1",
         "minimist": "^1.2.6",
-        "moment": "^2.29.2"
+        "moment": "^2.29.2",
+        "async": "^3.2.2"
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
