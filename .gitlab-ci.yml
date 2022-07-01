@@ -48,7 +48,7 @@ variables:
     CF_ENV_NETWORK_TOPOLOGY: 'same_network'
     CF_ENV_NIC_COUNT: 3
     CF_ENV_USE_FORWARDING_RULE: 'true'
-
+    GIT_SUBMODULE_STRATEGY: recursive
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
@@ -133,7 +133,7 @@ test_audit:
         - $CI_COMMIT_REF_NAME == "docs_staging"
     script:
         # npm audit - uses custom audit processor wrapper
-        - npm install
+        - npm install --unsafe-perm
         - npm run audit
     tags:
         - cm-official-docker-executor
@@ -167,12 +167,21 @@ coverage:
 # Functional Tests - Initialization phase (with 1 retries in a case of any failures)
 .test_functional_init_generic: &test_functional_init_generic
     stage: test_functional_init
-    image: ${ARTIFACTORY_SERVER}/ecosystems-cloudsolutions-docker-dev/deployment-tool:latest
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
     retry:
         max: 1
     script:
         # deploy environment - required artifacts will be place in output folder
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+        - apk add --update
+        - apk add bash curl jq build-base openssl-dev libffi-dev git
+        - apk add jq openssh-client sshpass python3 python3-dev
+        - ln -sf python3 /usr/bin/python 
+        - python -m ensurepip
+        - ln -s pip3 /usr/bin/pip
+        - pip install --upgrade pip
+        - apk add npm
+        - pip install -r deployment-tool/dependencies/requirements.txt
+        - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
     tags:
         - cm-official-docker-executor
     only:
@@ -437,7 +446,6 @@ test_functional_execute_aws_ca_central:
     when:
         manual
 
-
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
     <<: *test_functional_execute_generic
@@ -483,15 +491,24 @@ test_functional_execute_gcp_no_forwarding_rule:
 # Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
     stage: test_functional_cleanup
-    image: ${ARTIFACTORY_SERVER}/ecosystems-cloudsolutions-docker-dev/deployment-tool:latest
+    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
     retry:
         max: 1
     when: always
     script:
+        - apk add --update
+        - apk add bash curl jq build-base openssl-dev libffi-dev git
+        - apk add jq openssh-client sshpass python3 python3-dev
+        - ln -sf python3 /usr/bin/python 
+        - python -m ensurepip
+        - ln -s pip3 /usr/bin/pip
+        - pip install --upgrade pip
+        - apk add npm
+        - pip install -r deployment-tool/dependencies/requirements.txt
         # copying artifacts inherited from functional_test_init target to root directory
         - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
         # teardown environment
-        - /deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+        - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
     tags:
         - cm-official-docker-executor
     only:
