@@ -2,6 +2,10 @@
 [![Releases](https://img.shields.io/github/release/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/releases)
 [![Issues](https://img.shields.io/github/issues/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/issues)
 
+| :bell:    | ***Notice***: Cloud Failover Extension is now in maintenance mode. Only critical bugs, CVEs, and security updates will be taken into consideration for updating CFE. |
+|---------------|:------------------------| 
+
+
 ## Introduction
 
 The F5 Cloud Failover Extension (CF) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). Cloud Failover uses a declarative model, meaning you provide a JSON declaration using a single REST API call. The declaration represents the configuration that Cloud Failover is responsible for creating on a BIG-IP system.
@@ -40,7 +44,7 @@ For more information, see the [Support page](SUPPORT.md).
 
 ## Copyright
 
-Copyright 2014-2021 F5 Networks Inc.
+Copyright 2014-2022 F5 Networks Inc.
 
 ### F5 Networks Contributor License Agreement
 
