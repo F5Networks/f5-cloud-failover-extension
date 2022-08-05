@@ -75,8 +75,8 @@ clusterMembers.forEach((dut) => {
                 .catch((err) => Promise.reject(err));
         });
 
-        it('should wait 5 seconds before verify installation', () => new Promise(
-            (resolve) => setTimeout(resolve, 5000)
+        it('should wait 30 seconds before verify installation', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
         ));
 
         it('should verify installation', function () {

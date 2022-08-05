@@ -12,8 +12,8 @@ Document Revision History
         - Date
 
       * - 2.2.5
-        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated Troubleshooting section
-        - 6-30-22
+        - Fixed issue where failover does not correctly check traffic group status in recovery mode.
+        - 7-26-22
 
       * - 2.2.4
         - Updated the documentation for Cloud Failover Extension v1.11.0 with the following changes: |br| • Updated images in :ref:`aws`, :ref:`aws-same-az`, and :ref:`azure`. |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.

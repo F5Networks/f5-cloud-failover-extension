@@ -1,843 +1,872 @@
 image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
 
 stages:
-    - check_content
-    - build_package
-    - test
-    - test_functional_init
-    - test_functional_execute
-    - test_functional_cleanup
-    - build_api_docs_and_postman_collection
-    - build_docs
-    - publish
+  - check_content
+  - build_package
+  - test
+  - test_functional_init
+  - test_functional_execute
+  - test_functional_cleanup
+  - build_api_docs_and_postman_collection
+  - build_docs
+  - publish
 
 .helpers: &helpers |
-    function validate () {
-        "$@"
-        if [[ $? -ne 0 ]]; then exit 1; fi
-    }
+  function validate () {
+      "$@"
+      if [[ $? -ne 0 ]]; then exit 1; fi
+  }
 
 before_script:
-    - *helpers
+  - *helpers
 
 variables:
-    GIT_SECRETS_VERSION: '1.3.0'
-    GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
-    ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
-    DOCS_BUILD_DIR: "docs/_build/html"
-    POSTMAN_EXAMPLES: 'postman-collection'
-    # azure vars - normalize env var options between ansible and terraform
-    AZURE_TENANT: "$AZURE_TENANT_ID"
-    AZURE_SECRET: "$AZURE_CLIENT_SECRET"
-    ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
-    ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
-    ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
-    ARM_TENANT_ID: "$AZURE_TENANT_ID"
-    # aws vars
-    AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
-    AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
-    AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
-    # gcp vars
-    GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
-    GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
-    # debug vars
-    F5_SDK_LOG_LEVEL: "INFO"
-    F5_DISABLE_CERT_VERIFY: "true"
-    PYTHONWARNINGS: 'ignore:Unverified HTTPS request'
-    # topology var
-    CF_ENV_NETWORK_TOPOLOGY: 'same_network'
-    CF_ENV_NIC_COUNT: 3
-    CF_ENV_USE_FORWARDING_RULE: 'true'
-    GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SECRETS_VERSION: "1.3.0"
+  GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
+  ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
+  DOCS_BUILD_DIR: "docs/_build/html"
+  POSTMAN_EXAMPLES: "postman-collection"
+  # azure vars - normalize env var options between ansible and terraform
+  AZURE_TENANT: "$AZURE_TENANT_ID"
+  AZURE_SECRET: "$AZURE_CLIENT_SECRET"
+  ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
+  ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
+  ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+  ARM_TENANT_ID: "$AZURE_TENANT_ID"
+  # aws vars
+  AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
+  AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
+  AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+  # gcp vars
+  GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
+  GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
+  # debug vars
+  F5_SDK_LOG_LEVEL: "INFO"
+  F5_DISABLE_CERT_VERIFY: "true"
+  PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+  # topology var
+  CF_ENV_NETWORK_TOPOLOGY: "same_network"
+  CF_ENV_NIC_COUNT: 3
+  CF_ENV_USE_FORWARDING_RULE: "true"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
 # note: .gitallowed is used for exceptions
 check_content:
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
-    stage: check_content
-    script:
-        # install git-secrets
-        - curl -q -L -o git_secrets.tar.gz ${GIT_SECRETS_PKG_URL}
-        - tar xzf git_secrets.tar.gz
-        - cd git-secrets-${GIT_SECRETS_VERSION} && make install && cd ..
-        # now, add any patterns to disallow
-        - git secrets --add '.*f5.*\.com'
-        # scan
-        - git secrets --scan
-    tags:
-        - cm-official-docker-executor
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  stage: check_content
+  script:
+    # install git-secrets
+    - curl -q -L -o git_secrets.tar.gz ${GIT_SECRETS_PKG_URL}
+    - tar xzf git_secrets.tar.gz
+    - cd git-secrets-${GIT_SECRETS_VERSION} && make install && cd ..
+    # now, add any patterns to disallow
+    - git secrets --add '.*f5.*\.com'
+    # scan
+    - git secrets --scan
+  tags:
+    - cm-official-docker-executor
 
 build_package:
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
-    stage: build_package
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        - echo 'CI BUILD'
-        # install packages: jq
-        - apt-get update
-        - apt-get install -y jq
-        # build RPM, handles dependency installation, etc.
-        - bash ./scripts/build_rpm.sh
-    tags:
-        - cm-official-docker-executor
-    artifacts:
-        name: f5-cloud-failover-$CI_BUILD_REF
-        paths:
-            - dist
-        expire_in: 1 month
-
-# test package against node 4.x
-test_node4:
-    stage: test
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:4
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        - npm install --global npm@5.10.0
-        - npm install mocha@5.2.0
-        - npm install nyc@14.0.0
-        - npm install --no-optional
-        - npm run test-only-node-4
-    tags:
-        - docker-executor
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  stage: build_package
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME == "docs_production"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  script:
+    - echo 'CI BUILD'
+    # install packages: jq
+    - apt-get update
+    - apt-get install -y jq
+    # build RPM, handles dependency installation, etc.
+    - bash ./scripts/build_rpm.sh
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    name: f5-cloud-failover-$CI_BUILD_REF
+    paths:
+      - dist
+    expire_in: 1 month
 
 # test package
 test_package:
-    stage: test
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        - apt-get update && apt-get install -y jq && npm install
-        # linter
-        - npm run lint
-        # unit tests
-        - npm run test
-    tags:
-        - cm-official-docker-executor
+  stage: test
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME == "docs_production"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  script:
+    - apt-get update && apt-get install -y jq && npm install
+    # linter
+    - npm run lint
+    # unit tests
+    - npm run test
+  tags:
+    - cm-official-docker-executor
 
 # audit packages for vulnerabilities
 test_audit:
-    stage: test
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        # npm audit - uses custom audit processor wrapper
-        - npm install --unsafe-perm
-        - npm run audit
-    tags:
-        - cm-official-docker-executor
-    artifacts:
-        name: audit_report
-        paths:
-            - .auditReport.json
-        expire_in: 1 month
+  stage: test
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME == "docs_production"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  script:
+    # npm audit - uses custom audit processor wrapper
+    - npm install --unsafe-perm
+    - npm run audit
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    name: audit_report
+    paths:
+      - .auditReport.json
+    expire_in: 1 month
 
 # job must be called coverage
 coverage:
-    stage: test
-    except:
-      variables:
-        - $CI_COMMIT_REF_NAME == "docs_production"
-        - $CI_COMMIT_REF_NAME == "docs_staging"
-    script:
-        - apt-get update && apt-get install -y jq && npm install
-        # unit tests + coverage report
-        - npm run test && npm run check && npm run report
-    tags:
-        - cm-official-docker-executor
-    artifacts:
-        name: ${CI_COMMIT_REF_NAME}_unittests_coverage
-        paths:
-            - coverage
-        expire_in: 1 month
+  stage: test
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME == "docs_production"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  script:
+    - apt-get update && apt-get install -y jq && npm install
+    # unit tests + coverage report
+    - npm run test && npm run check && npm run report
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    name: ${CI_COMMIT_REF_NAME}_unittests_coverage
+    paths:
+      - coverage
+    expire_in: 1 month
 
 ### Functional Tests Section
 
 # Functional Tests - Initialization phase (with 1 retries in a case of any failures)
 .test_functional_init_generic: &test_functional_init_generic
-    stage: test_functional_init
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-    retry:
-        max: 1
-    script:
-        # deploy environment - required artifacts will be place in output folder
-        - apk add --update
-        - apk add bash curl jq build-base openssl-dev libffi-dev git
-        - apk add jq openssh-client sshpass python3 python3-dev
-        - ln -sf python3 /usr/bin/python 
-        - python -m ensurepip
-        - ln -s pip3 /usr/bin/pip
-        - pip install --upgrade pip
-        - apk add npm
-        - pip install -r deployment-tool/dependencies/requirements.txt
-        - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
-    tags:
-        - cm-official-docker-executor
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $RUN_FUNCTIONAL_TESTS == "true"
-            # tier 1 tests 2 NIC AWS across-net and 3 NIC Azure,GCP
-            - $TESTS_TIER == "1"
-            # tier 2 tests 2 NIC AWS same-net and all 1 NIC tests for Azure,GCP,AWS
-            - $TESTS_TIER == "2"
-            # run all tests
-            - $TESTS_TIER == "all"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-    artifacts:
-        paths:
-            - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}
-        when: always
-        expire_in: 1 month
+  stage: test_functional_init
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
+  retry:
+    max: 1
+  script:
+    # deploy environment - required artifacts will be place in output folder
+    - apk add --update
+    - apk add bash curl jq build-base openssl-dev libffi-dev git
+    - apk add jq openssh-client sshpass python3 python3-dev
+    - ln -sf python3 /usr/bin/python
+    - python -m ensurepip
+    - ln -s pip3 /usr/bin/pip
+    - pip install --upgrade pip
+    - apk add npm
+    - pip install -r deployment-tool/dependencies/requirements.txt
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+  tags:
+    - cm-official-docker-executor
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      # tier 1 tests 2 NIC AWS across-net and 3 NIC Azure,GCP
+      - $TESTS_TIER == "1"
+      # tier 2 tests 2 NIC AWS same-net and all 1 NIC tests for Azure,GCP,AWS
+      - $TESTS_TIER == "2"
+      # run all tests
+      - $TESTS_TIER == "all"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  artifacts:
+    paths:
+      - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}
+    when: always
+    expire_in: 1 month
 
 # init functional tests: azure
 test_functional_init_azure:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_REGION: "westus"
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_REGION: "westus"
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # init functional tests: azure - 1nic
 test_functional_init_azure_1nic:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_REGION: "westus"
+    CF_ENV_NIC_COUNT: 1
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_REGION: "westus"
-        CF_ENV_NIC_COUNT: 1
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - across network topology
 test_functional_init_aws_across_net:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_REGION: "us-west-2"
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_REGION: "us-west-2"
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # init functional tests: aws - across network topology for 1nic
 test_functional_init_aws_across_net_1nic:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - same network topology in us-west-2
 test_functional_init_aws:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-west-2"
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-west-2"
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - same network topology in us-east-1
 test_functional_init_aws_east:
-    <<: *test_functional_init_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-east-1"
-    when:
-        manual
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-east-1"
+  when: manual
 
 # init functional tests: aws - same network topology in ca-central-1
 test_functional_init_aws_ca_central:
-    <<: *test_functional_init_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "ca-central-1"
-    when:
-        manual
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "ca-central-1"
+  when: manual
 
 # init functional tests: aws - same network topology for 1nic
 test_functional_init_aws_1nic:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: gcp
 test_functional_init_gcp:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # init functional tests: gcp no forwarding
 test_functional_init_gcp_no_forwarding:
-    <<: *test_functional_init_generic
+  <<: *test_functional_init_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+    CF_ENV_USE_FORWARDING_RULE: "false"
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-        CF_ENV_USE_FORWARDING_RULE: 'false'
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
+
 # Functional Tests - Execute phase (with no retries)
 .test_functional_execute_generic: &test_functional_execute_generic
-    stage: test_functional_execute
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/python:3.7
-    script:
-        # install jq
-        - apt-get update
-        - apt-get install -y jq
-        # install node (and package dependencies)
-        - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs
-        - npm install
-        # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
-        # executing fuctional test
-        - validate npm run functional-test
-        # run API smoke tests
-        - validate npm run validate-api
-    tags:
-        - cm-official-docker-executor
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $RUN_FUNCTIONAL_TESTS == "true"
-            - $TESTS_TIER == "1"
-            - $TESTS_TIER == "2"
-            - $TESTS_TIER == "all"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-    artifacts:
-        paths:
-            - logs
-        when: always
-        expire_in: 1 month
+  stage: test_functional_execute
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/python:3.7
+  script:
+    # install jq
+    - apt-get update
+    - apt-get install -y jq
+    # install node (and package dependencies)
+    - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs
+    - npm install
+    # copying artifacts inherited from functional_test_init target to root directory
+    - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
+    # executing fuctional test
+    - validate npm run functional-test
+    # run API smoke tests
+    - validate npm run validate-api
+  tags:
+    - cm-official-docker-executor
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "all"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  artifacts:
+    paths:
+      - logs
+    when: always
+    expire_in: 1 month
 
 # run functional tests: azure
 test_functional_execute_azure:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_REGION: "westus"
-    dependencies:
-        - test_functional_init_azure
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: azure 1 nic
 test_functional_execute_azure_1nic:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure_1nic
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "westus"
-    dependencies:
-        - test_functional_init_azure_1nic
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - across network topology
 test_functional_execute_aws_across_net:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_across_net
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_execute_aws_across_net_1nic:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net_1nic
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_across_net_1nic
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology
 test_functional_execute_aws:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology - us-east-1
 test_functional_execute_aws_east:
-    <<: *test_functional_execute_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-east-1"
-    dependencies:
-        - test_functional_init_aws_east
-        - build_package
-    when:
-        manual
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-east-1"
+  dependencies:
+    - test_functional_init_aws_east
+    - build_package
+  when: manual
 
 # run functional tests: aws - same network topology - ca-central-1
 test_functional_execute_aws_ca_central:
-    <<: *test_functional_execute_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "ca-central-1"
-    dependencies:
-        - test_functional_init_aws_ca_central
-        - build_package
-    when:
-        manual
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "ca-central-1"
+  dependencies:
+    - test_functional_init_aws_ca_central
+    - build_package
+  when: manual
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_1nic
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_1nic
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: gcp with forwarding rule
 test_functional_execute_gcp:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+  dependencies:
+    - test_functional_init_gcp
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-    dependencies:
-        - test_functional_init_gcp
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: gcp without forwarding rules
 test_functional_execute_gcp_no_forwarding_rule:
-    <<: *test_functional_execute_generic
+  <<: *test_functional_execute_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+  dependencies:
+    - test_functional_init_gcp_no_forwarding
+    - build_package
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-    dependencies:
-        - test_functional_init_gcp_no_forwarding
-        - build_package
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
-    stage: test_functional_cleanup
-    image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-    retry:
-        max: 1
-    when: always
-    script:
-        - apk add --update
-        - apk add bash curl jq build-base openssl-dev libffi-dev git
-        - apk add jq openssh-client sshpass python3 python3-dev
-        - ln -sf python3 /usr/bin/python 
-        - python -m ensurepip
-        - ln -s pip3 /usr/bin/pip
-        - pip install --upgrade pip
-        - apk add npm
-        - pip install -r deployment-tool/dependencies/requirements.txt
-        # copying artifacts inherited from functional_test_init target to root directory
-        - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
-        # teardown environment
-        - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
-    tags:
-        - cm-official-docker-executor
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $RUN_FUNCTIONAL_TESTS == "true"
-            - $TESTS_TIER == "1"
-            - $TESTS_TIER == "2"
-            - $TESTS_TIER == "all"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  stage: test_functional_cleanup
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
+  retry:
+    max: 1
+  when: always
+  script:
+    - apk add --update
+    - apk add bash curl jq build-base openssl-dev libffi-dev git
+    - apk add jq openssh-client sshpass python3 python3-dev
+    - ln -sf python3 /usr/bin/python
+    - python -m ensurepip
+    - ln -s pip3 /usr/bin/pip
+    - pip install --upgrade pip
+    - apk add npm
+    - pip install -r deployment-tool/dependencies/requirements.txt
+    # copying artifacts inherited from functional_test_init target to root directory
+    - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
+    # teardown environment
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+  tags:
+    - cm-official-docker-executor
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "all"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: azure
 test_functional_cleanup_azure:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_REGION: "westus"
-    dependencies:
-        - test_functional_init_azure
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: azure_1nic
 test_functional_cleanup_azure_1nic:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "azure"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure_1nic
+  except:
     variables:
-        CF_ENV_CLOUD: "azure"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "westus"
-    dependencies:
-        - test_functional_init_azure_1nic
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - across network topology
 test_functional_cleanup_aws_across_net:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_across_net
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_cleanup_aws_across_net_1nic:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_NETWORK_TOPOLOGY: "across_network"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net_1nic
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_NETWORK_TOPOLOGY: "across_network"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_across_net_1nic
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology
 test_functional_cleanup_aws:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology - us-east-1
 test_functional_cleanup_aws_east:
-    <<: *test_functional_cleanup_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "us-east-1"
-    dependencies:
-        - test_functional_init_aws_east
-    when:
-        manual
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "us-east-1"
+  dependencies:
+    - test_functional_init_aws_east
+  when: manual
 
 # run functional tests: aws - same network topology - ca-central-1
 test_functional_cleanup_aws_ca_central:
-    <<: *test_functional_cleanup_generic
-    variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_REGION: "ca-central-1"
-    dependencies:
-        - test_functional_init_aws_ca_central
-    when:
-        manual
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_REGION: "ca-central-1"
+  dependencies:
+    - test_functional_init_aws_ca_central
+  when: manual
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_cleanup_aws_1nic:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "aws"
+    CF_ENV_USE_AVAILABILITY_ZONES: "false"
+    CF_ENV_NIC_COUNT: 1
+    CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_1nic
+  except:
     variables:
-        CF_ENV_CLOUD: "aws"
-        CF_ENV_USE_AVAILABILITY_ZONES: "false"
-        CF_ENV_NIC_COUNT: 1
-        CF_ENV_REGION: "us-west-2"
-    dependencies:
-        - test_functional_init_aws_1nic
-    except:
-        variables:
-            - $TESTS_TIER == "1"
-            - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $TESTS_TIER == "1"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: gcp
 test_functional_cleanup_gcp:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+  dependencies:
+    - test_functional_init_gcp
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-    dependencies:
-        - test_functional_init_gcp
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 # run functional tests: gcp no forwarding rule
 test_functional_cleanup_gcp_no_forwarding_rule:
-    <<: *test_functional_cleanup_generic
+  <<: *test_functional_cleanup_generic
+  variables:
+    CF_ENV_CLOUD: "gcp"
+    CF_ENV_REGION: "us-west1"
+    CF_ENV_USE_FORWARDING_RULE: "false"
+  dependencies:
+    - test_functional_init_gcp_no_forwarding
+  except:
     variables:
-        CF_ENV_CLOUD: "gcp"
-        CF_ENV_REGION: "us-west1"
-        CF_ENV_USE_FORWARDING_RULE: 'false'
-    dependencies:
-        - test_functional_init_gcp_no_forwarding
-    except:
-        variables:
-            - $TESTS_TIER == "2"
+      - $TESTS_TIER == "2"
 
 ###  End of Functional Tests
 
 build_api_docs:
-    stage: build_api_docs_and_postman_collection
-    script:
-        # install packages
-        - npm install
-        # generate docs
-        - npm run make-api-docs
-        - mkdir apidocs && mv redoc-static.html apidocs/index.html
-    tags:
-        - docker-executor
-    artifacts:
-        name: docs
-        paths:
-            - apidocs
-        expire_in: 1 month
+  stage: build_api_docs_and_postman_collection
+  script:
+    # install packages
+    - npm install
+    # generate docs
+    - npm run make-api-docs
+    - mkdir apidocs && mv redoc-static.html apidocs/index.html
+  tags:
+    - docker-executor
+  artifacts:
+    name: docs
+    paths:
+      - apidocs
+    expire_in: 1 month
 
 build_postman_collection:
-    stage: build_api_docs_and_postman_collection
-    script:
-        # install packages
-        - npm install
-        # generate postman-collection
-        - npm run make-postman-collection
-    tags:
-        - docker-executor
-    artifacts:
-        name: ${POSTMAN_EXAMPLES}
-        paths:
-            - examples
-        expire_in: 1 month
+  stage: build_api_docs_and_postman_collection
+  script:
+    # install packages
+    - npm install
+    # generate postman-collection
+    - npm run make-postman-collection
+  tags:
+    - docker-executor
+  artifacts:
+    name: ${POSTMAN_EXAMPLES}
+    paths:
+      - examples
+    expire_in: 1 month
 
 build_docs:
-    image: ${CONTAINTHEDOCS_IMAGE}
-    stage: build_docs
-    script:
-        # generate docs
-        - if [ "$CI_COMMIT_REF_NAME" = "docs_staging" ] || [ "$CI_COMMIT_REF_NAME" = "docs_production" ] || [ "$CI_COMMIT_REF_NAME" = "master" ]; then
-        -   rm -rf docs/_templates
-        - fi
-        - make html
-        # overwrite apidocs html in generated docs folder
-        - API_DOCS_INDEX=${DOCS_BUILD_DIR}/userguide/apidocs.html
-        - cp apidocs/index.html ${API_DOCS_INDEX}
-    tags:
-        - docker-executor
-    artifacts:
-        name: docs
-        paths:
-            - ${DOCS_BUILD_DIR}
-        expire_in: 1 month
+  image: ${CONTAINTHEDOCS_IMAGE}
+  stage: build_docs
+  script:
+    # generate docs
+    - if [ "$CI_COMMIT_REF_NAME" = "docs_staging" ] || [ "$CI_COMMIT_REF_NAME" = "docs_production" ] || [ "$CI_COMMIT_REF_NAME" = "master" ]; then
+    - rm -rf docs/_templates
+    - fi
+    - make html
+    # overwrite apidocs html in generated docs folder
+    - API_DOCS_INDEX=${DOCS_BUILD_DIR}/userguide/apidocs.html
+    - cp apidocs/index.html ${API_DOCS_INDEX}
+  tags:
+    - docker-executor
+  artifacts:
+    name: docs
+    paths:
+      - ${DOCS_BUILD_DIR}
+    expire_in: 1 month
 
 publish_dev_to_artifactory:
-    stage: publish
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "develop"
-    tags:
-        - cm-official-docker-executor
-    script:
-        - RPM_FILE=$(ls dist/new_build/*.rpm)
-        - RPM_NAME=$(basename $RPM_FILE)
-        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${RPM_NAME}
-        - echo "Uploading RPM"
-        - >-
-            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
-        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
-        - echo $UPLOAD_RESULT
-        - POSTMAN_COLLECTION_FILE=$(ls examples/postmanCollection.json)
-        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${POSTMAN_EXAMPLES}
-        - echo "Uploading Postman Collection and Examples"
-        - >-
-            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${POSTMAN_COLLECTION_FILE} ${URL})
-        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
-        - echo $UPLOAD_RESULT
+  stage: publish
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "develop"
+  tags:
+    - cm-official-docker-executor
+  script:
+    - RPM_FILE=$(ls dist/new_build/*.rpm)
+    - RPM_NAME=$(basename $RPM_FILE)
+    - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${RPM_NAME}
+    - echo "Uploading RPM"
+    - >-
+      UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+    - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+    - echo $UPLOAD_RESULT
+    - POSTMAN_COLLECTION_FILE=$(ls examples/postmanCollection.json)
+    - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/develop-${POSTMAN_EXAMPLES}
+    - echo "Uploading Postman Collection and Examples"
+    - >-
+      UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${POSTMAN_COLLECTION_FILE} ${URL})
+    - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+    - echo $UPLOAD_RESULT
 
 publish_release_to_artifactory:
-    stage: publish
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == "master"
-    tags:
-        - cm-official-docker-executor
-    script:
-        - RPM_FILE=$(ls dist/new_build/*.rpm)
-        - RPM_NAME=$(basename $RPM_FILE)
-        - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/${RPM_NAME}
-        - >-
-            UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
-        - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
-        - echo $UPLOAD_RESULT
+  stage: publish
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+  tags:
+    - cm-official-docker-executor
+  script:
+    - RPM_FILE=$(ls dist/new_build/*.rpm)
+    - RPM_NAME=$(basename $RPM_FILE)
+    - URL=${ARTIFACTORY_BASE_URL}/ecosystems-f5-cloud-failover-rpm/${RPM_NAME}
+    - >-
+      UPLOAD_RESULT=$(curl -H "Authorization: Bearer ${ARTIFACTORY_BEARER_TOKEN}" -X PUT --data-binary @${RPM_FILE} ${URL})
+    - if [[ $? -eq 0 ]] && [[ "$UPLOAD_RESULT" == *created* ]]; then echo "Upload complete"; else echo "Upload failed"; exit 1; fi
+    - echo $UPLOAD_RESULT
+
+# Publish pre-release RPMs to CDN
+publish_dev_cdn:
+  stage: publish
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $PUBLISH_RPM_DEVELOP == "true"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+  script:
+    - apt-get update
+    - apt-get install -y jq
+    - VERSION=$(cat package.json | jq -r ".version")
+    - echo "Version:${VERSION}"
+    - CDN_FOLDER="f5-cloud-failover-extension"
+    - AUTH_OPTS="--username ${CDN_SVC_ACCOUNT_USER} --password ${CDN_SVC_ACCOUNT_PWD} --non-interactive"
+    - svn co ${F5_CDN_SVN_ROOT}/cloudsolutions/${CDN_FOLDER} ${AUTH_OPTS}
+    - mkdir -p ${CDN_FOLDER}/develop/v${VERSION}
+    - cp -r dist/new_build/* ${CDN_FOLDER}/develop/v${VERSION}
+    - cd ${CDN_FOLDER}/develop
+    - status=$(svn status)
+    - echo "$status"
+    - if echo "$status" | grep -F '?'; then svn add --force v${VERSION}; else echo "No new directory to add"; fi
+    - changed_files_count=$(svn diff --summarize | wc -l)
+    - echo "$changed_files_count"
+    - if [[ $changed_files_count -ge 1 ]]; then svn add --force v${VERSION}/*; svn commit -m "F5 automation templates project automation - ${CI_COMMIT_REF_NAME}" ${AUTH_OPTS}; else echo "RPM files unchanged"; fi
+  tags:
+    - cm-official-docker-executor
+
+# Create release on Github
+publish_to_github:
+  stage: publish
+  only:
+    - /(^publish-(\d+\.){1,2}(\d)-(\d+)?$)/
+  script:
+    - apt-get update
+    - apt-get install -y jq
+    - ./scripts/publish_github.sh
 
 # publish docs to internal pages: - this job MUST be named 'pages'
 pages:
-    stage: publish
-    environment:
-        name: staging
-        url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}
-    script:
-        - PUBLIC_DIR='./public'
-        - mkdir -p ${PUBLIC_DIR}
-        # place index.html in public dir
-        - cp docs/index.html ${PUBLIC_DIR}/index.html
-        #### place public facing docs under: /public-docs ####
-        - PUBLIC_DOCS=${PUBLIC_DIR}/public-docs
-        - mkdir -p ${PUBLIC_DOCS}
-        - cp -R ${DOCS_BUILD_DIR}/* ${PUBLIC_DOCS}
-        #### place API docs under: /api-docs ####
-        - API_DOCS=${PUBLIC_DIR}/api-docs
-        - mkdir -p ${API_DOCS}
-        - cp -R apidocs/* ${API_DOCS}
-        #### place code coverage docs under: /coverage-docs ####
-        - COVERAGE_DOCS=${PUBLIC_DIR}/coverage
-        - mkdir -p ${COVERAGE_DOCS}
-        - cp -R coverage/* ${COVERAGE_DOCS}
-        #### place code contribution docs (mainly for presentation) under: /contribute-docs ####
-        - CONTRIBUTE_DOCS=${PUBLIC_DIR}/contribute-docs
-        - CONTRIBUTE_DIR=contributing
-        # install presentation site dependencies
-        - cd ${CONTRIBUTE_DIR} && npm install && cd ..
-        - mkdir -p ${CONTRIBUTE_DOCS}
-        - cp -R ${CONTRIBUTE_DIR}/* ${CONTRIBUTE_DOCS}
-        # make relative links absolute - this could be better...
-        # ![diagram](../test/README.md) -> ![diagram](https://base.url/../test/README.md)
-        - BASE_URL_FOR_LINKS=${CI_PROJECT_URL}/tree/${CI_COMMIT_REF_NAME}/${CONTRIBUTE_DIR}/
-        - README=${CONTRIBUTE_DOCS}/README.md
-        # make absolute URL(s) for relative URL(s) outside current directory '../'
-        - sed -i -E 's/\[.*\]\(\.\./&SED_TEMP/' ${README} && sed -i "s|..SED_TEMP|${BASE_URL_FOR_LINKS}..|" ${README}
-    tags:
-        - cm-official-docker-executor
-    artifacts:
-        paths:
-            - public
-        expire_in: 1 month
-    only:
-        - develop
-        - docs_staging
+  stage: publish
+  environment:
+    name: staging
+    url: https://${CI_PROJECT_NAMESPACE}.${PAGES_DOMAIN}/${CI_PROJECT_NAME}
+  script:
+    - PUBLIC_DIR='./public'
+    - mkdir -p ${PUBLIC_DIR}
+    # place index.html in public dir
+    - cp docs/index.html ${PUBLIC_DIR}/index.html
+    #### place public facing docs under: /public-docs ####
+    - PUBLIC_DOCS=${PUBLIC_DIR}/public-docs
+    - mkdir -p ${PUBLIC_DOCS}
+    - cp -R ${DOCS_BUILD_DIR}/* ${PUBLIC_DOCS}
+    #### place API docs under: /api-docs ####
+    - API_DOCS=${PUBLIC_DIR}/api-docs
+    - mkdir -p ${API_DOCS}
+    - cp -R apidocs/* ${API_DOCS}
+    #### place code coverage docs under: /coverage-docs ####
+    - COVERAGE_DOCS=${PUBLIC_DIR}/coverage
+    - mkdir -p ${COVERAGE_DOCS}
+    - cp -R coverage/* ${COVERAGE_DOCS}
+    #### place code contribution docs (mainly for presentation) under: /contribute-docs ####
+    - CONTRIBUTE_DOCS=${PUBLIC_DIR}/contribute-docs
+    - CONTRIBUTE_DIR=contributing
+    # install presentation site dependencies
+    - cd ${CONTRIBUTE_DIR} && npm install && cd ..
+    - mkdir -p ${CONTRIBUTE_DOCS}
+    - cp -R ${CONTRIBUTE_DIR}/* ${CONTRIBUTE_DOCS}
+    # make relative links absolute - this could be better...
+    # ![diagram](../test/README.md) -> ![diagram](https://base.url/../test/README.md)
+    - BASE_URL_FOR_LINKS=${CI_PROJECT_URL}/tree/${CI_COMMIT_REF_NAME}/${CONTRIBUTE_DIR}/
+    - README=${CONTRIBUTE_DOCS}/README.md
+    # make absolute URL(s) for relative URL(s) outside current directory '../'
+    - sed -i -E 's/\[.*\]\(\.\./&SED_TEMP/' ${README} && sed -i "s|..SED_TEMP|${BASE_URL_FOR_LINKS}..|" ${README}
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 month
+  only:
+    - develop
+    - docs_staging
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $PUBLISH_RPM_DEVELOP == "true"
 
 # Publish docs to clouddocs.f5networks.com
 docs to staging:
-    image: ${CONTAINTHEDOCS_IMAGE}
-    stage: publish
-    environment:
-        name: stage
-        url: https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
-    only:
-        variables:
-            # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
-            - $CI_COMMIT_REF_NAME == "develop"
-            - $CI_COMMIT_REF_NAME == "docs_staging"
-    tags:
-        - cm-official-docker-executor
-    dependencies:
-        - build_docs
-    script:
-        - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
-        - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
-        # Uncomment and set to create desired version format
-        - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
-        # create invalidation to clear cloudfront cache
-        - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
+  image: ${CONTAINTHEDOCS_IMAGE}
+  stage: publish
+  environment:
+    name: stage
+    url: https://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest
+  only:
+    variables:
+      # Currently will only deploy to clouddocs.f5networks.com on commits to develop branch
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $PUBLISH_RPM_DEVELOP == "true"
+  tags:
+    - cm-official-docker-executor
+  dependencies:
+    - build_docs
+  script:
+    - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
+    - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
+    # Uncomment and set to create desired version format
+    - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5networks.net/products/extensions/f5-cloud-failover/latest --profile=docs
+    # create invalidation to clear cloudfront cache
+    - aws cloudfront create-invalidation --distribution-id $AWS_DIST_STAGE --paths /products/extensions/f5-cloud-failover/latest --profile=docs
 
 # Publish docs to clouddocs.f5.com
 docs to production:
-    image: ${CONTAINTHEDOCS_IMAGE}
-    stage: publish
-    environment:
-        name: production
-        url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
-    only:
-        variables:
-            # Currently will only deploy to clouddocs.f5.com on commits to master and docs_production branch
-            # note: master should be added here when ready to publish externally
-            - $CI_COMMIT_REF_NAME == "master"
-            - $CI_COMMIT_REF_NAME == "docs_production"
-    tags:
-        - cm-official-docker-executor
-    dependencies:
-        - build_docs
-    script:
-        - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
-        - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
-        # Uncomment and set to create desired version format
-        - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest --profile=docs
-        # create invalidation to clear cloudfront cache
-        - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest --profile=docs
-
+  image: ${CONTAINTHEDOCS_IMAGE}
+  stage: publish
+  environment:
+    name: production
+    url: https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest
+  only:
+    variables:
+      # Currently will only deploy to clouddocs.f5.com on commits to master and docs_production branch
+      # note: master should be added here when ready to publish externally
+      - $CI_COMMIT_REF_NAME == "master"
+      - $CI_COMMIT_REF_NAME == "docs_production"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $PUBLISH_RPM_DEVELOP == "true"
+  tags:
+    - cm-official-docker-executor
+  dependencies:
+    - build_docs
+  script:
+    - aws configure set aws_access_key_id $DOCS_AWS_ACCESS_KEY_ID --profile=docs
+    - aws configure set aws_secret_access_key $DOCS_AWS_SECRET_ACCESS_KEY --profile=docs
+    # Uncomment and set to create desired version format
+    - aws s3 sync ${DOCS_BUILD_DIR} s3://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest --profile=docs
+    # create invalidation to clear cloudfront cache
+    - aws cloudfront create-invalidation --distribution-id $AWS_DIST --paths /products/extensions/f5-cloud-failover/latest --profile=docs
