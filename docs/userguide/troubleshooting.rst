@@ -9,12 +9,12 @@ Cloud Failover Extension general troubleshooting tips
 
 - Examine the REST response:
 
-  - A 400-level response will carry an error message. See Troubleshooting Index below.
-  - If this message is missing, incorrect, or misleading, please let us know by filing a |github|.
+  - A 400-level response will carry an error message. See the Troubleshooting Index below.
+  - If the error message is missing, incorrect, or misleading, please let us know by filing a |github|.
 
 - If CFE is installed and configured but not functioning as expected, use your preferred REST client to run these steps on the *Standby* instance. For illustration purposes, the examples below use `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output.
 
-  1. Enable Debug Logging: Set CFE configuration :ref:`logging-ref` level to `silly`.
+  1. **Enable Debug Logging:** Set CFE configuration :ref:`logging-ref` level to `silly`.
 
      - Download the config: 
   
@@ -23,29 +23,34 @@ Cloud Failover Extension general troubleshooting tips
         curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare |  jq .declaration > cfe.json
 
 
-     - Use your preferred editor to edit the config to enable debug logging and repost:
+     - Use your preferred editor to configure debug logging (``"logLevel": "silly"``). Click `here <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#example-declaration-setting-the-log-level>`_ to see an example control block with debug logging:
 
      .. code-block:: bash
     
         vim cfe.json
+
+     - Repost to update the config:
+
+     .. code-block:: bash
+
         curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .
 
 
-  2. Reset the Statefile:
+  2. **Reset the Statefile:**
 
      .. code-block:: bash
     
         curl -su admin: -X POST -d '{"resetStateFile":true}' http://localhost:8100/mgmt/shared/cloud-failover/reset | jq .
 
 
-  3. Validate by using additional CFE endpoints to run Inspect and Dry-Run on the Standby Instance:
+  3. **Validate by using additional CFE endpoints to run Inspect and Dry-Run on the Standby Instance:**
 
      .. code-block:: bash
     
         curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect | jq .
         curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
 
-  4. Review the debug logs. (``/var/log/restnoded/restnoded.log``).
+  4. **Review the debug logs.** (``/var/log/restnoded/restnoded.log``).
 
 
 
@@ -151,3 +156,4 @@ If, during a reboot, the objects are mapped to the wrong BIG-IP, you can force a
 .. |github| raw:: html
 
    <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>
+
