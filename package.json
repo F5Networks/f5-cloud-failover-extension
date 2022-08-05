@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.11.0",
+    "version": "1.12.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -48,8 +48,7 @@
         "json-bigint": "^1.0.0",
         "ansi-regex": "^4.1.1",
         "minimist": "^1.2.6",
-        "moment": "^2.29.2",
-        "async": "^3.2.2"
+        "moment": "^2.29.2"
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
@@ -123,7 +122,10 @@
             "1067480",
             "1067560",
             "1070206",
-            "1070207"
+            "1070207",
+            "1070443",
+            "1075674",
+            "1070440"
         ]
     }
 }
