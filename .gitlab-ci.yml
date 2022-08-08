@@ -758,7 +758,7 @@ publish_dev_cdn:
 publish_to_github:
   stage: publish
   only:
-    - /(^publish-(\d+\.){1,2}(\d)-(\d+)?$)/
+    - /(^publish-v(\d+\.){1,2}(\d)-(\d+)?$)/
   script:
     - apt-get update
     - apt-get install -y jq
