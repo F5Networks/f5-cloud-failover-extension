@@ -14,6 +14,7 @@ git config user.email $GITLAB_USER_EMAIL
 ######################
 
 RELEASE_VERSION=$(echo $CI_COMMIT_REF_NAME | awk -F"-" '{ print $2 }')
+RELEASE_VERSION_SHORT=$(echo $RELEASE_VERSION | awk -F"v" '{ print $2 }')
 RELEASE_BUILD=$(echo $CI_COMMIT_REF_NAME | awk -F"-" '{ print $3 }')
 ALLOWED_DIRS=(.github contributing diagrams docs examples sdk specs src test)
 ALLOWED_FILES=(.gitallowed .gitattributes .gitignore Dockerfile f5-cloud-failover.spec files_blacklist.yml LICENSE make.bat Makefile package-lock.json package.json README.md requirements.txt SUPPORT.md)
@@ -44,7 +45,6 @@ echo "*** Publishing tag"
 git tag -a $RELEASE_VERSION -m "Release of version $RELEASE_VERSION"
 git push origin $RELEASE_VERSION
 
-
 echo "*** Creating release using GIT APIs"
 git config --global github.token $GITHUB_API_TOKEN
 
@@ -70,17 +70,16 @@ EOF
 echo "*** Create release $version"
 release_id=$(curl -H "Authorization: token $GITHUB_API_TOKEN" -X POST -d "$(generate_post_data)" "https://api.github.com/repos/f5networks/f5-cloud-failover-extension/releases" | jq .id)
 
-echo "*** Uploading self-executable to release page"
-echo "*** Calculating content length in bytes for self-executable"
-ARTIFACT_NAME=f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch.rpm
-ARTIFACT_LOCATION=./dist/new_build/f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch.rpm
-CONTENT_LENGTH=$(wc -c < $ARTIFACT_LOCATION)
-curl --header "Authorization: token $GITHUB_API_TOKEN" --header "Content-Length:$CONTENT_LENGTH" --header "Content-Type:application/zip" --upload-file $ARTIFACT_LOCATION -X POST "https://uploads.github.com/repos/f5networks/f5-cloud-failover-extension/releases/$release_id/assets?name=$ARTIFACT_NAME"
+echo "*** Uploading RPM to release page"
+echo "*** Calculating content length in bytes for RPM"
+RPM_NAME=f5-cloud-failover-$RELEASE_VERSION_SHORT-$RELEASE_BUILD.noarch.rpm
+RPM_LOCATION=./dist/new_build/f5-cloud-failover-$RELEASE_VERSION_SHORT-$RELEASE_BUILD.noarch.rpm
+CONTENT_LENGTH=$(wc -c < $RPM_LOCATION)
+curl --header "Authorization: token $GITHUB_API_TOKEN" --header "Content-Length:$CONTENT_LENGTH" --header "Content-Type:application/zip" --upload-file $RPM_LOCATION -X POST "https://uploads.github.com/repos/f5networks/f5-cloud-failover-extension/releases/$release_id/assets?name=$RPM_NAME"
 
-echo "*** Uploading self-executable SHA256 to release page"
-echo "*** Calculating self-executable SHA256"
-cd dist/new_build/
-sha256sum f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch.rpm > f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch.rpm.sha256
-curl --header "Authorization: token $GITHUB_API_TOKEN" --header "Content-Type:application/txt" --upload-file f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch.rpm.sha256 -X POST "https://uploads.github.com/repos/f5networks/f5-cloud-failover-extension/releases/$release_id/assets?name=f5-cloud-failover-$RELEASE_VERSION-$RELEASE_BUILD.noarch-rpm.sha256"
+echo "*** Uploading RPM SHA256 to release page"
+SHA_NAME=f5-cloud-failover-$RELEASE_VERSION_SHORT-$RELEASE_BUILD.noarch.rpm.sha256
+SHA_LOCATION=./dist/new_build/f5-cloud-failover-$RELEASE_VERSION_SHORT-$RELEASE_BUILD.noarch.rpm.sha256
+curl --header "Authorization: token $GITHUB_API_TOKEN" --header "Content-Type:application/txt" --upload-file $SHA_LOCATION -X POST "https://uploads.github.com/repos/f5networks/f5-cloud-failover-extension/releases/$release_id/assets?name=$SHA_NAME"
 
 echo "*** Publishing to github is completed."
