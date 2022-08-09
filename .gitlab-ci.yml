@@ -648,7 +648,7 @@ test_functional_cleanup_gcp:
       - $TESTS_TIER == "2"
 
 # run functional tests: gcp no forwarding rule
-test_functional_cleanup_gcp_no_forwarding_rule:
+test_functional_cleanup_gcp_no_forwarding:
   <<: *test_functional_cleanup_generic
   variables:
     CF_ENV_CLOUD: "gcp"
