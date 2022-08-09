@@ -547,7 +547,9 @@ test_functional_cleanup_azure:
     CF_ENV_REGION: "westus"
   dependencies:
     - test_functional_init_azure
+    - test_functional_execute_azure
   needs:
+    - test_functional_init_azure
     - test_functional_execute_azure
   except:
     variables:
@@ -562,7 +564,9 @@ test_functional_cleanup_azure_1nic:
     CF_ENV_REGION: "westus"
   dependencies:
     - test_functional_init_azure_1nic
+    - test_functional_execute_azure_1nic
   needs:
+    - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
   except:
     variables:
@@ -578,7 +582,9 @@ test_functional_cleanup_aws_across_net:
     CF_ENV_REGION: "us-west-2"
   dependencies:
     - test_functional_init_aws_across_net
+    - test_functional_execute_aws_across_net
   needs:
+    - test_functional_init_aws_across_net
     - test_functional_execute_aws_across_net
   except:
     variables:
@@ -594,7 +600,9 @@ test_functional_cleanup_aws_across_net_1nic:
     CF_ENV_REGION: "us-west-2"
   dependencies:
     - test_functional_init_aws_across_net_1nic
+    - test_functional_execute_aws_across_net_1nic
   needs:
+    - test_functional_init_aws_across_net_1nic
     - test_functional_execute_aws_across_net_1nic
   except:
     variables:
@@ -608,9 +616,11 @@ test_functional_cleanup_aws:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws
+    - test_functional_execute_aws
   needs:
     - test_functional_init_aws
-  dependencies:
     - test_functional_execute_aws
   except:
     variables:
@@ -626,7 +636,9 @@ test_functional_cleanup_aws_east:
     CF_ENV_REGION: "us-east-1"
   dependencies:
     - test_functional_init_aws_east
+    - test_functional_execute_aws_east
   needs:
+    - test_functional_init_aws_east
     - test_functional_execute_aws_east
   when: manual
 
@@ -639,7 +651,9 @@ test_functional_cleanup_aws_ca_central:
     CF_ENV_REGION: "ca-central-1"
   dependencies:
     - test_functional_init_aws_ca_central
+    - test_functional_execute_aws_ca_central
   needs:
+    - test_functional_init_aws_ca_central
     - test_functional_execute_aws_ca_central
   when: manual
 
@@ -653,7 +667,9 @@ test_functional_cleanup_aws_1nic:
     CF_ENV_REGION: "us-west-2"
   dependencies:
     - test_functional_init_aws_1nic
+    - test_functional_execute_aws_1nic
   needs:
+    - test_functional_init_aws_1nic
     - test_functional_execute_aws_1nic
   except:
     variables:
@@ -668,7 +684,9 @@ test_functional_cleanup_gcp:
     CF_ENV_REGION: "us-west1"
   dependencies:
     - test_functional_init_gcp
+    - test_functional_execute_gcp
   needs:
+    - test_functional_init_gcp
     - test_functional_execute_gcp
   except:
     variables:
@@ -683,7 +701,9 @@ test_functional_cleanup_gcp_no_forwarding:
     CF_ENV_USE_FORWARDING_RULE: "false"
   dependencies:
     - test_functional_init_gcp_no_forwarding
+    - test_functional_execute_gcp_no_forwarding
   needs:
+    - test_functional_init_gcp_no_forwarding
     - test_functional_execute_gcp_no_forwarding
   except:
     variables:
