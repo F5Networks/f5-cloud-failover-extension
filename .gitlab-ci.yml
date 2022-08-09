@@ -151,8 +151,7 @@ coverage:
 .test_functional_init_generic: &test_functional_init_generic
   stage: test_functional_init
   image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-  retry:
-    max: 1
+  retry: 1
   script:
     # deploy environment - required artifacts will be place in output folder
     - apk add --update
@@ -299,6 +298,7 @@ test_functional_init_gcp_no_forwarding:
 .test_functional_execute_generic: &test_functional_execute_generic
   stage: test_functional_execute
   image: ${ARTIFACTORY_SERVER}/dockerhub-remote/python:3.7
+  retry: 1
   script:
     # install jq
     - apt-get update
@@ -338,6 +338,9 @@ test_functional_execute_azure:
   dependencies:
     - test_functional_init_azure
     - build_package
+  needs:
+    - test_functional_init_azure
+    - build_package
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -350,6 +353,9 @@ test_functional_execute_azure_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "westus"
   dependencies:
+    - test_functional_init_azure_1nic
+    - build_package
+  needs:
     - test_functional_init_azure_1nic
     - build_package
   except:
@@ -367,6 +373,9 @@ test_functional_execute_aws_across_net:
   dependencies:
     - test_functional_init_aws_across_net
     - build_package
+  needs:
+    - test_functional_init_aws_across_net
+    - build_package
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -380,6 +389,9 @@ test_functional_execute_aws_across_net_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
   dependencies:
+    - test_functional_init_aws_across_net_1nic
+    - build_package
+  needs:
     - test_functional_init_aws_across_net_1nic
     - build_package
   except:
@@ -397,6 +409,9 @@ test_functional_execute_aws:
   dependencies:
     - test_functional_init_aws
     - build_package
+  needs:
+    - test_functional_init_aws
+    - build_package
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -412,6 +427,9 @@ test_functional_execute_aws_east:
   dependencies:
     - test_functional_init_aws_east
     - build_package
+  needs:
+    - test_functional_init_aws_east
+    - build_package
   when: manual
 
 # run functional tests: aws - same network topology - ca-central-1
@@ -422,6 +440,9 @@ test_functional_execute_aws_ca_central:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "ca-central-1"
   dependencies:
+    - test_functional_init_aws_ca_central
+    - build_package
+  needs:
     - test_functional_init_aws_ca_central
     - build_package
   when: manual
@@ -435,6 +456,9 @@ test_functional_execute_aws_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
   dependencies:
+    - test_functional_init_aws_1nic
+    - build_package
+  needs:
     - test_functional_init_aws_1nic
     - build_package
   except:
@@ -451,6 +475,9 @@ test_functional_execute_gcp:
   dependencies:
     - test_functional_init_gcp
     - build_package
+  needs:
+    - test_functional_init_gcp
+    - build_package
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -464,6 +491,9 @@ test_functional_execute_gcp_no_forwarding_rule:
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - build_package
+  needs:
+    - test_functional_init_gcp_no_forwarding
+    - build_package
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -472,8 +502,7 @@ test_functional_execute_gcp_no_forwarding_rule:
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
   stage: test_functional_cleanup
   image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-  retry:
-    max: 1
+  retry: 1
   when: always
   script:
     - apk add --update
@@ -507,7 +536,7 @@ test_functional_cleanup_azure:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_REGION: "westus"
-  dependencies:
+  needs:
     - test_functional_init_azure
   except:
     variables:
@@ -520,7 +549,7 @@ test_functional_cleanup_azure_1nic:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "westus"
-  dependencies:
+  needs:
     - test_functional_init_azure_1nic
   except:
     variables:
@@ -534,7 +563,7 @@ test_functional_cleanup_aws_across_net:
     CF_ENV_CLOUD: "aws"
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_REGION: "us-west-2"
-  dependencies:
+  needs:
     - test_functional_init_aws_across_net
   except:
     variables:
@@ -548,7 +577,7 @@ test_functional_cleanup_aws_across_net_1nic:
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
-  dependencies:
+  needs:
     - test_functional_init_aws_across_net_1nic
   except:
     variables:
@@ -562,7 +591,7 @@ test_functional_cleanup_aws:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-west-2"
-  dependencies:
+  needs:
     - test_functional_init_aws
   except:
     variables:
@@ -576,7 +605,7 @@ test_functional_cleanup_aws_east:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-east-1"
-  dependencies:
+  needs:
     - test_functional_init_aws_east
   when: manual
 
@@ -587,7 +616,7 @@ test_functional_cleanup_aws_ca_central:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "ca-central-1"
-  dependencies:
+  needs:
     - test_functional_init_aws_ca_central
   when: manual
 
@@ -599,7 +628,7 @@ test_functional_cleanup_aws_1nic:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
-  dependencies:
+  needs:
     - test_functional_init_aws_1nic
   except:
     variables:
@@ -612,7 +641,7 @@ test_functional_cleanup_gcp:
   variables:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
-  dependencies:
+  needs:
     - test_functional_init_gcp
   except:
     variables:
@@ -625,7 +654,7 @@ test_functional_cleanup_gcp_no_forwarding_rule:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
     CF_ENV_USE_FORWARDING_RULE: "false"
-  dependencies:
+  needs:
     - test_functional_init_gcp_no_forwarding
   except:
     variables:
