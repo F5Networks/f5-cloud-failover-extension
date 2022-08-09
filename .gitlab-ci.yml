@@ -171,13 +171,16 @@ coverage:
       - $CI_COMMIT_REF_NAME == "master"
       - $CI_COMMIT_REF_NAME == "develop"
       - $RUN_FUNCTIONAL_TESTS == "true"
-      # tier 1 tests 2 NIC AWS across-net and 3 NIC Azure,GCP
+      # tier 1 tests 2 NIC AWS across-net and 3 NIC Azure, GCP
       - $TESTS_TIER == "1"
-      # tier 2 tests 2 NIC AWS same-net and all 1 NIC tests for Azure,GCP,AWS
+      # tier 2 tests 2 NIC AWS same-net and all 1 NIC tests for Azure, GCP, AWS
       - $TESTS_TIER == "2"
       # run all tests
       - $TESTS_TIER == "all"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "false"
   artifacts:
     paths:
       - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}
@@ -323,6 +326,9 @@ test_functional_init_gcp_no_forwarding:
       - $TESTS_TIER == "2"
       - $TESTS_TIER == "all"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "false"
   artifacts:
     paths:
       - logs
@@ -529,6 +535,9 @@ test_functional_execute_gcp_no_forwarding:
       - $TESTS_TIER == "2"
       - $TESTS_TIER == "all"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # run functional tests: azure
 test_functional_cleanup_azure:
@@ -536,6 +545,8 @@ test_functional_cleanup_azure:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure
   needs:
     - test_functional_execute_azure
   except:
@@ -549,6 +560,8 @@ test_functional_cleanup_azure_1nic:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "westus"
+  dependencies:
+    - test_functional_init_azure_1nic
   needs:
     - test_functional_execute_azure_1nic
   except:
@@ -563,6 +576,8 @@ test_functional_cleanup_aws_across_net:
     CF_ENV_CLOUD: "aws"
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net
   needs:
     - test_functional_execute_aws_across_net
   except:
@@ -577,6 +592,8 @@ test_functional_cleanup_aws_across_net_1nic:
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_across_net_1nic
   needs:
     - test_functional_execute_aws_across_net_1nic
   except:
@@ -592,6 +609,8 @@ test_functional_cleanup_aws:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-west-2"
   needs:
+    - test_functional_init_aws
+  dependencies:
     - test_functional_execute_aws
   except:
     variables:
@@ -605,6 +624,8 @@ test_functional_cleanup_aws_east:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-east-1"
+  dependencies:
+    - test_functional_init_aws_east
   needs:
     - test_functional_execute_aws_east
   when: manual
@@ -616,6 +637,8 @@ test_functional_cleanup_aws_ca_central:
     CF_ENV_CLOUD: "aws"
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "ca-central-1"
+  dependencies:
+    - test_functional_init_aws_ca_central
   needs:
     - test_functional_execute_aws_ca_central
   when: manual
@@ -628,6 +651,8 @@ test_functional_cleanup_aws_1nic:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
+  dependencies:
+    - test_functional_init_aws_1nic
   needs:
     - test_functional_execute_aws_1nic
   except:
@@ -641,6 +666,8 @@ test_functional_cleanup_gcp:
   variables:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
+  dependencies:
+    - test_functional_init_gcp
   needs:
     - test_functional_execute_gcp
   except:
@@ -654,6 +681,8 @@ test_functional_cleanup_gcp_no_forwarding:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
     CF_ENV_USE_FORWARDING_RULE: "false"
+  dependencies:
+    - test_functional_init_gcp_no_forwarding
   needs:
     - test_functional_execute_gcp_no_forwarding
   except:
