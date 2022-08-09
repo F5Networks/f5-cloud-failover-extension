@@ -151,7 +151,6 @@ coverage:
 .test_functional_init_generic: &test_functional_init_generic
   stage: test_functional_init
   image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-  retry: 1
   script:
     # deploy environment - required artifacts will be place in output folder
     - apk add --update
@@ -538,6 +537,7 @@ test_functional_execute_gcp_no_forwarding:
   except:
     variables:
       - $RUN_FUNCTIONAL_TESTS == "false"
+  allow_failure: true
 
 # run functional tests: azure
 test_functional_cleanup_azure:
