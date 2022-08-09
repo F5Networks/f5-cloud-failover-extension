@@ -483,7 +483,7 @@ test_functional_execute_gcp:
       - $TESTS_TIER == "2"
 
 # run functional tests: gcp without forwarding rules
-test_functional_execute_gcp_no_forwarding_rule:
+test_functional_execute_gcp_no_forwarding:
   <<: *test_functional_execute_generic
   variables:
     CF_ENV_CLOUD: "gcp"
