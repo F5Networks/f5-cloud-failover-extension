@@ -537,7 +537,7 @@ test_functional_cleanup_azure:
     CF_ENV_CLOUD: "azure"
     CF_ENV_REGION: "westus"
   needs:
-    - test_functional_init_azure
+    - test_functional_execute_azure
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -550,7 +550,7 @@ test_functional_cleanup_azure_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "westus"
   needs:
-    - test_functional_init_azure_1nic
+    - test_functional_execute_azure_1nic
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -564,7 +564,7 @@ test_functional_cleanup_aws_across_net:
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_REGION: "us-west-2"
   needs:
-    - test_functional_init_aws_across_net
+    - test_functional_execute_aws_across_net
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -578,7 +578,7 @@ test_functional_cleanup_aws_across_net_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
   needs:
-    - test_functional_init_aws_across_net_1nic
+    - test_functional_execute_aws_across_net_1nic
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -592,7 +592,7 @@ test_functional_cleanup_aws:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-west-2"
   needs:
-    - test_functional_init_aws
+    - test_functional_execute_aws
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -606,7 +606,7 @@ test_functional_cleanup_aws_east:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-east-1"
   needs:
-    - test_functional_init_aws_east
+    - test_functional_execute_aws_east
   when: manual
 
 # run functional tests: aws - same network topology - ca-central-1
@@ -617,7 +617,7 @@ test_functional_cleanup_aws_ca_central:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "ca-central-1"
   needs:
-    - test_functional_init_aws_ca_central
+    - test_functional_execute_aws_ca_central
   when: manual
 
 # run functional tests: aws - same network topology for 1nic
@@ -629,7 +629,7 @@ test_functional_cleanup_aws_1nic:
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
   needs:
-    - test_functional_init_aws_1nic
+    - test_functional_execute_aws_1nic
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -642,7 +642,7 @@ test_functional_cleanup_gcp:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
   needs:
-    - test_functional_init_gcp
+    - test_functional_execute_gcp
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -655,7 +655,7 @@ test_functional_cleanup_gcp_no_forwarding_rule:
     CF_ENV_REGION: "us-west1"
     CF_ENV_USE_FORWARDING_RULE: "false"
   needs:
-    - test_functional_init_gcp_no_forwarding
+    - test_functional_execute_gcp_no_forwarding
   except:
     variables:
       - $TESTS_TIER == "2"
