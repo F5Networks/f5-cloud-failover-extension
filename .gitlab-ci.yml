@@ -840,7 +840,7 @@ publish_to_github:
   script:
     - apt-get update
     - apt-get install -y jq
-    - ./scripts/publish_github.sh
+    - bash ./scripts/publish_github.sh
 
 # publish docs to internal pages: - this job MUST be named 'pages'
 pages:
