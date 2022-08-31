@@ -45,7 +45,7 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
     networkInterfaces.forEach((nic) => {
         nic.ipConfigurations.forEach((ipConfiguration) => {
             selfIps.forEach((address) => {
-                if (ipConfiguration.privateIPAddress === address) {
+                if (nic.provisioningState === 'Succeeded' && ipConfiguration.primary === true && ipConfiguration.privateIPAddress === address) {
                     myNics.push(nic);
                 }
             });
@@ -55,7 +55,7 @@ function networkInterfaceMatch(networkInterfaces, selfIps, virtualAddresses) {
     myNics.forEach((nic) => {
         nic.ipConfigurations.forEach((ipConfiguration) => {
             virtualAddresses.forEach((address) => {
-                if (ipConfiguration.privateIPAddress === address && nic.provisioningState === 'Succeeded') {
+                if (nic.provisioningState === 'Succeeded' && ipConfiguration.primary === false && ipConfiguration.privateIPAddress === address) {
                     match = true;
                 }
             });

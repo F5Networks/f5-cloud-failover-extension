@@ -125,6 +125,9 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
   s3:ListAllMyBuckets                      \*                             Current Account         externalStorage         To discover (using scopingTags) bucket used for failover state file.
   s3:ListBucket                            S3 Bucket ID                   Optional                externalStorage         To return information about a bucket.
   s3:PutObject                             S3 Bucket ID/Key               Optional                externalStorage         To write failover state file.
+  kms:DescribeKey                          KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
+  kms:GenerateDataKey                      KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
+  kms:Decrypt                              KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
  ======================================== ============================== ======================= ======================= ===================================================================================================================== 
    |
    |

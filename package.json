@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.12.0",
+    "version": "1.13.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -125,7 +125,8 @@
             "1070207",
             "1070443",
             "1075674",
-            "1070440"
+            "1070440",
+            "1082433"
         ]
     }
 }
