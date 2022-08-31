@@ -549,6 +549,7 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
     describe('function _getPrivateSecondaryIPs', () => {
         const describeNetworkInterfacesResponse = {
             NetworkInterfaces: [
@@ -654,6 +655,7 @@ describe('Provider - AWS', () => {
                 });
         });
     });
+
     describe('function _generatePublicAddressOperations', () => {
         const EIPdata = [
             {
@@ -691,6 +693,7 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
     describe('function _associatePublicAddress', () => {
         const allocationId = 'eipalloc-0b5671ebba3628edd';
         const networkInterfaceId = 'eni-0157ac0f9506af78b';
@@ -744,6 +747,7 @@ describe('Provider - AWS', () => {
                 });
         });
     });
+
     describe('function _disassociatePublicAddress', () => {
         let passedParams;
         const associationIdToDisassociate = 'eipassoc-00523b2b8b8c01793';
@@ -770,6 +774,7 @@ describe('Provider - AWS', () => {
                 assert.fail();
             }));
     });
+
     describe('function _reassociatePublicAddresses', () => {
         it('should call _disassociatePublicAddress with correct params', () => {
             const passedParams = [];
@@ -1543,8 +1548,15 @@ describe('Provider - AWS', () => {
 
     describe('function uploadDataToStorage', () => {
         let passedParams;
+        const thisMockInitData = {
+            storageEncryption: {
+                serverSide: {
+                    enabled: false
+                }
+            }
+        };
 
-        it('should pass correct params to putObject', () => provider.init(mockInitData)
+        it('should pass correct params to putObject', () => provider.init(thisMockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
 
@@ -1561,6 +1573,90 @@ describe('Provider - AWS', () => {
             })
             .then(() => {
                 assert.deepEqual(passedParams, _s3FileParamsStub);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
+
+    describe('function uploadDataToStorage encrypted with AWS managed key', () => {
+        let passedParams;
+        const _s3FileParamsStubEncrypted = {
+            Body: 's3 state file body',
+            Bucket: 'myfailoverbucket',
+            Key: 'f5cloudfailover/file.json',
+            ServerSideEncryption: 'aws:kms'
+        };
+
+        const thisMockInitData = {
+            storageEncryption: {
+                serverSide: {
+                    enabled: true,
+                    algorithm: 'aws:kms'
+                }
+            }
+        };
+
+        it('should pass correct params to putObject with AWS managed key', () => provider.init(thisMockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.putObject = sinon.stub()
+                    .callsFake((params) => {
+                        passedParams = params;
+                        return {
+                            promise() {
+                                return Promise.resolve();
+                            }
+                        };
+                    });
+                return provider.uploadDataToStorage('file.json', _s3FileParamsStubEncrypted.Body);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, _s3FileParamsStubEncrypted);
+            })
+            .catch(() => {
+                assert.fail();
+            }));
+    });
+
+    describe('function uploadDataToStorage encrypted with customer key', () => {
+        let passedParams;
+        const _s3FileParamsStubEncryptedCustomerKey = {
+            Body: 's3 state file body',
+            Bucket: 'myfailoverbucket',
+            Key: 'f5cloudfailover/file.json',
+            ServerSideEncryption: 'aws:kms',
+            SSEKMSKeyId: 'mrk-e6113680390641cab86a87e821e43764'
+        };
+
+        const thisMockInitData = {
+            storageEncryption: {
+                serverSide: {
+                    enabled: true,
+                    algorithm: 'aws:kms',
+                    keyId: 'mrk-e6113680390641cab86a87e821e43764'
+                }
+            }
+        };
+
+        it('should pass correct params to putObject with customer key', () => provider.init(thisMockInitData)
+            .then(() => {
+                provider.s3BucketName = 'myfailoverbucket';
+
+                provider.s3.putObject = sinon.stub()
+                    .callsFake((params) => {
+                        passedParams = params;
+                        return {
+                            promise() {
+                                return Promise.resolve();
+                            }
+                        };
+                    });
+                return provider.uploadDataToStorage('file.json', _s3FileParamsStubEncryptedCustomerKey.Body);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, _s3FileParamsStubEncryptedCustomerKey);
             })
             .catch(() => {
                 assert.fail();

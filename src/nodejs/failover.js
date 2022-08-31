@@ -282,6 +282,7 @@ class FailoverClient {
         const customEnvironmentSettings = util.getDataByKey(this.config, 'customEnvironment') || [];
         let routeGroupDefinitions = util.getDataByKey(this.config, 'failoverRoutes.routeGroupDefinitions') || [];
         const trustedCertBundle = util.getDataByKey(this.config, 'trustedCertBundle') || '';
+        const storageEncryption = util.getDataByKey(this.config, 'externalStorage.encryption') || [];
         const routeTags = util.getDataByKey(this.config, 'failoverRoutes.scopingTags') || [];
         const routeAddressRanges = (util.getDataByKey(
             this.config, 'failoverRoutes.scopingAddressRanges'
@@ -312,6 +313,7 @@ class FailoverClient {
             customEnvironment: customEnvironmentSettings,
             routeGroupDefinitions,
             trustedCertBundle,
+            storageEncryption,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
             subscriptions: (util.getDataByKey(
