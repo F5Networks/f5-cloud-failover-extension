@@ -79,13 +79,13 @@ Example AWS Declaration
 -----------------------
 This example declaration shows the minimum information needed to update the cloud resources in AWS. See the :ref:`quickstart` section for steps on how to post this declaration. See the :ref:`example-declarations` section for more examples.
 
-.. literalinclude:: ../../examples/declarations/aws-same-az-1.7.0.json
+.. literalinclude:: ../../examples/declarations/aws-same-az-1.13.0.json
    :language: json
    :caption: Example AWS Declaration with Single Routing Table
    :tab-width: 4
    :linenos:
 
-:fonticon:`fa fa-download` :download:`aws-same-az.json <../../examples/declarations/aws-same-az-1.7.0.json>`
+:fonticon:`fa fa-download` :download:`aws-same-az.json <../../examples/declarations/aws-same-az-1.13.0.json>`
 
 |
 
@@ -125,11 +125,12 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
   s3:ListAllMyBuckets                      \*                             Current Account         externalStorage         To discover (using scopingTags) bucket used for failover state file.
   s3:ListBucket                            S3 Bucket ID                   Optional                externalStorage         To return information about a bucket.
   s3:PutObject                             S3 Bucket ID/Key               Optional                externalStorage         To write failover state file.
-  kms:DescribeKey                          KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
-  kms:GenerateDataKey                      KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
-  kms:Decrypt                              KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a customer-managed KMS key for server-side encryption.
+  kms:DescribeKey                          KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a **customer managed** KMS key for server-side encryption.
+  kms:GenerateDataKey                      KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a **customer managed** KMS key for server-side encryption.
+  kms:Decrypt                              KMS Encryption Key ID          Optional                externalStorage         To write failover state file when using a **customer managed** KMS key for server-side encryption.
  ======================================== ============================== ======================= ======================= ===================================================================================================================== 
-   |
+
+ 
    |
 
    For example, to create a role for an EC2 service follow these steps:
@@ -153,7 +154,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    |
 
-#. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**
 
    For example:
 
@@ -164,8 +165,6 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
 .. _aws-same-az-iam-example:
 
-.. _aws-iam-example:
-
 IAM Role Example Declaration
 ````````````````````````````
 Below is an example F5 policy that includes IAM roles.
@@ -175,7 +174,7 @@ Below is an example F5 policy that includes IAM roles.
 
 .. code-block:: json
 
-  {
+   {
     "BigIpHighAvailabilityAccessRole": {
         "Condition": "failover",
         "Type": "AWS::IAM::Role",
@@ -232,6 +231,26 @@ Below is an example F5 policy that includes IAM roles.
                                     "s3:DeleteObject"
                                 ],
                                 "Resource": "arn:*:s3:::<my_bucket_id>/*"
+                            },
+                            {
+                                "Action": [
+                                    "s3:PutObject"
+                                ],
+                                "Condition": {
+                                    "Null": {
+                                        "s3:x-amz-server-side-encryption": true
+                                    }
+                                },
+                                "Effect": "Deny",
+                                "Resource": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:*:s3:::<my_bucket_id>/*"
+                                        ]
+                                    ]
+                                },
+                                "Sid": "DenyPublishingUnencryptedResources"
                             },
                             {
                                 "Effect": "Allow",
@@ -322,12 +341,27 @@ Below is an example F5 policy that includes IAM roles.
             ]
         }
     }
-  }
+   }
 
 |
 
+NOTE: If a customer managed KMS Encryption Key is used for server-side encryption on the S3 bucket, the following permissions are required:
 
-Alternatively, for *Actions* that **do** allow resource level permissions, but the specific resource IDs may not be known ahead of time, you can leverage *Condition* statements that limit access to only those resources with a certain tag. For example, in some orchestration workflows, the IAM instance profile and policy are created first in order to apply to the instance at creation time, but the of course the instance IDs for the policy are not known yet. Instead, in the snippet below, *Conditions* are used so only resources with the `f5_cloud_failover_label` tag can be updated.
+.. code-block:: json
+
+  {
+      "Effect": "Allow",
+      "Action": [
+          "kms:DescribeKey",
+          "kms:GenerateDataKey",
+          "kms:Decrypt"
+      ],
+      "Resource": "arn:aws:kms:<my_region>:<my_account_id>:key/<my_customer_managed_key_id>"
+  },
+
+|
+
+Alternatively, for *Actions* that **do** allow resource level permissions, but the specific resource IDs may not be known ahead of time, you can leverage *Condition* statements that limit access to only those resources with a certain tag. For example, in some orchestration workflows, the IAM instance profile and policy are created first in order to apply to the instance at creation time, but of course the instance IDs for the policy are not known yet. Instead, in the snippet below, *Conditions* are used so only resources with the ``f5_cloud_failover_label`` tag can be updated.
 
 .. code-block:: json
 
@@ -426,34 +460,51 @@ Tag the Network Interfaces in AWS:
 Define the Storage Account in AWS
 `````````````````````````````````
 
-1. Create an `S3 bucket in AWS <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s).
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+  
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+   - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using AWS KMS (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
+   
+
+1. Create an `S3 bucket in AWS <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s). 
 
    .. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access. See your cloud provider for best practices.
-
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+  
 
 2. Update/modify the Cloud Failover ``scopingName`` value with name of your S3 bucket:
 
    .. code-block:: json
+      :emphasize-lines: 2
   
-     "externalStorage":{
-       "scopingName": "yourS3BucketforCloudFailover"
-     },
+      "externalStorage":{
+        "scopingName": "yourS3BucketforCloudFailover",
+        "encryption": {
+          "serverSide": {
+            "enabled": true,
+            "algorithm": "aws:kms"
+          }
+         }
+      },
 
-
+   You can also optionally update/modify the serverside encyption config. See Click `here <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#example-declaration-using-aws-kms-server-side-encryption-sse-kms-customer-managed-key>`_ to see an example using a customer managed key.
 
    Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
 
    .. code-block:: json
+      :emphasize-lines: 3
 
-     "externalStorage":{
-        "scopingTags":{
-           "f5_cloud_failover_label":"mydeployment"
-        }
-     },
+      "externalStorage":{
+         "scopingTags":{
+            "f5_cloud_failover_label":"mydeployment"
+         },
+         "encryption": {
+           "serverSide": {
+             "enabled": true,
+             "algorithm": "aws:kms"
+           }
+         }
+      },
+
 
    a. Sign in to the AWS Management Console and open the Amazon S3 console.
 
