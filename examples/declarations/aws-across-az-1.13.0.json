@@ -15,7 +15,7 @@
       "encryption": {
         "serverSide": {
           "enabled": true,
-          "algorithm": "aws:kms"
+          "algorithm": "AES256"
         }
       }
     },
