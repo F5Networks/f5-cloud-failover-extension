@@ -369,6 +369,7 @@ describe('Provider - Azure', () => {
             })
             .catch((err) => Promise.reject(err));
     });
+
     it('should validate updateAddresses does not perform discovery due to mismatched nic tags', () => {
         const localAddresses = ['2.2.2.2'];
         const failoverAddresses = ['10.10.10.10'];
@@ -422,6 +423,7 @@ describe('Provider - Azure', () => {
             })
             .catch((err) => Promise.reject(err));
     });
+
     it('validate _updateNic promise callback for valid case', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
         provider.networkClients[mockSubscriptionId] = sinon.stub();
@@ -1383,7 +1385,7 @@ describe('Provider - Azure', () => {
             failoverAddresses: []
         };
         const addresses2 = {
-            localAddresses: ['10.10.10.4'],
+            localAddresses: ['10.10.10.4', '10.10.11.4'],
             failoverAddresses: []
         };
         // Use nic01 and nic02 to validate across-net,
@@ -1433,7 +1435,7 @@ describe('Provider - Azure', () => {
                 }
             ]
         };
-        //  Use nic03 and nic04 to validate same-net, moving the secondary ipConfigurations
+        //  Use nic03-nic06 to validate same-net, moving the secondary ipConfigurations
         const nic03 = {
             id: 'test-nic03',
             name: 'nic03',
@@ -1464,7 +1466,11 @@ describe('Provider - Azure', () => {
                     },
                     provisioningState: 'Succeeded'
                 }
-            ]
+            ],
+            tags: {
+                f5_cloud_failover_label: 'tagsNic',
+                f5_cloud_failover_nic_map: 'external'
+            }
         };
         const nic04 = {
             id: 'test-nic04',
@@ -1480,7 +1486,55 @@ describe('Provider - Azure', () => {
                     },
                     provisioningState: 'Succeeded'
                 }
-            ]
+            ],
+            tags: {
+                f5_cloud_failover_label: 'tagsNic',
+                f5_cloud_failover_nic_map: 'external'
+            }
+        };
+        const nic05 = {
+            id: 'test-nic05',
+            name: 'nic05',
+            provisioningState: 'Succeeded',
+            type: 'networkInterfaces',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.11.3',
+                    primary: true,
+                    provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.11.20',
+                    primary: false,
+                    provisioningState: 'Succeeded'
+                },
+                {
+                    privateIPAddress: '10.10.11.21',
+                    primary: false,
+                    provisioningState: 'Succeeded'
+                }
+            ],
+            tags: {
+                f5_cloud_failover_label: 'tagsNic',
+                f5_cloud_failover_nic_map: 'internal'
+            }
+        };
+        const nic06 = {
+            id: 'test-nic06',
+            name: 'nic06',
+            provisioningState: 'Succeeded',
+            type: 'networkInterfaces',
+            ipConfigurations: [
+                {
+                    privateIPAddress: '10.10.11.4',
+                    primary: true,
+                    provisioningState: 'Succeeded'
+                }
+            ],
+            tags: {
+                f5_cloud_failover_label: 'tagsNic',
+                f5_cloud_failover_nic_map: 'internal'
+            }
         };
         const publicIpResponse = {
             id: 'vip-pip1',
@@ -1602,28 +1656,53 @@ describe('Provider - Azure', () => {
                         'nic03',
                         'nic04'
                     ]
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.11.20',
+                    networkInterfaces: [
+                        'nic05',
+                        'nic06'
+                    ]
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.11.21',
+                    networkInterfaces: [
+                        'nic05',
+                        'nic06'
+                    ]
                 }
             ];
             provider.primarySubscriptionId = mockSubscriptionId;
             provider.networkClients[mockSubscriptionId] = sinon.stub();
             provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
             provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-                callback(error, [nic03, nic04]);
+                callback(error, [nic03, nic04, nic05, nic06]);
             });
 
             return provider.discoverAddressOperationsUsingDefinitions(addresses2, networkGroupDefinitions, options)
                 .then((response) => {
                     const disasociate = response.interfaces.disassociate;
                     const associate = response.interfaces.associate;
-                    assert.strictEqual(disasociate[0][1], 'nic03');
-                    assert.strictEqual(disasociate[0][2].name, 'nic03');
-                    assert.strictEqual(disasociate[0][2].ipConfigurations[0].privateIPAddress, '10.10.10.3');
-                    assert.strictEqual(associate[0][1], 'nic04');
-                    assert.strictEqual(associate[0][2].name, 'nic04');
-                    assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '10.10.10.4');
-                    assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.20');
-                    assert.strictEqual(associate[0][2].ipConfigurations[2].privateIPAddress, '10.10.10.21');
-                    assert.strictEqual(associate[0][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip6');
+                    assert.strictEqual(disasociate[1][1], 'nic03');
+                    assert.strictEqual(disasociate[1][2].name, 'nic03');
+                    assert.strictEqual(disasociate[1][2].ipConfigurations[0].privateIPAddress, '10.10.10.3');
+                    assert.strictEqual(associate[1][1], 'nic04');
+                    assert.strictEqual(associate[1][2].name, 'nic04');
+                    assert.strictEqual(associate[1][2].ipConfigurations[0].privateIPAddress, '10.10.10.4');
+                    assert.strictEqual(associate[1][2].ipConfigurations[1].privateIPAddress, '10.10.10.21');
+                    assert.strictEqual(associate[1][2].ipConfigurations[2].privateIPAddress, '10.10.10.20');
+                    assert.strictEqual(associate[1][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip7');
+                    assert.strictEqual(associate[1][2].ipConfigurations[2].publicIPAddress.id, 'vip-pip6');
+                    assert.strictEqual(disasociate[0][1], 'nic05');
+                    assert.strictEqual(disasociate[0][2].name, 'nic05');
+                    assert.strictEqual(disasociate[0][2].ipConfigurations[0].privateIPAddress, '10.10.11.3');
+                    assert.strictEqual(associate[0][1], 'nic06');
+                    assert.strictEqual(associate[0][2].name, 'nic06');
+                    assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '10.10.11.4');
+                    assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.11.21');
+                    assert.strictEqual(associate[0][2].ipConfigurations[2].privateIPAddress, '10.10.11.20');
                 })
                 .catch((err) => Promise.reject(err));
         });

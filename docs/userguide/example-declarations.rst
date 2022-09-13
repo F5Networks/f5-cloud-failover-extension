@@ -121,9 +121,38 @@ This example shows a BIG-IP cluster managing route tables in multiple subscripti
 
 :fonticon:`fa fa-download` :download:`azureRouteTablesInMutipleSubscriptions.json <../../examples/declarations/azureRouteTablesInMutipleSubscriptions.json>`
 
+.. _aws-sse-aws-key:
 
-Example Declaration Setting the Log Level
------------------------------------------
+AWS KMS Server-side encryption (SSE-KMS) Using Default AWS Managed Key
+----------------------------------------------------------------------
+This example shows how to configure CFE when the S3 bucket used for failover state uses server-side KMS encryption with the default AWS managed key.
+
+.. literalinclude:: ../../examples/declarations/aws-s3-server-side-encryption-aws-key.json
+   :language: json
+   :caption: AWS Server-side encryption with AWS managed key
+   :tab-width: 4
+   :linenos:
+   :emphasize-lines: 10-15
+
+:fonticon:`fa fa-download` :download:`aws-s3-server-side-encryption-aws-key.json <../../examples/declarations/aws-s3-server-side-encryption-aws-key.json>`
+
+.. _aws-sse-custom-key:
+
+AWS KMS Server-side encryption (SSE-KMS) Using Customer Managed Key
+-------------------------------------------------------------------
+This example shows how to configure CFE when the S3 bucket used for failover state uses server-side KMS encryption with a customer-provided key. Note: The ``keyId`` should be the actual ID, not the `arn` or `alias`. 
+
+.. literalinclude:: ../../examples/declarations/aws-s3-server-side-encryption-custom-key.json
+   :language: json
+   :caption: AWS Server-side encryption with custom key
+   :tab-width: 4
+   :linenos:
+   :emphasize-lines: 12-18
+
+:fonticon:`fa fa-download` :download:`aws-s3-server-side-encryption-custom-key.json <../../examples/declarations/aws-s3-server-side-encryption-custom-key.json>`
+
+Setting the Log Level
+---------------------
 
 You set the log level in the controls class. To see more information about editing the controls class, see :ref:`logging-ref`.
 

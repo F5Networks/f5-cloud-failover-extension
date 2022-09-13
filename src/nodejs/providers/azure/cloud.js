@@ -503,7 +503,7 @@ class Cloud extends AbstractCloud {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
                             if (sa.tags && Object.keys(sa.tags).indexOf(tagKey) !== -1
-                            && sa.tags[tagKey] === tags[tagKey]) {
+                                && sa.tags[tagKey] === tags[tagKey]) {
                                 matchedTags += 1;
                             }
                         });
@@ -803,6 +803,8 @@ class Cloud extends AbstractCloud {
     _checkForNicOperations(myNic, theirNic, failoverAddresses) {
         const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
         const myNicIpConfigs = this._getIpConfigs(myNic.ipConfigurations);
+
+        this.logger.silly('checking for NIC operations for my/their NIC pair:', myNic.name, theirNic.name);
 
         for (let i = theirNicIpConfigs.length - 1; i >= 0; i -= 1) {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
@@ -1119,6 +1121,7 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - A Promise that is resolved network interface operations
      */
     _generateNetworkInterfaceOperations(addresses, addressGroupDefinitions) {
+        const failoverAddresses = [];
         const operations = {
             disassociate: [],
             associate: []
@@ -1129,27 +1132,37 @@ class Cloud extends AbstractCloud {
             .then((results) => {
                 const nics = results[0];
                 addressGroupDefinitions.forEach((item) => {
-                    const failoverAddresses = [item.scopingAddress];
-                    const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
-                    if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
-                        this.logger.warning('Problem with discovering network interfaces parsedNics');
-                        return Promise.resolve({
-                            publicAddresses: {},
-                            interfaces: operations,
-                            loadBalancerAddresses: {}
-                        });
-                    }
-                    const nicOperations = this._checkForNicOperations(
-                        parsedNics.mine[0].nic,
-                        parsedNics.theirs[0].nic,
-                        failoverAddresses
-                    );
-                    if (nicOperations.disassociate && nicOperations.associate) {
-                        operations.disassociate.push(nicOperations.disassociate);
-                        operations.associate.push(nicOperations.associate);
-                    }
-                    return item;
+                    failoverAddresses.push(item.scopingAddress);
                 });
+                const parsedNics = this._parseNics(nics, addresses.localAddresses, failoverAddresses);
+                if (parsedNics.mine.length === 0 || parsedNics.theirs.length === 0) {
+                    this.logger.warning('Problem with discovering network interfaces parsedNics');
+                    return Promise.resolve({
+                        publicAddresses: {},
+                        interfaces: operations,
+                        loadBalancerAddresses: {}
+                    });
+                }
+                for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
+                    for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
+                        const theirNic = parsedNics.theirs[h].nic;
+                        const myNic = parsedNics.mine[s].nic;
+                        theirNic.tags = theirNic.tags ? theirNic.tags : this._normalizeTags(theirNic.TagSet);
+                        myNic.tags = myNic.tags ? myNic.tags : this._normalizeTags(myNic.TagSet);
+                        /* eslint-disable max-len */
+                        if (theirNic.tags[constants.NIC_TAG] === undefined || myNic.tags[constants.NIC_TAG] === undefined) {
+                            this.logger.warning(`${constants.NIC_TAG} tag values do not match or doesn't exist for a interface`);
+                        } else if (theirNic.tags[constants.NIC_TAG] && myNic.tags[constants.NIC_TAG]
+                            && theirNic.tags[constants.NIC_TAG] === myNic.tags[constants.NIC_TAG]) {
+                            const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
+
+                            if (nicOperations.disassociate && nicOperations.associate) {
+                                operations.disassociate.push(nicOperations.disassociate);
+                                operations.associate.push(nicOperations.associate);
+                            }
+                        }
+                    }
+                }
                 this.resultAction.interfaces = operations;
                 return Promise.resolve();
             })

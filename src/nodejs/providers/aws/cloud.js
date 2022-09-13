@@ -132,6 +132,14 @@ class Cloud extends AbstractCloud {
                 Bucket: this.s3BucketName,
                 Key: s3Key
             };
+            if (this.storageEncryption
+                && this.storageEncryption.serverSide
+                && this.storageEncryption.serverSide.enabled) {
+                params.ServerSideEncryption = this.storageEncryption.serverSide.algorithm;
+                if (this.storageEncryption.serverSide.keyId) {
+                    params.SSEKMSKeyId = this.storageEncryption.serverSide.keyId;
+                }
+            }
             this.s3.putObject(params).promise()
                 .then(() => resolve())
                 .catch((err) => reject(err));

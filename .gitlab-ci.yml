@@ -2,8 +2,8 @@ image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
 
 stages:
   - check_content
-  - build_package
   - test
+  - build_package
   - test_functional_init
   - test_functional_execute
   - test_functional_cleanup
@@ -68,28 +68,6 @@ check_content:
   tags:
     - cm-official-docker-executor
 
-build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
-  stage: build_package
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME == "docs_production"
-      - $CI_COMMIT_REF_NAME == "docs_staging"
-  script:
-    - echo 'CI BUILD'
-    # install packages: jq
-    - apt-get update
-    - apt-get install -y jq
-    # build RPM, handles dependency installation, etc.
-    - bash ./scripts/build_rpm.sh
-  tags:
-    - cm-official-docker-executor
-  artifacts:
-    name: f5-cloud-failover-$CI_BUILD_REF
-    paths:
-      - dist
-    expire_in: 1 month
-
 # test package
 test_package:
   stage: test
@@ -145,6 +123,28 @@ coverage:
       - coverage
     expire_in: 1 month
 
+build_package:
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  stage: build_package
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME == "docs_production"
+      - $CI_COMMIT_REF_NAME == "docs_staging"
+  script:
+    - echo 'CI BUILD'
+    # install packages: jq
+    - apt-get update
+    - apt-get install -y jq
+    # build RPM, handles dependency installation, etc.
+    - bash ./scripts/build_rpm.sh
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    name: f5-cloud-failover-$CI_BUILD_REF
+    paths:
+      - dist
+    expire_in: 1 month
+
 ### Functional Tests Section
 
 # Functional Tests - Initialization phase (with 1 retries in a case of any failures)
@@ -195,6 +195,8 @@ test_functional_init_azure:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
 
 # init functional tests: azure - 1nic
 test_functional_init_azure_1nic:
@@ -206,6 +208,8 @@ test_functional_init_azure_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - across network topology
@@ -218,6 +222,8 @@ test_functional_init_aws_across_net:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # init functional tests: aws - across network topology for 1nic
 test_functional_init_aws_across_net_1nic:
@@ -230,6 +236,8 @@ test_functional_init_aws_across_net_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - same network topology in us-west-2
@@ -242,6 +250,8 @@ test_functional_init_aws:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: aws - same network topology in us-east-1
@@ -252,6 +262,10 @@ test_functional_init_aws_east:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "us-east-1"
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # init functional tests: aws - same network topology in ca-central-1
 test_functional_init_aws_ca_central:
@@ -261,6 +275,10 @@ test_functional_init_aws_ca_central:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_REGION: "ca-central-1"
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # init functional tests: aws - same network topology for 1nic
 test_functional_init_aws_1nic:
@@ -273,6 +291,8 @@ test_functional_init_aws_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # init functional tests: gcp
@@ -284,6 +304,8 @@ test_functional_init_gcp:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 # init functional tests: gcp no forwarding
 test_functional_init_gcp_no_forwarding:
@@ -295,6 +317,8 @@ test_functional_init_gcp_no_forwarding:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 # Functional Tests - Execute phase (with no retries)
 .test_functional_execute_generic: &test_functional_execute_generic
@@ -349,6 +373,8 @@ test_functional_execute_azure:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: azure 1 nic
 test_functional_execute_azure_1nic:
@@ -366,6 +392,8 @@ test_functional_execute_azure_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - across network topology
@@ -384,6 +412,8 @@ test_functional_execute_aws_across_net:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_execute_aws_across_net_1nic:
@@ -402,6 +432,8 @@ test_functional_execute_aws_across_net_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology
@@ -420,6 +452,8 @@ test_functional_execute_aws:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology - us-east-1
@@ -436,6 +470,10 @@ test_functional_execute_aws_east:
     - test_functional_init_aws_east
     - build_package
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology - ca-central-1
 test_functional_execute_aws_ca_central:
@@ -451,6 +489,10 @@ test_functional_execute_aws_ca_central:
     - test_functional_init_aws_ca_central
     - build_package
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
@@ -469,6 +511,8 @@ test_functional_execute_aws_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: gcp with forwarding rule
@@ -486,6 +530,8 @@ test_functional_execute_gcp:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 # run functional tests: gcp without forwarding rules
 test_functional_execute_gcp_no_forwarding:
@@ -502,6 +548,8 @@ test_functional_execute_gcp_no_forwarding:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 # Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
 .test_functional_cleanup_generic: &test_functional_cleanup_generic
@@ -554,6 +602,8 @@ test_functional_cleanup_azure:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: azure_1nic
 test_functional_cleanup_azure_1nic:
@@ -571,6 +621,8 @@ test_functional_cleanup_azure_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "aws"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - across network topology
@@ -589,6 +641,8 @@ test_functional_cleanup_aws_across_net:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_cleanup_aws_across_net_1nic:
@@ -607,6 +661,8 @@ test_functional_cleanup_aws_across_net_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology
@@ -625,6 +681,8 @@ test_functional_cleanup_aws:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: aws - same network topology - us-east-1
@@ -641,6 +699,10 @@ test_functional_cleanup_aws_east:
     - test_functional_init_aws_east
     - test_functional_execute_aws_east
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology - ca-central-1
 test_functional_cleanup_aws_ca_central:
@@ -656,6 +718,10 @@ test_functional_cleanup_aws_ca_central:
     - test_functional_init_aws_ca_central
     - test_functional_execute_aws_ca_central
   when: manual
+  except:
+    variables:
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_cleanup_aws_1nic:
@@ -674,6 +740,8 @@ test_functional_cleanup_aws_1nic:
   except:
     variables:
       - $TESTS_TIER == "1"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
 
 # run functional tests: gcp
@@ -691,6 +759,8 @@ test_functional_cleanup_gcp:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 # run functional tests: gcp no forwarding rule
 test_functional_cleanup_gcp_no_forwarding:
@@ -708,6 +778,8 @@ test_functional_cleanup_gcp_no_forwarding:
   except:
     variables:
       - $TESTS_TIER == "2"
+      - $CF_ENV_CLOUD == "azure"
+      - $CF_ENV_CLOUD == "aws"
 
 ###  End of Functional Tests
 

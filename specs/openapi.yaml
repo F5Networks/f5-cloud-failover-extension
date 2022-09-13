@@ -1,6 +1,6 @@
 openapi: "3.0.0"
 info:
-  version: 1.12.0
+  version: 1.13.0
   title: Cloud Failover (CF) Extension
   description: F5 Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CFE Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
@@ -21,9 +21,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/InformationResponse"
               example:
-                version: "1.12.0"
+                version: "1.13.0"
                 release: "1"
-                schemaCurrent: "1.12.0"
+                schemaCurrent: "1.13.0"
                 schemaMinimum: "0.9.1"
         default:
           description: Unexpected Error
