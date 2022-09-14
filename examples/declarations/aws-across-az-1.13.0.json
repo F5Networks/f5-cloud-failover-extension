@@ -6,18 +6,18 @@
     "logLevel": "silly"
   },
   "externalStorage": {
-    "scopingName": "myCloudFailoverBucket"
+    "scopingName": "myCloudFailoverBucket",
+    "encryption": {
+      "serverSide": {
+        "enabled": true,
+        "algorithm": "AES256"
+      }
+    }
   },
   "failoverAddresses": {
     "enabled": true,
     "scopingTags": {
-      "f5_cloud_failover_label": "mydeployment",
-      "encryption": {
-        "serverSide": {
-          "enabled": true,
-          "algorithm": "aws:kms"
-        }
-      }
+      "f5_cloud_failover_label": "mydeployment"
     },
     "addressGroupDefinitions": [
       {

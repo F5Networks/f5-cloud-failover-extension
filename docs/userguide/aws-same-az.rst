@@ -361,6 +361,9 @@ NOTE: If a customer managed KMS Encryption Key is used for server-side encryptio
 
 |
 
+To limit encryption to a specific type or for more information, see `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_.
+
+
 Alternatively, for *Actions* that **do** allow resource level permissions, but the specific resource IDs may not be known ahead of time, you can leverage *Condition* statements that limit access to only those resources with a certain tag. For example, in some orchestration workflows, the IAM instance profile and policy are created first in order to apply to the instance at creation time, but of course the instance IDs for the policy are not known yet. Instead, in the snippet below, *Conditions* are used so only resources with the ``f5_cloud_failover_label`` tag can be updated.
 
 .. code-block:: json
@@ -463,8 +466,7 @@ Define the Storage Account in AWS
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
   
    - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
-   - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using AWS KMS (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
-   
+   - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
 
 1. Create an `S3 bucket in AWS <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s). 
 
@@ -481,12 +483,12 @@ Define the Storage Account in AWS
         "encryption": {
           "serverSide": {
             "enabled": true,
-            "algorithm": "aws:kms"
+            "algorithm": "AES256"
           }
          }
       },
 
-   You can also optionally update/modify the serverside encyption config. See Click `here <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#example-declaration-using-aws-kms-server-side-encryption-sse-kms-customer-managed-key>`_ to see an example using a customer managed key.
+   You can also optionally update/modify the serverside encyption config. The example above uses S3-Managed Keys (SSE-S3). To use KMS (SSE-KMS), set the ``algorithm`` attribute to "aws::kms". Click `here <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key>`_ to see an example using KMS and the default AWS managed key. Click `here <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key>`_ to see an example using KMS and a customer managed key.
 
    Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
 
@@ -500,7 +502,7 @@ Define the Storage Account in AWS
          "encryption": {
            "serverSide": {
              "enabled": true,
-             "algorithm": "aws:kms"
+             "algorithm": "AES256"
            }
          }
       },
