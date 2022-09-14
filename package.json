@@ -87,7 +87,7 @@
         "nock": "^9.6.1",
         "nyc": "^15.1.0",
         "sinon": "7.4.1",
-        "ssh2": "^0.8.2",
+        "ssh2": "^1.4.0",
         "yargs": "^15.4.0"
     },
     "optionalDependencies": {
