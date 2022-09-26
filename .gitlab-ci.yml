@@ -191,7 +191,7 @@ test_functional_init_azure:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -203,7 +203,7 @@ test_functional_init_azure_1nic:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
     CF_ENV_NIC_COUNT: 1
   except:
     variables:
@@ -363,7 +363,7 @@ test_functional_execute_azure:
   <<: *test_functional_execute_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
   dependencies:
     - test_functional_init_azure
     - build_package
@@ -382,7 +382,7 @@ test_functional_execute_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
   dependencies:
     - test_functional_init_azure_1nic
     - build_package
@@ -539,6 +539,7 @@ test_functional_execute_gcp_no_forwarding:
   variables:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
+    CF_ENV_USE_FORWARDING_RULE: "false"
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - build_package
@@ -592,7 +593,7 @@ test_functional_cleanup_azure:
   <<: *test_functional_cleanup_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
   dependencies:
     - test_functional_init_azure
     - test_functional_execute_azure
@@ -611,7 +612,7 @@ test_functional_cleanup_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "eastus2"
   dependencies:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
