@@ -8,7 +8,7 @@
         "url": "git+https://github.com/F5Networks/f5-cloud-failover.git"
     },
     "scripts": {
-        "audit": "npm audit --json > .auditReport.json; node scripts/auditProcessor.js",
+        "audit": "npm audit --production --json > .auditReport.json; node scripts/auditProcessor.js",
         "install-production": "npm install --production --no-optional --unsafe-perm",
         "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
@@ -116,17 +116,11 @@
     },
     "auditProcessor": {
         "whitelist": [
-            "1067300",
-            "1067651",
-            "1068285",
             "1067480",
             "1067560",
-            "1070206",
-            "1070207",
-            "1070443",
-            "1075674",
             "1070440",
-            "1082433"
+            "1082433",
+            "1084901"
         ]
     }
 }

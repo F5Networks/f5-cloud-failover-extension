@@ -558,7 +558,7 @@ To see how to run CFE on GCP when BIG-IP instances have no route to public inter
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5networks/f5-google-gdm-templates/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg" target="_blank">F5 BIG-IP Cloud Failover Extension site on GitHub</a>
 
 .. |gdmtemplate| raw:: html
 
