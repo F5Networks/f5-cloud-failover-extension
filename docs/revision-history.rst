@@ -80,7 +80,7 @@ Document Revision History
         - 01-23-20
 
       * - 1.0
-        - Documentation for the initial release of F5 Cloud Failover Extension
+        - Documentation for the initial release of F5 BIG-IP Cloud Failover Extension
         - 11-22-19
 
 

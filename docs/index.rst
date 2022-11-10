@@ -1,7 +1,7 @@
-F5 Cloud Failover
-=================
+F5 BIG-IP Cloud Failover
+========================
 
-Welcome to the F5 Cloud Failover Extension User Guide.
+Welcome to the F5 BIG-IP Cloud Failover Extension User Guide.
 
 Use the following links, the navigation on the left, and/or the Next and Previous buttons to explore the documentation.
 

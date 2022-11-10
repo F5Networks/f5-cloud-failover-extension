@@ -99,6 +99,8 @@ Create and assign a Managed Service Identity (MSI)
 In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP instances, VNET, route tables, etc. that will be updated. Read more about managed identities |managed-identity|.
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. The following example shows a system-assigned MSI.
 
+.. IMPORTANT:: CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions. You can create a managed identity manually or using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
+
 #. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
    For example:
@@ -156,6 +158,7 @@ Below is an example Azure role definition with permissions required by CFE.
    - This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
    - Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.
    - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
+   - CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
 
 |
 

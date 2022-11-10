@@ -8,7 +8,7 @@ This is the top-level documentation which provides notes and information about c
 ---
 ## Overview
 
-The purpose of the F5 Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP).  This requires moving/updating certain cloud resources during a failover event, as described below.
+The purpose of the F5 BIG-IP Cloud Failover (CF) iControl LX extension is to provide L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP).  This requires moving/updating certain cloud resources during a failover event, as described below.
 
 - Failover IP(s) - Move Azure IP configuration(s) between NICs, update AWS EIP/private IP associations, and move GCP alias IP(s) between instances to point to a virtual address on the active BIG-IP device.
 - Failover Route(s) - Update Azure user-defined Routes (UDR), AWS route tables, and GCP forwarding rule targets to point to a self IP address of the active BIG-IP device.
