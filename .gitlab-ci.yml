@@ -816,7 +816,7 @@ build_postman_collection:
     expire_in: 1 month
 
 build_docs:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: build_docs
   script:
     # generate docs
@@ -967,7 +967,7 @@ pages:
 
 # Publish docs to clouddocs.f5networks.com
 docs to staging:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: publish
   environment:
     name: stage
@@ -995,7 +995,7 @@ docs to staging:
 
 # Publish docs to clouddocs.f5.com
 docs to production:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: publish
   environment:
     name: production
