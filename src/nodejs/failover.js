@@ -69,8 +69,10 @@ class FailoverClient {
                 this.config = data[0];
                 this.proxySettings = data[1];
 
-                logger.debug(`config: ${util.stringify(this.config)}`);
-                logger.silly(`proxySettings: ${util.stringify(this.proxySettings)}`);
+                logger.debug('config: ');
+                logger.debug(this.config);
+                logger.silly('proxySettings: ');
+                logger.silly(this.proxySettings);
 
                 if (!this.config || !this.config.environment) {
                     const errorMessage = 'Environment information has not been provided';
