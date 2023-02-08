@@ -428,7 +428,7 @@ describe('Provider - Azure', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
         provider.networkClients[mockSubscriptionId] = sinon.stub();
         provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.createOrUpdate = sinon.stub()
+        provider.networkClients[mockSubscriptionId].networkInterfaces.beginCreateOrUpdate = sinon.stub()
             .callsFake((group, nicName, nicParams, callback) => {
                 assert.strictEqual(callback(false, 'some_data'), 'some_data');
                 return Promise.resolve();
@@ -453,7 +453,7 @@ describe('Provider - Azure', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
         provider.networkClients[mockSubscriptionId] = sinon.stub();
         provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.createOrUpdate = sinon.stub()
+        provider.networkClients[mockSubscriptionId].networkInterfaces.beginCreateOrUpdate = sinon.stub()
             .callsFake((group, nicName, nicParams, callback) => {
                 assert.strictEqual(callback(true, 'some_data'), 'some_data');
                 return Promise.resolve();
@@ -716,6 +716,7 @@ describe('Provider - Azure', () => {
 
         beforeEach(() => {
             provider._getInstanceMetadata = sinon.stub().resolves(mockMetadata);
+            provider._getRouteTableByName = sinon.stub().resolves();
             provider._listStorageAccounts = sinon.stub().resolves([
                 {
                     name: 'foo',
@@ -1369,6 +1370,7 @@ describe('Provider - Azure', () => {
         };
         it('should reassociate addresses to different NICs via disassociate and then associate', () => {
             sinon.stub(provider, '_updateNic').resolves();
+            sinon.stub(provider, '_getNetworkInterfaceByName').resolves();
             return provider._reassociateAddresses(operators)
                 .then(() => {
                     // succeeds when promise gets resolved
@@ -1765,7 +1767,7 @@ describe('Provider - Azure', () => {
         });
     });
 
-    describe('function _getNetworkInterfaces', () => {
+    describe('function _getNetworkInterfaceByName', () => {
         const nic01 = {
             id: 'test-nic01',
             name: 'nic01',
@@ -1800,7 +1802,7 @@ describe('Provider - Azure', () => {
                 })
                 .catch((err) => Promise.reject(err));
         });
-        it('should validate provided network interface name was not found', () => {
+        it('should reject when provided network interface name was not found', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
             provider.networkClients[mockSubscriptionId] = sinon.stub();
             provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
@@ -1808,23 +1810,58 @@ describe('Provider - Azure', () => {
                 name: 'not-match'
             });
             return provider._getNetworkInterfaceByName('nicName')
-                .then((response) => {
-                    assert.strictEqual(response, undefined);
-                })
-                .catch((err) => Promise.reject(err));
-        });
-        it('should _getNetworkInterfaceByName with promise rejection', () => {
-            provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().rejects();
-            return provider._getNetworkInterfaceByName('nicName')
                 .then(() => {
-                    // fails when promise is resolved
                     assert.fail();
                 })
                 .catch(() => {
-                    // succeeds when error recieved
+                    assert.ok(true);
+                });
+        });
+        it('should reject when provided network interface state was not Succeeded', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
+            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves({
+                provisioningState: 'Updating'
+            });
+            return provider._getNetworkInterfaceByName('nicName')
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
+                    assert.ok(true);
+                });
+        });
+    });
+
+    describe('function _getRouteTableByName', () => {
+        it('should reject when provided network interface name was not found', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].routeTables = sinon.stub();
+            provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
+                name: 'not-match'
+            });
+            return provider._getRouteTableByName('rg01', 'rt01')
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
+                    assert.ok(true);
+                });
+        });
+        it('should reject when provided network interface state was not Succeeded', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.networkClients[mockSubscriptionId] = sinon.stub();
+            provider.networkClients[mockSubscriptionId].routeTables = sinon.stub();
+            provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
+                provisioningState: 'Updating'
+            });
+            return provider._getRouteTableByName('rg01', 'rt01')
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
                     assert.ok(true);
                 });
         });
@@ -1872,6 +1909,9 @@ describe('Provider - Azure', () => {
             provider._updateNic = sinon.stub();
             provider._updateNic.onCall(0).resolves();
             provider._updateNic.onCall(1).resolves();
+            provider._getNetworkInterfaceByName = sinon.stub();
+            provider._getNetworkInterfaceByName.onCall(0).resolves();
+            provider._getNetworkInterfaceByName.onCall(1).resolves();
             return provider._reassociatePublicIpAddresses(publicIpAddresses)
                 .then(() => {
                     assert.ok(true);
