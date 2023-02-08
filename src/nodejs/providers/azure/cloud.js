@@ -33,6 +33,9 @@ const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSE
 
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
+const NIC_MAX_RETRIES = 60;
+const NIC_RETRY_INTERVAL = 5000;
+
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
@@ -631,7 +634,7 @@ class Cloud extends AbstractCloud {
             ((resolve, reject) => {
                 this.logger.debug(action, 'IP configurations on nic name:', nicName);
                 this.logger.silly('Updating Network Interfaces');
-                this.networkClients[this.primarySubscriptionId].networkInterfaces.createOrUpdate(
+                this.networkClients[this.primarySubscriptionId].networkInterfaces.beginCreateOrUpdate(
                     resourceGroup,
                     nicName,
                     nicParams,
@@ -759,6 +762,8 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}         - Resolves when all addresses are reassociated or rejects if an error occurs
      */
     _reassociateAddresses(operations) {
+        /* eslint-disable max-len */
+        /* eslint-disable quotes */
         operations = operations || {};
         const disassociate = operations.disassociate || [];
         const associate = operations.associate || [];
@@ -771,19 +776,37 @@ class Cloud extends AbstractCloud {
 
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(this._retrier(this._updateNic, item));
+            disassociatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
         });
 
         return Promise.all(disassociatePromises)
+            .then(() => {
+                const disassociateNicStatusPromises = [];
+                disassociate.forEach((item) => {
+                    const disassociateNicName = item["1"];
+                    disassociateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [disassociateNicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                });
+
+                return Promise.all(disassociateNicStatusPromises);
+            })
             .then(() => {
                 this.logger.info('Disassociate NICs successful.');
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(this._retrier(this._updateNic, item));
+                    associatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
                 });
 
                 return Promise.all(associatePromises);
+            })
+            .then(() => {
+                const associateNicStatusPromises = [];
+                associate.forEach((item) => {
+                    const associateNicName = item["1"];
+                    associateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [associateNicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                });
+
+                return Promise.all(associateNicStatusPromises);
             })
             .then(() => {
                 this.logger.info('Associate NICs successful.');
@@ -983,9 +1006,19 @@ class Cloud extends AbstractCloud {
 
         const operationsPromises = [];
         operations.forEach((item) => {
-            operationsPromises.push(this._retrier(this._updateRoute, item));
+            operationsPromises.push(this._retrier(this._updateRoute, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
         });
         return Promise.all(operationsPromises)
+            .then(() => {
+                const operationsStatusPromises = [];
+                operations.forEach((item) => {
+                    const routeTableGroup = item["0"];
+                    const routeTableName = item["1"];
+                    operationsStatusPromises.push(this._retrier(this._getRouteTableByName, [routeTableGroup, routeTableName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                });
+
+                return Promise.all(operationsStatusPromises);
+            })
             .then(() => {
                 this.logger.info('Update routes successful.');
             })
@@ -1197,24 +1230,52 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Gets network interface resource - given a network interface name
+     * Gets network interface resource provisioning state - given a network interface name
      *
      * @param {String} networkInterfaceName - name of network interface
      *
-     * @returns {Promise}                   - A Promise that will be resolved with the API response
+     * @returns {Promise}                   - A Promise that will be resolved when the provisioning state is Succeeded
      */
     _getNetworkInterfaceByName(networkInterfaceName) {
+        this.logger.silly(`Checking provisioning state of NIC: ${networkInterfaceName}`);
         return this.networkClients[this.primarySubscriptionId].networkInterfaces.get(
             this.resourceGroup, networkInterfaceName
         )
             .then((response) => {
+                this.logger.silly(`Provisioning state of NIC ${networkInterfaceName}: ${response.provisioningState}`);
                 if (response.name.match(networkInterfaceName) && response.provisioningState.match('Succeeded')) {
                     return Promise.resolve(response);
                 }
-                return Promise.resolve();
+                return Promise.reject(new Error(`NIC ${networkInterfaceName} is not ready yet`));
             })
             .catch((err) => {
                 this.logger.silly(`Get network interface by name error. ${err}`);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Gets route table resource provisioning state - given a route table name
+     *
+     * @param {String} routeTableGroup      - name of route table resource group
+     * @param {String} routeTableName       - name of route table
+     *
+     * @returns {Promise}                   - A Promise that will be resolved when the provisioning state is Succeeded
+     */
+    _getRouteTableByName(routeTableGroup, routeTableName) {
+        this.logger.silly(`Checking provisioning state of route table: ${routeTableName}`);
+        return this.networkClients[this.primarySubscriptionId].routeTables.get(
+            routeTableGroup, routeTableName
+        )
+            .then((response) => {
+                this.logger.silly(`Provisioning state of route table ${routeTableName}: ${response.provisioningState}`);
+                if (response.name.match(routeTableName) && response.provisioningState.match('Succeeded')) {
+                    return Promise.resolve(response);
+                }
+                return Promise.reject(new Error(`Route table ${routeTableName} is not ready yet`));
+            })
+            .catch((err) => {
+                this.logger.silly(`Get route table by name error. ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1264,15 +1325,29 @@ class Cloud extends AbstractCloud {
             processedNics.target[targetNic.name] = targetNic;
         });
         Object.keys(processedNics.current).forEach((nicName) => {
-            currentPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.current[nicName], 'Disassociate']));
+            currentPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.current[nicName], 'Disassociate'], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
         });
         return Promise.all(currentPromises)
             .then(() => {
+                const currentStatusPromises = [];
+                Object.keys(processedNics.current).forEach((nicName) => {
+                    currentStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                });
+                return Promise.all(currentStatusPromises);
+            })
+            .then(() => {
                 this.logger.info('Public IP Addresses were dissassociated from current nic.');
                 Object.keys(processedNics.target).forEach((nicName) => {
-                    targetPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.target[nicName], 'Associate']));
+                    targetPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.target[nicName], 'Associate'], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
                 });
                 return Promise.all(targetPromises);
+            })
+            .then(() => {
+                const targetStatusPromises = [];
+                Object.keys(processedNics.current).forEach((nicName) => {
+                    targetStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                });
+                return Promise.all(targetStatusPromises);
             })
             .then(() => {
                 this.logger.info('Public IP Addresses were associated with target nic.');

@@ -162,7 +162,7 @@ build_package:
     - pip install --upgrade pip
     - apk add npm
     - pip install -r deployment-tool/dependencies/requirements.txt
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
   tags:
     - cm-official-docker-executor
   only:
@@ -571,7 +571,7 @@ test_functional_execute_gcp_no_forwarding:
     # copying artifacts inherited from functional_test_init target to root directory
     - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
     # teardown environment
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
   tags:
     - cm-official-docker-executor
   only:
