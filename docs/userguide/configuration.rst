@@ -492,8 +492,6 @@ Endpoints
 
 - `declare <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration>`_: user this endpoint to configure CFE
 
-- `declare <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration>`_: user this endpoint to configure CFE.
-
 - `info <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information>`_: use this endpoint to get information on CFE, such as the version number.
 
 - `inspect <https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get>`_: use this endpoint to list associated cloud objects.

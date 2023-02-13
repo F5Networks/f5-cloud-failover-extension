@@ -54,7 +54,7 @@ variables:
 # supplements the native pre-receive push rules built into GitLab for secrets
 # note: .gitallowed is used for exceptions
 check_content:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
   stage: check_content
   script:
     # install git-secrets
@@ -107,10 +107,6 @@ test_audit:
 # job must be called coverage
 coverage:
   stage: test
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME == "docs_production"
-      - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - apt-get update && apt-get install -y jq && npm install
     # unit tests + coverage report
@@ -122,9 +118,16 @@ coverage:
     paths:
       - coverage
     expire_in: 1 month
+  only:
+    - develop
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $PUBLISH_RPM_DEVELOP == "true"
+  when: manual
 
 build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
   stage: build_package
   except:
     variables:
@@ -132,9 +135,9 @@ build_package:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - echo 'CI BUILD'
-    # install packages: jq
+    # install packages: rpm jq
     - apt-get update
-    - apt-get install -y jq
+    - apt-get install -y rpm jq
     # build RPM, handles dependency installation, etc.
     - bash ./scripts/build_rpm.sh
   tags:
@@ -876,11 +879,11 @@ pages:
     expire_in: 1 month
   only:
     - develop
-    - docs_staging
   except:
     variables:
       - $RUN_FUNCTIONAL_TESTS == "true"
       - $PUBLISH_RPM_DEVELOP == "true"
+  when: manual
 
 # Publish docs to clouddocs.f5networks.com
 docs to staging:

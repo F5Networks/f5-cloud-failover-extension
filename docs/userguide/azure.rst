@@ -165,8 +165,8 @@ Below is an example Azure role definition with permissions required by CFE.
 
 .. _azure-define-objects:
 
-Define your Azure Network Infrastructure Objects
-------------------------------------------------
+Define your Azure Infrastructure Objects
+----------------------------------------
 
 Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
@@ -196,7 +196,7 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
    |
 
 
-   Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+   Alternatively, if you are using the Discovery via Tag option, tag the Azure Storage Account with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
 
    .. code-block:: json
 

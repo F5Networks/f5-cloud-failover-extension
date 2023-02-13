@@ -150,8 +150,8 @@ In order to successfully implement CFE in GCP, you need to have a GCP Identity a
 
 .. _gcp-define-objects:
 
-Define your Google Cloud Network Infrastructure Objects
--------------------------------------------------------
+Define your Google Cloud Infrastructure Objects
+-----------------------------------------------
 
 Define your infrastructure with the the keys and values that you will send in your CFE declaration. 
 
@@ -164,8 +164,8 @@ Define your infrastructure with the the keys and values that you will send in yo
 
 .. _gcp-define-storage:
 
-Define the Storage Account in GCP
-`````````````````````````````````
+Define Remote Storage for State File in GCP
+```````````````````````````````````````````
 
 1. Create a `storage bucket in GCP <https://cloud.google.com/storage/docs/creating-buckets>`_ for Cloud Failover Extension cluster-wide file(s).
 
