@@ -751,6 +751,9 @@ publish_dev_to_artifactory:
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "develop"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   tags:
     - cm-official-docker-executor
   script:
@@ -775,6 +778,9 @@ publish_release_to_artifactory:
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "master"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   tags:
     - cm-official-docker-executor
   script:
