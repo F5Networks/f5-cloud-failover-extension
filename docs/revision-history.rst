@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 2.2.6
+        - Updated documentation to more clearly label remote storage and to correct the steps for assigning an IAM Role in AWS.
+        - 02-03-23
+
       * - 2.2.5
         - Fixed issue where failover does not correctly check traffic group status in recovery mode.
         - 7-26-22

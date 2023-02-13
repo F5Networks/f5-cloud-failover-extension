@@ -410,8 +410,8 @@ Alternatively, for *Actions* that **do** allow resource level permissions, but t
 
 .. _aws-same-az-define-objects:
 
-Define AWS Network Infrastructure Objects
------------------------------------------
+Define AWS Infrastructure Objects
+---------------------------------
 
 Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
@@ -460,8 +460,8 @@ Tag the Network Interfaces in AWS:
 
 .. _aws-same-az-define-storage:
 
-Define the Storage Account in AWS
-`````````````````````````````````
+Define Remote Storage for State File in AWS
+```````````````````````````````````````````
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
   
