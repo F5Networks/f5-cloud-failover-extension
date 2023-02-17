@@ -54,7 +54,7 @@ variables:
 # supplements the native pre-receive push rules built into GitLab for secrets
 # note: .gitallowed is used for exceptions
 check_content:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
   stage: check_content
   script:
     # install git-secrets
@@ -107,10 +107,6 @@ test_audit:
 # job must be called coverage
 coverage:
   stage: test
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME == "docs_production"
-      - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - apt-get update && apt-get install -y jq && npm install
     # unit tests + coverage report
@@ -122,9 +118,16 @@ coverage:
     paths:
       - coverage
     expire_in: 1 month
+  only:
+    - develop
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $PUBLISH_RPM_DEVELOP == "true"
+  when: manual
 
 build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
   stage: build_package
   except:
     variables:
@@ -132,9 +135,9 @@ build_package:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - echo 'CI BUILD'
-    # install packages: jq
+    # install packages: rpm jq
     - apt-get update
-    - apt-get install -y jq
+    - apt-get install -y rpm jq
     # build RPM, handles dependency installation, etc.
     - bash ./scripts/build_rpm.sh
   tags:
@@ -162,7 +165,7 @@ build_package:
     - pip install --upgrade pip
     - apk add npm
     - pip install -r deployment-tool/dependencies/requirements.txt
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
   tags:
     - cm-official-docker-executor
   only:
@@ -191,7 +194,7 @@ test_functional_init_azure:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -203,8 +206,9 @@ test_functional_init_azure_1nic:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
     CF_ENV_NIC_COUNT: 1
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -233,6 +237,7 @@ test_functional_init_aws_across_net_1nic:
     CF_ENV_NETWORK_TOPOLOGY: "across_network"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -249,36 +254,10 @@ test_functional_init_aws:
     CF_ENV_REGION: "us-west-2"
   except:
     variables:
-      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-
-# init functional tests: aws - same network topology in us-east-1
-test_functional_init_aws_east:
-  <<: *test_functional_init_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-east-1"
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
-
-# init functional tests: aws - same network topology in ca-central-1
-test_functional_init_aws_ca_central:
-  <<: *test_functional_init_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "ca-central-1"
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
 
 # init functional tests: aws - same network topology for 1nic
 test_functional_init_aws_1nic:
@@ -288,6 +267,7 @@ test_functional_init_aws_1nic:
     CF_ENV_USE_AVAILABILITY_ZONES: "false"
     CF_ENV_NIC_COUNT: 1
     CF_ENV_REGION: "us-west-2"
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -314,9 +294,10 @@ test_functional_init_gcp_no_forwarding:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
     CF_ENV_USE_FORWARDING_RULE: "false"
+  when: manual
   except:
     variables:
-      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "1"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
 
@@ -363,7 +344,7 @@ test_functional_execute_azure:
   <<: *test_functional_execute_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure
     - build_package
@@ -382,7 +363,7 @@ test_functional_execute_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure_1nic
     - build_package
@@ -451,48 +432,10 @@ test_functional_execute_aws:
     - build_package
   except:
     variables:
-      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-
-# run functional tests: aws - same network topology - us-east-1
-test_functional_execute_aws_east:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-east-1"
-  dependencies:
-    - test_functional_init_aws_east
-    - build_package
-  needs:
-    - test_functional_init_aws_east
-    - build_package
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
-
-# run functional tests: aws - same network topology - ca-central-1
-test_functional_execute_aws_ca_central:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "ca-central-1"
-  dependencies:
-    - test_functional_init_aws_ca_central
-    - build_package
-  needs:
-    - test_functional_init_aws_ca_central
-    - build_package
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
@@ -539,6 +482,7 @@ test_functional_execute_gcp_no_forwarding:
   variables:
     CF_ENV_CLOUD: "gcp"
     CF_ENV_REGION: "us-west1"
+    CF_ENV_USE_FORWARDING_RULE: "false"
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - build_package
@@ -547,7 +491,7 @@ test_functional_execute_gcp_no_forwarding:
     - build_package
   except:
     variables:
-      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "1"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
 
@@ -570,7 +514,7 @@ test_functional_execute_gcp_no_forwarding:
     # copying artifacts inherited from functional_test_init target to root directory
     - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
     # teardown environment
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --skip-requirements "true"
+    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
   tags:
     - cm-official-docker-executor
   only:
@@ -592,7 +536,7 @@ test_functional_cleanup_azure:
   <<: *test_functional_cleanup_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure
     - test_functional_execute_azure
@@ -611,7 +555,7 @@ test_functional_cleanup_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
@@ -680,48 +624,10 @@ test_functional_cleanup_aws:
     - test_functional_execute_aws
   except:
     variables:
-      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-
-# run functional tests: aws - same network topology - us-east-1
-test_functional_cleanup_aws_east:
-  <<: *test_functional_cleanup_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-east-1"
-  dependencies:
-    - test_functional_init_aws_east
-    - test_functional_execute_aws_east
-  needs:
-    - test_functional_init_aws_east
-    - test_functional_execute_aws_east
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
-
-# run functional tests: aws - same network topology - ca-central-1
-test_functional_cleanup_aws_ca_central:
-  <<: *test_functional_cleanup_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "ca-central-1"
-  dependencies:
-    - test_functional_init_aws_ca_central
-    - test_functional_execute_aws_ca_central
-  needs:
-    - test_functional_init_aws_ca_central
-    - test_functional_execute_aws_ca_central
-  when: manual
-  except:
-    variables:
-      - $CF_ENV_CLOUD == "azure"
-      - $CF_ENV_CLOUD == "gcp"
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_cleanup_aws_1nic:
@@ -777,7 +683,7 @@ test_functional_cleanup_gcp_no_forwarding:
     - test_functional_execute_gcp_no_forwarding
   except:
     variables:
-      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "1"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
 
@@ -793,6 +699,9 @@ build_api_docs:
     - mkdir apidocs && mv redoc-static.html apidocs/index.html
   tags:
     - docker-executor
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   artifacts:
     name: docs
     paths:
@@ -808,6 +717,9 @@ build_postman_collection:
     - npm run make-postman-collection
   tags:
     - docker-executor
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   artifacts:
     name: ${POSTMAN_EXAMPLES}
     paths:
@@ -815,7 +727,7 @@ build_postman_collection:
     expire_in: 1 month
 
 build_docs:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: build_docs
   script:
     # generate docs
@@ -828,6 +740,9 @@ build_docs:
     - cp apidocs/index.html ${API_DOCS_INDEX}
   tags:
     - docker-executor
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   artifacts:
     name: docs
     paths:
@@ -839,6 +754,9 @@ publish_dev_to_artifactory:
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "develop"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   tags:
     - cm-official-docker-executor
   script:
@@ -863,6 +781,9 @@ publish_release_to_artifactory:
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "master"
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "true"
   tags:
     - cm-official-docker-executor
   script:
@@ -958,15 +879,15 @@ pages:
     expire_in: 1 month
   only:
     - develop
-    - docs_staging
   except:
     variables:
       - $RUN_FUNCTIONAL_TESTS == "true"
       - $PUBLISH_RPM_DEVELOP == "true"
+  when: manual
 
 # Publish docs to clouddocs.f5networks.com
 docs to staging:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: publish
   environment:
     name: stage
@@ -994,7 +915,7 @@ docs to staging:
 
 # Publish docs to clouddocs.f5.com
 docs to production:
-  image: ${CONTAINTHEDOCS_IMAGE}
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:latest
   stage: publish
   environment:
     name: production

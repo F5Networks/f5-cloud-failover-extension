@@ -129,7 +129,7 @@ Here is a simple example declaration for AWS. NOTE: This example declaration req
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">F5 BIG-IP Cloud Failover Extension site on GitHub</a>
 
    
 .. |known-issues| raw:: html

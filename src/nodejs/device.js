@@ -216,7 +216,8 @@ class Device {
                         break;
                     }
                 });
-                logger.silly(`Fetched proxy settings: ${util.stringify(settings)}`);
+                logger.silly('Fetched proxy settings: ');
+                logger.silly(settings);
                 return Promise.resolve(settings);
             })
             .catch((err) => Promise.reject(err));

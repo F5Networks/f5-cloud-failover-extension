@@ -1,4 +1,4 @@
-# f5-cloud-failover
+# F5 BIG-IP Cloud Failover extension for AWS, Azure, and GCP
 [![Releases](https://img.shields.io/github/release/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/releases)
 [![Issues](https://img.shields.io/github/issues/f5networks/f5-cloud-failover-extension.svg)](https://github.com/f5networks/f5-cloud-failover-extension/issues)
 
@@ -8,7 +8,7 @@
 
 ## Introduction
 
-The F5 Cloud Failover Extension (CF) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). Cloud Failover uses a declarative model, meaning you provide a JSON declaration using a single REST API call. The declaration represents the configuration that Cloud Failover is responsible for creating on a BIG-IP system.
+The F5 BIG-IP Cloud Failover Extension (CFE) for AWS, Azure, and GCP is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). Cloud Failover uses a declarative model, meaning you provide a JSON declaration using a single REST API call. The declaration represents the configuration that Cloud Failover is responsible for creating on a BIG-IP system.
 
 ### How does it work?
 
