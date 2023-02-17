@@ -127,7 +127,7 @@ coverage:
   when: manual
 
 build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
   stage: build_package
   except:
     variables:
@@ -135,9 +135,9 @@ build_package:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - echo 'CI BUILD'
-    # install packages: rpm jq
+    # install packages: jq
     - apt-get update
-    - apt-get install -y rpm jq
+    - apt-get install -y jq
     # build RPM, handles dependency installation, etc.
     - bash ./scripts/build_rpm.sh
   tags:
