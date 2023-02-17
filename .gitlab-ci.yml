@@ -127,7 +127,7 @@ coverage:
   when: manual
 
 build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
   stage: build_package
   except:
     variables:
@@ -135,9 +135,9 @@ build_package:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - echo 'CI BUILD'
-    # install packages: rpm jq
+    # install packages: jq
     - apt-get update
-    - apt-get install -y rpm jq
+    - apt-get install -y jq
     # build RPM, handles dependency installation, etc.
     - bash ./scripts/build_rpm.sh
   tags:
@@ -194,7 +194,7 @@ test_functional_init_azure:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -206,7 +206,7 @@ test_functional_init_azure_1nic:
   <<: *test_functional_init_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
     CF_ENV_NIC_COUNT: 1
   when: manual
   except:
@@ -344,7 +344,7 @@ test_functional_execute_azure:
   <<: *test_functional_execute_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure
     - build_package
@@ -363,7 +363,7 @@ test_functional_execute_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure_1nic
     - build_package
@@ -536,7 +536,7 @@ test_functional_cleanup_azure:
   <<: *test_functional_cleanup_generic
   variables:
     CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure
     - test_functional_execute_azure
@@ -555,7 +555,7 @@ test_functional_cleanup_azure_1nic:
   variables:
     CF_ENV_CLOUD: "azure"
     CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "eastus2"
+    CF_ENV_REGION: "westus2"
   dependencies:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic

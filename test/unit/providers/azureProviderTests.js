@@ -653,6 +653,7 @@ describe('Provider - Azure', () => {
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                     name: 'rt01',
                     provisioningState: 'Succeeded',
+                    etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
@@ -663,14 +664,18 @@ describe('Provider - Azure', () => {
                             name: 'route01',
                             addressPrefix: '192.0.0.0/24',
                             nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.10'
+                            nextHopIpAddress: '10.0.1.10',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
                         },
                         {
                             id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
                             name: 'route03',
                             addressPrefix: 'ace:cab:deca:defe::/64',
                             nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: 'ace:cab:deca:deee::4'
+                            nextHopIpAddress: 'ace:cab:deca:deee::4',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
                         }
                     ]
                 },
@@ -678,6 +683,7 @@ describe('Provider - Azure', () => {
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt02`,
                     name: 'rt02',
                     provisioningState: 'Succeeded',
+                    etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.12,10.0.1.13'
@@ -688,7 +694,9 @@ describe('Provider - Azure', () => {
                             name: 'route02',
                             addressPrefix: '192.0.1.0/24',
                             nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.12'
+                            nextHopIpAddress: '10.0.1.12',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
                         }]
                 }
             ],
@@ -753,7 +761,7 @@ describe('Provider - Azure', () => {
                             null, JSON.parse(JSON.stringify(routeTablesBySubscription[key]))
                         );
                         provider.networkClients[key].routes = sinon.stub();
-                        provider.networkClients[key].routes.beginCreateOrUpdate = sinon.stub().yields(
+                        provider.networkClients[key].routeTables.beginCreateOrUpdate = sinon.stub().yields(
                             null, []
                         );
                     });
@@ -767,30 +775,78 @@ describe('Provider - Azure', () => {
                 .catch((err) => Promise.reject(err));
         });
 
-        it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({ localAddresses, discoverOnly: true })
-            .then((operations) => provider.updateRoutes({ updateOperations: operations }))
-            .then(() => {
-                const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
-            })
-            .catch((err) => Promise.reject(err)));
-
-        it('update routes using next hop discovery method: static', () => {
-            provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
-                type: 'static',
-                items: ['10.0.1.10', '10.0.1.11']
-            };
+        it('update routes using next hop discovery method: routeTag', () => {
+            sinon.stub(provider, '_getRouteTableConfig').resolves({
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                etag: 'foo',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    },
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                        name: 'route03',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    }
+                ]
+            });
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update multiple routes using next hop discovery method: static', () => {
+            sinon.stub(provider, '_getRouteTableConfig').resolves({
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                etag: 'foo',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    },
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                        name: 'route03',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    }
+                ]
+            });
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['192.0.1.0/24'],
                 routeNextHopAddresses: {
@@ -802,14 +858,44 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
-                    assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::4');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update IPv6 routes using next hop discovery method: static', () => {
+            sinon.stub(provider, '_getRouteTableConfig').resolves({
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                etag: 'foo',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    },
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                        name: 'route03',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    }
+                ]
+            });
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['ace:cab:deca:defe::/64'],
                 routeNextHopAddresses: {
@@ -821,8 +907,8 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::5');
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -836,13 +922,67 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
                     assert.strictEqual(routeUpdateSpy.called, false);
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes across multiple subscriptions', () => {
+            sinon.stub(provider, '_getRouteTableConfig')
+                .onFirstCall().resolves({
+                    id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                    name: 'rt01',
+                    provisioningState: 'Succeeded',
+                    etag: 'foo',
+                    tags: {
+                        F5_LABEL: 'foo',
+                        F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                    },
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            addressPrefix: '192.0.0.0/24',
+                            nextHopType: 'VirtualAppliance',
+                            nextHopIpAddress: '10.0.1.10',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            addressPrefix: 'ace:cab:deca:defe::/64',
+                            nextHopType: 'VirtualAppliance',
+                            nextHopIpAddress: 'ace:cab:deca:deee::4',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
+                        }
+                    ]
+                })
+                .onSecondCall()
+                .resolves({
+                    id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/rt03`,
+                    name: 'rt03',
+                    provisioningState: 'Succeeded',
+                    etag: 'foo',
+                    tags: {
+                        F5_LABEL: 'foo',
+                        F5_SELF_IPS: '10.0.1.12,10.0.1.13'
+                    },
+                    routes: [
+                        {
+                            id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/route01`,
+                            name: 'route01',
+                            addressPrefix: '192.0.10.0/24',
+                            nextHopType: 'VirtualAppliance',
+                            nextHopIpAddress: '10.0.1.12',
+                            provisioningState: 'Succeeded',
+                            etag: 'foo'
+                        }
+                    ]
+                });
+
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['192.0.10.0/24'],
                 routeNextHopAddresses: {
@@ -854,16 +994,46 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    let routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    let routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
 
-                    routeUpdateSpy = provider.networkClients[secondarySubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    routeUpdateSpy = provider.networkClients[secondarySubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions', () => {
+            sinon.stub(provider, '_getRouteTableConfig').resolves({
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                etag: 'foo',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    },
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                        name: 'route03',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    }
+                ]
+            });
             provider.routeGroupDefinitions = [
                 {
                     routeTags: { F5_LABEL: 'foo' },
@@ -906,15 +1076,44 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
-                    assert.strictEqual(routeUpdateSpy.args[1][3].nextHopIpAddress, '10.0.1.11');
-                    assert.strictEqual(routeUpdateSpy.args[2][3].nextHopIpAddress, 'ace:cab:deca:deee::5');
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::5');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name', () => {
+            sinon.stub(provider, '_getRouteTableConfig').resolves({
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                provisioningState: 'Succeeded',
+                etag: 'foo',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
+                },
+                routes: [
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '10.0.1.10',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    },
+                    {
+                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                        name: 'route03',
+                        addressPrefix: 'ace:cab:deca:defe::/64',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: 'ace:cab:deca:deee::4',
+                        provisioningState: 'Succeeded',
+                        etag: 'foo'
+                    }
+                ]
+            });
             provider.routeGroupDefinitions = [
                 {
                     routeName: 'rt01',
@@ -933,8 +1132,8 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routes.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][3].nextHopIpAddress, '10.0.1.11');
+                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
+                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -1842,7 +2041,9 @@ describe('Provider - Azure', () => {
             provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
                 name: 'not-match'
             });
-            return provider._getRouteTableByName('rg01', 'rt01')
+            provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+
+            return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
                 .then(() => {
                     assert.fail();
                 })
@@ -1857,7 +2058,9 @@ describe('Provider - Azure', () => {
             provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
                 provisioningState: 'Updating'
             });
-            return provider._getRouteTableByName('rg01', 'rt01')
+            provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+
+            return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
                 .then(() => {
                     assert.fail();
                 })
