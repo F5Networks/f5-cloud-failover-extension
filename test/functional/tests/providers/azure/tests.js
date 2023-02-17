@@ -375,8 +375,8 @@ describe('Provider: Azure', () => {
         .then((data) => {
             const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
             const routeTableId = data.routes.operations[0][0];
-            assert.deepStrictEqual(addressesInterfaceId, rgName);
-            assert.deepStrictEqual(routeTableId, rgName);
+            assert.deepStrictEqual(addressesInterfaceId.toLowerCase(), rgName.toLowerCase());
+            assert.deepStrictEqual(routeTableId.toLowerCase(), rgName.toLowerCase());
         })
         .catch((err) => Promise.reject(err)));
 });

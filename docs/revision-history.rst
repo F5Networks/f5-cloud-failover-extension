@@ -11,6 +11,12 @@ Document Revision History
         - Description
         - Date
 
+      * - 2.2.6
+        - Improved performance of Azure failover provider.
+        - Fixed issue with logging of proxy server settings.
+        - Updated the documentation for Cloud Failover Extension v1.14.0 with the following changes: |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.
+        - 02-17-23
+
       * - 2.2.5
         - Fixed issue where failover does not correctly check traffic group status in recovery mode.
         - 7-26-22
@@ -80,7 +86,7 @@ Document Revision History
         - 01-23-20
 
       * - 1.0
-        - Documentation for the initial release of F5 Cloud Failover Extension
+        - Documentation for the initial release of F5 BIG-IP Cloud Failover Extension
         - 11-22-19
 
 

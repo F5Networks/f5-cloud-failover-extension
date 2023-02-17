@@ -150,11 +150,11 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    |
 
-2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Instance Settings > Attach/Replace IAM Role**.
+2. Assign an IAM role to each instance by navigating to **Actions > Security > Modify IAM Role**.
 
    For example:
 
-   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance.png
+   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance2.png
 
 |
 
@@ -402,8 +402,8 @@ Alternatively, for *Actions* that **do** allow resource level permissions, but t
 
 .. _aws-define-objects:
 
-Define AWS Network Infrastructure Objects
------------------------------------------
+Define AWS Infrastructure Objects
+---------------------------------
 
 Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.
 
@@ -440,8 +440,8 @@ Tag the Network Interfaces in AWS:
 
 .. _aws-define-storage:
 
-Define the Storage Account in AWS
-`````````````````````````````````
+Define Remote Storage for State File in AWS
+```````````````````````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
    - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.

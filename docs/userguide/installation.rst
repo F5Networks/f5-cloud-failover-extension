@@ -135,7 +135,7 @@ When F5 releases a new version of Cloud Failover Extension, use the same procedu
 
 .. |github| raw:: html
 
-   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 Cloud Failover Extension site on GitHub</a>
+   <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 BIG-IP Cloud Failover Extension site on GitHub</a>
 
 .. |release| raw:: html
 

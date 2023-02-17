@@ -33,4 +33,4 @@ rm -rf rpmbuild/
 echo "RPM FILE ${FINALBUILDDIR}/${FN}"
 
 # reinstall all dependencies
-npm install
+npm install --unsafe-perm

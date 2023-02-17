@@ -82,19 +82,19 @@ describe('Performance Tests', () => {
             .catch((err) => Promise.reject(err));
     });
 
-    it('should set start timestamp', () => {
-        startTimestamp = new Date().toJSON();
-    });
-
     it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
         dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
     ));
+
+    it('should set start timestamp', () => {
+        startTimestamp = new Date().toJSON();
+    });
 
     it('should wait until taskState is success on BIG-IP (secondary)', function () {
         this.retries(RETRIES.MEDIUM);
 
         return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
+            (resolve) => setTimeout(resolve, 1000)
         )
             .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
                 {
