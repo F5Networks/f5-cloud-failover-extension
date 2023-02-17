@@ -12,8 +12,10 @@ Document Revision History
         - Date
 
       * - 2.2.6
-        - Updated documentation to more clearly label remote storage and to correct the steps for assigning an IAM Role in AWS.
-        - 02-03-23
+        - Improved performance of Azure failover provider.
+        - Fixed issue with logging of proxy server settings.
+        - Updated the documentation for Cloud Failover Extension v1.14.0 with the following changes: |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.
+        - 02-17-23
 
       * - 2.2.5
         - Fixed issue where failover does not correctly check traffic group status in recovery mode.

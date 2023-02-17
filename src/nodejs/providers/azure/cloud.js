@@ -33,8 +33,8 @@ const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSE
 
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
-const NIC_MAX_RETRIES = 60;
-const NIC_RETRY_INTERVAL = 5000;
+const NETWORK_MAX_RETRIES = 60;
+const NETWORK_RETRY_INTERVAL = 5000;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
@@ -776,7 +776,7 @@ class Cloud extends AbstractCloud {
 
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+            disassociatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
         });
 
         return Promise.all(disassociatePromises)
@@ -784,7 +784,7 @@ class Cloud extends AbstractCloud {
                 const disassociateNicStatusPromises = [];
                 disassociate.forEach((item) => {
                     const disassociateNicName = item["1"];
-                    disassociateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [disassociateNicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    disassociateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [disassociateNicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
 
                 return Promise.all(disassociateNicStatusPromises);
@@ -794,7 +794,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    associatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
 
                 return Promise.all(associatePromises);
@@ -803,7 +803,7 @@ class Cloud extends AbstractCloud {
                 const associateNicStatusPromises = [];
                 associate.forEach((item) => {
                     const associateNicName = item["1"];
-                    associateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [associateNicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    associateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [associateNicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
 
                 return Promise.all(associateNicStatusPromises);
@@ -1004,19 +1004,57 @@ class Cloud extends AbstractCloud {
             return Promise.resolve();
         }
 
-        const operationsPromises = [];
+        const routeTableList = [];
+        const routeTableOperationsPromises = [];
         operations.forEach((item) => {
-            operationsPromises.push(this._retrier(this._updateRoute, item, { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+            const name = item["1"];
+            const group = item["0"];
+            const id = item["3"].id.split('/').slice(0, 9).join('/');
+            routeTableList.push({ name, group, id });
         });
-        return Promise.all(operationsPromises)
-            .then(() => {
-                const operationsStatusPromises = [];
-                operations.forEach((item) => {
-                    const routeTableGroup = item["0"];
-                    const routeTableName = item["1"];
-                    operationsStatusPromises.push(this._retrier(this._getRouteTableByName, [routeTableGroup, routeTableName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+        const routeTableListFiltered = routeTableList.filter((item, index, self) => index === self.findIndex((i) => i.name === item.name && i.group === item.group && i.id === item.id));
+        routeTableListFiltered.forEach((item) => {
+            routeTableOperationsPromises.push(this._retrier(this._getRouteTableConfig, [item.group, item.name, item.id], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+        });
+        return Promise.all(routeTableOperationsPromises)
+            .then((routeTableConfigs) => {
+                const operationsPromises = [];
+                const opRoutes = [];
+                Object.keys(operations).forEach((opRoute) => {
+                    opRoutes.push(
+                        {
+                            name: operations[opRoute]["3"].name,
+                            id: operations[opRoute]["3"].id,
+                            addressPrefix: operations[opRoute]["3"].addressPrefix,
+                            nextHopType: operations[opRoute]["3"].nextHopType,
+                            nextHopIpAddress: operations[opRoute]["3"].nextHopIpAddress
+                        }
+                    );
                 });
 
+                routeTableConfigs.forEach((routeTableConfig) => {
+                    const routeTableName = routeTableConfig.name;
+                    const routeTableId = routeTableConfig.id;
+                    const routeTableGroup = routeTableConfig.id.split('/')[4];
+                    Object.keys(routeTableConfig.routes).forEach((oldRoute) => {
+                        Object.keys(opRoutes).forEach((opRoute) => {
+                            if (routeTableConfig.routes[oldRoute].id === opRoutes[opRoute].id) {
+                                this.logger.silly('Updating matching route', routeTableConfig.routes[oldRoute].name, 'to use next hop address', opRoutes[opRoute].nextHopIpAddress);
+                                routeTableConfig.routes[oldRoute].nextHopType = 'VirtualAppliance';
+                                routeTableConfig.routes[oldRoute].nextHopIpAddress = opRoutes[opRoute].nextHopIpAddress;
+                            }
+                        });
+                    });
+
+                    operationsPromises.push(this._retrier(this._updateRouteTable, [routeTableGroup, routeTableName, routeTableConfig, routeTableId], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                });
+                return Promise.all(operationsPromises);
+            })
+            .then(() => {
+                const operationsStatusPromises = [];
+                routeTableListFiltered.forEach((item) => {
+                    operationsStatusPromises.push(this._retrier(this._getRouteTableByName, [item.group, item.name, item.id], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                });
                 return Promise.all(operationsStatusPromises);
             })
             .then(() => {
@@ -1026,23 +1064,21 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Updates specified Azure user defined routes
+    * Updates specified Azure user defined route table
     *
-    * @param {String} routeTableGroup - Name of the route table resource group
-    * @param {String} routeTableName  - Name of the route table
-    * @param {String} routeName       - Name of the route to update
-    * @param {Array} routeOptions     - route options
+    * @param {String} routeTableGroup   - Name of the route table resource group
+    * @param {String} routeTableName    - Name of the route table
+    * @param {Array}  routeTableConfig  - Array of new route configuration
+    * @param {Array}  routeTableId      - Route table ID
     *
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
-    _updateRoute(routeTableGroup, routeTableName, routeName, routeOptions) {
-        this.logger.silly('Updating route table: ', routeTableName, routeName, routeOptions);
+    _updateRouteTable(routeTableGroup, routeTableName, routeTableConfig, routeTableId) {
+        this.logger.silly('Updating route table: ', routeTableName);
 
         return new Promise((resolve, reject) => {
-            this.networkClients[
-                this._parseResourceId(routeOptions.id).subscriptionId
-            ].routes.beginCreateOrUpdate(
-                routeTableGroup, routeTableName, routeName, routeOptions,
+            this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.beginCreateOrUpdate(
+                routeTableGroup, routeTableName, routeTableConfig,
                 (error, data) => {
                     if (error) {
                         reject(error);
@@ -1262,9 +1298,9 @@ class Cloud extends AbstractCloud {
      *
      * @returns {Promise}                   - A Promise that will be resolved when the provisioning state is Succeeded
      */
-    _getRouteTableByName(routeTableGroup, routeTableName) {
+    _getRouteTableByName(routeTableGroup, routeTableName, routeTableId) {
         this.logger.silly(`Checking provisioning state of route table: ${routeTableName}`);
-        return this.networkClients[this.primarySubscriptionId].routeTables.get(
+        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
             routeTableGroup, routeTableName
         )
             .then((response) => {
@@ -1276,6 +1312,29 @@ class Cloud extends AbstractCloud {
             })
             .catch((err) => {
                 this.logger.silly(`Get route table by name error. ${err}`);
+                return Promise.reject(err);
+            });
+    }
+
+    /**
+     * Gets route table resource configuration - given a route table name
+     *
+     * @param {String} routeTableGroup      - name of route table resource group
+     * @param {String} routeTableName       - name of route table
+     *
+     * @returns {Promise}                   - A Promise that will be resolved with the route table configuration
+     */
+    _getRouteTableConfig(routeTableGroup, routeTableName, routeTableId) {
+        this.logger.silly(`Getting config of route table: ${routeTableName}`);
+        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
+            routeTableGroup, routeTableName
+        )
+            .then((response) => {
+                this.logger.silly(`Found existing config for ${routeTableName}:`, response);
+                return Promise.resolve(response);
+            })
+            .catch((err) => {
+                this.logger.silly(`Get route table config error. ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1325,27 +1384,27 @@ class Cloud extends AbstractCloud {
             processedNics.target[targetNic.name] = targetNic;
         });
         Object.keys(processedNics.current).forEach((nicName) => {
-            currentPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.current[nicName], 'Disassociate'], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+            currentPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.current[nicName], 'Disassociate'], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
         });
         return Promise.all(currentPromises)
             .then(() => {
                 const currentStatusPromises = [];
                 Object.keys(processedNics.current).forEach((nicName) => {
-                    currentStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    currentStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
                 return Promise.all(currentStatusPromises);
             })
             .then(() => {
                 this.logger.info('Public IP Addresses were dissassociated from current nic.');
                 Object.keys(processedNics.target).forEach((nicName) => {
-                    targetPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.target[nicName], 'Associate'], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    targetPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.target[nicName], 'Associate'], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
                 return Promise.all(targetPromises);
             })
             .then(() => {
                 const targetStatusPromises = [];
                 Object.keys(processedNics.current).forEach((nicName) => {
-                    targetStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NIC_RETRY_INTERVAL, maxRetries: NIC_MAX_RETRIES }));
+                    targetStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
                 });
                 return Promise.all(targetStatusPromises);
             })
