@@ -146,15 +146,15 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    g. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
-   .. image:: ../images/aws/AWSIAMRoleSummary.png
+   .. image:: ../images/aws/AWSIAMRoleSummary2.png
 
    |
 
-2. Assign an IAM role to each instance by navigating to **Actions > Security > Modify IAM Role**.
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Security > Modify IAM role**.
 
    For example:
 
-   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance2.png
+   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance3.png
 
 |
 
