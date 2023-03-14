@@ -59,7 +59,7 @@ GCP
 Azure
 -----
 
-.. table:: CFE performance with Azure (without Azure Fast Path enabled)
+.. table:: CFE performance with Azure (without Azure FastPath enabled)
 
    ================================ ==================== ==============================================================
    Number of Failover IP addresses  Number of Routes     Time to Successfully Failover All Objects
@@ -79,7 +79,7 @@ Azure
    25 addresses                     100 routes           60 seconds
    ================================ ==================== ==============================================================
 
-.. table:: CFE performance with Azure (with Azure Fast Path enabled)
+.. table:: CFE performance with Azure (with Azure FastPath enabled)
 
    ================================ ==================== ==============================================================
    Number of Failover IP addresses  Number of Routes     Time to Successfully Failover All Objects
