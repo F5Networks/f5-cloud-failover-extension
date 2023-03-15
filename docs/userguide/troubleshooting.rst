@@ -14,7 +14,7 @@ Cloud Failover Extension general troubleshooting tips
 
 - If CFE is installed and configured but not functioning as expected, use your preferred REST client to run these steps on the *Standby* instance. For illustration purposes, the examples below use `curl` on the BIG-IP itself and the utililty `jq` to pretty print the JSON output.
 
-  1. **Enable Debug Logging:** Set CFE configuration :ref:`logging-ref` level to `silly`.
+  1. **Enable Debug Logging:** Set the CFE configuration :ref:`logging-ref` level to `silly`.
 
      - Download the config: 
   
@@ -51,7 +51,6 @@ Cloud Failover Extension general troubleshooting tips
         curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
 
   4. **Review the debug logs.** (``/var/log/restnoded/restnoded.log``).
-
 
 
 |
@@ -129,17 +128,31 @@ F5 is currently tracking this issue (929213). Currently the workaround is that f
 
 |
 
+Recommended shutdown sequence
+`````````````````````````````
+When shutting down both BIG-IP instances, it is important to use the following sequence to avoid loss of configuration:
+
+1. **BIG-IP 2** is Active (and has failover objects).
+2. Shutdown **BIG-IP 1**.
+3. Wait 1 minute.
+4. Shutdown **BIG-IP 2**.
+5. Start **BIG-IP 2**.
+6. Wait 1 minute.
+7. Start **BIG-IP 1**.
+8. **BIG-IP 2** should be Active (should retain failover objects).
+
+
 Failover objects are not mapped to the Active BIG-IP after a cluster reboot
 ```````````````````````````````````````````````````````````````````````````
 After both BIG-IP VMs have been rebooted, sometimes failover objects are not mapped to the Active BIG-IP.
 
-#. BIG-IP 2 is Active (and has failover objects)
-#. Shutdown BIG-IP 1
-#. Shutdown BIG-IP 2
-#. Start BIG-IP 1
-#. Wait 1 minute
-#. Start BIG-IP 2
-#. BIG-IP 1 should be Active (and have failover objects)
+#. **BIG-IP 2** is Active (and has failover objects).
+#. Shutdown **BIG-IP 1**.
+#. Shutdown **BIG-IP 2**.
+#. Start **BIG-IP 1**.
+#. Wait 1 minute.
+#. Start **BIG-IP 2**.
+#. **BIG-IP 1** should be Active (and have failover objects).
 
 Failover under these conditions normally works as long as restnoded comes up before HA status is determined and tgactive is called.
 

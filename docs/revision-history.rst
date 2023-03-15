@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+        * - 2.2.7
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated documentation in :ref:`troubleshooting`.
+        - 03-14-23
+
       * - 2.2.6
         - Updated the documentation for Cloud Failover Extension v1.14.0 with the following changes: |br| • Updated documentation in :ref:`isolated-env`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`. |br| • Updated test results for :ref:`performance-sizing`.
         - 02-17-23
