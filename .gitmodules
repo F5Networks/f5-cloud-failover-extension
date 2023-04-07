@@ -1,4 +1,0 @@
-[submodule "deployment-tool"]
-	path = deployment-tool
-	url = ../deployment-tool.git
-	branch = master
