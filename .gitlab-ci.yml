@@ -1,5 +1,33 @@
 image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:8
 
+variables:
+  GIT_SECRETS_VERSION: "1.3.0"
+  GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
+  ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
+  DOCS_BUILD_DIR: "docs/_build/html"
+  POSTMAN_EXAMPLES: "postman-collection"
+  MONGO_INITDB_ROOT_PASSWORD: root
+  MONGO_INITDB_ROOT_USERNAME: root
+  DT_IMAGE_V2: ${ARTIFACTORY_SERVER}/ecosystems-cloudsolutions-docker-dev/deployment-tool-v2:latest
+  # azure vars - normalize env var options between ansible and terraform
+  AZURE_TENANT: "$AZURE_TENANT_ID"
+  AZURE_SECRET: "$AZURE_CLIENT_SECRET"
+  ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
+  ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
+  ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+  ARM_TENANT_ID: "$AZURE_TENANT_ID"
+  # aws vars
+  AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
+  AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
+  AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
+  # gcp vars
+  GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
+  GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
+  # debug vars
+  F5_SDK_LOG_LEVEL: "INFO"
+  F5_DISABLE_CERT_VERIFY: "true"
+  PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+
 stages:
   - check_content
   - test
@@ -19,36 +47,8 @@ stages:
 
 before_script:
   - *helpers
-
-variables:
-  GIT_SECRETS_VERSION: "1.3.0"
-  GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
-  ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
-  DOCS_BUILD_DIR: "docs/_build/html"
-  POSTMAN_EXAMPLES: "postman-collection"
-  # azure vars - normalize env var options between ansible and terraform
-  AZURE_TENANT: "$AZURE_TENANT_ID"
-  AZURE_SECRET: "$AZURE_CLIENT_SECRET"
-  ARM_CLIENT_ID: "$AZURE_CLIENT_ID"
-  ARM_CLIENT_SECRET: "$AZURE_CLIENT_SECRET"
-  ARM_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
-  ARM_TENANT_ID: "$AZURE_TENANT_ID"
-  # aws vars
-  AWS_ACCESS_KEY_ID: "$AWS_ACCESS_KEY_ID"
-  AWS_SECRET_ACCESS_KEY: "$AWS_SECRET_ACCESS_KEY"
-  AWS_DEFAULT_REGION: "$AWS_DEFAULT_REGION"
-  # gcp vars
-  GOOGLE_CREDENTIALS: "$GOOGLE_CREDENTIALS"
-  GOOGLE_PROJECT_ID: "$GOOGLE_PROJECT_ID"
-  # debug vars
-  F5_SDK_LOG_LEVEL: "INFO"
-  F5_DISABLE_CERT_VERIFY: "true"
-  PYTHONWARNINGS: "ignore:Unverified HTTPS request"
-  # topology var
-  CF_ENV_NETWORK_TOPOLOGY: "same_network"
-  CF_ENV_NIC_COUNT: 3
-  CF_ENV_USE_FORWARDING_RULE: "true"
-  GIT_SUBMODULE_STRATEGY: recursive
+  - mkdir ~/.docker
+  - echo "${DOCKER_AUTH_CONFIG}" > ~/.docker/config.json
 
 # check for disallowed content within any file in source control, this
 # supplements the native pre-receive push rules built into GitLab for secrets
@@ -151,23 +151,19 @@ build_package:
 ### Functional Tests Section
 
 # Functional Tests - Initialization phase (with 1 retries in a case of any failures)
-.test_functional_init_generic: &test_functional_init_generic
+.test-install:
   stage: test_functional_init
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
-  script:
-    # deploy environment - required artifacts will be place in output folder
-    - apk add --update
-    - apk add bash curl jq build-base openssl-dev libffi-dev git
-    - apk add jq openssh-client sshpass python3 python3-dev
-    - ln -sf python3 /usr/bin/python
-    - python -m ensurepip
-    - ln -s pip3 /usr/bin/pip
-    - pip install --upgrade pip
-    - apk add npm
-    - pip install -r deployment-tool/dependencies/requirements.txt
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action create --output-folder env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION} --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
+  image: $DT_IMAGE_V2
+  services:
+    - alias: mongo
+      name: ${ARTIFACTORY_SERVER}/dockerhub-remote/mongo:4.0-xenial
   tags:
-    - cm-official-docker-executor
+    - azure-autoscale-runner
+  script:
+    - export DEPLOYMENT_TOOL_VERSION=latest; curl -L https://cdn.f5.com/product/cloudsolutions/deployment-tool/${DEPLOYMENT_TOOL_VERSION}/install.sh | bash
+    - source ~/.bash_profile
+    - deployment_tool --command create --plan $PLAN --name ci-$CI_JOB_ID --database export --parameters "$PARAMETERS"
+    - echo "ci-$CI_JOB_ID" > ./deployment/name.txt
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "master"
@@ -180,34 +176,31 @@ build_package:
       # run all tests
       - $TESTS_TIER == "all"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
-  except:
-    variables:
-      - $RUN_FUNCTIONAL_TESTS == "false"
   artifacts:
     paths:
-      - env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}
+      - ./deployment
     when: always
     expire_in: 1 month
 
 # init functional tests: azure
 test_functional_init_azure:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus2"
+    PLAN: "azure"
+    PARAMETERS: "location=westus2"
   except:
     variables:
       - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "aws"
       - $CF_ENV_CLOUD == "gcp"
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: azure - 1nic
 test_functional_init_azure_1nic:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus2"
-    CF_ENV_NIC_COUNT: 1
+    PLAN: "azure"
+    PARAMETERS: "nic_count=1 location=westus2"
   when: manual
   except:
     variables:
@@ -215,28 +208,27 @@ test_functional_init_azure_1nic:
       - $CF_ENV_CLOUD == "aws"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: aws - across network topology
 test_functional_init_aws_across_net:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
+    PARAMETERS: "region=us-west-2"
   except:
     variables:
       - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: aws - across network topology for 1nic
 test_functional_init_aws_across_net_1nic:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
+    PARAMETERS: "region=us-west-2 nic_count=1"
   when: manual
   except:
     variables:
@@ -244,29 +236,28 @@ test_functional_init_aws_across_net_1nic:
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: aws - same network topology in us-west-2
 test_functional_init_aws:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
+    PARAMETERS: "region=us-west-2 use_availability_zones=false"
   except:
     variables:
       - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: aws - same network topology for 1nic
 test_functional_init_aws_1nic:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
+    PARAMETERS: "region=us-west-2 use_availability_zones=false nic_count=1"
   when: manual
   except:
     variables:
@@ -274,35 +265,36 @@ test_functional_init_aws_1nic:
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "gcp"
       - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: gcp
 test_functional_init_gcp:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
+    PLAN: "gcp"
+    PARAMETERS: "region=us-west1"
   except:
     variables:
       - $TESTS_TIER == "2"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # init functional tests: gcp no forwarding
 test_functional_init_gcp_no_forwarding:
-  <<: *test_functional_init_generic
+  extends: .test-install
   variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
-    CF_ENV_USE_FORWARDING_RULE: "false"
-  when: manual
+    PLAN: "gcp"
+    PARAMETERS: "region=us-west1 use_forwarding_rule=false"
   except:
     variables:
       - $TESTS_TIER == "1"
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
+      - $RUN_FUNCTIONAL_TESTS == "false"
 
 # Functional Tests - Execute phase (with no retries)
-.test_functional_execute_generic: &test_functional_execute_generic
+.test_functional_execute_generic:
   stage: test_functional_execute
   image: ${ARTIFACTORY_SERVER}/dockerhub-remote/python:3.7
   retry: 1
@@ -314,7 +306,7 @@ test_functional_init_gcp_no_forwarding:
     - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs
     - npm install
     # copying artifacts inherited from functional_test_init target to root directory
-    - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
+    - cp -a deployment/. .
     # executing fuctional test
     - validate npm run functional-test
     # run API smoke tests
@@ -341,10 +333,7 @@ test_functional_init_gcp_no_forwarding:
 
 # run functional tests: azure
 test_functional_execute_azure:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_azure
     - build_package
@@ -359,17 +348,14 @@ test_functional_execute_azure:
 
 # run functional tests: azure 1 nic
 test_functional_execute_azure_1nic:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_azure_1nic
     - build_package
   needs:
     - test_functional_init_azure_1nic
     - build_package
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -379,11 +365,7 @@ test_functional_execute_azure_1nic:
 
 # run functional tests: aws - across network topology
 test_functional_execute_aws_across_net:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_REGION: "us-west-2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_aws_across_net
     - build_package
@@ -398,18 +380,14 @@ test_functional_execute_aws_across_net:
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_execute_aws_across_net_1nic:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_aws_across_net_1nic
     - build_package
   needs:
     - test_functional_init_aws_across_net_1nic
     - build_package
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -419,11 +397,7 @@ test_functional_execute_aws_across_net_1nic:
 
 # run functional tests: aws - same network topology
 test_functional_execute_aws:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-west-2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_aws
     - build_package
@@ -439,18 +413,14 @@ test_functional_execute_aws:
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_execute_aws_1nic:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_aws_1nic
     - build_package
   needs:
     - test_functional_init_aws_1nic
     - build_package
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -460,10 +430,7 @@ test_functional_execute_aws_1nic:
 
 # run functional tests: gcp with forwarding rule
 test_functional_execute_gcp:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_gcp
     - build_package
@@ -478,11 +445,7 @@ test_functional_execute_gcp:
 
 # run functional tests: gcp without forwarding rules
 test_functional_execute_gcp_no_forwarding:
-  <<: *test_functional_execute_generic
-  variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
-    CF_ENV_USE_FORWARDING_RULE: "false"
+  extends: .test_functional_execute_generic
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - build_package
@@ -496,27 +459,19 @@ test_functional_execute_gcp_no_forwarding:
       - $CF_ENV_CLOUD == "aws"
 
 # Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
-.test_functional_cleanup_generic: &test_functional_cleanup_generic
+.test-uninstall:
   stage: test_functional_cleanup
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/hashicorp/terraform:0.12.31
+  image: $DT_IMAGE_V2
   retry: 1
   when: always
-  script:
-    - apk add --update
-    - apk add bash curl jq build-base openssl-dev libffi-dev git
-    - apk add jq openssh-client sshpass python3 python3-dev
-    - ln -sf python3 /usr/bin/python
-    - python -m ensurepip
-    - ln -s pip3 /usr/bin/pip
-    - pip install --upgrade pip
-    - apk add npm
-    - pip install -r deployment-tool/dependencies/requirements.txt
-    # copying artifacts inherited from functional_test_init target to root directory
-    - cp -a env_metadata/${CF_ENV_CLOUD}_${CF_ENV_NETWORK_TOPOLOGY}_${CF_ENV_NIC_COUNT}_${CF_ENV_REGION}/. .
-    # teardown environment
-    - deployment-tool/deploy.sh --deployment-plan ${CF_ENV_CLOUD} --action delete --deployment-vars region:\"${CF_ENV_REGION}\" --deployment-vars location:\"${CF_ENV_REGION}\" --skip-requirements "true"
+  services:
+    - alias: mongo
+      name: ${ARTIFACTORY_SERVER}/dockerhub-remote/mongo:4.0-xenial
   tags:
-    - cm-official-docker-executor
+    - azure-autoscale-runner
+  script:
+    - mkdir -p /deployment-tool/deployment && cp -a ./deployment/. /deployment-tool/deployment
+    - cd /deployment-tool && ./deployment_tool.sh --command delete --plan $PLAN --name $(cat ./deployment/name.txt) --database import --parameters "$PARAMETERS"
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "master"
@@ -533,10 +488,9 @@ test_functional_execute_gcp_no_forwarding:
 
 # run functional tests: azure
 test_functional_cleanup_azure:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_REGION: "westus2"
+    PLAN: "azure"
   dependencies:
     - test_functional_init_azure
     - test_functional_execute_azure
@@ -551,17 +505,16 @@ test_functional_cleanup_azure:
 
 # run functional tests: azure_1nic
 test_functional_cleanup_azure_1nic:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "azure"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "westus2"
+    PLAN: "azure"
   dependencies:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
   needs:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -571,11 +524,9 @@ test_functional_cleanup_azure_1nic:
 
 # run functional tests: aws - across network topology
 test_functional_cleanup_aws_across_net:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
   dependencies:
     - test_functional_init_aws_across_net
     - test_functional_execute_aws_across_net
@@ -590,18 +541,16 @@ test_functional_cleanup_aws_across_net:
 
 # run functional tests: aws - across network topology for 1nic
 test_functional_cleanup_aws_across_net_1nic:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_NETWORK_TOPOLOGY: "across_network"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
   dependencies:
     - test_functional_init_aws_across_net_1nic
     - test_functional_execute_aws_across_net_1nic
   needs:
     - test_functional_init_aws_across_net_1nic
     - test_functional_execute_aws_across_net_1nic
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -611,11 +560,9 @@ test_functional_cleanup_aws_across_net_1nic:
 
 # run functional tests: aws - same network topology
 test_functional_cleanup_aws:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
   dependencies:
     - test_functional_init_aws
     - test_functional_execute_aws
@@ -631,18 +578,16 @@ test_functional_cleanup_aws:
 
 # run functional tests: aws - same network topology for 1nic
 test_functional_cleanup_aws_1nic:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "aws"
-    CF_ENV_USE_AVAILABILITY_ZONES: "false"
-    CF_ENV_NIC_COUNT: 1
-    CF_ENV_REGION: "us-west-2"
+    PLAN: "aws"
   dependencies:
     - test_functional_init_aws_1nic
     - test_functional_execute_aws_1nic
   needs:
     - test_functional_init_aws_1nic
     - test_functional_execute_aws_1nic
+  when: manual
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -652,10 +597,9 @@ test_functional_cleanup_aws_1nic:
 
 # run functional tests: gcp
 test_functional_cleanup_gcp:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
+    PLAN: "gcp"
   dependencies:
     - test_functional_init_gcp
     - test_functional_execute_gcp
@@ -670,11 +614,9 @@ test_functional_cleanup_gcp:
 
 # run functional tests: gcp no forwarding rule
 test_functional_cleanup_gcp_no_forwarding:
-  <<: *test_functional_cleanup_generic
+  extends: .test-uninstall
   variables:
-    CF_ENV_CLOUD: "gcp"
-    CF_ENV_REGION: "us-west1"
-    CF_ENV_USE_FORWARDING_RULE: "false"
+    PLAN: "gcp"
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - test_functional_execute_gcp_no_forwarding
@@ -688,7 +630,6 @@ test_functional_cleanup_gcp_no_forwarding:
       - $CF_ENV_CLOUD == "aws"
 
 ###  End of Functional Tests
-
 build_api_docs:
   stage: build_api_docs_and_postman_collection
   script:
