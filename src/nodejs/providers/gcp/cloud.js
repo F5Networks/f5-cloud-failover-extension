@@ -184,8 +184,7 @@ class Cloud extends AbstractCloud {
                     return this._updateAddresses(updateOperations);
                 }
                 // default - discover and update
-                return this._discoverAddressOperations(failoverAddresses, discoverOperations)
-                    .then((operations) => this._updateAddresses(operations));
+                return this._discoverAddressOperations(failoverAddresses, discoverOperations);
             })
             .catch((err) => Promise.reject(err));
     }

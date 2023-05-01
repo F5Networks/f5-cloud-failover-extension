@@ -71,7 +71,7 @@ check_content:
 # test package
 test_package:
   stage: test
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:11
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:14
   except:
     variables:
       - $CI_COMMIT_REF_NAME == "docs_production"
