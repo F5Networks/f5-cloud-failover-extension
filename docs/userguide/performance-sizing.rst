@@ -102,20 +102,19 @@ Azure
 
 |
 
-------------------------------------------
-
-|
-
 
 *TESTING NOTES:* 
 
-- Failover times listed in the **CFE performance with Azure (without Azure Fast Path enabled)** table indicate when the Azure network resource provisioning state is "Succeeded", and do not reflect the time required for updates to propagate through the legacy Azure control plane. **Resources created with Azure Fast Path enabled are able to pass traffic through the BIG-IP instance(s) almost immediately after the update operation completes.**
+- Failover times listed in the **CFE performance with Azure (without Merlin FastPath enabled)** table indicate when the Azure network resource provisioning state is "Succeeded", and do not reflect the time required for updates to propagate through the legacy Azure control plane. **Resources created with Azure Fast Path enabled are able to pass traffic through the BIG-IP instance(s) almost immediately after the update operation completes.**
 - **API rate throttling observed**. At these levels, we observed the provider rate limiting requests. CFE implements clientside retries in these cases.
 - Max objects tested were dictated by our default account quotas or limits. Quotas and limits can potentially be increased. See your provider for more details:
 
   - `AWS <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_
   - `GCP <https://cloud.google.com/docs/quota>`_
   - `Azure <https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits>`_
+
+|
+**Merlin Fastpath** is a project focusing on architectural improvements to the Azure Network Control Plane.
 
 
 .. include:: /_static/reuse/feedback.rst
