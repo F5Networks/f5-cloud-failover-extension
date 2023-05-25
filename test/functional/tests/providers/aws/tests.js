@@ -23,7 +23,8 @@ const dutPrimary = duts.filter((dut) => dut.primary)[0];
 const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
-const deploymentDeclaration = funcUtils.getDeploymentDeclaration();
+const deploymentDeclaration = funcUtils.getDeploymentDeclaration('exampleDeclaration.stache');
+let staticDeclarationName = 'exampleDeclarationAwsStatic.stache';
 
 // Helper functions
 function matchElasticIpsToInstance(eips, instance) {
@@ -269,299 +270,559 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         }
     }
 
-    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('should post declaration', () => {
-        const uri = constants.DECLARE_ENDPOINT;
-        return utils.makeRequest(dutPrimary.ip, uri, {
-            method: 'POST',
-            body: funcUtils.getDeploymentDeclaration(),
-            headers: {
-                'x-f5-auth-token': dutPrimary.authData.token
-            },
-            port: dutPrimary.port
-        })
-            .then((data) => {
-                data = data || {};
-                assert.strictEqual(data.message, 'success');
+    describe('AWS provider tests (tag discovery)', () => {
+        it('should post declaration (tag discovery)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache'),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
+                port: dutPrimary.port
             })
-            .catch((err) => Promise.reject(err));
-    });
-
-    // Test IP and Route failover
-    it('should check that Elastic IP is mapped to primary', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkElasticIPs(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
-        it('should check that secondary IPv6 address is  mapped to primary ', function () {
-            this.retries(RETRIES.LONG);
-            getIpv6Addresses(dutPrimary.instanceId)
-                .then((addresses) => {
-                    checkForIpv6Addresses(addresses);
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
                 })
                 .catch((err) => Promise.reject(err));
         });
-    }
 
-    it('should check AWS route table routes for next hop matches primary', function () {
-        this.retries(RETRIES.LONG);
+        it('should ensure secondary is not primary', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
 
-        return checkRouteTables(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
-
-    it('should check that Elastic IP is mapped to secondary', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkElasticIPs(dutSecondary)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
-        it('should check that secondary IPv6 address is  mapped to secondary ', function () {
+        // Test IP and Route failover
+        it('should check that Elastic IP is mapped to primary (tag discovery)', function () {
             this.retries(RETRIES.LONG);
-            return getIpv6Addresses(dutSecondary.instanceId)
-                .then((addresses) => {
-                    checkForIpv6Addresses(addresses);
+
+            return checkElasticIPs(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+            it('should check that secondary IPv6 address is  mapped to primary (tag discovery)', function () {
+                this.retries(RETRIES.LONG);
+                getIpv6Addresses(dutPrimary.instanceId)
+                    .then((addresses) => {
+                        checkForIpv6Addresses(addresses);
+                    })
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check AWS route table routes for next hop matches primary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRouteTables(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should force BIG-IP (primary) to standby (tag discovery)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('wait until taskState is success on secondary BIG-IP (tag discovery)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return new Promise(
+                (resolve) => setTimeout(resolve, 5000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                    {
+                        taskState: constants.FAILOVER_STATES.PASS,
+                        authToken: dutSecondary.authData.token,
+                        hostname: dutSecondary.hostname,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
                 })
                 .catch((err) => Promise.reject(err));
         });
-    }
 
-    it('should check AWS route table routes for next hop matches secondary', function () {
-        this.retries(RETRIES.LONG);
+        it('should check that Elastic IP is mapped to secondary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkRouteTables(dutSecondary)
-            .catch((err) => Promise.reject(err));
-    });
+            return checkElasticIPs(dutSecondary)
+                .catch((err) => Promise.reject(err));
+        });
 
-    it('wait until taskState is success on secondary BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
+        if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+            it('should check that secondary IPv6 address is  mapped to secondary (tag discovery)', function () {
+                this.retries(RETRIES.LONG);
+                return getIpv6Addresses(dutSecondary.instanceId)
+                    .then((addresses) => {
+                        checkForIpv6Addresses(addresses);
+                    })
+                    .catch((err) => Promise.reject(err));
+            });
+        }
 
-        return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.PASS,
-                    authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname,
-                    port: dutSecondary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
+        it('should check AWS route table routes for next hop matches secondary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
 
-    it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
+            return checkRouteTables(dutSecondary)
+                .catch((err) => Promise.reject(err));
+        });
 
-    it('should check that Elastic IP is mapped to primary', function () {
-        this.retries(RETRIES.LONG);
+        it('should force BIG-IP (secondary) to standby (tag discovery)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
 
-        return checkElasticIPs(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
+        it('wait until taskState is success on primary BIG-IP (tag discovery)', function () {
+            this.retries(RETRIES.MEDIUM);
+            return new Promise(
+                (resolve) => setTimeout(resolve, 5000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                    {
+                        taskState: constants.FAILOVER_STATES.PASS,
+                        authToken: dutPrimary.authData.token,
+                        hostname: dutPrimary.hostname,
+                        port: dutPrimary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
 
-    it('should check AWS route table routes for next hop matches primary', function () {
-        this.retries(RETRIES.LONG);
+        it('should check that Elastic IP is mapped to primary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
 
-        return checkRouteTables(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
+            return checkElasticIPs(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
 
-    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+        it('should check AWS route table routes for next hop matches primary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
 
-    it('wait until taskState is success on primary BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.PASS,
-                    authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname,
-                    port: dutPrimary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
+            return checkRouteTables(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
 
-    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
+        it('Should retrieve addresses and routes for primary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
 
-    it('wait until taskState is running (or succeeded) on standby BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 1000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                {
-                    taskStates: [constants.FAILOVER_STATES.RUN, constants.FAILOVER_STATES.PASS],
-                    authToken: dutSecondary.authData.token,
-                    hostname: dutSecondary.hostname,
-                    port: dutSecondary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
+            const expectedResult = {
+                addresses: [],
+                routes: [],
+                instance: dutPrimary.instanceId,
+                hostName: dutPrimary.hostname
+            };
 
-    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('wait until taskState is success on primary BIG-IP', function () {
-        this.retries(RETRIES.MEDIUM);
-        return new Promise(
-            (resolve) => setTimeout(resolve, 5000)
-        )
-            .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                {
-                    taskState: constants.FAILOVER_STATES.PASS,
-                    authToken: dutPrimary.authData.token,
-                    hostname: dutPrimary.hostname,
-                    port: dutPrimary.port
-                }))
-            .then((data) => {
-                assert(data.boolean, data);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should check that Elastic IP is mapped to primary', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkElasticIPs(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Flapping scenario: should check AWS route table routes for next hop matches primary', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRouteTables(dutPrimary)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Should retrieve addresses and routes for primary', function () {
-        this.retries(RETRIES.LONG);
-
-        const expectedResult = {
-            addresses: [],
-            routes: [],
-            instance: dutPrimary.instanceId,
-            hostName: dutPrimary.hostname
-        };
-
-        return Promise.all([
-            getElasticIps(dutPrimary.instanceId),
-            getRouteTableRoutes(dutPrimary.instanceId)
-        ])
-            .then((results) => {
-                results[0].Addresses.forEach((address) => {
-                    expectedResult.addresses.push({
-                        publicIpAddress: address.PublicIp,
-                        privateIpAddress: address.PrivateIpAddress,
-                        networkInterfaceId: address.NetworkInterfaceId
+            return Promise.all([
+                getElasticIps(dutPrimary.instanceId),
+                getRouteTableRoutes(dutPrimary.instanceId)
+            ])
+                .then((results) => {
+                    results[0].Addresses.forEach((address) => {
+                        expectedResult.addresses.push({
+                            publicIpAddress: address.PublicIp,
+                            privateIpAddress: address.PrivateIpAddress,
+                            networkInterfaceId: address.NetworkInterfaceId
+                        });
                     });
-                });
-                results[1].forEach((route) => {
-                    expectedResult.routes.push({
-                        routeTableId: route.RouteTableId,
-                        routeTableName: null,
-                        networkId: route.VpcId
+                    results[1].forEach((route) => {
+                        expectedResult.routes.push({
+                            routeTableId: route.RouteTableId,
+                            routeTableName: null,
+                            networkId: route.VpcId
+                        });
                     });
-                });
-            })
-            .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
-                {
-                    authToken: dutPrimary.authData.token,
-                    port: dutPrimary.port
-                }))
-            .then((data) => {
-                assert.deepStrictEqual(data.instance, expectedResult.instance);
-                assert.deepStrictEqual(data.hostName, expectedResult.hostName);
-                assert.deepStrictEqual(data.routes, expectedResult.routes);
-            })
-            .catch((err) => Promise.reject(err));
+                })
+                .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
+                    {
+                        authToken: dutPrimary.authData.token,
+                        port: dutPrimary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.hostName, expectedResult.hostName);
+                    assert.deepStrictEqual(data.routes, expectedResult.routes);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and not routes for secondary (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            const expectedResult = {
+                addresses: [{
+                    privateIp: dutSecondary.ip
+                }],
+                instance: dutSecondary.instanceId,
+                hostName: dutSecondary.hostname
+            };
+
+            return Promise.all([
+                getElasticIps(dutSecondary.instanceId),
+                getRouteTableRoutes(dutSecondary.instanceId)
+            ])
+                .then((results) => {
+                    results[0].Addresses.forEach((address) => {
+                        expectedResult.addresses.push({
+                            publicIpAddress: address.PublicIp,
+                            privateIpAddress: address.PrivateIpAddress,
+                            associationId: address.AssociationId,
+                            networkInterfaceId: address.NetworkInterfaceId
+                        });
+                    });
+                    assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
+                })
+                .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.routes, []);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (tag discovery)', () => {
+            const expectedResult = {};
+            return Promise.all([
+                getElasticIps(dutPrimary.instanceId),
+                getRouteTableRoutes(dutPrimary.instanceId)
+            ])
+                .then((data) => {
+                    expectedResult.publicIp = data[0].Addresses[0].PublicIp;
+                    expectedResult.routeTableId = data[1][0].RouteTableId;
+                })
+                .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    const addresses = utils.stringify(data.addresses);
+                    const routeTableId = data.routes.operations[0].routeTableId;
+                    assert(addresses.indexOf(expectedResult.publicIp) !== -1);
+                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 
-    it('Should retrieve addresses and not routes for secondary', function () {
-        this.retries(RETRIES.LONG);
+    describe('AWS provider tests (static definitions)', () => {
+        it('should post declaration (static definitions)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+                staticDeclarationName = 'exampleDeclarationAwsSameAzStatic.stache';
+            }
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration(staticDeclarationName),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
+                port: dutPrimary.port
+            })
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch((err) => Promise.reject(err));
+        });
 
-        const expectedResult = {
-            addresses: [{
-                privateIp: dutSecondary.ip
-            }],
-            instance: dutSecondary.instanceId,
-            hostName: dutSecondary.hostname
-        };
+        it('should ensure secondary is not primary (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
 
-        return Promise.all([
-            getElasticIps(dutSecondary.instanceId),
-            getRouteTableRoutes(dutSecondary.instanceId)
-        ])
-            .then((results) => {
-                results[0].Addresses.forEach((address) => {
-                    expectedResult.addresses.push({
-                        publicIpAddress: address.PublicIp,
-                        privateIpAddress: address.PrivateIpAddress,
-                        associationId: address.AssociationId,
-                        networkInterfaceId: address.NetworkInterfaceId
+        it('should check that Elastic IP is mapped to primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkElasticIPs(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+            it('should check that secondary IPv6 address is mapped to primary (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+                getIpv6Addresses(dutPrimary.instanceId)
+                    .then((addresses) => {
+                        checkForIpv6Addresses(addresses);
+                    })
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check AWS route table routes for next hop matches primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRouteTables(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should force BIG-IP (primary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('wait until taskState is success on secondary BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return new Promise(
+                (resolve) => setTimeout(resolve, 5000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                    {
+                        taskState: constants.FAILOVER_STATES.PASS,
+                        authToken: dutSecondary.authData.token,
+                        hostname: dutSecondary.hostname,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should check that Elastic IP is mapped to secondary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkElasticIPs(dutSecondary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+            it('should check that secondary IPv6 address is  mapped to secondary (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+                return getIpv6Addresses(dutSecondary.instanceId)
+                    .then((addresses) => {
+                        checkForIpv6Addresses(addresses);
+                    })
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check AWS route table routes for next hop matches secondary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRouteTables(dutSecondary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should force BIG-IP (secondary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('wait until taskState is success on primary BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+            return new Promise(
+                (resolve) => setTimeout(resolve, 5000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                    {
+                        taskState: constants.FAILOVER_STATES.PASS,
+                        authToken: dutPrimary.authData.token,
+                        hostname: dutPrimary.hostname,
+                        port: dutPrimary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should check that Elastic IP is mapped to primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkElasticIPs(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should check AWS route table routes for next hop matches primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRouteTables(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+        it('Flapping scenario: should force BIG-IP (primary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('wait until taskState is running (or succeeded) on standby BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+            return new Promise(
+                (resolve) => setTimeout(resolve, 1000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
+                    {
+                        taskStates: [constants.FAILOVER_STATES.RUN, constants.FAILOVER_STATES.PASS],
+                        authToken: dutSecondary.authData.token,
+                        hostname: dutSecondary.hostname,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Flapping scenario: should force BIG-IP (secondary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('wait until taskState is success on primary BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+            return new Promise(
+                (resolve) => setTimeout(resolve, 5000)
+            )
+                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
+                    {
+                        taskState: constants.FAILOVER_STATES.PASS,
+                        authToken: dutPrimary.authData.token,
+                        hostname: dutPrimary.hostname,
+                        port: dutPrimary.port
+                    }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Flapping scenario: should check that Elastic IP is mapped to primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkElasticIPs(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Flapping scenario: should check AWS route table routes for next hop matches primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRouteTables(dutPrimary)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and routes for primary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            const expectedResult = {
+                addresses: [],
+                routes: [],
+                instance: dutPrimary.instanceId,
+                hostName: dutPrimary.hostname
+            };
+
+            return Promise.all([
+                getElasticIps(dutPrimary.instanceId),
+                getRouteTableRoutes(dutPrimary.instanceId)
+            ])
+                .then((results) => {
+                    results[0].Addresses.forEach((address) => {
+                        expectedResult.addresses.push({
+                            publicIpAddress: address.PublicIp,
+                            privateIpAddress: address.PrivateIpAddress,
+                            networkInterfaceId: address.NetworkInterfaceId
+                        });
                     });
-                });
-                assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
-            })
-            .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
-                {
-                    authToken: dutSecondary.authData.token,
-                    port: dutSecondary.port
-                }))
-            .then((data) => {
-                assert.deepStrictEqual(data.instance, expectedResult.instance);
-                assert.deepStrictEqual(data.routes, []);
-            })
-            .catch((err) => Promise.reject(err));
+                    results[1].forEach((route) => {
+                        expectedResult.routes.push({
+                            routeTableId: route.RouteTableId,
+                            routeTableName: null,
+                            networkId: route.VpcId
+                        });
+                    });
+                })
+                .then(() => funcUtils.getInspectStatus(dutPrimary.ip,
+                    {
+                        authToken: dutPrimary.authData.token,
+                        port: dutPrimary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.hostName, expectedResult.hostName);
+                    assert.deepStrictEqual(data.routes, expectedResult.routes);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and not routes for secondary (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            const expectedResult = {
+                addresses: [{
+                    privateIp: dutSecondary.ip
+                }],
+                instance: dutSecondary.instanceId,
+                hostName: dutSecondary.hostname
+            };
+
+            return Promise.all([
+                getElasticIps(dutSecondary.instanceId),
+                getRouteTableRoutes(dutSecondary.instanceId)
+            ])
+                .then((results) => {
+                    results[0].Addresses.forEach((address) => {
+                        expectedResult.addresses.push({
+                            publicIpAddress: address.PublicIp,
+                            privateIpAddress: address.PrivateIpAddress,
+                            associationId: address.AssociationId,
+                            networkInterfaceId: address.NetworkInterfaceId
+                        });
+                    });
+                    assert(results[1].length === 0, 'Expect no routes to be associated with standby device');
+                })
+                .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.routes, []);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (static definitions)', () => {
+            const expectedResult = {};
+            return Promise.all([
+                getElasticIps(dutPrimary.instanceId),
+                getRouteTableRoutes(dutPrimary.instanceId)
+            ])
+                .then((data) => {
+                    expectedResult.publicIp = data[0].Addresses[0].PublicIp;
+                    expectedResult.routeTableId = data[1][0].RouteTableId;
+                })
+                .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    const addresses = utils.stringify(data.addresses);
+                    const routeTableId = data.routes.operations[0].routeTableId;
+                    assert(addresses.indexOf(expectedResult.publicIp) !== -1);
+                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 
-    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
-        const expectedResult = {};
-        return Promise.all([
-            getElasticIps(dutPrimary.instanceId),
-            getRouteTableRoutes(dutPrimary.instanceId)
-        ])
-            .then((data) => {
-                expectedResult.publicIp = data[0].Addresses[0].PublicIp;
-                expectedResult.routeTableId = data[1][0].RouteTableId;
+    describe('AWS provider config reset', () => {
+        it('should post declaration (legacy)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration('exampleDeclaration.stache'),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
+                port: dutPrimary.port
             })
-            .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
-                {
-                    authToken: dutSecondary.authData.token,
-                    port: dutSecondary.port
-                }))
-            .then((data) => {
-                const addresses = utils.stringify(data.addresses);
-                const routeTableId = data.routes.operations[0].routeTableId;
-                assert(addresses.indexOf(expectedResult.publicIp) !== -1);
-                assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
-            })
-            .catch((err) => Promise.reject(err));
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 });
