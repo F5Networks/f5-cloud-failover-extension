@@ -106,7 +106,7 @@ clusterMembers.forEach((dut) => {
         it('should post declaration', () => {
             const uri = constants.DECLARE_ENDPOINT;
             options.method = 'POST';
-            options.body = funcUtils.getDeploymentDeclaration();
+            options.body = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
@@ -172,8 +172,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
     });
 
     describe('Should sync configuration', () => {
-        const originalBody = funcUtils.getDeploymentDeclaration();
-        const modifiedBody = funcUtils.getDeploymentDeclaration();
+        const originalBody = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
+        const modifiedBody = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
         modifiedBody.failoverAddresses.scopingTags = { foo: 'bar' };
 
         it('should post modified declaration (primary)', () => {
