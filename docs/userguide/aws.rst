@@ -111,6 +111,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
    ec2:DescribeInstanceStatus               \*                             Current Account/Region  All                     To get status of BIG-IP instances in the current account/region.               
    ec2:DescribeNetworkInterfaceAttribute    \*                             Current Account/Region  All                     To get attributes of BIG-IP network interfaces in the current account/region.    
    ec2:DescribeNetworkInterfaces            \*                             Current Account/Region  All                     To get information about BIG-IP network interfaces in the current account/region.  
+   ec2:ReplaceRoute                         \*                             Tag (Optional)          failoverRoutes          To replace an existing route within a route table.
    ec2:DescribeRouteTables                  \*                             Current Account/Region  failoverRoutes          To get information about route tables in the current account/region.        
    ec2:DescribeSubnets                      \*                             Current Account/Region  All                     To get information about subnets in the current account/region.
    ec2:DisassociateAddress                  Elastic IP ID                  Tag (Optional)          failoverAddresses       To disassociate Elastic IP address from instance or network interface of standby BIG-IP instance.         
