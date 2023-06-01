@@ -5,11 +5,13 @@ info:
   description: F5 Cloud Failover (CFE) is an iControl LX Extension delivered as a TMOS-independent RPM file. Installing the CFE Extension on BIG-IP enables you to declaratively configure BIG-IP devices for automatic failover in cloud environments by POSTing a single JSON declaration to CF’s declarative REST API endpoint.
   license:
     name: Apache License 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
   - url: https://192.0.2.1:443/mgmt/shared/cloud-failover
 paths:
   /info:
     get:
+      operationId: GetInfo
       summary: List extension information
       tags:
         - Information
@@ -24,7 +26,13 @@ paths:
                 version: "1.14.0"
                 release: "1"
                 schemaCurrent: "1.14.0"
-                schemaMinimum: "0.9.1"
+                schemaMinimum: "1.0.0"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -33,6 +41,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /declare:
     get:
+      operationId: GetConfig
       summary: List configuration
       tags:
         - Configuration
@@ -43,6 +52,17 @@ paths:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
+              examples:
+                "TagDiscovery":
+                  $ref: "#/components/examples/TagResponse"
+                "StaticDiscovery":
+                  $ref: "#/components/examples/StaticResponse"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -50,6 +70,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
     post:
+      operationId: PostConfig
       summary: Update configuration
       tags:
         - Configuration
@@ -58,30 +79,17 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Configuration"
-            example:
-              class: Cloud_Failover
-              environment: azure
-              externalStorage:
-                scopingTags:
-                  f5_cloud_failover_label: mydeployment
-              failoverAddresses:
-                enabled: true
-                scopingTags:
-                  f5_cloud_failover_label: mydeployment
-              failoverRoutes:
-                enabled: true
-                scopingTags:
-                  f5_cloud_failover_label: mydeployment
-                scopingAddressRanges:
-                  - range: "192.0.2.0/24"
-                defaultNextHopAddresses:
-                  discoveryType: static
-                  items:
-                    - "192.0.2.10"
-                    - "192.0.2.11"
-              controls:
-                class: Controls
-                logLevel: info
+            examples:
+              "TagDiscovery":
+                $ref: "#/components/examples/TagDiscovery"
+              "AWSAcrossAvailabilityZones":
+                $ref: "#/components/examples/AwsAcrossAz"
+              "AWSSameAvailabilityZone":
+                $ref: "#/components/examples/AwsSameAz"
+              "Azure":
+                $ref: "#/components/examples/Azure"
+              "GoogleCloud":
+                $ref: "#/components/examples/Gcp"
       responses:
         "200":
           description: Configuration response
@@ -89,31 +97,17 @@ paths:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ConfigurationResponse"
-              example:
-                message: success
-                declaration:
-                  class: Cloud_Failover
-                  environment: azure
-                  schemaVersion: "0.9.1"
-                  externalStorage:
-                    scopingTags:
-                      f5_cloud_failover_label: mydeployment
-                  failoverAddresses:
-                    scopingTags:
-                      f5_cloud_failover_label: mydeployment
-                  failoverRoutes:
-                    scopingTags:
-                      f5_cloud_failover_label: mydeployment
-                    scopingAddressRanges:
-                      - range: "192.0.2.0/24"
-                    defaultNextHopAddresses:
-                      discoveryType: static
-                      items:
-                        - "192.0.2.10"
-                        - "192.0.2.11"
-                  controls:
-                    class: Controls
-                    logLevel: info
+              examples:
+                "TagDiscovery":
+                  $ref: "#/components/examples/TagResponse"
+                "StaticDiscovery":
+                  $ref: "#/components/examples/StaticResponse"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -122,6 +116,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /trigger:
     post:
+      operationId: PostTrigger
       description: "Primarily supported action is dry-run, which returns objects and resources that are updated if failover is triggered. WARNING: Do not use the execute action, it is for use by BIG-IP only."
       summary: Trigger failover
       tags:
@@ -166,7 +161,13 @@ paths:
                 failoverOperations:
                   routes: {}
                   addresses: {}
-                code: 500
+                code: "500"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -178,6 +179,7 @@ paths:
                   message: Failover Unexpected Error
                   code: 500
     get:
+      operationId: GetTrigger
       summary: Show triggered failover task status
       tags:
         - Trigger
@@ -196,7 +198,7 @@ paths:
                   failoverOperations:
                     routes: {}
                     addresses: {}
-                  code: 202
+                  code: "202"
         "200":
           description: Successful failover task
           content:
@@ -211,7 +213,13 @@ paths:
                   failoverOperations:
                     routes: {}
                     addresses: {}
-                  code: 200
+                  code: "200"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Failed failover task
           content:
@@ -226,7 +234,7 @@ paths:
                   failoverOperations:
                     routes: {}
                     addresses: {}
-                  code: 500
+                  code: "500"
         default:
           description: Unexpected Error
           content:
@@ -239,6 +247,7 @@ paths:
                   code: 500
   /reset:
     post:
+      operationId: PostReset
       summary: Reset failover state file
       tags:
         - Reset
@@ -259,6 +268,12 @@ paths:
             "application/json; charset=UTF-8":
               schema:
                 $ref: "#/components/schemas/ResponseWithMessageString"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -267,6 +282,7 @@ paths:
                 $ref: "#/components/schemas/Error"
   /inspect:
     get:
+      operationId: GetInspect
       summary: List associated cloud objects
       tags:
         - Information
@@ -291,6 +307,12 @@ paths:
                 deviceStatus: "active"
                 trafficGroup:
                   - name: "/Common/traffic-group-1"
+        "400":
+          description: Bad Request Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         default:
           description: Unexpected Error
           content:
@@ -298,6 +320,222 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  examples:
+    TagDiscovery:
+      value:
+        class: Cloud_Failover
+        schemaVersion: "1.0.0"
+        environment: aws
+        externalStorage:
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+        failoverAddresses:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+        failoverRoutes:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+          scopingAddressRanges:
+            - range: "0.0.0.0/0"
+          defaultNextHopAddresses:
+            discoveryType: routeTag
+        controls:
+          class: Controls
+          logLevel: silly
+    AwsAcrossAz:
+      value:
+        class: Cloud_Failover
+        schemaVersion: "1.0.0"
+        environment: aws
+        externalStorage:
+          scopingName: myDeployment
+        failoverAddresses:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+          addressGroupDefinitions:
+            - type: elasticIpAddress
+              scopingAddress: "1.1.1.1"
+              vipAddresses:
+                - "10.0.12.101"
+                - "10.0.22.101"
+            - type: elasticIpAddress
+              scopingAddress: "2.2.2.2"
+              vipAddresses:
+                - "10.0.12.102"
+                - "10.0.22.102"
+        failoverRoutes:
+          enabled: "true"
+          routeGroupDefinitions:
+            - scopingName: myDeployment-routeTable
+              scopingAddressRanges:
+                - range: "0.0.0.0/0"
+              defaultNextHopAddresses:
+                discoveryType: static
+                items:
+                - "10.0.13.11"
+                - "10.0.23.11"
+        controls:
+          class: Controls
+          logLevel: info
+    AwsSameAz:
+      value:
+        class: Cloud_Failover
+        schemaVersion: "1.0.0"
+        environment: aws
+        externalStorage:
+          scopingName: myDeployment
+        failoverAddresses:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+          addressGroupDefinitions:
+            - type: networkInterfaceAddress
+              scopingAddress: "10.0.12.101"
+            - type: networkInterfaceAddress
+              scopingAddress: "10.0.12.102"
+        failoverRoutes:
+          enabled: "true"
+          routeGroupDefinitions:
+            - scopingName: myDeployment-routeTable
+              scopingAddressRanges:
+                - range: "0.0.0.0/0"
+              defaultNextHopAddresses:
+                discoveryType: static
+                items:
+                - "10.0.13.11"
+                - "10.0.23.11"
+        controls:
+          class: Controls
+          logLevel: info
+    Azure:
+      value:
+        class: Cloud_Failover
+        schemaVersion: "1.0.0"
+        environment: azure
+        externalStorage:
+          scopingName: myDeployment
+        failoverAddresses:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+          addressGroupDefinitions:
+            - type: networkInterfaceAddress
+              scopingAddress: "10.0.12.101"
+            - type: networkInterfaceAddress
+              scopingAddress: "10.0.12.102"
+        failoverRoutes:
+          enabled: "true"
+          routeGroupDefinitions:
+            - scopingName: myDeployment-routeTable
+              scopingAddressRanges:
+                - range: "0.0.0.0/0"
+              defaultNextHopAddresses:
+                discoveryType: static
+                items:
+                  - "10.0.13.11"
+                  - "10.0.13.12"
+        controls:
+          class: Controls
+          logLevel: info
+    Gcp:
+      value:
+        class: Cloud_Failover
+        schemaVersion: "1.0.0"
+        environment: gcp
+        externalStorage:
+          scopingName: myDeployment
+        failoverAddresses:
+          enabled: "true"
+          scopingTags:
+            f5_cloud_failover_label: myDeployment
+          addressGroupDefinitions:
+            - type: forwardingRule
+              scopingName: myDeployment-forwarding-rule
+              targetInstances:
+                - ti-cluster-1-a
+                - ti-cluster-1-b
+            - type: aliasAddress
+              scopingAddress: "10.0.12.101/28"
+        failoverRoutes:
+          enabled: "true"
+          routeGroupDefinitions:
+            - scopingName: myDeployment-routeTable
+              scopingAddressRanges:
+                  - range: "0.0.0.0/0"
+              defaultNextHopAddresses:
+                discoveryType: static
+                items:
+                  - "10.0.13.11"
+                  - "10.0.13.12"
+        controls:
+          class: Controls
+          logLevel: info
+    TagResponse:
+      value:
+        message: success
+        declaration: 
+          class: Cloud_Failover
+          schemaVersion: "1.0.0"
+          environment: aws
+          externalStorage:
+            scopingTags:
+              f5_cloud_failover_label: myDeployment
+          failoverAddresses:
+            enabled: "true"
+            scopingTags:
+              f5_cloud_failover_label: myDeployment
+          failoverRoutes:
+            enabled: "true"
+            scopingTags:
+              f5_cloud_failover_label: myDeployment
+            scopingAddressRanges:
+              - range: "192.0.2.0/24"
+            defaultNextHopAddresses:
+              discoveryType: routeTag
+          controls:
+            class: Controls
+            logLevel: silly
+    StaticResponse:
+      value:
+        message: success
+        declaration: 
+          class: Cloud_Failover
+          schemaVersion: "1.0.0"
+          environment: aws
+          externalStorage:
+            scopingName: myDeployment
+          failoverAddresses:
+            enabled: "true"
+            scopingTags:
+              f5_cloud_failover_label: myDeployment
+            addressGroupDefinitions:
+              - type: elasticIpAddress
+                scopingAddress: "1.1.1.1"
+                vipAddresses:
+                  - "10.0.12.101"
+                  - "10.0.22.101"
+              - type: elasticIpAddress
+                scopingAddress: "2.2.2.2"
+                vipAddresses:
+                  - "10.0.12.102"
+                  - "10.0.22.102"
+          failoverRoutes:
+            enabled: "true"
+            routeGroupDefinitions:
+              - scopingName: rtb-11111111111111111
+                scopingAddressRanges:
+                  - range: "0.0.0.0/0"
+                defaultNextHopAddresses:
+                  discoveryType: static
+                  items:
+                  - "10.0.13.11"
+                  - "10.0.23.11"
+          controls:
+            class: Controls
+            logLevel: info
   schemas:
     Configuration:
       type: object
@@ -319,12 +557,40 @@ components:
             scopingTags:
               type: object
               additionalProperties: true
+            scopingName:
+              type: string
+          oneOf:
+            - required: [scopingTags]
+            - required: [scopingName]
         failoverAddresses:
           type: object
           properties:
             scopingTags:
               type: object
               additionalProperties: true
+            addressGroupDefinitions:
+              type: array
+              items:
+                properties:
+                  type:
+                    type: string
+                    enum:
+                      - aliasAddress
+                      - elasticIpAddress
+                      - forwardingRule
+                      - networkInterfaceAddress
+                  scopingAddress:
+                    type: string
+                  vipAddresses:
+                    type: array
+                    items:
+                      type: string
+                      title: "Virtual Server IP address"
+                  targetInstances:
+                    type: array
+                    items:
+                      type: string
+                      title: "Target instance name"
         failoverRoutes:
           type: object
           properties:
@@ -332,34 +598,50 @@ components:
               type: string
             routeGroupDefinitions:
               type: array
-              properties:
-                scopingTags:
-                  type: object
-                  additionalProperties: true
-                scopingAddressRanges:
-                  type: array
-                  items:
+              items:
+                properties:
+                  scopingTags:
                     type: object
-                    properties:
-                      range:
-                        type: string
-                defaultNextHopAddresses:
-                  type: object
-                  nullable: true
-                  properties:
-                    discoveryType:
-                      type: string
+                    additionalProperties: true
+                  scopingAddressRanges:
+                    type: array
                     items:
-                      type: array
-                      items:
+                      type: object
+                      properties:
+                        range:
+                          type: string
+                          description: "Route prefix to match when updating next hop address"
+                  defaultNextHopAddresses:
+                    type: object
+                    description: "Next hop IP addresses"
+                    nullable: true
+                    properties:
+                      discoveryType:
                         type: string
+                        enum:
+                          - routeTag
+                          - static
+                      items:
+                        type: array
+                        items:
+                          type: string
+                          description: "BIG-IP self IP address"
         controls:
           type: object
           properties:
             class:
               type: string
+              enum:
+                - Controls
             logLevel:
               type: string
+              enum:
+                - info
+                - debug
+                - verbose
+                - warning
+                - error
+                - silly
     InformationResponse:
       type: object
       properties:
@@ -442,11 +724,6 @@ components:
       properties:
         message:
           type: string
-    TriggerStateResponse:
-      type: object
-      properties:
-        message:
-          type: object
   securitySchemes:
     BasicAuth:
       type: http

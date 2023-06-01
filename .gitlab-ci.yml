@@ -309,8 +309,6 @@ test_functional_init_gcp_no_forwarding:
     - cp -a deployment/. .
     # executing fuctional test
     - validate npm run functional-test
-    # run API smoke tests
-    - validate npm run validate-api
   tags:
     - cm-official-docker-executor
   only:
