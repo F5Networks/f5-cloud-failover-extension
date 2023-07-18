@@ -1260,7 +1260,7 @@ class Cloud extends AbstractCloud {
                 return Promise.resolve();
             })
             .catch((err) => {
-                this.logger.silly(`Get public IP address error. ${err}`);
+                this.logger.silly(`Get public IP address status: ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1285,7 +1285,7 @@ class Cloud extends AbstractCloud {
                 return Promise.reject(new Error(`NIC ${networkInterfaceName} is not ready yet`));
             })
             .catch((err) => {
-                this.logger.silly(`Get network interface by name error. ${err}`);
+                this.logger.silly(`Get network interface by name. Status: ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1311,7 +1311,7 @@ class Cloud extends AbstractCloud {
                 return Promise.reject(new Error(`Route table ${routeTableName} is not ready yet`));
             })
             .catch((err) => {
-                this.logger.silly(`Get route table by name error. ${err}`);
+                this.logger.silly(`Get route table by name. Status:  ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1334,7 +1334,7 @@ class Cloud extends AbstractCloud {
                 return Promise.resolve(response);
             })
             .catch((err) => {
-                this.logger.silly(`Get route table config error. ${err}`);
+                this.logger.silly(`Get route table config. Status: ${err}`);
                 return Promise.reject(err);
             });
     }
