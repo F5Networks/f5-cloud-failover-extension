@@ -1110,7 +1110,7 @@ class Cloud extends AbstractCloud {
                 return operation.promise();
             })
             .catch((err) => {
-                this.logger.silly(`Update NIC error. ${err}`);
+                this.logger.silly(`Update NIC status: ${err}`);
                 // workaround for quota exceeded, retries API call response conditionNotMet during updateNic
                 if (err.message.indexOf('conditionNotMet') !== -1) {
                     return Promise.resolve();
@@ -1178,7 +1178,7 @@ class Cloud extends AbstractCloud {
                 return operation.promise();
             })
             .catch((err) => {
-                this.logger.silly(`Delete route error. ${err}`);
+                this.logger.silly(`Delete route status: ${err}`);
                 // workaround for quota exceeded, retries API call response notFound during delete route
                 if (err.message.indexOf('notFound') !== -1) {
                     return Promise.resolve();
@@ -1206,7 +1206,7 @@ class Cloud extends AbstractCloud {
                 return operation.promise();
             })
             .catch((err) => {
-                this.logger.silly(`Create route error. ${err}`);
+                this.logger.silly(`Create route status: ${err}`);
                 // workaround for quota exceeded, retries API call response route alreadyExists during create route
                 if (err.message.indexOf('alreadyExists') !== -1) {
                     return Promise.resolve();
