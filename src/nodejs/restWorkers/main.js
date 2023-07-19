@@ -88,7 +88,7 @@ Worker.prototype.onStart = function (success, error) {
  */
 Worker.prototype.onStartCompleted = function (success, error, state, errMsg) {
     if (errMsg) {
-        this.logger.error(`Worker onStartCompleted error: ${util.stringify(errMsg)}`);
+        this.logger.error(`Worker onStartCompleted status: ${util.stringify(errMsg)}`);
         error();
     }
 

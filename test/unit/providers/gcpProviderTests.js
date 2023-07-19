@@ -544,7 +544,7 @@ describe('Provider - GCP', () => {
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
                 .then(() => {
-                    assert.ok(false, 'Error: The function should go to catch block!');
+                    assert.ok(false, 'Status: The function should go to catch block!');
                 })
                 .catch((error) => {
                     assert.strictEqual(error.message, 'Unable to locate our target instance: testInstanceName01');
