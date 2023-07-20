@@ -303,7 +303,8 @@ test_functional_init_gcp_no_forwarding:
     - apt-get update
     - apt-get install -y jq
     # install node (and package dependencies)
-    - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt-get -y install nodejs npm
+    - curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+    - nvm install 12 && nvm use 12
     - npm install
     # copying artifacts inherited from functional_test_init target to root directory
     - cp -a deployment/. .
