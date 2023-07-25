@@ -11,13 +11,13 @@ Azure CFE Prerequisites
 -----------------------
 These are the basic prerequisites for setting up CFE in Microsoft Azure.
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an `example ARM template here <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/failover>`_ . Any configuration tool can be used to provision the resources.
 - **Virtual addresses** created in a floating traffic group and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
 
   .. TIP:: Use Static allocation for each IP configuration that will serve application traffic. Using Dynamic allocation is discouraged for production deployments.
 
 - **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below to :ref:`azure-ims`.
-- **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding
+- **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See `Enable or disable IP forwarding <https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding>`_ for more information.
 
 
 .. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the :ref:`performance-sizing` section for example times.
@@ -99,7 +99,8 @@ Create and assign a Managed Service Identity (MSI)
 In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP instances, VNET, route tables, etc. that will be updated. Read more about managed identities |managed-identity|.
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. The following example shows a system-assigned MSI.
 
-.. IMPORTANT:: CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions. You can create a managed identity manually or using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
+.. IMPORTANT:: CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions. 
+   You can create a managed identity manually or using the F5 access template. See `Deploying Access Template <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access>`_ for more information.
 
 #. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
@@ -158,7 +159,7 @@ Below is an example Azure role definition with permissions required by CFE.
    - This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
    - Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.
    - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
-   - CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
+   - CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See `Deploying Access Template <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access>`_ for more information.
 
 |
 
