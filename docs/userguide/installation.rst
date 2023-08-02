@@ -105,19 +105,29 @@ When using the BIG-IP API, F5 recommends increasing the memory allocated to the 
 
 Add additional memory for restjavad using following procedure:
 
-#. In the BIG-IP user interface, navigate to **System > Resource Provisioning**. Set Management provisioning to **Large**. 
-#. Modify sys db variables using following commands in the CLI (bash):
+1. In the BIG-IP user interface, navigate to **System > Resource Provisioning**. Set Management provisioning to **Large**. 
+2. Modify sys db variables using following commands in the CLI (bash):
+
+   For versions prior to BIG-IP 17.1.x:
 
    ``tmsh modify sys db provision.extramb value 1000``
 
    ``tmsh modify sys db restjavad.useextramb value true``
-  
 
-#. Restart restjavad daemons:
+   For BIG-IP versions 17.1.x and later:
+
+   ``tmsh modify sys db provision.restjavad.extramb value 1000``
+
+   ``tmsh save sys config``
+
+
+3. Restart restjavad daemons:
 
    ``bigstart restart restjavad restnoded``
 
-See `K26427018: Overview of Management provisioning <https://support.f5.com/csp/article/K26427018>`_ for more on the memory allocation.
+.. seealso:: 
+   `K000133648: Error: The requested database variable (restjavad.useextramb) was not found <https://my.f5.com/manage/s/article/K000133648>`_  for more information on restjavad.useextramb, and 
+   `K26427018: Overview of Management provisioning <https://support.f5.com/csp/article/K26427018>`_ for more on the memory allocation.
 
 |
 
