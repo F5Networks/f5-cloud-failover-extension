@@ -87,6 +87,7 @@ test_package:
 
 # audit packages for vulnerabilities
 test_audit:
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:14
   stage: test
   except:
     variables:
@@ -127,7 +128,7 @@ coverage:
   when: manual
 
 build_package:
-  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/f5devcentral/containthedocs:rpmbuild
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:14
   stage: build_package
   except:
     variables:
@@ -138,6 +139,7 @@ build_package:
     # install packages: jq
     - apt-get update
     - apt-get install -y jq
+    - apt-get install -y rpm
     # build RPM, handles dependency installation, etc.
     - bash ./scripts/build_rpm.sh
   tags:
@@ -187,7 +189,7 @@ test_functional_init_azure:
   extends: .test-install
   variables:
     PLAN: "azure"
-    PARAMETERS: "location=westus2"
+    PARAMETERS: "location=westus2 bigip_version=16.1.303000"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -200,7 +202,7 @@ test_functional_init_azure_1nic:
   extends: .test-install
   variables:
     PLAN: "azure"
-    PARAMETERS: "nic_count=1 location=westus2"
+    PARAMETERS: "nic_count=1 location=westus2 bigip_version=16.1.303000"
   when: manual
   except:
     variables:
@@ -305,8 +307,8 @@ test_functional_init_gcp_no_forwarding:
     # install node (and package dependencies)
     - curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
     - export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    - nvm install 12 && nvm use 12
-    - npm install
+    - nvm install 14 && nvm use 14
+    - npm install --unsafe-perm
     # copying artifacts inherited from functional_test_init target to root directory
     - cp -a deployment/. .
     # executing fuctional test
