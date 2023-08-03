@@ -101,7 +101,10 @@ Azure
 
 
 |
+.. NOTE:: Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds. 
+   To gain early access, contact your F5 Account Manager or Sales Engineer for more information.
 
+| 
 
 *TESTING NOTES:* 
 
@@ -114,7 +117,7 @@ Azure
   - `Azure <https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits>`_
 
 |
-**Merlin Fastpath** is a project focusing on architectural improvements to the Azure Network Control Plane.
+**Merlin FastPath** is a project focusing on architectural improvements to the Azure Network Control Plane.
 
 
 .. include:: /_static/reuse/feedback.rst
