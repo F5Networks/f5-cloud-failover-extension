@@ -434,6 +434,9 @@ Azure Private Endpoints
 
 To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
 
+.. NOTE:: Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds. 
+   To gain early access, contact your F5 Account Manager or Sales Engineer. See :ref:`performance-sizing` for more information.
+
 
 .. include:: /_static/reuse/feedback.rst
 
