@@ -92,7 +92,7 @@ const mockMultipleZoneVms = [
     }
 ];
 
-const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
+const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":"1.1.1.1,1.1.1.2"}';
 const fwdRuleDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_target_instance_pair":"testInstanceName01,testInstanceName02"}';
 
 describe('Provider - GCP', () => {

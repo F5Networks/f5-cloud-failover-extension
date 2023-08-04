@@ -42,3 +42,4 @@ temp_*
 sdk/dist/*
 env.sh
 test/test/*
+npm-debug.log
