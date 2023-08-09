@@ -1216,13 +1216,10 @@ class Cloud extends AbstractCloud {
                     for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
                         const theirNic = parsedNics.theirs[h].nic;
                         const myNic = parsedNics.mine[s].nic;
-                        theirNic.tags = theirNic.tags ? theirNic.tags : this._normalizeTags(theirNic.TagSet);
-                        myNic.tags = myNic.tags ? myNic.tags : this._normalizeTags(myNic.TagSet);
                         /* eslint-disable max-len */
-                        if (theirNic.tags[constants.NIC_TAG] === undefined || myNic.tags[constants.NIC_TAG] === undefined) {
-                            this.logger.warning(`${constants.NIC_TAG} tag values do not match or doesn't exist for a interface`);
-                        } else if (theirNic.tags[constants.NIC_TAG] && myNic.tags[constants.NIC_TAG]
-                            && theirNic.tags[constants.NIC_TAG] === myNic.tags[constants.NIC_TAG]) {
+                        if (theirNic.ipConfigurations[0].subnet.id === undefined || myNic.ipConfigurations[0].subnet.id === undefined) {
+                            this.logger.warning('Subnet ID values do not match or do not exist for a interface');
+                        } else if (theirNic.ipConfigurations[0].subnet.id === myNic.ipConfigurations[0].subnet.id) {
                             const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
 
                             if (nicOperations.disassociate && nicOperations.associate) {
