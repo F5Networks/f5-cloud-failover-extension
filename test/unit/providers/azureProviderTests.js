@@ -1603,7 +1603,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip1'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.10',
@@ -1627,7 +1630,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip3'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.100',
@@ -1649,7 +1655,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip5'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.20',
@@ -1685,7 +1694,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip6'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 }
             ],
             tags: {
@@ -1702,7 +1714,10 @@ describe('Provider - Azure', () => {
                 {
                     privateIPAddress: '10.10.11.3',
                     primary: true,
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'bar'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.11.20',
@@ -1729,7 +1744,10 @@ describe('Provider - Azure', () => {
                 {
                     privateIPAddress: '10.10.11.4',
                     primary: true,
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'bar'
+                    }
                 }
             ],
             tags: {
@@ -1844,35 +1862,19 @@ describe('Provider - Azure', () => {
             const networkGroupDefinitions = [
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.10.20',
-                    networkInterfaces: [
-                        'nic03',
-                        'nic04'
-                    ]
+                    scopingAddress: '10.10.10.20'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.10.21',
-                    networkInterfaces: [
-                        'nic03',
-                        'nic04'
-                    ]
+                    scopingAddress: '10.10.10.21'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.11.20',
-                    networkInterfaces: [
-                        'nic05',
-                        'nic06'
-                    ]
+                    scopingAddress: '10.10.11.20'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.11.21',
-                    networkInterfaces: [
-                        'nic05',
-                        'nic06'
-                    ]
+                    scopingAddress: '10.10.11.21'
                 }
             ];
             provider.primarySubscriptionId = mockSubscriptionId;
