@@ -59,7 +59,7 @@ GCP
 Azure
 -----
 
-.. table:: CFE performance with Azure (without Merlin FastPath enabled)
+.. table:: CFE performance with Azure (**without** Azure's new control plane_\ :sup:`*` enabled)
 
    ================================ ==================== ==============================================================
    Number of Failover IP addresses  Number of Routes     Time to Successfully Failover All Objects
@@ -79,7 +79,7 @@ Azure
    25 addresses                     100 routes           60 seconds
    ================================ ==================== ==============================================================
 
-.. table:: CFE performance with Azure (with Merlin FastPath enabled)
+.. table:: CFE performance with Azure (**with** Azure's new control plane_\ :sup:`*` enabled)
 
    ================================ ==================== ==============================================================
    Number of Failover IP addresses  Number of Routes     Time to Successfully Failover All Objects
@@ -100,24 +100,27 @@ Azure
    ================================ ==================== ==============================================================
 
 
-|
-.. NOTE:: Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds. 
+.. NOTE:: **Azure's new control plane** is a internal enhancement focusing on architectural improvements to the Azure Network Control Plane.  Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds. 
    To gain early access, contact your F5 Account Manager or Sales Engineer for more information.
 
-| 
+|
 
 *TESTING NOTES:* 
 
-- Failover times listed in the **CFE performance with Azure (without Merlin FastPath enabled)** table indicate when the Azure network resource provisioning state is "Succeeded", and do not reflect the time required for updates to propagate through the legacy Azure control plane. **Resources created with Merlin FastPath enabled are able to pass traffic through the BIG-IP instance(s) almost immediately after the update operation completes.**
 - **API rate throttling observed**. At these levels, we observed the provider rate limiting requests. CFE implements clientside retries in these cases.
+- Tests were performed with one route table with mulitple routes. Performance decreases as the number of route tables increases. Consider consolidating route tables where possible.
 - Max objects tested were dictated by our default account quotas or limits. Quotas and limits can potentially be increased. See your provider for more details:
 
   - `AWS <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>`_
-  - `GCP <https://cloud.google.com/docs/quota>`_
   - `Azure <https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits>`_
+  - `GCP <https://cloud.google.com/docs/quota>`_
 
-|
-**Merlin FastPath** is a project focusing on architectural improvements to the Azure Network Control Plane.
+.. _plane:
+
+- **Azure:** Failover times listed in the \'*CFE performance with Azure (* **without** *Azure's new control plane enabled)*\' table indicate when the Azure network resource provisioning state is "Succeeded", and do not reflect the time required for updates to propagate through the legacy Azure control plane. Resources created **with Azure's new control plane enabled** are able to pass traffic through the BIG-IP instance(s) almost immediately after the update operation completes.
+  
+
+
 
 
 .. include:: /_static/reuse/feedback.rst

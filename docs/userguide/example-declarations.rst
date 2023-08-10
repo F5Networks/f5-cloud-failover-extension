@@ -22,19 +22,6 @@ AWS Advanced Routing
 
 :fonticon:`fa fa-download` :download:`awsMultipleRoutingTables.json <../../examples/declarations/awsMultipleRoutingTables.json>`
 
-.. _advanced-routing-examples-gcp:
-
-GCP Advanced Routing
-````````````````````
-
-.. literalinclude:: ../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json
-   :language: json
-   :caption: GCP Advanced Routing
-   :tab-width: 4
-   :linenos:
-
-:fonticon:`fa fa-download` :download:`gcpMultipleRoutingTables.json <../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json>`
-
 .. _advanced-routing-examples-azure:
 
 Azure Advanced Routing
@@ -47,6 +34,19 @@ Azure Advanced Routing
    :linenos:
 
 :fonticon:`fa fa-download` :download:`azureMultipleRoutingTables.json <../../examples/declarations/azureMultipleRoutingTables.json>`
+
+.. _advanced-routing-examples-gcp:
+
+GCP Advanced Routing
+````````````````````
+
+.. literalinclude:: ../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json
+   :language: json
+   :caption: GCP Advanced Routing
+   :tab-width: 4
+   :linenos:
+
+:fonticon:`fa fa-download` :download:`gcpMultipleRoutingTables.json <../../examples/declarations/gcpMultipleRoutingGroupDefinitons.json>`
 
 
 .. _example-route-tag:

@@ -411,10 +411,10 @@ Define or Tag your cloud resources with the keys and values that you configure i
 
 .. _aws-tag-nics:
 
-Tag the Network Interfaces in AWS:
-``````````````````````````````````
+Tag the Network Interfaces in AWS
+`````````````````````````````````
 
-.. Important:: Tagging the NICs is required for all AWS deployments regardless of which configuration option you choose to define external resources.
+.. Important:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
 
 
 1. Create two sets of tags for Network Interfaces. 

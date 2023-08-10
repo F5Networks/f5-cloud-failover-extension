@@ -17,7 +17,7 @@ In the event of a failover between BIG-IP systems, BIG-IP fails a traffic group 
 - **Failback**: The extension reverts to using the designated primary BIG-IP when it becomes active again.
 
 
-The diagram below shows a typical failover scenario for an active/standby pair of BIG-IPs in a cloud environment. To see how Cloud Failover Extension works in specific cloud environments, see the sections for :ref:`azure`, :ref:`aws`, and :ref:`gcp`.
+The diagram below shows a typical failover scenario for an active/standby pair of BIG-IPs in a cloud environment. To see how Cloud Failover Extension works in specific cloud environments, see the sections for :ref:`aws`, :ref:`azure`, and :ref:`gcp`.
 
 
 .. image:: /images/cfe-diagram.gif
