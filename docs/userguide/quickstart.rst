@@ -58,7 +58,7 @@ up and running with Cloud Failover.
       }
 
 
-7. Copy one of the example declarations that best matches the configuration you want to use. There are additional examples in the individual provider sections for :ref:`aws`, :ref:`gcp`, and :ref:`azure` as well as the :ref:`example-declarations` section.
+7. Copy one of the example declarations that best matches the configuration you want to use. There are additional examples in the individual provider sections for :ref:`aws`, :ref:`azure`, and :ref:`gcp` as well as the :ref:`example-declarations` section.
 
 8. Paste or copy the declaration into your API client, and modify any names, addresses, routes or properties as applicable. 
 

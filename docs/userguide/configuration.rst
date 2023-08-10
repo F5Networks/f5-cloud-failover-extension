@@ -25,8 +25,8 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 
    - :ref:`aws`
    - :ref:`aws-same-az`
-   - :ref:`gcp`
    - :ref:`azure`
+   - :ref:`gcp`
   
 
 3. Paste or copy the declaration into your API client, and modify any names, addresses, routes, or properties as applicable. If the configuration requires tags, the key and value pair in the configuration can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:
@@ -53,14 +53,16 @@ Once the Package is installed, you will use the REST endpoints to configure the 
 
    You should receive an expected response of `success` after you have posted this declaration. For example:
 
-   .. code-block:: json
+   .. code-block:: bash
 
-        {
-            "message": "success",
-                "declaration": {
-                    "class": "Cloud_Failover",
-                    ... rest of your declaration ...
-
+      {
+        "message": "success",
+            "declaration": {
+                "class": "Cloud_Failover",
+        ...
+        <output shortened for illustration purposes>
+        ...
+      }
 
    |
 
@@ -126,7 +128,7 @@ This section provides more information about the options in a Cloud Failover con
     - Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:
 
       - Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.   
-      - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details. 
+      - Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. Although Cloud Failover no longer requires tags on *external* resources, it may still require them on its own NICs or instance in some environments. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details. 
 
 .. _base-comps:
 
@@ -149,7 +151,7 @@ First, you define the environment in which Cloud Failover will be running.
 +====================+================================+==============================================================================================================================================================================+
 | class              | Cloud_Failover                 | Top-level Cloud Failover class. Do not change this value.                                                                                                                    |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| environment        | aws, gcp, azure                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details.                                                     |
+| environment        | aws, azure, gcp                | Provide the cloud environment you are using. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details.                                                     |
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 |
@@ -189,7 +191,7 @@ Next, you define the external storage Cloud Failover will use for its state file
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Property           | Options                        | Description/Notes                                                                                                                                                                               |
 +====================+================================+=================================================================================================================================================================================================+
-| externalStorage    | -                              | Provide scopingTags or scopingName object to define Cloud Failover's storage. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of what storage objects are used.      |
+| externalStorage    | -                              | Provide scopingTags or scopingName object to define Cloud Failover's storage. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of what storage objects are used.      |
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | scopingTags        | -                              | Provide the key/value pair that match the cloud tags you assigned to the external storage in your cloud environment.                                                                            |
 +--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -341,9 +343,9 @@ The next lines of the declaration set the address failover functionality.
    ======================== ======================= ===================================================================
    Property                 Options                 Description/Notes
    ======================== ======================= ===================================================================
-   scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag. This property is required for AWS configurations. See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details on required additional tags.
+   scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag. This property is required for AWS configurations. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details on required additional tags.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`gcp`, and :ref:`azure` sections for more details of address types. 
+   addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of address types. 
    ======================== ======================= ===================================================================
 
 |
@@ -541,8 +543,8 @@ Choose the cloud environment you are working in to continue implementing CFE:
 
    aws
    aws-same-az
-   gcp
    azure
+   gcp
 
 
 .. include:: /_static/reuse/feedback.rst
