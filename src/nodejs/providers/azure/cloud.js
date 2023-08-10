@@ -868,13 +868,60 @@ class Cloud extends AbstractCloud {
             .catch((err) => Promise.reject(err));
     }
 
+    /**
+    * List route tables
+    *
+    * @param {String} id - Subscription ID
+    *
+    * @returns {Promise}
+    */
     _listRouteTablesBySubscription(id) {
         const func = () => new Promise((resolve, reject) => {
             this.networkClients[id].routeTables.listAll((error, data) => {
                 if (error) {
                     reject(error);
                 } else {
-                    resolve(data);
+                    /* eslint-disable no-lonely-if */
+                    if (data.nextLink) {
+                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
+                            .then((accData) => {
+                                resolve(accData);
+                            })
+                            .catch((err) => reject(err));
+                    } else {
+                        resolve(data);
+                    }
+                }
+            });
+        });
+        return this._retrier(func, []);
+    }
+
+    /**
+    * List route tables from paginated response
+    *
+    * @param {String} id        - Subscription ID
+    * @param {Array} results    - Array of previously acquired route tables
+    * @param {String} nextLink  - The URL of the next page of results to request
+    *
+    * @returns {Promise}
+    */
+    _listRouteTablesBySubscriptionUsingNextPageLink(id, results, nextLink) {
+        const func = () => new Promise((resolve, reject) => {
+            this.networkClients[id].routeTables.listAllNext(nextLink, (error, data) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    results = results.concat(data);
+                    if (data.nextLink) {
+                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
+                            .then((accResults) => {
+                                results = results.concat(accResults);
+                                resolve(results);
+                            });
+                    } else {
+                        resolve(results);
+                    }
                 }
             });
         });
