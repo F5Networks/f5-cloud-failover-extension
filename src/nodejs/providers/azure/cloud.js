@@ -300,9 +300,12 @@ class Cloud extends AbstractCloud {
     /**
      * Get Associated Address and Route Info - Returns associated and route table information
      *
+     * @param {Boolean} isAddressOperationsEnabled   - Are we inspecting addresses
+     * @param {Boolean} isRouteOperationsEnabled     - Are we inspecting routes
+     *
      * @returns {Object}
      */
-    getAssociatedAddressAndRouteInfo() {
+    getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const localAddresses = [];
         const publicIpIds = [];
         let vmName = '';
@@ -314,33 +317,35 @@ class Cloud extends AbstractCloud {
                 vmName = metadata.compute.name;
                 return this._listNics({ tags: this.addressTags || null });
             })
-            .then((result) => {
-                result.forEach((nic) => {
+            .then((nics) => {
+                nics.forEach((nic) => {
                     if (nic.virtualMachine.id.indexOf(vmName) !== -1) {
                         nic.ipConfigurations.forEach((conf) => {
-                            data.addresses.push({
-                                privateIpAddress: conf.privateIPAddress,
-                                publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
-                                networkInterfaceId: nic.id
-                            });
-                            localAddresses.push(conf.privateIPAddress);
-                            if (conf.publicIPAddress) {
-                                publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                            if (isAddressOperationsEnabled) {
+                                data.addresses.push({
+                                    privateIpAddress: conf.privateIPAddress,
+                                    publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
+                                    networkInterfaceId: nic.id
+                                });
+                                if (conf.publicIPAddress) {
+                                    publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                                }
                             }
+                            localAddresses.push(conf.privateIPAddress);
                         });
                     }
                 });
                 return Promise.all(publicIpIds);
             })
-            .then((results) => {
-                results.forEach((pip) => {
+            .then((pips) => {
+                pips.forEach((pip) => {
                     data.addresses.forEach((address) => {
                         if (address.publicIpAddress === pip.id) {
                             address.publicIpAddress = pip.ipAddress;
                         }
                     });
                 });
-                return this._getRouteTables();
+                return isRouteOperationsEnabled ? this._getRouteTables() : [];
             })
             .then((routeTables) => {
                 this.routeGroupDefinitions.forEach((routeGroup) => {

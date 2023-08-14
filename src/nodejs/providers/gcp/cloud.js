@@ -636,36 +636,41 @@ class Cloud extends AbstractCloud {
     /**
      * Get the addresses and routes for inspect endpoint
      *
+     * @param {Boolean} isAddressOperationsEnabled   - Are we inspecting addresses
+     * @param {Boolean} isRouteOperationsEnabled     - Are we inspecting routes
+     *
      * @returns {Promise} A promise which will be resolved with the array of Big-IP addresses and routes
      */
-    getAssociatedAddressAndRouteInfo() {
+    getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceName;
-        return Promise.all([
-            this._getVmsByTags(this.addressTags),
-            this._getRouteTables()
-        ])
-            .then((result) => {
-                const privateIps = [];
-                result[0].forEach((vm) => {
+        const privateIps = [];
+        return this._getVmsByTags(this.addressTags)
+            .then((vms) => {
+                vms.forEach((vm) => {
                     vm.networkInterfaces.forEach((address) => {
                         if (vm.name === this.instanceName) {
-                            let vmPublicIp = null;
-                            if (address.accessConfigs) {
-                                vmPublicIp = address.accessConfigs[0].natIP;
+                            if (isAddressOperationsEnabled) {
+                                let vmPublicIp = null;
+                                if (address.accessConfigs) {
+                                    vmPublicIp = address.accessConfigs[0].natIP;
+                                }
+                                data.addresses.push({
+                                    publicIpAddress: vmPublicIp,
+                                    privateIpAddress: address.networkIP,
+                                    networkInterfaceId: address.name
+                                });
                             }
                             privateIps.push(address.networkIP);
-                            data.addresses.push({
-                                publicIpAddress: vmPublicIp,
-                                privateIpAddress: address.networkIP,
-                                networkInterfaceId: address.name
-                            });
                         }
                     });
                 });
+                return isRouteOperationsEnabled ? this._getRouteTables() : [];
+            })
+            .then((routeTables) => {
                 this.routeGroupDefinitions.forEach((routeGroup) => {
                     const filteredRouteTables = this._filterRouteTables(
-                        result[1].map((routeTable) => Object.assign(
+                        routeTables.map((routeTable) => Object.assign(
                             routeTable,
                             { parsedTags: gcpLabelParse(routeTable.description || '') }
                         )),
@@ -675,8 +680,6 @@ class Cloud extends AbstractCloud {
                         }
                     );
                     filteredRouteTables.forEach((route) => {
-                        // only show route if the Big-IP instance is active
-                        // by matching the nextHopIp with privateIps of active Big-IP
                         if (privateIps.includes(route.nextHopIp)) {
                             data.routes.push({
                                 routeTableId: route.id,
