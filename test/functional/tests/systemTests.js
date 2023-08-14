@@ -146,6 +146,22 @@ clusterMembers.forEach((dut) => {
                 })
                 .catch((err) => Promise.reject(err));
         });
+
+        it('should verify inspect', () => {
+            const uri = constants.INSPECT_ENDPOINT;
+
+            options.method = 'GET';
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.ok('instance' in data);
+                    assert.ok('addresses' in data);
+                    assert.ok('routes' in data);
+                    assert.ok('hostName' in data);
+                    assert.ok('deviceStatus' in data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 });
 

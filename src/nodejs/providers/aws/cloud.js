@@ -386,30 +386,35 @@ class Cloud extends AbstractCloud {
     /**
      * Get Associated Address and Route Info - Returns associated and route table information
      *
+     * @param {Boolean} isAddressOperationsEnabled   - Are we inspecting addresses
+     * @param {Boolean} isRouteOperationsEnabled     - Are we inspecting routes
+     *
      * @returns {Object}
      */
-    getAssociatedAddressAndRouteInfo() {
+    getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
         let params = {
             Filters: []
         };
         params = this._addFilterToParams(params, 'instance-id', this.instanceId);
-        return Promise.all([
-            this._describeInstance(params),
-            this._getRouteTables({ instanceId: this.instanceId })
-        ])
-            .then((result) => {
-                result[0].Reservations[0].Instances[0].NetworkInterfaces.forEach((nic) => {
-                    nic.PrivateIpAddresses.forEach((address) => {
-                        data.addresses.push({
-                            publicIpAddress: address.Association ? address.Association.PublicIp : '',
-                            privateIpAddress: address.PrivateIpAddress,
-                            networkInterfaceId: nic.NetworkInterfaceId
+        return this._describeInstance(params)
+            .then((instance) => {
+                if (isAddressOperationsEnabled) {
+                    instance.Reservations[0].Instances[0].NetworkInterfaces.forEach((nic) => {
+                        nic.PrivateIpAddresses.forEach((address) => {
+                            data.addresses.push({
+                                publicIpAddress: address.Association ? address.Association.PublicIp : '',
+                                privateIpAddress: address.PrivateIpAddress,
+                                networkInterfaceId: nic.NetworkInterfaceId
+                            });
                         });
                     });
-                });
-                result[1].forEach((route) => {
+                }
+                return isRouteOperationsEnabled ? this._getRouteTables({ instanceId: this.instanceId }) : [];
+            })
+            .then((routeTables) => {
+                routeTables.forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
                         routeTableName: null, // add routeTableName here to normalize response across clouds

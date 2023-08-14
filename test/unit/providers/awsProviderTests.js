@@ -2147,7 +2147,111 @@ describe('Provider - AWS', () => {
                             VpcId: '123'
                         }
                     ]);
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('skip routes for active device ', () => {
+            const expectedData = {
+                instance: 'i-123',
+                addresses: [
+                    {
+                        publicIpAddress: '1.1.1.1',
+                        privateIpAddress: '1.1.1.1',
+                        networkInterfaceId: '123'
+                    }
+                ],
+                routes: []
+            };
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }]
+                    });
+                    provider._getRouteTables = sinon.stub().resolves([
+                        {
+                            RouteTableId: '123',
+                            routeTableName: null,
+                            VpcId: '123'
+                        }
+                    ]);
+                    return provider.getAssociatedAddressAndRouteInfo(true, false);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('skip addresses for active device ', () => {
+            const expectedData = {
+                instance: 'i-123',
+                addresses: [],
+                routes: [
+                    {
+                        routeTableId: '123',
+                        routeTableName: null,
+                        networkId: '123'
+                    }
+                ]
+            };
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }]
+                    });
+                    provider._getRouteTables = sinon.stub().resolves([
+                        {
+                            RouteTableId: '123',
+                            routeTableName: null,
+                            VpcId: '123'
+                        }
+                    ]);
+                    return provider.getAssociatedAddressAndRouteInfo(false, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -2193,7 +2297,7 @@ describe('Provider - AWS', () => {
                         }]
                     });
                     provider._getRouteTables = sinon.stub().resolves([]);
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);

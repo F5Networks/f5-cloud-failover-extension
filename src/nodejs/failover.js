@@ -246,10 +246,11 @@ class FailoverClient {
      * Returns BIG-IP's current HA status and its associated cloud objects
      */
     getFailoverStatusAndObjects() {
+        /* eslint-disable max-len */
         let result = null;
         logger.info('Fetching device info');
         return this._getDeviceObjects()
-            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo())
+            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo(this.isAddressOperationsEnabled, this.isRouteOperationsEnabled))
             .then((addressAndRouteInfo) => {
                 logger.debug('Fetching addressAndRouteInfo ', addressAndRouteInfo);
                 result = addressAndRouteInfo;
