@@ -92,7 +92,7 @@ const mockMultipleZoneVms = [
     }
 ];
 
-const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":["1.1.1.1","1.1.1.2"]}';
+const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_self_ips":"1.1.1.1,1.1.1.2"}';
 const fwdRuleDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_target_instance_pair":"testInstanceName01,testInstanceName02"}';
 
 describe('Provider - GCP', () => {
@@ -544,7 +544,7 @@ describe('Provider - GCP', () => {
                 localAddresses, failoverAddresses, forwardingRules, discoverOnly: true
             })
                 .then(() => {
-                    assert.ok(false, 'Error: The function should go to catch block!');
+                    assert.ok(false, 'Status: The function should go to catch block!');
                 })
                 .catch((error) => {
                     assert.strictEqual(error.message, 'Unable to locate our target instance: testInstanceName01');
@@ -1376,7 +1376,57 @@ describe('Provider - GCP', () => {
                     ]));
                 })
                 .then(() => {
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch((err) => Promise.reject(new Error(`${err.stack}`)));
+        });
+
+        it('skip routes for active device', () => {
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._getRouteTables = sinon.stub().resolves(([
+                        {
+                            id: '123',
+                            name: 'x',
+                            network: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x',
+                            nextHopIp: '1.1.1.1',
+                            description: routeTableDescription
+                        }
+                    ]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo(true, false);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(data, expectedData);
+                })
+                .catch((err) => Promise.reject(new Error(`${err.stack}`)));
+        });
+
+        it('skip addresses for active device', () => {
+            expectedData.routes.push({
+                routeTableId: '123',
+                routeTableName: 'x',
+                networkId: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x'
+            });
+            expectedData.addresses.pop();
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._getRouteTables = sinon.stub().resolves(([
+                        {
+                            id: '123',
+                            name: 'x',
+                            network: 'https://www.googleapis.com/compute/v1/projects/x/global/networks/x',
+                            nextHopIp: '1.1.1.1',
+                            description: routeTableDescription
+                        }
+                    ]));
+                })
+                .then(() => {
+                    return provider.getAssociatedAddressAndRouteInfo(false, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(data, expectedData);
@@ -1390,7 +1440,7 @@ describe('Provider - GCP', () => {
                     provider._getRouteTables = sinon.stub().resolves(([]));
                 })
                 .then(() => {
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(data, expectedData);

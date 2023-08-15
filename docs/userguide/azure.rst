@@ -11,13 +11,13 @@ Azure CFE Prerequisites
 -----------------------
 These are the basic prerequisites for setting up CFE in Microsoft Azure.
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can find an example ARM template |armtemplate|. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can find an `example ARM template here <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/failover>`_ . Any configuration tool can be used to provision the resources.
 - **Virtual addresses** created in a floating traffic group and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.
 
   .. TIP:: Use Static allocation for each IP configuration that will serve application traffic. Using Dynamic allocation is discouraged for production deployments.
 
 - **Access to Azure's Instance Metadata Service**, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below to :ref:`azure-ims`.
-- **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding
+- **Enable "enableIPForwarding"** on the NICs if enabling routing or avoiding SNAT. See `Enable or disable IP forwarding <https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding>`_ for more information.
 
 
 .. NOTE:: CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the :ref:`performance-sizing` section for example times.
@@ -99,7 +99,8 @@ Create and assign a Managed Service Identity (MSI)
 In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP instances, VNET, route tables, etc. that will be updated. Read more about managed identities |managed-identity|.
 To create and assign a Managed Service Identity (MSI) you must have a role of `User Access Administrator` or `Contributor access`. The following example shows a system-assigned MSI.
 
-.. IMPORTANT:: CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions. You can create a managed identity manually or using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
+.. IMPORTANT:: CFE supports only **one** Managed Service Identity assigned to each Azure Virtual Machine instance; failover will NOT work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions. 
+   You can create a managed identity manually or using the F5 access template. See `Deploying Access Template <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access>`_ for more information.
 
 #. Enable MSI for each VM: go to **Virtual Machine > Identity > System assigned** and set the status to ``On``.
 
@@ -158,7 +159,7 @@ Below is an example Azure role definition with permissions required by CFE.
    - This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider's IAM best practices.
    - Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.
    - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
-   - CFE supports only one Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access for more information.
+   - CFE supports only **one** Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See `Deploying Access Template <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access>`_ for more information.
 
 |
 
@@ -213,8 +214,32 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
 
 |
 
-|
+.. _azure-tag-nics:
 
+Tag the Network Interfaces in Azure
+```````````````````````````````````
+
+.. Important:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
+
+
+1. Within Azure, go to **NIC > Tags**. 
+
+2. Create two sets of tags for Network Interfaces:
+
+   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
+
+     .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+   
+   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``. Only required when using the the `Discovery via Tag` configuration option. 
+
+     .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
+
+   For Example:
+
+
+   .. image:: ../images/azure/AzureNICTags.png
+
+|
 
 .. _azure-define-addresses:
 
@@ -251,8 +276,7 @@ Update/modify the ``addressGroupDefiniitions`` list to match the addresses in yo
 
 |
 
-
-Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below and tag your NICs. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.
+Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.
 
 .. code-block:: json
 
@@ -265,26 +289,6 @@ Alternatively, if you are using the Discovery via Tag option, edit the declarati
 
 |
 
-
-a. Within Azure, go to **NIC > Tags**. 
-
-b. Create two sets of tags for Network Interfaces:
-
-   - **Deployment scoping tag**: a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
-
-     .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
-   
-   - **NIC mapping tag**: a key-value pair with the reserved key named ``f5_cloud_failover_nic_map`` and a user-provided value that can be anything. For example ``"f5_cloud_failover_nic_map":"external"``.
-
-     .. IMPORTANT:: The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with ``"f5_cloud_failover_nic_map":"external"`` and their internal NIC tagged with ``"f5_cloud_failover_nic_map":"internal"``.
-
-   For Example:
-
-
-   .. image:: ../images/azure/AzureNICTags.png
-
-|
-
 |
 
 .. _azure-define-routes:
@@ -293,7 +297,8 @@ Define the Routes in Azure
 ``````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
+  - The property ``routeGroupDefinitions`` is available in Cloud Failover Extension v1.5.0 and later.
+  - Beginning in version v1.15.0, CFE will be compatible with routes that use Azure Service Tag address prefixes. Previously Service Tags would cause CFE to fail to discover routes.
 
 Update/modify the ``routeGroupDefinitions`` list to the desired route tables and prefixes to manage. The ``routeGroupDefinitions`` property allows more granular route-table operations. See :ref:`failover-routes` for more information. 
 
@@ -327,14 +332,19 @@ Update/modify the ``routeGroupDefinitions`` list to the desired route tables and
 
 |
 
-Alternatively, if you are using the Discovery via Tag option, tag your NICs (see Defining Failover Addresses above), and the route tables containing the routes you want to manage.
+Alternatively, if you are using the Discovery via Tag option, tag your route tables containing the routes you want to manage.
 
 1. Create a key-value pair that will correspond to the key-value pair in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
    .. NOTE:: If you use our declaration example, the key-value tag would be ``"f5_cloud_failover_label":"mydeployment"``
 
-2. In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the CFE configuration.
 
+|
+
+In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses statically in the CFE configuration or if using the Discovery via Tag configuration using an additional tag on the route table.
+
+   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.
+  
    - If you use discoveryType ``routeTag``, you will need to add another tag to the route table in your cloud environment with the reserved key ``f5_self_ips``. For example, ``"f5_self_ips":"10.0.13.11,10.0.23.11"``.
    
    |
@@ -356,12 +366,12 @@ Alternatively, if you are using the Discovery via Tag option, tag your NICs (see
          ]
        }
 
-   - If you use discoveryType ``static``, you can provide the Self-IPs in the items area of the CFE configuration. See :ref:`failover-routes` for more information.
+
 
    |
 
 
-3. Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
+1. Within Azure, go to **Basic UDR > Tags** to create a deployment scoping tag. The name and value can be anything; the example below uses ``f5_cloud_failover_label:mydeployment``.
 
 
    .. image:: ../images/azure/AzureUDR.png
@@ -432,6 +442,9 @@ Azure Private Endpoints
 -----------------------
 
 To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see :ref:`isolated-env`. 
+
+.. NOTE:: Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds. 
+   To gain early access, contact your F5 Account Manager or Sales Engineer. See :ref:`performance-sizing` for more information.
 
 
 .. include:: /_static/reuse/feedback.rst

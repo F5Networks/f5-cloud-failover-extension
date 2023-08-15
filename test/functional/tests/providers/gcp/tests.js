@@ -28,7 +28,7 @@ const dutSecondary = duts.filter((dut) => !dut.primary)[0];
 
 const deploymentInfo = funcUtils.getEnvironmentInfo();
 
-const declaration = funcUtils.getDeploymentDeclaration();
+const declaration = funcUtils.getDeploymentDeclaration('exampleDeclaration.stache');
 const networkInterfaceTagKey = Object.keys(declaration.failoverAddresses.scopingTags)[0];
 const networkInterfaceTagValue = declaration.failoverAddresses.scopingTags[networkInterfaceTagKey];
 const storageTagKey = Object.keys(declaration.externalStorage.scopingTags)[0];
@@ -256,299 +256,563 @@ describe('Provider: GCP', () => {
             .catch((err) => Promise.reject(err));
     }
 
-    it('validate Google Primary VM IP Addresess', function () {
-        this.retries(RETRIES.SHORT);
-
-        return listInstances()
-            .then((instances) => {
-                instances.forEach((vm) => {
-                    const labels = vm.labels || [];
-                    if (Object.values(labels)
-                        .indexOf(storageTagValue) !== -1
-                    && Object.keys(labels)
-                        .indexOf(storageTagKey) !== -1) {
-                        vms.push(vm);
-                    }
-                });
-
-                const networkIp = [];
-                vms.forEach((vm) => {
-                    vm.networkInterfaces.forEach((nic) => {
-                        networkIp.push(nic.networkIP);
-                    });
-                });
-                primarySelfIps.forEach((ipAddress) => {
-                    if (networkIp.indexOf(ipAddress) !== -1) {
-                        assert.ok(true);
-                    } else {
-                        assert.ok(false);
-                    }
-                });
-                secondarySelfIps.forEach((ipAddress) => {
-                    if (networkIp.indexOf(ipAddress) !== -1) {
-                        assert.ok(true);
-                    } else {
-                        assert.ok(false);
-                    }
-                });
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('should ensure secondary is not primary', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('should check network interface alias IP(s) contains virtual addresses (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (deploymentInfo.forwardingRule === 'true') {
-        it('should check forwarding rule target matches instance (primary)', function () {
-            this.retries(RETRIES.LONG);
-
-            return checkForwardingRules(dutPrimary.hostname)
-                .catch((err) => Promise.reject(err));
-        });
-    }
-
-    it('should check route(s) next hop matches self IP (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRoutes(primarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
-
-    it('should check network interface alias IP(s) contains virtual addresses (secondary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkAliasIPs(dutSecondary.hostname, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (deploymentInfo.forwardingRule === 'true') {
-        it('should check forwarding rule target matches instance (secondary)', function () {
-            this.retries(RETRIES.LONG);
-
-            return checkForwardingRules(dutSecondary.hostname)
-                .catch((err) => Promise.reject(err));
-        });
-    }
-
-    it('should check route(s) next hop matches self IP (secondary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRoutes(secondarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('should wait 30 seconds before force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
-
-    it('should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('should wait 30 seconds after force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
-
-    it('should check network interface alias IP(s) contains virtual addresses (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (deploymentInfo.forwardingRule === 'true') {
-        it('should check forwarding rule target matches instance (primary)', function () {
-            this.retries(RETRIES.LONG);
-
-            return checkForwardingRules(dutPrimary.hostname)
-                .catch((err) => Promise.reject(err));
-        });
-    }
-
-    it('should check route(s) next hop matches self IP (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRoutes(primarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
-
-    // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
-
-    // ideally this would be replaced by a check for previous failover task success completion
-    // GCP: long wait time to avoid long-running failover race conditions
-    // it('Flapping scenario: should wait 60 seconds', () => new Promise(
-    //     resolve => setTimeout(resolve, 60000)
-    // ));
-    it('should wait 30 seconds before force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
-
-    it('Flapping scenario: should force BIG-IP (primary) to standby', () => funcUtils.forceStandby(
-        dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
-    ));
-
-    it('should wait 30 seconds after force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
-
-    it('Flapping scenario: should force BIG-IP (secondary) to standby', () => funcUtils.forceStandby(
-        dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-    ));
-
-    it('should wait 30 seconds after force standby', () => new Promise(
-        (resolve) => setTimeout(resolve, 30000)
-    ));
-
-    it('Flapping scenario: should check network interface alias IP(s) contains virtual addresses (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
-            .catch((err) => Promise.reject(err));
-    });
-
-    if (deploymentInfo.forwardingRule === 'true') {
-        it('Flapping scenario: should check forwarding rule target matches instance (primary)', function () {
-            this.retries(RETRIES.LONG);
-
-            return checkForwardingRules(dutPrimary.hostname)
-                .catch((err) => Promise.reject(err));
-        });
-    }
-
-    it('Flapping scenario: should check route(s) next hop matches self IP (primary)', function () {
-        this.retries(RETRIES.LONG);
-
-        return checkRoutes(primarySelfIps)
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('Should retrieve addresses and routes for primary BIG-IP', function () {
-        this.retries(RETRIES.SHORT);
-
-        const expectedResult = {
-            instance: dutPrimary.hostname,
-            addresses: [],
-            routes: []
-        };
-        return Promise.all([
-            getVmByHostname(dutPrimary.hostname),
-            getRoutes(primarySelfIps)
-        ])
-            .then((results) => {
-                const instance = results[0];
-                const routes = results[1];
-
-                const privateIps = [];
-
-                instance.networkInterfaces.forEach((address) => {
-                    let vmPublicIp = null;
-                    if (address.accessConfigs) {
-                        vmPublicIp = address.accessConfigs[0].natIP;
-                    }
-                    privateIps.push(address.networkIP);
-                    expectedResult.addresses.push({
-                        publicIpAddress: vmPublicIp,
-                        privateIpAddress: address.networkIP,
-                        networkInterfaceId: address.name
-                    });
-                });
-                routes.forEach((route) => {
-                    if (privateIps.includes(route.nextHopIp)) {
-                        expectedResult.routes.push({
-                            routeTableId: route.id,
-                            routeTableName: route.name,
-                            networkId: route.network
-                        });
-                    }
-                });
-            })
-            .then(() => funcUtils.getInspectStatus(dutPrimary.ip, {
-                authToken: dutPrimary.authData.token,
+    describe('GCP provider tests (tag discovery)', () => {
+        it('should post declaration (tag discovery)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache'),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
                 port: dutPrimary.port
-            }))
-            .then((data) => {
-                assert.deepStrictEqual(data.instance, expectedResult.instance);
-                assert.deepStrictEqual(data.addresses, expectedResult.addresses);
-                assert.deepStrictEqual(data.routes, expectedResult.routes);
             })
-            .catch((err) => Promise.reject(err));
-    });
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch((err) => Promise.reject(err));
+        });
 
-    it('Should retrieve addresses and not routes for secondary BIG-IP', function () {
-        this.retries(RETRIES.SHORT);
-        const expectedResult = {
-            instance: dutSecondary.hostname,
-            addresses: []
-        };
-        return Promise.all([
-            getVmByHostname(dutSecondary.hostname),
-            getRoutes(secondarySelfIps)
-        ])
-            .then((results) => {
-                const instance = results[0];
-                const routes = results[1];
+        it('validate Google Primary VM IP Addresess (tag discovery)', function () {
+            this.retries(RETRIES.SHORT);
 
-                const privateIps = [];
-
-                instance.networkInterfaces.forEach((address) => {
-                    let vmPublicIp = null;
-                    if (address.accessConfigs) {
-                        vmPublicIp = address.accessConfigs[0].natIP;
-                    }
-                    privateIps.push(address.networkIP);
-                    expectedResult.addresses.push({
-                        publicIpAddress: vmPublicIp,
-                        privateIpAddress: address.networkIP,
-                        networkInterfaceId: address.name
+            return listInstances()
+                .then((instances) => {
+                    instances.forEach((vm) => {
+                        const labels = vm.labels || [];
+                        if (Object.values(labels)
+                            .indexOf(storageTagValue) !== -1
+                        && Object.keys(labels)
+                            .indexOf(storageTagKey) !== -1) {
+                            vms.push(vm);
+                        }
                     });
-                });
-                assert(routes.length === 0, 'Expect no routes to be associated with standby device');
-            })
-            .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
-                {
-                    authToken: dutSecondary.authData.token,
-                    port: dutSecondary.port
+
+                    const networkIp = [];
+                    vms.forEach((vm) => {
+                        vm.networkInterfaces.forEach((nic) => {
+                            networkIp.push(nic.networkIP);
+                        });
+                    });
+                    primarySelfIps.forEach((ipAddress) => {
+                        if (networkIp.indexOf(ipAddress) !== -1) {
+                            assert.ok(true);
+                        } else {
+                            assert.ok(false);
+                        }
+                    });
+                    secondarySelfIps.forEach((ipAddress) => {
+                        if (networkIp.indexOf(ipAddress) !== -1) {
+                            assert.ok(true);
+                        } else {
+                            assert.ok(false);
+                        }
+                    });
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should ensure secondary is not primary (tag discovery)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (primary) (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (primary) (tag discovery)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutPrimary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (primary) (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkRoutes(primarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should force BIG-IP (primary) to standby (tag discovery)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (secondary) (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutSecondary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (secondary) (tag discovery)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutSecondary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (secondary) (tag discovery)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(secondarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should wait 30 seconds before force standby (tag discovery)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('should force BIG-IP (secondary) to standby (tag discovery)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('should wait 30 seconds after force standby (tag discovery)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (primary) (tag discovery)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (primary) (tag discovery)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutPrimary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (primary) (tag discovery)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(primarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and routes for primary BIG-IP (tag discovery)', function () {
+            this.retries(RETRIES.SHORT);
+
+            const expectedResult = {
+                instance: dutPrimary.hostname,
+                addresses: [],
+                routes: []
+            };
+            return Promise.all([
+                getVmByHostname(dutPrimary.hostname),
+                getRoutes(primarySelfIps)
+            ])
+                .then((results) => {
+                    const instance = results[0];
+                    const routes = results[1];
+
+                    const privateIps = [];
+
+                    instance.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                    routes.forEach((route) => {
+                        if (privateIps.includes(route.nextHopIp)) {
+                            expectedResult.routes.push({
+                                routeTableId: route.id,
+                                routeTableName: route.name,
+                                networkId: route.network
+                            });
+                        }
+                    });
+                })
+                .then(() => funcUtils.getInspectStatus(dutPrimary.ip, {
+                    authToken: dutPrimary.authData.token,
+                    port: dutPrimary.port
                 }))
-            .then((data) => {
-                assert.deepStrictEqual(data.instance, expectedResult.instance);
-                assert.deepStrictEqual(data.addresses, expectedResult.addresses);
-                assert.deepStrictEqual(data.routes, []);
-            })
-            .catch((err) => Promise.reject(err));
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                    assert.deepStrictEqual(data.routes, expectedResult.routes);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and not routes for secondary BIG-IP (tag discovery)', function () {
+            this.retries(RETRIES.SHORT);
+            const expectedResult = {
+                instance: dutSecondary.hostname,
+                addresses: []
+            };
+            return Promise.all([
+                getVmByHostname(dutSecondary.hostname),
+                getRoutes(secondarySelfIps)
+            ])
+                .then((results) => {
+                    const instance = results[0];
+                    const routes = results[1];
+
+                    const privateIps = [];
+
+                    instance.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                    assert(routes.length === 0, 'Expect no routes to be associated with standby device');
+                })
+                .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                    assert.deepStrictEqual(data.routes, []);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (tag discovery)', () => {
+            const expectedResult = {};
+            expectedResult.addressesInterfaceId = dutSecondary.hostname;
+            return Promise.all([
+                getRoutes(primarySelfIps)
+            ])
+                .then((results) => {
+                    expectedResult.routeTableId = results[0][0].id;
+                })
+                .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
+                    const routeTableId = data.routes.operations[0].id;
+                    assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
+                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 
-    it('Dry run: should retrieve failover objects that will change when standby  BIG-IP (secondary) becomes active', () => {
-        const expectedResult = {};
-        expectedResult.addressesInterfaceId = dutSecondary.hostname;
-        return Promise.all([
-            getRoutes(primarySelfIps)
-        ])
-            .then((results) => {
-                expectedResult.routeTableId = results[0][0].id;
+    describe('GCP provider tests (static definitions)', () => {
+        it('should post declaration (static definitions)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration('exampleDeclarationGcpStatic.stache'),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
+                port: dutPrimary.port
             })
-            .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
-                {
-                    authToken: dutSecondary.authData.token,
-                    port: dutSecondary.port
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should ensure secondary is not primary (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (primary) (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (primary) (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutPrimary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (primary) (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(primarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should force BIG-IP (primary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (secondary) (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutSecondary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (secondary) (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutSecondary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (secondary) (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(secondarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should wait 30 seconds before force standby (static definitions)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('should force BIG-IP (secondary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('should wait 30 seconds after force standby (static definitions)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('should check network interface alias IP(s) contains virtual addresses (primary) (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('should check forwarding rule target matches instance (primary) (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutPrimary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('should check route(s) next hop matches self IP (primary) (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(primarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        // Flapping scenario: should check failover objects get assigned back to BIG-IP (primary)
+
+        // ideally this would be replaced by a check for previous failover task success completion
+        // GCP: long wait time to avoid long-running failover race conditions
+        // it('Flapping scenario: should wait 60 seconds', () => new Promise(
+        //     resolve => setTimeout(resolve, 60000)
+        // ));
+        it('should wait 30 seconds before force standby (static definitions)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('Flapping scenario: should force BIG-IP (primary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password
+        ));
+
+        it('should wait 30 seconds after force standby (static definitions)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('Flapping scenario: should force BIG-IP (secondary) to standby (static definitions)', () => funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        ));
+
+        it('should wait 30 seconds after force standby (static definitions)', () => new Promise(
+            (resolve) => setTimeout(resolve, 30000)
+        ));
+
+        it('Flapping scenario: should check network interface alias IP(s) contains virtual addresses (primary) (static definitions)', function () {
+            this.retries(RETRIES.LONG);
+
+            return checkAliasIPs(dutPrimary.hostname, virtualAddresses)
+                .catch((err) => Promise.reject(err));
+        });
+
+        if (deploymentInfo.forwardingRule === 'true') {
+            it('Flapping scenario: should check forwarding rule target matches instance (primary) (static definitions)', function () {
+                this.retries(RETRIES.LONG);
+
+                return checkForwardingRules(dutPrimary.hostname)
+                    .catch((err) => Promise.reject(err));
+            });
+        }
+
+        it('Flapping scenario: should check route(s) next hop matches self IP (primary) (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+
+            return checkRoutes(primarySelfIps)
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and routes for primary BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.SHORT);
+
+            const expectedResult = {
+                instance: dutPrimary.hostname,
+                addresses: [],
+                routes: []
+            };
+            return Promise.all([
+                getVmByHostname(dutPrimary.hostname),
+                getRoutes(primarySelfIps)
+            ])
+                .then((results) => {
+                    const instance = results[0];
+                    const routes = results[1];
+
+                    const privateIps = [];
+
+                    instance.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                    routes.forEach((route) => {
+                        if (privateIps.includes(route.nextHopIp)) {
+                            expectedResult.routes.push({
+                                routeTableId: route.id,
+                                routeTableName: route.name,
+                                networkId: route.network
+                            });
+                        }
+                    });
+                })
+                .then(() => funcUtils.getInspectStatus(dutPrimary.ip, {
+                    authToken: dutPrimary.authData.token,
+                    port: dutPrimary.port
                 }))
-            .then((data) => {
-                const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
-                const routeTableId = data.routes.operations[0].id;
-                assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
-                assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                    assert.deepStrictEqual(data.routes, expectedResult.routes);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Should retrieve addresses and not routes for secondary BIG-IP (static definitions)', function () {
+            this.retries(RETRIES.SHORT);
+            const expectedResult = {
+                instance: dutSecondary.hostname,
+                addresses: []
+            };
+            return Promise.all([
+                getVmByHostname(dutSecondary.hostname),
+                getRoutes(secondarySelfIps)
+            ])
+                .then((results) => {
+                    const instance = results[0];
+                    const routes = results[1];
+
+                    const privateIps = [];
+
+                    instance.networkInterfaces.forEach((address) => {
+                        let vmPublicIp = null;
+                        if (address.accessConfigs) {
+                            vmPublicIp = address.accessConfigs[0].natIP;
+                        }
+                        privateIps.push(address.networkIP);
+                        expectedResult.addresses.push({
+                            publicIpAddress: vmPublicIp,
+                            privateIpAddress: address.networkIP,
+                            networkInterfaceId: address.name
+                        });
+                    });
+                    assert(routes.length === 0, 'Expect no routes to be associated with standby device');
+                })
+                .then(() => funcUtils.getInspectStatus(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    assert.deepStrictEqual(data.instance, expectedResult.instance);
+                    assert.deepStrictEqual(data.addresses, expectedResult.addresses);
+                    assert.deepStrictEqual(data.routes, []);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (static definitions)', () => {
+            const expectedResult = {};
+            expectedResult.addressesInterfaceId = dutSecondary.hostname;
+            return Promise.all([
+                getRoutes(primarySelfIps)
+            ])
+                .then((results) => {
+                    expectedResult.routeTableId = results[0][0].id;
+                })
+                .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                    {
+                        authToken: dutSecondary.authData.token,
+                        port: dutSecondary.port
+                    }))
+                .then((data) => {
+                    const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
+                    const routeTableId = data.routes.operations[0].id;
+                    assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
+                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+    });
+
+    describe('GCP provider config reset', () => {
+        it('should post declaration (legacy)', () => {
+            const uri = constants.DECLARE_ENDPOINT;
+            return utils.makeRequest(dutPrimary.ip, uri, {
+                method: 'POST',
+                body: funcUtils.getDeploymentDeclaration('exampleDeclaration.stache'),
+                headers: {
+                    'x-f5-auth-token': dutPrimary.authData.token
+                },
+                port: dutPrimary.port
             })
-            .catch((err) => Promise.reject(err));
+                .then((data) => {
+                    data = data || {};
+                    assert.strictEqual(data.message, 'success');
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 });

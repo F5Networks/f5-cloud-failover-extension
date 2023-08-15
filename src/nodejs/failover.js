@@ -235,7 +235,7 @@ class FailoverClient {
             })
                 .then(() => Promise.resolve({ message: constants.STATE_FILE_RESET_MESSAGE }))
                 .catch((err) => {
-                    const errorMessage = `failover.resetFailoverState() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                    const errorMessage = `failover.resetFailoverState() status: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                     logger.error(errorMessage);
                 });
         }
@@ -246,10 +246,11 @@ class FailoverClient {
      * Returns BIG-IP's current HA status and its associated cloud objects
      */
     getFailoverStatusAndObjects() {
+        /* eslint-disable max-len */
         let result = null;
         logger.info('Fetching device info');
         return this._getDeviceObjects()
-            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo())
+            .then(() => this.cloudProvider.getAssociatedAddressAndRouteInfo(this.isAddressOperationsEnabled, this.isRouteOperationsEnabled))
             .then((addressAndRouteInfo) => {
                 logger.debug('Fetching addressAndRouteInfo ', addressAndRouteInfo);
                 result = addressAndRouteInfo;
@@ -272,7 +273,7 @@ class FailoverClient {
                 return Promise.resolve(result);
             })
             .catch((err) => {
-                const errorMessage = `failover.getFailoverStatusAndObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                const errorMessage = `failover.getFailoverStatusAndObjects() status: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                 logger.error(errorMessage);
             });
     }
@@ -377,7 +378,7 @@ class FailoverClient {
                 return this._waitForTask();
             })
             .catch((err) => {
-                const errorMessage = `failover._getDeviceObjects() error: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
+                const errorMessage = `failover._getDeviceObjects() status: ${util.stringify(err.message)} ${util.stringify(err.stack)}`;
                 logger.error(errorMessage);
             });
     }
@@ -452,7 +453,7 @@ class FailoverClient {
             .then(() => this._getFailoverDiscovery(this.trafficGroupStats, this.cmDeviceInfo, { dryRun: true }))
             .then((results) => Promise.resolve(results))
             .catch((err) => {
-                logger.error(`error: ${util.stringify(err)}`);
+                logger.error(`status: ${util.stringify(err)}`);
                 return Promise.reject(err);
             });
     }
@@ -542,7 +543,7 @@ class FailoverClient {
         return this.cloudProvider.uploadDataToStorage(stateFileName, stateObject)
             .then(() => Promise.resolve(stateObject))
             .catch((err) => {
-                logger.error(`uploadDataToStorage error: ${util.stringify(err.message)}`);
+                logger.error(`uploadDataToStorage status: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
     }
@@ -567,7 +568,7 @@ class FailoverClient {
                 return Promise.resolve(data);
             })
             .catch((err) => {
-                logger.error(`getTaskStateFile error: ${util.stringify(err.message)}`);
+                logger.error(`getTaskStateFile status: ${util.stringify(err.message)}`);
                 return Promise.reject(err);
             });
     }

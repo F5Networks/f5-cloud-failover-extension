@@ -1,0 +1,51 @@
+{
+    "class": "Cloud_Failover",
+    "environment": "{{environment}}",
+    "controls": {
+        "class": "Controls",
+        "logLevel": "silly"
+    },
+    "externalStorage": {
+        "scopingName": "{{bucketName}}"
+    },
+    "failoverAddresses":{
+        "enabled":true,
+        "scopingTags": {
+            "f5_cloud_failover_label": "{{deploymentId}}"
+        },
+        "requireScopingTags": false,
+        "addressGroupDefinitions": [
+          {{#virtualAddresses}}
+          {
+            "type": "networkInterfaceAddress",
+            "scopingAddress": "{{scopingAddress}}"
+          }{{^last}},{{/last}}
+          {{/virtualAddresses}}
+        ]
+    },
+    "failoverRoutes": {
+      "enabled": true,
+      "routeGroupDefinitions": [
+        {
+          "scopingTags": {
+            "f5_cloud_failover_label": "{{deploymentId}}"
+          },
+          "scopingAddressRanges": [
+            {{#scopingAddressRanges}}
+            {
+              "range": "{{range}}"
+            }{{^last}},{{/last}}
+            {{/scopingAddressRanges}}
+          ],
+          "defaultNextHopAddresses": {
+            "discoveryType": "static",
+            "items": [
+              {{#nextHopAddresses}}
+              "{{address}}"{{^last}},{{/last}}
+              {{/nextHopAddresses}}
+            ]
+          }
+        }
+      ]
+    }
+}

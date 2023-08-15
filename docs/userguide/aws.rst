@@ -9,7 +9,7 @@ AWS CFE Prerequisites
 ---------------------
 These are the basic prerequisites for setting up CFE in AWS:
 
-- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/across-net/via-api/3nic/existing-stack/payg>`_. Any configuration tool can be used to provision the resources.
+- **2 BIG-IP systems in Active/Standby configuration**. You can use an `example AWS Cloudformation template <https://github.com/F5Networks/f5-aws-cloudformation-v2/tree/main/examples/failover>`_. Any configuration tool can be used to provision the resources.
 - **Disable "Src/Dst checking"** on the NICs if enabling routing or avoiding SNAT. See `AWS documentation <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check>`_ for more information.
 
 |
@@ -111,6 +111,7 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
    ec2:DescribeInstanceStatus               \*                             Current Account/Region  All                     To get status of BIG-IP instances in the current account/region.               
    ec2:DescribeNetworkInterfaceAttribute    \*                             Current Account/Region  All                     To get attributes of BIG-IP network interfaces in the current account/region.    
    ec2:DescribeNetworkInterfaces            \*                             Current Account/Region  All                     To get information about BIG-IP network interfaces in the current account/region.  
+   ec2:ReplaceRoute                         Route Table ID                 Optional                failoverRoutes          To replace an existing route within a route table.
    ec2:DescribeRouteTables                  \*                             Current Account/Region  failoverRoutes          To get information about route tables in the current account/region.        
    ec2:DescribeSubnets                      \*                             Current Account/Region  All                     To get information about subnets in the current account/region.
    ec2:DisassociateAddress                  Elastic IP ID                  Tag (Optional)          failoverAddresses       To disassociate Elastic IP address from instance or network interface of standby BIG-IP instance.         
@@ -146,15 +147,15 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
    g. Choose :guilabel:`Review policy` then select :guilabel:`Create policy`.
 
-   .. image:: ../images/aws/AWSIAMRoleSummary.png
+   .. image:: ../images/aws/AWSIAMRoleSummary2.png
 
    |
 
-2. Assign an IAM role to each instance by navigating to **Actions > Security > Modify IAM Role**.
+2. Assign an IAM role to each instance by navigating to **EC2 > Instances > Instance > Actions > Security > Modify IAM role**.
 
    For example:
 
-   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance2.png
+   .. image:: ../images/aws/AWSIAMRoleAssignedToInstance3.png
 
 |
 
@@ -410,10 +411,10 @@ Define or Tag your cloud resources with the keys and values that you configure i
 
 .. _aws-tag-nics:
 
-Tag the Network Interfaces in AWS:
-``````````````````````````````````
+Tag the Network Interfaces in AWS
+`````````````````````````````````
 
-.. Important:: Tagging the NICs is required for all AWS deployments regardless of which configuration option you choose to define external resources.
+.. Important:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
 
 
 1. Create two sets of tags for Network Interfaces. 

@@ -19,8 +19,6 @@ const constants = require('../../../constants.js');
 const deploymentFile = process.env[constants.DEPLOYMENT_FILE_VAR]
     || path.join(process.cwd(), constants.DEPLOYMENT_FILE);
 
-const declarationLocation = path.join(__dirname, './exampleDeclaration.stache');
-
 mustache.escape = function (text) { return text; }; // disable HTML escaping (default in mustache.js)
 
 module.exports = {
@@ -72,40 +70,93 @@ module.exports = {
                 nextHopAddresses.push(instance.next_hop_address_ipv6);
             }
         });
+        // Populate virtual addresses
+        const virtualAddresses = [];
+        if (deploymentInfo.virtualAddresses) {
+            deploymentInfo.virtualAddresses.forEach((virtualAddress) => {
+                virtualAddresses.push(virtualAddress.address);
+            });
+        }
+        // Populate alias addresses (GCP)
+        const aliasAddresses = [];
+        if (deploymentInfo.aliasAddresses) {
+            deploymentInfo.aliasAddresses.forEach((aliasAddress) => {
+                aliasAddresses.push(aliasAddress.address);
+            });
+        }
+        // Populate target instances (GCP)
+        const targetInstances = [];
+        deploymentInfo.instances.forEach((instance) => {
+            if (instance.hostname) {
+                targetInstances.push(instance.hostname);
+            }
+        });
         return {
+            nextHopAddresses,
+            virtualAddresses,
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
+            bucketName: deploymentInfo.bucketName,
+            routeTables: deploymentInfo.routeTables,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            zones: deploymentInfo.instances.map((i) => i.zone), // optional: used by GCP
+            elasticIps: deploymentInfo.elasticIps || [], // optional: used by AWS
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
-            nextHopAddresses,
-            routeTables: deploymentInfo.routeTables
+            aliasAddresses: aliasAddresses || [], // optional: used by GCP
+            forwardingRule: deploymentInfo.forwardingRule || null, // optional: used by GCP
+            forwardingRuleName: deploymentInfo.forwardingRuleName || '', // optional: used by GCP
+            targetInstances: targetInstances || [], // optional: used by GCP
+            zones: deploymentInfo.instances.map((i) => i.zone) // optional: used by GCP
         };
     },
 
     /**
      * Get deployment declaration
      *
+     * @param {String} declarationLocation - Location of declaration mustache file
+     *
      * @returns {Object} Returns rendered example declaration
      */
-    getDeploymentDeclaration() {
+    getDeploymentDeclaration(declarationLocation) {
+        const declarationTemplate = path.join(__dirname, './', declarationLocation);
         const environmentInfo = this.getEnvironmentInfo();
 
         const collapsedRoutes = Array.prototype.concat.apply(
             [], environmentInfo.routeTables.map((routeTable) => routeTable.routes)
         ).filter((route) => route !== '');
+
         const declarationData = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
+            bucketName: environmentInfo.bucketName,
+            forwardingRuleName: environmentInfo.forwardingRuleName,
             nextHopAddresses: environmentInfo.nextHopAddresses.map((nextHopAddress, idx) => ({
                 address: nextHopAddress,
                 last: environmentInfo.nextHopAddresses.length - 1 === idx
             })),
             scopingAddressRanges: collapsedRoutes.map((route, idx) => ({
                 range: route, last: collapsedRoutes.length - 1 === idx
+            })),
+            virtualAddresses: environmentInfo.virtualAddresses.map((address, idx) => ({
+                scopingAddress: address,
+                last: environmentInfo.virtualAddresses.length - 1 === idx
+            })),
+            elasticIps: environmentInfo.elasticIps.map((elasticIp, idx) => ({
+                scopingAddress: elasticIp.scopingAddress,
+                vipAddresses: elasticIp.vipAddresses,
+                last: environmentInfo.elasticIps.length - 1 === idx
+            })),
+            aliasAddresses: environmentInfo.aliasAddresses.map((address, idx) => ({
+                scopingAddress: address,
+                last: environmentInfo.aliasAddresses.length - 1 === idx
+            })),
+            targetInstances: environmentInfo.targetInstances.map((instance, idx) => ({
+                targetInstance: instance,
+                last: environmentInfo.targetInstances.length - 1 === idx
             }))
         };
-        return JSON.parse(mustache.render(fs.readFileSync(declarationLocation).toString(), declarationData));
+        const renderedData = mustache.render(fs.readFileSync(declarationTemplate).toString(), declarationData);
+        // console.log('RENDERED DATA FOR DECLARATION', declarationLocation, 'is:', renderedData);
+        return JSON.parse(renderedData);
     },
 
     /**

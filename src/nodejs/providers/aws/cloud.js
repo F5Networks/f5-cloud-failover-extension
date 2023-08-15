@@ -244,14 +244,15 @@ class Cloud extends AbstractCloud {
             loadBalancerAddresses: {}
         };
         const promises = [];
-        addressGroupDefinitions.forEach((item) => {
-            this.logger.silly(`aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinition for item ${item.type}`);
-            if (item.type === 'elasticIpAddress') {
+        if (addressGroupDefinitions[0].type === 'networkInterfaceAddress') {
+            this.logger.silly('aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinitions for same-net');
+            promises.push(this._createActionsForAddressAssociationDisassociation(addresses, addressGroupDefinitions));
+        } else {
+            this.logger.silly('aws-discoverAddressOperationsUsingDefinitions: handling addressGroupDefinitions for across-net');
+            addressGroupDefinitions.forEach((item) => {
                 promises.push(this._createActionForElasticIpAddress(resultAction, item));
-            } else if (item.type === 'networkInterfaceAddress') {
-                promises.push(this._createActionForAddressAssociationDisassociation(addresses, item));
-            }
-        });
+            });
+        }
 
         return Promise.all(promises)
             .then((response) => response.pop())
@@ -259,7 +260,7 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Create operations for Elastic IP Address
+     * Create operations for Elastic IP Address for across-net deployment
      *
      * @param {Object} resultAction     - publicAddresses operations
      * @param {Object} providedAddress  - virtual addresses and scoping address
@@ -332,40 +333,47 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Create operations for associate and dissassociate address
+     * Create operations for associate and dissassociate address for same-net deployment
      *
-     * @param {Object} addresses        - local addresses, virtual addresses
-     * @param {Object} providedAddress  - network interface scoping address
+     * @param {Object} addresses                - local addresses, virtual addresses
+     * @param {Object} addressGroupDefinitions  - address group definitions
      *
-     * @returns {Object}                - A promise resolved publicAddresses and interfaces
+     * @returns {Object}                        - A promise resolved publicAddresses and interfaces
      */
-    _createActionForAddressAssociationDisassociation(addresses, providedAddress) {
+    _createActionsForAddressAssociationDisassociation(addresses, addressGroupDefinitions) {
         const operations = {
             disassociate: [],
             associate: []
         };
+        const scopingAddresses = [];
+        addressGroupDefinitions.forEach((address) => {
+            scopingAddresses.push(address.scopingAddress);
+        });
+        this.logger.silly('_createActionsForAddressAssociationDisassociation generated scoping addresses', scopingAddresses);
         return Promise.all([
-            this._getElasticIPs({ publicAddress: providedAddress.scopingAddress }),
             this._listNics({ tags: this.addressTags }),
             this._getSubnets()
         ])
             .then((results) => {
-                const eips = results[0].Addresses;
-                const nics = results[1];
-                this.logger.debug('Discover address operations found Elastic IPs:', eips);
-                this.logger.debug('Discover address operations found Nics', nics);
-                const parsedNics = this._parseNics(nics, addresses.localAddresses, addresses.failoverAddresses);
-                this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
-                const nicOperations = this._checkForNicOperations(
-                    parsedNics.mine[0].nic,
-                    parsedNics.theirs[0].nic,
-                    addresses.failoverAddresses
-                );
-
-                if (nicOperations.disassociate && nicOperations.associate) {
-                    operations.disassociate.push(nicOperations.disassociate);
-                    operations.associate.push(nicOperations.associate);
+                const nics = results[0];
+                const parsedNics = this._parseNics(nics, addresses.localAddresses);
+                for (let s = parsedNics.mine.length - 1; s >= 0; s -= 1) {
+                    for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
+                        const theirNic = parsedNics.theirs[h].nic;
+                        const myNic = parsedNics.mine[s].nic;
+                        if ((theirNic.SubnetId === undefined || myNic.SubnetId === undefined)
+                            || (theirNic.SubnetId !== myNic.SubnetId)) {
+                            this.logger.silly('subnetID does not exist or does not match for interfaces', myNic.NetworkInterfaceId, theirNic.NetworkInterfaceId);
+                        } else {
+                            const nicOperations = this._checkForNicOperations(myNic, theirNic, scopingAddresses);
+                            if (nicOperations.disassociate && nicOperations.associate) {
+                                operations.disassociate.push(nicOperations.disassociate);
+                                operations.associate.push(nicOperations.associate);
+                            }
+                        }
+                    }
                 }
+                this.logger.silly('_createActionsForAddressAssociationDisassociation generated address operations', operations);
                 return Promise.resolve({
                     publicAddresses: {},
                     interfaces: operations,
@@ -378,24 +386,35 @@ class Cloud extends AbstractCloud {
     /**
      * Get Associated Address and Route Info - Returns associated and route table information
      *
+     * @param {Boolean} isAddressOperationsEnabled   - Are we inspecting addresses
+     * @param {Boolean} isRouteOperationsEnabled     - Are we inspecting routes
+     *
      * @returns {Object}
      */
-    getAssociatedAddressAndRouteInfo() {
+    getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
-        return Promise.all([
-            this._getElasticIPs({ instanceId: this.instanceId }),
-            this._getRouteTables({ instanceId: this.instanceId })
-        ])
-            .then((result) => {
-                result[0].Addresses.forEach((address) => {
-                    data.addresses.push({
-                        publicIpAddress: address.PublicIp,
-                        privateIpAddress: address.PrivateIpAddress,
-                        networkInterfaceId: address.NetworkInterfaceId
+        let params = {
+            Filters: []
+        };
+        params = this._addFilterToParams(params, 'instance-id', this.instanceId);
+        return this._describeInstance(params)
+            .then((instance) => {
+                if (isAddressOperationsEnabled) {
+                    instance.Reservations[0].Instances[0].NetworkInterfaces.forEach((nic) => {
+                        nic.PrivateIpAddresses.forEach((address) => {
+                            data.addresses.push({
+                                publicIpAddress: address.Association ? address.Association.PublicIp : '',
+                                privateIpAddress: address.PrivateIpAddress,
+                                networkInterfaceId: nic.NetworkInterfaceId
+                            });
+                        });
                     });
-                });
-                result[1].forEach((route) => {
+                }
+                return isRouteOperationsEnabled ? this._getRouteTables({ instanceId: this.instanceId }) : [];
+            })
+            .then((routeTables) => {
+                routeTables.forEach((route) => {
                     data.routes.push({
                         routeTableId: route.RouteTableId,
                         routeTableName: null, // add routeTableName here to normalize response across clouds
@@ -496,9 +515,9 @@ class Cloud extends AbstractCloud {
                 const eips = results[0].Addresses;
                 const secondaryPrivateIps = results[1];
                 const nics = results[2];
-                this.logger.debug('Discover address operations found Elastic IPs:', eips);
-                this.logger.debug('Discover address operations found Private Secondary IPs', secondaryPrivateIps);
-                this.logger.debug('Discover address operations found Nics', nics);
+                this.logger.debug('_discoverAddressOperations found Elastic IPs:', eips);
+                this.logger.debug('_discoverAddressOperations found Private Secondary IPs', secondaryPrivateIps);
+                this.logger.debug('_discoverAddressOperations found Nics', nics);
                 const parsedNics = this._parseNics(nics, localAddresses, failoverAddresses);
                 this.logger.debug('_discoverAddressOperations parsed nics ', parsedNics);
 
@@ -1054,40 +1073,20 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Object} { 'mine': [], 'theirs': [] }
     */
-    _parseNics(nics, localAddresses, failoverAddresses) {
+    _parseNics(nics, localAddresses) {
+        // add nics to 'mine' or 'their' array based on address match
         const myNics = [];
         const theirNics = [];
-        // add nics to 'mine' or 'their' array based on address match
-        nics.forEach((nic) => {
-            // identify 'my' and 'their' nics
-            let nicAddresses = nic.PrivateIpAddresses.map((i) => i.PrivateIpAddress);
-            if (nic.Ipv6Addresses) {
-                nicAddresses = nicAddresses.concat(nic.Ipv6Addresses.map((i) => i.Ipv6Address));
-            }
-            localAddresses.forEach((address) => {
-                const myNicIds = myNics.map((i) => i.nic.NetworkInterfaceId);
-                if (nicAddresses.indexOf(address) !== -1
-                    && myNicIds.indexOf(nic.NetworkInterfaceId) === -1) {
-                    myNics.push({ nic });
-                }
-            });
-            failoverAddresses.forEach((address) => {
-                const theirNicIds = theirNics.map((i) => i.nic.NetworkInterfaceId);
-                if (nicAddresses.indexOf(address) !== -1
-                    && theirNicIds.indexOf(nic.NetworkInterfaceId) === -1) {
-                    theirNics.push({ nic });
-                }
-            });
+        const mine = nics.filter((nic) => localAddresses.includes(nic.PrivateIpAddress));
+        const theirs = nics.filter((nic) => !localAddresses.includes(nic.PrivateIpAddress));
+
+        mine.forEach((nic) => {
+            myNics.push({ nic });
         });
-        // remove any nics from 'their' array if they are also in 'my' array
-        for (let p = myNics.length - 1; p >= 0; p -= 1) {
-            for (let qp = theirNics.length - 1; qp >= 0; qp -= 1) {
-                if (myNics[p].nic.NetworkInterfaceId === theirNics[qp].nic.NetworkInterfaceId) {
-                    theirNics.splice(qp, 1);
-                    break;
-                }
-            }
-        }
+
+        theirs.forEach((nic) => {
+            theirNics.push({ nic });
+        });
         return { mine: myNics, theirs: theirNics };
     }
 
@@ -1369,7 +1368,6 @@ class Cloud extends AbstractCloud {
         if (publicAddress) {
             params = this._addFilterToParams(params, 'public-ip', publicAddress);
         }
-
         if (privateAddress) {
             params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
         }
@@ -1532,6 +1530,20 @@ class Cloud extends AbstractCloud {
                 }
                 return Promise.resolve(); // resolving since ignoring permissions errors to extraneous buckets
             });
+    }
+
+    /**
+     * Describe EC2 instance, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeInstance(params) {
+        const func = (_params) => this.ec2.describeInstances(_params).promise();
+
+        return this._retrier(func, [params])
+            .catch((err) => Promise.reject(err));
     }
 
     /**

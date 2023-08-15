@@ -725,9 +725,6 @@ describe('Provider - Azure', () => {
         beforeEach(() => {
             provider._getInstanceMetadata = sinon.stub().resolves(mockMetadata);
             provider._getRouteTableByName = sinon.stub().resolves();
-            // provider._getRouteTableConfig = sinon.stub().resolves(routeTablesBySubscription['xxxx'][0]);
-            // provider._getRouteTableConfig = sinon.stub().resolves(routeTablesBySubscription['xxxx'][1]);
-            // provider._getRouteTableConfig = sinon.stub().resolves(routeTablesBySubscription['yyyy'][0]);
             provider._listStorageAccounts = sinon.stub().resolves([
                 {
                     name: 'foo',
@@ -1320,7 +1317,183 @@ describe('Provider - Azure', () => {
                 }
             ];
 
-            return provider.getAssociatedAddressAndRouteInfo()
+            return provider.getAssociatedAddressAndRouteInfo(true, true)
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should skip routes for active device ', () => {
+            const expectedData = {
+                instance: 'vm-1',
+                addresses: [
+                    {
+                        privateIpAddress: '1.1.1.1',
+                        publicIpAddress: '100.100.100.100',
+                        networkInterfaceId: '/some-path/nic/id'
+                    }
+                ],
+                routes: []
+            };
+            const mockInstanceMetadata = {
+                compute: {
+                    vmId: 'vm-1',
+                    name: 'test-vm'
+                },
+                network: {
+                    interface: [{
+                        ipv4: {
+                            ipAddress: [{
+                                privateIpAddress: '1.1.1.1',
+                                publicIpAddress: '100.100.100.100'
+                            }]
+                        },
+                        ipv6: {
+                            ipAddress: []
+                        },
+                        macAddress: '000000070FD1'
+                    }]
+                }
+
+            };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                }
+            ];
+            const mockPublicIpData = {
+                id: '/some-path/public-ip-name',
+                ipAddress: '100.100.100.100'
+            };
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider._getPublicIpAddress = sinon.stub().resolves(mockPublicIpData);
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'routeTag',
+                                tag: 'F5_SELF_IPS'
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.getAssociatedAddressAndRouteInfo(true, false)
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should skip addresses for active device ', () => {
+            const expectedData = {
+                instance: 'vm-1',
+                addresses: [],
+                routes: [
+                    {
+                        routeTableId: '/foo/foo/foo/rg01/id_rt01',
+                        routeTableName: 'rt01',
+                        networkId: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+            };
+            const mockInstanceMetadata = {
+                compute: {
+                    vmId: 'vm-1',
+                    name: 'test-vm'
+                },
+                network: {
+                    interface: [{
+                        ipv4: {
+                            ipAddress: [{
+                                privateIpAddress: '1.1.1.1',
+                                publicIpAddress: '100.100.100.100'
+                            }]
+                        },
+                        ipv6: {
+                            ipAddress: []
+                        },
+                        macAddress: '000000070FD1'
+                    }]
+                }
+
+            };
+            const routeTable01 = {
+                id: '/foo/foo/foo/rg01/id_rt01',
+                name: 'rt01',
+                tags: {
+                    F5_LABEL: 'foo',
+                    F5_SELF_IPS: '1.1.1.1, 2.2.2.2'
+                },
+                routes: [
+                    {
+                        id: 'id_route01',
+                        name: 'route01',
+                        addressPrefix: '192.0.0.0/24',
+                        nextHopType: 'VirtualAppliance',
+                        nextHopIpAddress: '1.1.1.1'
+                    }
+                ],
+                subnets: [
+                    {
+                        id: '/foo/foo/foo/rg01/subnets/internal'
+                    }
+                ]
+
+            };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    virtualMachine: { id: 'test-vm' },
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1',
+                            publicIPAddress: {
+                                id: '/some-path/public-ip-name'
+                            }
+                        }
+                    ]
+                }
+            ];
+            const mockPublicIpData = {
+                id: '/some-path/public-ip-name',
+                ipAddress: '100.100.100.100'
+            };
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider._getPublicIpAddress = sinon.stub().resolves(mockPublicIpData);
+            provider._getRouteTables = sinon.stub().resolves([routeTable01]);
+            provider.routeGroupDefinitions = [
+                {
+                    routeTags: { F5_LABEL: 'foo' },
+                    routeAddressRanges: [
+                        {
+                            routeAddresses: ['192.0.0.0/24'],
+                            routeNextHopAddresses: {
+                                type: 'routeTag',
+                                tag: 'F5_SELF_IPS'
+                            }
+                        }
+                    ]
+                }
+            ];
+
+            return provider.getAssociatedAddressAndRouteInfo(false, true)
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
@@ -1457,7 +1630,7 @@ describe('Provider - Azure', () => {
                 }
             ];
 
-            return provider.getAssociatedAddressAndRouteInfo()
+            return provider.getAssociatedAddressAndRouteInfo(true, true)
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
@@ -1525,7 +1698,7 @@ describe('Provider - Azure', () => {
                         tag: 'F5_SELF_IPS'
                     }
                 }];
-            return provider.getAssociatedAddressAndRouteInfo()
+            return provider.getAssociatedAddressAndRouteInfo(true, true)
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
                 })
@@ -1606,7 +1779,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip1'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.10',
@@ -1630,7 +1806,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip3'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.100',
@@ -1652,7 +1831,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip5'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.10.20',
@@ -1688,7 +1870,10 @@ describe('Provider - Azure', () => {
                     publicIPAddress: {
                         id: 'vip-pip6'
                     },
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'foo'
+                    }
                 }
             ],
             tags: {
@@ -1705,7 +1890,10 @@ describe('Provider - Azure', () => {
                 {
                     privateIPAddress: '10.10.11.3',
                     primary: true,
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'bar'
+                    }
                 },
                 {
                     privateIPAddress: '10.10.11.20',
@@ -1732,7 +1920,10 @@ describe('Provider - Azure', () => {
                 {
                     privateIPAddress: '10.10.11.4',
                     primary: true,
-                    provisioningState: 'Succeeded'
+                    provisioningState: 'Succeeded',
+                    subnet: {
+                        id: 'bar'
+                    }
                 }
             ],
             tags: {
@@ -1847,35 +2038,19 @@ describe('Provider - Azure', () => {
             const networkGroupDefinitions = [
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.10.20',
-                    networkInterfaces: [
-                        'nic03',
-                        'nic04'
-                    ]
+                    scopingAddress: '10.10.10.20'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.10.21',
-                    networkInterfaces: [
-                        'nic03',
-                        'nic04'
-                    ]
+                    scopingAddress: '10.10.10.21'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.11.20',
-                    networkInterfaces: [
-                        'nic05',
-                        'nic06'
-                    ]
+                    scopingAddress: '10.10.11.20'
                 },
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '10.10.11.21',
-                    networkInterfaces: [
-                        'nic05',
-                        'nic06'
-                    ]
+                    scopingAddress: '10.10.11.21'
                 }
             ];
             provider.primarySubscriptionId = mockSubscriptionId;

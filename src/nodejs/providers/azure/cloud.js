@@ -300,9 +300,12 @@ class Cloud extends AbstractCloud {
     /**
      * Get Associated Address and Route Info - Returns associated and route table information
      *
+     * @param {Boolean} isAddressOperationsEnabled   - Are we inspecting addresses
+     * @param {Boolean} isRouteOperationsEnabled     - Are we inspecting routes
+     *
      * @returns {Object}
      */
-    getAssociatedAddressAndRouteInfo() {
+    getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const localAddresses = [];
         const publicIpIds = [];
         let vmName = '';
@@ -314,33 +317,35 @@ class Cloud extends AbstractCloud {
                 vmName = metadata.compute.name;
                 return this._listNics({ tags: this.addressTags || null });
             })
-            .then((result) => {
-                result.forEach((nic) => {
+            .then((nics) => {
+                nics.forEach((nic) => {
                     if (nic.virtualMachine.id.indexOf(vmName) !== -1) {
                         nic.ipConfigurations.forEach((conf) => {
-                            data.addresses.push({
-                                privateIpAddress: conf.privateIPAddress,
-                                publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
-                                networkInterfaceId: nic.id
-                            });
-                            localAddresses.push(conf.privateIPAddress);
-                            if (conf.publicIPAddress) {
-                                publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                            if (isAddressOperationsEnabled) {
+                                data.addresses.push({
+                                    privateIpAddress: conf.privateIPAddress,
+                                    publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
+                                    networkInterfaceId: nic.id
+                                });
+                                if (conf.publicIPAddress) {
+                                    publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                                }
                             }
+                            localAddresses.push(conf.privateIPAddress);
                         });
                     }
                 });
                 return Promise.all(publicIpIds);
             })
-            .then((results) => {
-                results.forEach((pip) => {
+            .then((pips) => {
+                pips.forEach((pip) => {
                     data.addresses.forEach((address) => {
                         if (address.publicIpAddress === pip.id) {
                             address.publicIpAddress = pip.ipAddress;
                         }
                     });
                 });
-                return this._getRouteTables();
+                return isRouteOperationsEnabled ? this._getRouteTables() : [];
             })
             .then((routeTables) => {
                 this.routeGroupDefinitions.forEach((routeGroup) => {
@@ -868,13 +873,60 @@ class Cloud extends AbstractCloud {
             .catch((err) => Promise.reject(err));
     }
 
+    /**
+    * List route tables
+    *
+    * @param {String} id - Subscription ID
+    *
+    * @returns {Promise}
+    */
     _listRouteTablesBySubscription(id) {
         const func = () => new Promise((resolve, reject) => {
             this.networkClients[id].routeTables.listAll((error, data) => {
                 if (error) {
                     reject(error);
                 } else {
-                    resolve(data);
+                    /* eslint-disable no-lonely-if */
+                    if (data.nextLink) {
+                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
+                            .then((accData) => {
+                                resolve(accData);
+                            })
+                            .catch((err) => reject(err));
+                    } else {
+                        resolve(data);
+                    }
+                }
+            });
+        });
+        return this._retrier(func, []);
+    }
+
+    /**
+    * List route tables from paginated response
+    *
+    * @param {String} id        - Subscription ID
+    * @param {Array} results    - Array of previously acquired route tables
+    * @param {String} nextLink  - The URL of the next page of results to request
+    *
+    * @returns {Promise}
+    */
+    _listRouteTablesBySubscriptionUsingNextPageLink(id, results, nextLink) {
+        const func = () => new Promise((resolve, reject) => {
+            this.networkClients[id].routeTables.listAllNext(nextLink, (error, data) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    results = results.concat(data);
+                    if (data.nextLink) {
+                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
+                            .then((accResults) => {
+                                results = results.concat(accResults);
+                                resolve(results);
+                            });
+                    } else {
+                        resolve(results);
+                    }
                 }
             });
         });
@@ -1216,13 +1268,10 @@ class Cloud extends AbstractCloud {
                     for (let h = parsedNics.theirs.length - 1; h >= 0; h -= 1) {
                         const theirNic = parsedNics.theirs[h].nic;
                         const myNic = parsedNics.mine[s].nic;
-                        theirNic.tags = theirNic.tags ? theirNic.tags : this._normalizeTags(theirNic.TagSet);
-                        myNic.tags = myNic.tags ? myNic.tags : this._normalizeTags(myNic.TagSet);
                         /* eslint-disable max-len */
-                        if (theirNic.tags[constants.NIC_TAG] === undefined || myNic.tags[constants.NIC_TAG] === undefined) {
-                            this.logger.warning(`${constants.NIC_TAG} tag values do not match or doesn't exist for a interface`);
-                        } else if (theirNic.tags[constants.NIC_TAG] && myNic.tags[constants.NIC_TAG]
-                            && theirNic.tags[constants.NIC_TAG] === myNic.tags[constants.NIC_TAG]) {
+                        if (theirNic.ipConfigurations[0].subnet.id === undefined || myNic.ipConfigurations[0].subnet.id === undefined) {
+                            this.logger.warning('Subnet ID values do not match or do not exist for a interface');
+                        } else if (theirNic.ipConfigurations[0].subnet.id === myNic.ipConfigurations[0].subnet.id) {
                             const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
 
                             if (nicOperations.disassociate && nicOperations.associate) {
@@ -1260,7 +1309,7 @@ class Cloud extends AbstractCloud {
                 return Promise.resolve();
             })
             .catch((err) => {
-                this.logger.silly(`Get public IP address error. ${err}`);
+                this.logger.silly(`Get public IP address status: ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1285,7 +1334,7 @@ class Cloud extends AbstractCloud {
                 return Promise.reject(new Error(`NIC ${networkInterfaceName} is not ready yet`));
             })
             .catch((err) => {
-                this.logger.silly(`Get network interface by name error. ${err}`);
+                this.logger.silly(`Get network interface by name. Status: ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1311,7 +1360,7 @@ class Cloud extends AbstractCloud {
                 return Promise.reject(new Error(`Route table ${routeTableName} is not ready yet`));
             })
             .catch((err) => {
-                this.logger.silly(`Get route table by name error. ${err}`);
+                this.logger.silly(`Get route table by name. Status:  ${err}`);
                 return Promise.reject(err);
             });
     }
@@ -1334,7 +1383,7 @@ class Cloud extends AbstractCloud {
                 return Promise.resolve(response);
             })
             .catch((err) => {
-                this.logger.silly(`Get route table config error. ${err}`);
+                this.logger.silly(`Get route table config. Status: ${err}`);
                 return Promise.reject(err);
             });
     }

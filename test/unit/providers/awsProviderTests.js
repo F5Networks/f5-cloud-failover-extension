@@ -1203,7 +1203,7 @@ describe('Provider - AWS', () => {
 
     describe('function discoverAddressOperationsUsingDefinitions', () => {
         const addresses = {
-            localAddresses: ['1.2.3.4'],
+            localAddresses: ['1.2.3.4', '2.3.4.5'],
             failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2', '2600:1f14:92a:bc03:8459:976:1950:33a2', '2600:1f14:92a:bc03:8459:976:1950:34a2']
         };
         const options = {};
@@ -1271,6 +1271,41 @@ describe('Provider - AWS', () => {
                         ],
                         TagSet: [],
                         SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-000003',
+                        PrivateIpAddress: '2.3.4.5',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '2.3.4.5'
+                            }
+                        ],
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac2e'
+                    },
+                    {
+                        NetworkInterfaceId: 'eni-000004',
+                        PrivateIpAddress: '2.3.4.6',
+                        PrivateIpAddresses: [
+                            {
+                                Primary: true,
+                                PrivateIpAddress: '2.3.4.6'
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.11.10',
+                                Association: {}
+                            },
+                            {
+                                Primary: false,
+                                PrivateIpAddress: '10.10.11.11',
+                                Association: {}
+                            }
+                        ],
+                        Ipv6Addresses: [],
+                        TagSet: [],
+                        SubnetId: 'subnet-02d5ddf8d8383ac2e'
                     }
                 ],
                 Tags: []
@@ -1278,11 +1313,31 @@ describe('Provider - AWS', () => {
             const addressGroupDefinitions = [
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '2.2.2.2',
-                    networkInterfaces: [
-                        'eni-000001',
-                        'eni-000002'
-                    ]
+                    scopingAddress: '10.10.10.10'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.10.11'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.11.10'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.11.11'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:32a2'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:33a2'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:34a2'
                 }
             ];
             const describeSubnetsResponse = {
@@ -1290,6 +1345,10 @@ describe('Provider - AWS', () => {
                     {
                         CidrBlock: '1.2.3.0/24',
                         SubnetId: 'subnet-02d5ddf8d8383ac1e'
+                    },
+                    {
+                        CidrBlock: '2.3.4.0/24',
+                        SubnetId: 'subnet-02d5ddf8d8383ac2e'
                     }
                 ]
             };
@@ -1325,33 +1384,41 @@ describe('Provider - AWS', () => {
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
-                    assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000002');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses.length, 5);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[2].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[3].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].address, '10.10.10.10');
-                    assert.strictEqual(response.interfaces.disassociate[0].addresses[4].publicAddress, '2.2.2.2');
-                    assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000001');
-                    assert.strictEqual(response.interfaces.associate[0].addresses.length, 5);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[0].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[1].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[2].ipVersion, 6);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[3].address, '10.10.10.11');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[3].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[3].publicAddress, undefined);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[4].address, '10.10.10.10');
-                    assert.strictEqual(response.interfaces.associate[0].addresses[4].ipVersion, 4);
-                    assert.strictEqual(response.interfaces.associate[0].addresses[4].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.disassociate[1].networkInterfaceId, 'eni-000002');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.disassociate[1].addresses[4].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses.length, 2);
+                    assert.strictEqual(response.interfaces.disassociate[0].networkInterfaceId, 'eni-000004');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[0].address, '10.10.11.11');
+                    assert.strictEqual(response.interfaces.disassociate[0].addresses[1].address, '10.10.11.10');
+                    assert.strictEqual(response.interfaces.associate[1].networkInterfaceId, 'eni-000001');
+                    assert.strictEqual(response.interfaces.associate[1].addresses.length, 5);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[0].address, '2600:1f14:92a:bc03:8459:976:1950:34a2');
+                    assert.strictEqual(response.interfaces.associate[1].addresses[0].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[1].address, '2600:1f14:92a:bc03:8459:976:1950:33a2');
+                    assert.strictEqual(response.interfaces.associate[1].addresses[1].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[2].address, '2600:1f14:92a:bc03:8459:976:1950:32a2');
+                    assert.strictEqual(response.interfaces.associate[1].addresses[2].ipVersion, 6);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[3].address, '10.10.10.11');
+                    assert.strictEqual(response.interfaces.associate[1].addresses[3].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[3].publicAddress, undefined);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[4].address, '10.10.10.10');
+                    assert.strictEqual(response.interfaces.associate[1].addresses[4].ipVersion, 4);
+                    assert.strictEqual(response.interfaces.associate[1].addresses[4].publicAddress, '2.2.2.2');
+                    assert.strictEqual(response.interfaces.associate[0].networkInterfaceId, 'eni-000003');
+                    assert.strictEqual(response.interfaces.associate[0].addresses.length, 2);
+                    assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '10.10.11.11');
+                    assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.11.10');
                     assert.ok(isRetryOccured);
                 })
                 .catch((err) => assert.fail(err));
@@ -2050,11 +2117,27 @@ describe('Provider - AWS', () => {
             };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub().resolves({
-                        Addresses: [{
-                            PublicIp: '1.1.1.1',
-                            PrivateIpAddress: '1.1.1.1',
-                            NetworkInterfaceId: '123'
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
                         }]
                     });
                     provider._getRouteTables = sinon.stub().resolves([
@@ -2064,7 +2147,111 @@ describe('Provider - AWS', () => {
                             VpcId: '123'
                         }
                     ]);
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('skip routes for active device ', () => {
+            const expectedData = {
+                instance: 'i-123',
+                addresses: [
+                    {
+                        publicIpAddress: '1.1.1.1',
+                        privateIpAddress: '1.1.1.1',
+                        networkInterfaceId: '123'
+                    }
+                ],
+                routes: []
+            };
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }]
+                    });
+                    provider._getRouteTables = sinon.stub().resolves([
+                        {
+                            RouteTableId: '123',
+                            routeTableName: null,
+                            VpcId: '123'
+                        }
+                    ]);
+                    return provider.getAssociatedAddressAndRouteInfo(true, false);
+                })
+                .then((data) => {
+                    assert.deepStrictEqual(expectedData, data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('skip addresses for active device ', () => {
+            const expectedData = {
+                instance: 'i-123',
+                addresses: [],
+                routes: [
+                    {
+                        routeTableId: '123',
+                        routeTableName: null,
+                        networkId: '123'
+                    }
+                ]
+            };
+            return provider.init(mockInitData)
+                .then(() => {
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }]
+                    });
+                    provider._getRouteTables = sinon.stub().resolves([
+                        {
+                            RouteTableId: '123',
+                            routeTableName: null,
+                            VpcId: '123'
+                        }
+                    ]);
+                    return provider.getAssociatedAddressAndRouteInfo(false, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -2086,15 +2273,31 @@ describe('Provider - AWS', () => {
             };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._getElasticIPs = sinon.stub().resolves({
-                        Addresses: [{
-                            PublicIp: '1.1.1.1',
-                            PrivateIpAddress: '1.1.1.1',
-                            NetworkInterfaceId: '123'
+                    provider._describeInstance = sinon.stub().resolves({
+                        Reservations: [{
+                            Instances: [
+                                {
+                                    NetworkInterfaces: [
+                                        {
+                                            NetworkInterfaceId: '123',
+                                            PrivateIpAddress: '1.1.1.1',
+                                            PrivateIpAddresses: [
+                                                {
+                                                    Association: {
+                                                        PublicIp: '1.1.1.1'
+                                                    },
+                                                    Primary: true,
+                                                    PrivateIpAddress: '1.1.1.1'
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
                         }]
                     });
                     provider._getRouteTables = sinon.stub().resolves([]);
-                    return provider.getAssociatedAddressAndRouteInfo();
+                    return provider.getAssociatedAddressAndRouteInfo(true, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
@@ -2180,11 +2383,23 @@ describe('Provider - AWS', () => {
             const addressGroupDefinitions = [
                 {
                     type: 'networkInterfaceAddress',
-                    scopingAddress: '2.2.2.2',
-                    networkInterfaces: [
-                        'eni-000001',
-                        'eni-000002'
-                    ]
+                    scopingAddress: '10.10.10.10'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '10.10.10.11'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:32a2'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:33a2'
+                },
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:34a2'
                 }
             ];
             const describeSubnetsResponse = {

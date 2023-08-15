@@ -106,7 +106,7 @@ clusterMembers.forEach((dut) => {
         it('should post declaration', () => {
             const uri = constants.DECLARE_ENDPOINT;
             options.method = 'POST';
-            options.body = funcUtils.getDeploymentDeclaration();
+            options.body = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
             return utils.makeRequest(dutHost, uri, options)
                 .then((data) => {
                     data = data || {};
@@ -146,6 +146,22 @@ clusterMembers.forEach((dut) => {
                 })
                 .catch((err) => Promise.reject(err));
         });
+
+        it('should verify inspect', () => {
+            const uri = constants.INSPECT_ENDPOINT;
+
+            options.method = 'GET';
+            return utils.makeRequest(dutHost, uri, options)
+                .then((data) => {
+                    data = data || {};
+                    assert.ok('instance' in data);
+                    assert.ok('addresses' in data);
+                    assert.ok('routes' in data);
+                    assert.ok('hostName' in data);
+                    assert.ok('deviceStatus' in data);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 });
 
@@ -172,8 +188,8 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
     });
 
     describe('Should sync configuration', () => {
-        const originalBody = funcUtils.getDeploymentDeclaration();
-        const modifiedBody = funcUtils.getDeploymentDeclaration();
+        const originalBody = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
+        const modifiedBody = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
         modifiedBody.failoverAddresses.scopingTags = { foo: 'bar' };
 
         it('should post modified declaration (primary)', () => {
