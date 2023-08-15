@@ -741,6 +741,7 @@ publish_release_to_artifactory:
 # Publish pre-release RPMs to CDN
 publish_dev_cdn:
   stage: publish
+  image: ${ARTIFACTORY_SERVER}/dockerhub-remote/node:14
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "develop"
@@ -767,6 +768,7 @@ publish_dev_cdn:
     - if [[ $changed_files_count -ge 1 ]]; then svn add --force v${VERSION}/*; svn commit -m "F5 automation templates project automation - ${CI_COMMIT_REF_NAME}" ${AUTH_OPTS}; else echo "RPM files unchanged"; fi
   tags:
     - cm-official-docker-executor
+  allow_failure: true
 
 # Create release on Github
 publish_to_github:
