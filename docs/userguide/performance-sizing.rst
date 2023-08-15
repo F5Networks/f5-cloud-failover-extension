@@ -107,7 +107,6 @@ Azure
 
 *TESTING NOTES:* 
 
-- Failover times listed in the **CFE performance with Azure (without Azure Fast Path enabled)** table indicate when the Azure network resource provisioning state is "Succeeded", and do not reflect the time required for updates to propagate through the legacy Azure control plane. **Resources created with Azure Fast Path enabled are able to pass traffic through the BIG-IP instance(s) almost immediately after the update operation completes.**
 - **API rate throttling observed**. At these levels, we observed the provider rate limiting requests. CFE implements clientside retries in these cases.
 - Tests were performed with one route table with mulitple routes. Performance decreases as the number of route tables increases. Consider consolidating route tables where possible.
 - Max objects tested were dictated by our default account quotas or limits. Quotas and limits can potentially be increased. See your provider for more details:

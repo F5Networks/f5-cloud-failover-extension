@@ -1389,55 +1389,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-     * Gets route table resource provisioning state - given a route table name
-     *
-     * @param {String} routeTableGroup      - name of route table resource group
-     * @param {String} routeTableName       - name of route table
-     *
-     * @returns {Promise}                   - A Promise that will be resolved when the provisioning state is Succeeded
-     */
-    _getRouteTableByName(routeTableGroup, routeTableName, routeTableId) {
-        this.logger.silly(`Checking provisioning state of route table: ${routeTableName}`);
-        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
-            routeTableGroup, routeTableName
-        )
-            .then((response) => {
-                this.logger.silly(`Provisioning state of route table ${routeTableName}: ${response.provisioningState}`);
-                if (response.name.match(routeTableName) && response.provisioningState.match('Succeeded')) {
-                    return Promise.resolve(response);
-                }
-                return Promise.reject(new Error(`Route table ${routeTableName} is not ready yet`));
-            })
-            .catch((err) => {
-                this.logger.silly(`Get route table by name error. ${err}`);
-                return Promise.reject(err);
-            });
-    }
-
-    /**
-     * Gets route table resource configuration - given a route table name
-     *
-     * @param {String} routeTableGroup      - name of route table resource group
-     * @param {String} routeTableName       - name of route table
-     *
-     * @returns {Promise}                   - A Promise that will be resolved with the route table configuration
-     */
-    _getRouteTableConfig(routeTableGroup, routeTableName, routeTableId) {
-        this.logger.silly(`Getting config of route table: ${routeTableName}`);
-        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
-            routeTableGroup, routeTableName
-        )
-            .then((response) => {
-                this.logger.silly(`Found existing config for ${routeTableName}:`, response);
-                return Promise.resolve(response);
-            })
-            .catch((err) => {
-                this.logger.silly(`Get route table config error. ${err}`);
-                return Promise.reject(err);
-            });
-    }
-
-    /**
      * Re-associates the Public IP Addresses. Will first attempt to disassociate and then associate
      * the Public IP Address(es) to the newly active BIG-IP
      *
