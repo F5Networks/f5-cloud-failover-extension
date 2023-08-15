@@ -55,8 +55,8 @@
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "1.5.0",
-        "@google-cloud/compute": "^1.2.0",
-        "@google-cloud/storage": "^4.7.2",
+        "@google-cloud/compute": "^4.0.0",
+        "@google-cloud/storage": "^7.0.1",
         "ajv": "^6.10.0",
         "aws-sdk": "^2.1034.0",
         "azure-arm-network": "^13.0.0",
