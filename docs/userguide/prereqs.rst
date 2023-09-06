@@ -11,7 +11,7 @@ The following are prerequisites for using Cloud Failover:
   role.
 - You should be familiar with the F5 BIG-IP and F5 terminology. For
   general information and documentation on the BIG-IP system, see the
-  `F5 Knowledge Center <https://support.f5.com/csp/knowledge-center/software/BIG-IP?module=BIG-IP%20LTM&version=13.1.0>`_.
+  `F5 Knowledge Center <https://techdocs.f5.com/en-us/bigip-14-1-0/big-ip-local-traffic-management-basics-14-1-0.html>`_.
 - Each provider has their own prerequisites, see the invididual provider sections for more information.
 - Your BIG-IPs must have DNS and NTP setup.
 
