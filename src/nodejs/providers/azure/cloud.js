@@ -16,13 +16,13 @@
 
 'use strict';
 
+const url = require('url');
+const querystring = require('querystring');
 const msRestAzure = require('ms-rest-azure');
 const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
 const NetworkManagementClient = require('azure-arm-network');
-const StorageManagementClient = require('azure-arm-storage');
-const Storage = require('azure-storage');
+const { parse } = require('cruftless')();
 const IPAddressLib = require('ip-address');
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
 const constants = require('../../constants');
 
@@ -35,16 +35,20 @@ const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 const NETWORK_MAX_RETRIES = 60;
 const NETWORK_RETRY_INTERVAL = 5000;
+const METADATA_VERSION = '2021-02-01';
+const X_MS_VERSION = '2017-11-09';
+const STORAGE_API_VERSION = '2023-01-01';
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
+        this.resourceToken = null;
+        this.storageToken = null;
         this.nics = null;
         this.region = null;
         this.resourceGroup = null;
         this.primarySubscriptionId = null;
-        this.storageClient = null;
-        this.storageOperationsClient = null;
+        this.storageName = null;
         this.networkClients = {};
         this.resultAction = {};
     }
@@ -61,17 +65,21 @@ class Cloud extends AbstractCloud {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.primarySubscriptionId = metadata.compute.subscriptionId;
                 this.region = metadata.compute.location;
+                this.customerId = metadata.compute.subscriptionId;
                 this.environment = this._getAzureEnvironment(metadata);
+                this.logger.silly('Found Azure environment: ', this.environment);
+                return Promise.all([
+                    this._getAuthToken(this.environment.resourceManagerEndpointUrl),
+                    this._getAuthToken('https://storage.azure.com/')
+                ]);
+            })
+            .then((tokens) => {
+                this.resourceToken = tokens[0];
+                this.storageToken = tokens[1];
                 const credentials = new msRestAzure.MSIVmTokenCredentials({
                     resource: this.environment.resourceManagerEndpointUrl,
                     msiApiVersion: '2018-02-01'
                 });
-                this.customerId = metadata.compute.subscriptionId;
-                this.storageClient = this._createStorageMgmtClient(
-                    credentials,
-                    this.primarySubscriptionId,
-                    this.environment.resourceManagerEndpointUrl
-                );
                 [this.primarySubscriptionId].concat(options.subscriptions || []).forEach((subscription) => {
                     this.networkClients[subscription] = this._createNetworkMgmtClient(
                         credentials,
@@ -82,18 +90,9 @@ class Cloud extends AbstractCloud {
                 return this._discoverStorageAccount();
             })
             .then((storageName) => {
-                this.logger.silly('Storage name: ', storageName);
-                return this._retrier(this._getStorageAccountKey, [storageName], { maxRetries: 5 });
-            })
-            .then((storageAccountInfo) => {
-                this.logger.silly('Storage Account Information: ', storageAccountInfo.name);
-
-                this.storageOperationsClient = Storage.createBlobService(
-                    storageAccountInfo.name,
-                    storageAccountInfo.key,
-                    `${storageAccountInfo.name}.blob${this.environment.storageEndpointSuffix}`
-                );
-                return this._retrier(this._initStorageAccountContainer, [storageContainerName]);
+                this.logger.silly('Storage Account Information: ', storageName);
+                this.storageName = storageName;
+                return this._initStorageAccountContainer();
             })
             .then(() => {
                 this.logger.silly('Cloud Provider initialization complete');
@@ -109,6 +108,65 @@ class Cloud extends AbstractCloud {
     */
     getRegion() {
         return this.region;
+    }
+
+    /**
+     * Gets token from metadata
+     *
+     * @param {String}  resource    - Resource to include in request scope
+     *
+     * @returns {String} Token
+     *
+     */
+    _getAuthToken(resource) {
+        const encodedResource = encodeURIComponent(resource);
+        const headers = { Metadata: true, 'x-ms-version': X_MS_VERSION };
+
+        return util.makeRequest(constants.METADATA_HOST, `/metadata/identity/oauth2/token?api-version=${METADATA_VERSION}&resource=${encodedResource}`, { headers, port: 80, protocol: 'http' })
+            .then((response) => Promise.resolve(response.access_token))
+            .catch((err) => {
+                const message = `Error getting auth token ${err.message}`;
+                return Promise.reject(new Error(message));
+            });
+    }
+
+    /**
+     * Send HTTP Request to Azure API
+     *
+     * @param {String} method       - HTTP method for the request
+     * @param {String} requestUrl   - Full URL for the request
+     * @param {Object} options      - Options to pass to the request
+     *
+     * @returns {Promise} A promise which will be resolved upon complete response
+     *
+     */
+    _makeRequest(method, requestUrl, options) {
+        if (!this.resourceToken || !this.storageToken) {
+            return Promise.reject(new Error('_makeRequest: no auth token. call init first'));
+        }
+
+        const parsedUrl = url.parse(requestUrl);
+        const host = parsedUrl.hostname;
+        const uri = parsedUrl.pathname;
+        const queryString = parsedUrl.query || null;
+
+        options.requestScope = options.requestScope || 'resource';
+        options.headers = options.headers || {};
+        options.headers.Authorization = `Bearer ${options.requestScope === 'resource' ? this.resourceToken : this.storageToken}`;
+        options.headers['x-ms-version'] = X_MS_VERSION;
+        options.method = method;
+        options.queryParams = queryString ? querystring.parse(queryString) : {};
+        options.body = options.body || '';
+        options.advancedReturn = options.advancedReturn || false;
+        options.continueOnError = options.continueOnError || false;
+        options.validateStatus = options.validateStatus || false;
+
+        return this._retrier(util.makeRequest, [host, uri, options], {
+            retryInterval: NETWORK_RETRY_INTERVAL,
+            maxRetries: NETWORK_MAX_RETRIES
+        })
+            .then((data) => Promise.resolve(data))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -168,27 +226,20 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    uploadDataToStorage(fileName, data, options) {
-        options = options || {};
-        const maxRetriesValue = options.maxRetries;
-        const retryIntervalValue = options.retryInterval;
-
+    uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-
-        const uploadObject = () => new Promise(((resolve, reject) => {
-            this.storageOperationsClient.createBlockBlobFromText(
-                storageContainerName, fileName, JSON.stringify(data), (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                }
-            );
-        }))
-            .catch((err) => Promise.reject(err));
-        return this._retrier(uploadObject, [],
-            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
+        const requestScope = 'storage';
+        const headers = {
+            'Content-Length': Buffer.byteLength(JSON.stringify(data)),
+            'x-ms-blob-type': 'BlockBlob',
+            'x-ms-date': (new Date()).toUTCString()
+        };
+        return this._makeRequest('PUT', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}/${fileName}`, { requestScope, headers, body: data })
+            .then(() => Promise.resolve())
+            .catch((err) => {
+                const message = `Error in uploadDataToStorage ${err}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -201,40 +252,21 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    downloadDataFromStorage(fileName, options) {
-        options = options || {};
-        const maxRetriesValue = options.maxRetries;
-        const retryIntervalValue = options.retryInterval;
-        const downloadObject = () => new Promise(((resolve, reject) => {
-            this.storageOperationsClient.doesBlobExist(
-                storageContainerName, fileName, (err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.exists);
-                    }
-                }
-            );
-        }))
-            .then((exists) => {
-                if (exists === false) {
+    downloadDataFromStorage(fileName) {
+        this.logger.silly(`Data will be downloaded from ${fileName}`);
+        const requestScope = 'storage';
+        return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}/${fileName}`, { requestScope, advancedReturn: true, continueOnError: true })
+            .then((response) => {
+                if (response.code === 404) {
+                    this.logger.silly('downloadDataFromStorage could not find state file, continuing...');
                     return Promise.resolve({});
                 }
-                return new Promise(((resolve, reject) => {
-                    this.storageOperationsClient.getBlobToText(
-                        storageContainerName, fileName, (err, data) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve(JSON.parse(data));
-                            }
-                        }
-                    );
-                }));
+                return Promise.resolve(response.body);
             })
-            .catch((err) => Promise.reject(err));
-        return this._retrier(downloadObject, [],
-            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
+            .catch((err) => {
+                const message = `Error in downloadDataFromStorage ${err}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -386,26 +418,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Create storage management client
-    *
-    * @param {Object} credentials                - Credentials instance
-    * @param {String} subscriptionId             - Subscription ID
-    * @param {String} resourceManagerEndpointUrl - Resource Manager Endpoint URL
-    *
-    * @returns {StorageManagementClient}
-    */
-    _createStorageMgmtClient(credentials, subscriptionId, resourceManagerEndpointUrl) {
-        const clientOptions = this._appendRequestOptions({});
-
-        return new StorageManagementClient(
-            credentials,
-            subscriptionId,
-            resourceManagerEndpointUrl,
-            clientOptions
-        );
-    }
-
-    /**
     * Create network management client
     *
     * @param {Object} credentials                - Credentials instance
@@ -434,7 +446,7 @@ class Cloud extends AbstractCloud {
         if (this.storageName) {
             return Promise.resolve(this.storageName);
         }
-        return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }])
+        return this._listStorageAccounts({ tags: this.storageTags })
             .then((storageAccounts) => {
                 if (!storageAccounts.length) {
                     return Promise.reject(new Error('No storage account found!'));
@@ -468,25 +480,14 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getInstanceMetadata() {
-        const func = () => new Promise((resolve, reject) => {
-            cloudLibsUtil.getDataFromUrl(
-                'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
-                {
-                    headers: {
-                        Metadata: true
-                    }
-                }
-            )
-                .then((metaData) => {
-                    resolve(metaData);
-                })
-                .catch((err) => {
-                    const message = `Error getting instance metadata ${err.message}`;
-                    reject(new Error(message));
-                });
-        });
-        return this._retrier(func, [])
-            .catch((err) => Promise.reject(err));
+        const headers = { Metadata: true, 'x-ms-version': X_MS_VERSION };
+
+        return util.makeRequest(constants.METADATA_HOST, `/metadata/instance?api-version=${METADATA_VERSION}`, { headers, port: 80, protocol: 'http' })
+            .then((metaData) => Promise.resolve(metaData))
+            .catch((err) => {
+                const message = `Error getting instance metadata ${err.message}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -502,12 +503,11 @@ class Cloud extends AbstractCloud {
         const tags = options.tags || {};
 
         this.logger.silly('Listing Storage Accounts');
-        return this.storageClient.storageAccounts.list()
+        return this._makeRequest('GET', `https://management.azure.com/subscriptions/${this.primarySubscriptionId}/providers/Microsoft.Storage/storageAccounts?api-version=${STORAGE_API_VERSION}`, {})
             .then((storageAccounts) => {
-                // if true, filter storage accounts based on 1+ tags
                 if (tags) {
                     const tagKeys = Object.keys(tags);
-                    const filteredStorageAccounts = storageAccounts.filter((sa) => {
+                    const filteredStorageAccounts = storageAccounts.value.filter((sa) => {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
                             if (sa.tags && Object.keys(sa.tags).indexOf(tagKey) !== -1
@@ -519,26 +519,7 @@ class Cloud extends AbstractCloud {
                     });
                     return Promise.resolve(filteredStorageAccounts);
                 }
-                this.logger.silly('Filtered Storage Accounts', storageAccounts);
                 return Promise.resolve(storageAccounts);
-            })
-            .catch((err) => Promise.reject(err));
-    }
-
-    /**
-    * Get key for a specified storage accounts
-    *
-    * @param {String} name - storage account name
-    *
-    * @returns {Promise}
-    */
-    _getStorageAccountKey(name) {
-        this.logger.silly('Listing Storage Keys');
-        return this.storageClient.storageAccounts.listKeys(this.resourceGroup, name)
-            .then((data) => {
-                // simply grab the first key, for now
-                const key = data.keys[0].value;
-                return Promise.resolve({ name, key });
             })
             .catch((err) => Promise.reject(err));
     }
@@ -550,17 +531,25 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    _initStorageAccountContainer(name) {
-        return new Promise(((resolve, reject) => {
-            this.logger.silly('Creating storage account container');
-            this.storageOperationsClient.createContainerIfNotExists(name, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
+    _initStorageAccountContainer() {
+        const requestScope = 'storage';
+        return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/?comp=list`, { requestScope })
+            .then((data) => {
+                const template = parse(`<EnumerationResults><Containers><Container c-bind="Containers|array">
+                        <Name>{{Name}}</Name>
+                    </Container></Containers></EnumerationResults>`);
+                const containers = template.fromXML(data).Containers || null;
+                if (containers && containers[0].Name === storageContainerName) {
+                    this.logger.silly('Container', storageContainerName, 'already exists, continuing...');
+                    return Promise.resolve();
                 }
-            });
-        }))
+                this.logger.silly('Container', storageContainerName, 'does not exist, creating...');
+                return this._makeRequest('PUT', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}?restype=container`, { requestScope })
+                    .then(() => {
+                        this.logger.silly('Container', storageContainerName, 'was created, continuing...');
+                        return Promise.resolve();
+                    });
+            })
             .catch((err) => Promise.reject(err));
     }
 

@@ -17,10 +17,9 @@
 'use strict';
 
 const ipaddr = require('ipaddr.js');
+const url = require('url');
+const querystring = require('querystring');
 const Compute = require('@google-cloud/compute');
-const { Storage } = require('@google-cloud/storage');
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
-const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const GCP_FWD_RULE_PAIR_LABEL = require('../../constants').GCP_FWD_RULE_PAIR_LABEL;
@@ -44,9 +43,9 @@ const gcpLabelParse = (data) => {
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.GCP, options);
-        this.BASE_URL = 'https://www.googleapis.com/compute/v1';
+        this.BASE_URL = 'https://www.googleapis.com';
+        this.STORAGE_URL = 'https://storage.googleapis.com';
         this.compute = new Compute();
-        this.storage = new Storage();
         this.bucket = null;
     }
 
@@ -60,8 +59,7 @@ class Cloud extends AbstractCloud {
             this._getLocalMetadata('project/project-id'),
             this._getLocalMetadata('instance/service-accounts/default/token'),
             this._getLocalMetadata('instance/name'),
-            this._getLocalMetadata('instance/zone'),
-            this._getCloudStorage(this.storageTags)
+            this._getLocalMetadata('instance/zone')
         ])
             .then((data) => {
                 this.projectId = data[0];
@@ -69,9 +67,11 @@ class Cloud extends AbstractCloud {
                 this.accessToken = data[1].access_token;
                 this.instanceName = data[2];
                 this.instanceZone = data[3];
-                this.bucket = data[4];
-
-                this.logger.silly(`deployment bucket name: ${this.bucket.name}`);
+                return this._getCloudStorage(this.storageTags);
+            })
+            .then((data) => {
+                this.bucket = data;
+                this.logger.silly(`deployment bucket name: ${this.bucket}`);
 
                 this.zone = this._parseZone(this.instanceZone);
                 this.computeZone = this.compute.zone(this.zone);
@@ -118,9 +118,10 @@ class Cloud extends AbstractCloud {
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
 
-        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-        return this._retrier(file.save, [util.stringify(data)], { thisArg: file })
-            .catch((err) => Promise.reject(err));
+        const stateFileObject = encodeURIComponent(`${storageContainerName}/${fileName}`);
+        return new Promise((resolve, reject) => this._sendRequest('POST', `${this.STORAGE_URL}/upload/storage/v1/b/${this.bucket}/o?uploadType=media&name=${stateFileObject}`, { body: data })
+            .then(() => resolve())
+            .catch((err) => reject(err)));
     }
 
     /**
@@ -131,30 +132,22 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}
      */
     downloadDataFromStorage(fileName) {
-        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-        return file.exists()
-            .then((exists) => {
-                if (!exists[0]) {
-                    return Promise.resolve({});
-                }
-                const stream = file.createReadStream();
-                let buffer = '';
-                return new Promise((resolve, reject) => {
-                    stream
-                        .on('data', (data) => {
-                            buffer += data;
-                        });
-                    stream
-                        .on('error', (err) => {
-                            reject(err);
-                        });
-                    stream
-                        .on('end', () => {
-                            resolve(JSON.parse(buffer));
-                        });
-                });
+        this.logger.silly(`Data will be downloaded from ${fileName}`);
+
+        const stateFileObject = encodeURIComponent(`${storageContainerName}/${fileName}`);
+        return new Promise((resolve, reject) => this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b/${this.bucket}/o/${stateFileObject}?alt=media`, { advancedReturn: true, continueOnError: false })
+            .then((response) => {
+                resolve(response.body);
             })
-            .catch((err) => Promise.reject(err));
+            .catch((err) => {
+                // return success if we haven't created the file yet
+                if (err.toString().includes('404')) {
+                    this.logger.silly('downloadDataFromStorage could not find state file, continuing...');
+                    resolve({});
+                }
+                const message = `Error in downloadDataFromStorage ${err}`;
+                reject(new Error(message));
+            }));
     }
 
     /**
@@ -255,20 +248,36 @@ class Cloud extends AbstractCloud {
     /**
      * Send HTTP Request to GCP API (Compute)
      *
+     * @param {String} method       - HTTP method for the request
+     * @param {String} requestUrl   - Full URL for the request
+     * @param {Object} options      - Options to pass to the request
+     *
      * @returns {Promise} A promise which will be resolved upon complete response
      *
      */
-    _sendRequest(method, path, body) {
+    _sendRequest(method, requestUrl, options) {
         if (!this.accessToken) {
-            return Promise.reject(new Error('httpUtil.sendRequest: no auth token. call init first'));
+            return Promise.reject(new Error('_sendRequest: no auth token. call init first'));
         }
 
-        const headers = {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
+        const parsedUrl = url.parse(requestUrl);
+        const host = parsedUrl.hostname;
+        const uri = parsedUrl.pathname;
+        const queryString = parsedUrl.query || null;
+
+        options.headers = {
+            Authorization: `Bearer ${this.accessToken}`
         };
-        const url = `${this.BASE_URL}/projects/${this.projectId}/${path}`;
-        return httpUtil.request(method, url, { headers, body });
+        options.method = method;
+        options.queryParams = queryString ? querystring.parse(queryString) : {};
+        options.body = options.body || '';
+        options.advancedReturn = options.advancedReturn || false;
+        options.continueOnError = options.continueOnError || false;
+        options.validateStatus = options.validateStatus || false;
+
+        return this._retrier(util.makeRequest, [host, uri, options])
+            .then((data) => Promise.resolve(data))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -280,19 +289,15 @@ class Cloud extends AbstractCloud {
      *
      */
     _getLocalMetadata(entry) {
-        const options = {
-            headers: {
-                'Metadata-Flavor': 'Google'
-            }
+        const headers = {
+            'Metadata-Flavor': 'Google'
         };
-
-        return cloudLibsUtil.getDataFromUrl(
-            `http://metadata.google.internal/computeMetadata/v1/${entry}`,
-            options
-        )
+        const host = 'metadata.google.internal';
+        const uri = `/computeMetadata/v1/${entry}`;
+        return util.makeRequest(host, uri, { headers, port: 80, protocol: 'http' })
             .then((data) => Promise.resolve(data))
             .catch((err) => {
-                const message = `Error getting local metadata ${err.message}`;
+                const message = `Error in _getLocalMetadata ${JSON.stringify(err)}`;
                 return Promise.reject(new Error(message));
             });
     }
@@ -309,37 +314,19 @@ class Cloud extends AbstractCloud {
      */
     _getCloudStorage(labels) {
         if (this.storageName) {
-            return Promise.resolve(this.storage.bucket(this.storageName));
+            return Promise.resolve(this.storageName);
         }
 
-        // helper function
-        function getBucketLabels(bucket) {
-            return bucket.getLabels()
-                .then((bucketLabels) => Promise.resolve({
-                    name: bucket.name,
-                    labels: bucketLabels,
-                    bucketObject: bucket
-                }))
-                .catch((err) => Promise.reject(err));
-        }
-
-        return this.storage.getBuckets()
-            .then((data) => {
-                const promises = [];
-                data[0].forEach((bucket) => {
-                    promises.push(getBucketLabels(bucket));
-                });
-                return Promise.all(promises);
-            })
+        return this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b?project=${this.projectId}`, {})
             .then((buckets) => {
                 const labelKeys = Object.keys(labels);
-                const filteredBuckets = buckets.filter((bucket) => {
+                const filteredBuckets = buckets.items.filter((bucket) => {
                     this.logger.silly(
                         `bucket name: ${util.stringify(bucket.name)} bucket labels: ${util.stringify(bucket.labels)}`
                     );
                     let matchedTags = 0;
                     labelKeys.forEach((labelKey) => {
-                        bucket.labels.forEach((bucketLabel) => {
+                        Array(bucket.labels).forEach((bucketLabel) => {
                             if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
                                 && bucketLabel[labelKey] === labels[labelKey]) {
                                 matchedTags += 1;
@@ -351,7 +338,7 @@ class Cloud extends AbstractCloud {
                 if (!filteredBuckets || filteredBuckets.length === 0) {
                     return Promise.reject(new Error(`Filtered bucket does not exist: ${filteredBuckets}`));
                 }
-                return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
+                return Promise.resolve(filteredBuckets[0].name); // there should only be one
             });
     }
 
@@ -519,7 +506,7 @@ class Cloud extends AbstractCloud {
             path = `${path}?pageToken=${nextPageToken}`;
         }
         return new Promise((resolve, reject) => {
-            this._sendRequest('GET', path)
+            this._sendRequest('GET', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/${path}`, {})
                 .then((pagedRulesList) => {
                     list = list.concat(pagedRulesList.items);
                     if (pagedRulesList.nextPageToken) {
@@ -1103,8 +1090,10 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Updating NIC: ${nicId} for VM ${vmId} in zone ${zone}`);
         return this._sendRequest(
             'PATCH',
-            `zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
-            nicArr
+            `${this.BASE_URL}/compute/v1/projects/${this.projectId}/zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
+            {
+                body: nicArr
+            }
         )
             .then((data) => {
                 // updateNetworkInterface is async, returns GCP zone operation
@@ -1174,8 +1163,8 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} A promise which will be resolved with the operation response
     */
     _deleteRoute(item) {
-        const uri = `global/routes/${item.id}`;
-        return this._sendRequest('DELETE', uri)
+        const path = `global/routes/${item.id}`;
+        return this._sendRequest('DELETE', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/${path}`, {})
             .then((response) => {
                 const operation = this.compute.operation(response.name);
                 return operation.promise();
@@ -1203,7 +1192,7 @@ class Cloud extends AbstractCloud {
         delete item.creationTimestamp;
         delete item.kind;
         delete item.selfLink;
-        return this._sendRequest('POST', 'global/routes/', item)
+        return this._sendRequest('POST', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/global/routes/`, { body: item })
             .then((response) => {
                 const operation = this.compute.operation(response.name);
                 return operation.promise();

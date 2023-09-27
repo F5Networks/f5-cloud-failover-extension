@@ -67,6 +67,8 @@ module.exports = {
     },
     ENVIRONMENT_KEY_NAME: 'environment',
     LOCAL_HOST: 'localhost',
+    METADATA_HOST: '169.254.169.254',
+    API_VERSION_EC2: '2016-11-15',
     MASK_REGEX: new RegExp('pass(word|phrase)', 'i'),
     PATHS: {
         tgactive: '/config/failover/tgactive',
