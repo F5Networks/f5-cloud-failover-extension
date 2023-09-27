@@ -56,13 +56,15 @@
         "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "1.5.0",
         "@google-cloud/compute": "^1.2.0",
-        "@google-cloud/storage": "^4.7.2",
+        "@xmldom/xmldom": "^0.8.10",
         "ajv": "^6.10.0",
         "aws-sdk": "^2.1034.0",
+        "aws4": "^1.12.0",
+        "axios": "^0.21.4",
         "azure-arm-network": "^13.0.0",
-        "azure-arm-storage": "^8.1.0",
-        "azure-storage": "^2.10.4",
         "commander": "^2.19.0",
+        "cruftless": "^1.2.1",
+        "form-data": "^4.0.0",
         "get-user-locale": "^1.4.0",
         "googleapis": "^60.0.1",
         "gtoken": "5.0.3",
@@ -105,6 +107,7 @@
         "rules": {
             "max-classes-per-file": "off",
             "func-names": "off",
+            "import/extensions": "off",
             "import/no-extraneous-dependencies": [
                 "error",
                 {
@@ -166,7 +169,14 @@
             "1092972",
             "1093263",
             "1093397",
-            "1093401"
+            "1093401",
+            "1093197",
+            "1093193",
+            "1093719",
+            "1094062",
+            "1094058",
+            "1094101",
+            "1094097"
         ]
     }
 }

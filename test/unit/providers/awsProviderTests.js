@@ -18,6 +18,7 @@ const cloud = 'aws';
 describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let provider;
+    let util;
     let metadataPathRequest;
     let originalgetS3BucketByTags;
     let originalgetAllS3Buckets;
@@ -58,6 +59,12 @@ describe('Provider - AWS', () => {
     };
 
     const mockMetadataSessionToken = 'this-test-session-token';
+
+    const mockCredentials = {
+        AccessKeyId: 'mockAccessKeyId',
+        SecretAccessKey: 'SecretAccessKey',
+        Token: mockMetadataSessionToken
+    };
 
     const _getPrivateSecondaryIPsStubResponse = {
         '2.3.4.5': {
@@ -140,6 +147,7 @@ describe('Provider - AWS', () => {
 
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
+        util = require('../../../src/nodejs/util');
     });
     after(() => {
         Object.keys(require.cache)
@@ -160,12 +168,29 @@ describe('Provider - AWS', () => {
         provider.maxRetries = 0;
         provider.retryInterval = 100;
 
-        provider.metadata.request = sinon.stub()
-            .callsFake((path, headers, callback) => {
-                metadataPathRequest = path;
-                if (metadataPathRequest === '/latest/dynamic/instance-identity/document') {
-                    callback(null, JSON.stringify(mockMetadata));
+        util.makeRequest = sinon.stub()
+            .callsFake((host, uri, options) => {
+                metadataPathRequest = uri;
+                switch (metadataPathRequest) {
+                case '/latest/dynamic/instance-identity/document':
+                    options = JSON.stringify(mockMetadata);
+                    break;
+                case '/latest/api/token':
+                    options = mockMetadataSessionToken;
+                    break;
+                case '/latest/meta-data/iam/security-credentials/':
+                    options = 'instanceProfileResponse';
+                    break;
+                case '/latest/meta-data/iam/security-credentials/instanceProfileResponse':
+                    options = mockCredentials;
+                    break;
+                case '/':
+                    options = '<?xml version="1.0" encoding="UTF-8"?><AwsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/"><RouteTables/></AwsResponse>';
+                    break;
+                default:
+                    break;
                 }
+                return Promise.resolve(options);
             });
         provider._fetchMetadataSessionToken = sinon.stub().resolves(mockMetadataSessionToken);
         originalgetS3BucketByTags = provider._getS3BucketByTags;
@@ -446,10 +471,12 @@ describe('Provider - AWS', () => {
             const expectedError = 'cannot contact AWS metadata service';
             return provider.init(mockInitData)
                 .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.metadata.request = sinon.stub()
-                        .callsFake((path, headers, callback) => {
-                            callback(new Error(expectedError, null));
+                    util.makeRequest = sinon.stub()
+                        .callsFake((host, uri, options) => {
+                            metadataPathRequest = uri;
+                            return metadataPathRequest === '/latest/dynamic/instance-identity/document'
+                                ? Promise.reject(new Error(expectedError, options))
+                                : Promise.resolve();
                         });
                     return provider._getInstanceIdentityDoc();
                 })
@@ -461,6 +488,11 @@ describe('Provider - AWS', () => {
                 });
         });
     });
+
+    it('new API functions', () => provider.init(mockInitData)
+        .then(() => provider._getRouteTablesAPI())
+        .then(() => provider._describeInstanceAPI())
+        .then(() => provider._describeRouteTablesAPI()));
 
     it('should initialize EC2 client with updated region', () => provider.init(mockInitData)
         .then(() => {

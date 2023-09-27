@@ -294,7 +294,6 @@ class AbstractCloud {
     * @returns {Object} - tags: { 'key1': 'value1' }
     */
     _normalizeTags(tags) {
-        this.logger.silly('_normalizeTags received tags:', tags);
         let ret = {};
         if (Array.isArray(tags)) {
             ret = tags.reduce((acc, cur) => {
@@ -304,13 +303,11 @@ class AbstractCloud {
         } else {
             ret = tags;
         }
-        Object.entries(ret).forEach((entry) => {
-            if (entry[0] !== undefined && entry[1] !== undefined) {
-                const key = entry[0].trim();
-                ret[key] = entry[1].trim();
+        Object.keys(ret).forEach((key) => {
+            if (ret[key] !== undefined) {
+                ret[key.trim()] = ret[key].trim();
             }
         });
-        this.logger.silly('_normalizeTags finished processing tags:', ret);
         return ret;
     }
 

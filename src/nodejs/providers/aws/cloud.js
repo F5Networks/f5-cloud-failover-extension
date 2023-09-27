@@ -17,26 +17,31 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const aws4 = require('aws4');
+const DOMParser = require('@xmldom/xmldom').DOMParser;
 const IPAddressLib = require('ip-address');
+const https = require('https');
 const PROXY = require('https-proxy-agent');
 const fs = require('fs');
-const https = require('https');
 const url = require('url');
-const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
-const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
-const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const AbstractCloud = require('../abstract/cloud').AbstractCloud;
 const constants = require('../../constants');
+
+const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
+const INSPECT_ADDRESSES_AND_ROUTES = constants.INSPECT_ADDRESSES_AND_ROUTES;
+const API_VERSION_EC2 = constants.API_VERSION_EC2;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AWS, options);
 
-        this.metadata = new AWS.MetadataService();
         this.s3 = {};
         this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.ec2 = {};
         this._sessionToken = null;
+        this._credentials = null;
+        this._httpOptions = null;
     }
 
     /**
@@ -46,6 +51,7 @@ class Cloud extends AbstractCloud {
         super.init(options);
 
         return this._fetchMetadataSessionToken()
+            .then(() => this._getCredentials())
             .then(() => this._getInstanceIdentityDoc())
             .then((metadata) => {
                 this.region = metadata.region;
@@ -67,9 +73,11 @@ class Cloud extends AbstractCloud {
                     }
                 }
                 if (this.proxySettings) {
-                    config.httpOptions = { agent: new PROXY(opts) };
+                    this._httpOptions = new PROXY(opts);
+                    config.httpOptions = { agent: this._httpOptions };
                 } else {
-                    config.httpOptions = { agent: new https.Agent(opts) };
+                    this._httpOptions = new https.Agent(opts);
+                    config.httpOptions = { agent: this._httpOptions };
                 }
 
                 AWS.config.update(config);
@@ -85,6 +93,7 @@ class Cloud extends AbstractCloud {
                 this.s3BucketName = bucketName;
                 this.logger.silly('Cloud Provider initialization complete');
             })
+            .then(() => { this.xmlParser = new DOMParser(); })
             .catch((err) => Promise.reject(err));
     }
 
@@ -92,16 +101,16 @@ class Cloud extends AbstractCloud {
      * Fetches IMDSv2 session token
      */
     _fetchMetadataSessionToken() {
-        return new Promise((resolve, reject) => {
-            const sessionTokenPath = '/latest/api/token';
-            this.metadata.request(sessionTokenPath, { method: 'PUT', headers: { 'X-aws-ec2-metadata-token-ttl-seconds': '3600' } }, (err, data) => {
-                if (err) {
-                    reject(err);
-                }
-                this._sessionToken = data;
-                resolve();
-            });
-        });
+        return util.makeRequest(constants.METADATA_HOST, '/latest/api/token', {
+            method: 'PUT',
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'X-aws-ec2-metadata-token-ttl-seconds': '3600'
+            }
+        })
+            .then((response) => { this._sessionToken = response; })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -112,6 +121,102 @@ class Cloud extends AbstractCloud {
     */
     getRegion() {
         return this.region;
+    }
+
+    /**
+    * Get credentials from metadata
+    *
+    * @returns {Promise} A promise which is resolved with credentials
+    *
+    */
+    _getCredentials() {
+        const host = constants.METADATA_HOST;
+        const options = {
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'x-aws-ec2-metadata-token': this._sessionToken
+            }
+        };
+
+        return util.makeRequest(host, '/latest/meta-data/iam/security-credentials/', options)
+            .then((instanceProfileResponse) => util.makeRequest(
+                host,
+                `/latest/meta-data/iam/security-credentials/${instanceProfileResponse}`,
+                options
+            ))
+            .then((credentialsResponse) => {
+                this._credentials = {
+                    accessKeyId: credentialsResponse.AccessKeyId,
+                    secretAccessKey: credentialsResponse.SecretAccessKey,
+                    sessionToken: credentialsResponse.Token
+                };
+            })
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Fetches IMDSv2 session token, if not this._sessionToken
+     * Then gets credentials from metadata, if not this._credentials
+     *
+     * @param {String}  host                      - HTTP host
+     * @param {String}  path                      - HTTP uri and query string
+     * @param {Object}  [headers]         - HTTP headers to sign
+     *
+     * @returns {Object} All headers, including AWS Signature V4 requirements, for a specific request
+     *
+     */
+    _getAuthHeaders(host, path, headers) {
+        return Promise.resolve()
+            .then(() => (this._sessionToken
+                ? Promise.resolve()
+                : this._fetchMetadataSessionToken()
+            ))
+            .then(() => (this._credentials
+                ? Promise.resolve()
+                : this._getCredentials()
+            ))
+            .then(() => aws4.sign({ host, path, headers }, this._credentials).headers)
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Sends HTTP request
+    *
+    * @param {String}  host                      - HTTP host
+    * @param {String}  uri                       - HTTP uri
+    * @param {Object}  options                   - function options
+    * @param {String}  [options.method]          - HTTP method
+    * @param {String}  [options.protocol]        - HTTP protocol
+    * @param {Integer} [options.port]            - HTTP port
+    * @param {Object}  [options.queryParams]     - HTTP query parameters
+    * @param {String}  [options.body]            - HTTP body
+    * @param {Object}  [options.formData]        - HTTP form data
+    * @param {Object}  [options.headers]         - HTTP headers
+    * @param {Boolean} [options.continueOnError] - continue on error (return info even if response contains error code)
+    * @param {Boolean} [options.advancedReturn]  - advanced return (return status code AND response body)
+    *
+    * @returns {Object} Returns response after request
+    */
+    makeRequest(host, uri, options) {
+        options = options || {};
+        options.headers = options.headers || {};
+        options.headers.Accept = 'application/json';
+        options.queryParams = options.queryParams || {};
+        let path = '';
+        Object.keys(options.queryParams).forEach((key) => {
+            path += path === '' ? '' : '&';
+            path += `${key}=${options.queryParams[key]}`;
+        });
+        options.region = this.region;
+        options.httpsAgent = this._httpOptions;
+
+        return this._getAuthHeaders(host, `/?${path}`, options.headers)
+            .then((headers) => {
+                options.headers = headers;
+                return this._retrier(() => util.makeRequest(host, uri, options));
+            })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -394,10 +499,7 @@ class Cloud extends AbstractCloud {
     getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
-        let params = {
-            Filters: []
-        };
-        params = this._addFilterToParams(params, 'instance-id', this.instanceId);
+        const params = this._addFilterToParams({}, 'instance-id', this.instanceId);
         return this._describeInstance(params)
             .then((instance) => {
                 if (isAddressOperationsEnabled) {
@@ -437,10 +539,10 @@ class Cloud extends AbstractCloud {
      */
     _addFilterToParams(params, filterName, filterValue) {
         params = params || {};
-
         if (!params.Filters) {
             params.Filters = [];
         }
+
         if (Array.isArray(filterValue)) {
             params.Filters.push(
                 {
@@ -460,6 +562,41 @@ class Cloud extends AbstractCloud {
         }
 
         return params;
+    }
+
+    /**
+     * Convert filter object to query parameters
+     *
+     * @param {Object} params      - filter object
+     * @param {String} filterName  - name to filter on
+     * @param {Array} filterValues - array of values to filter on
+     * @param {Object} queryParams - existing query parameters to push filters into
+     *
+     * @returns {Object} - Updated query parameters object
+     */
+    _addFiltersToQueryParams(params, queryParams) {
+        queryParams = queryParams || {};
+        params = params || {};
+        if (!params.Filters) {
+            params.Filters = [];
+        }
+
+        let ctrFilter = 0;
+        Object.keys(params.Filters).forEach((key) => {
+            ctrFilter += 1;
+            queryParams[`Filter.${ctrFilter}.Name`] = params.Filters[key].Name;
+
+            let ctrVal = 0;
+            params.Filters[key].Values.forEach((val) => {
+                ctrVal += 1;
+                const index = params.Filters[key].Values.length > 1
+                    ? `Filter.${ctrFilter}.Value.${ctrVal}`
+                    : `Filter.${ctrFilter}.Value`;
+                queryParams[index] = val;
+            });
+        });
+
+        return queryParams;
     }
 
     /**
@@ -748,13 +885,30 @@ class Cloud extends AbstractCloud {
     _getRouteTables(options) {
         options = options || {};
 
-        let params = {};
-        if (options.instanceId) {
-            params = this._addFilterToParams(params, 'route.instance-id', options.instanceId);
-        }
+        const params = options.instanceId ? this._addFilterToParams({}, 'route.instance-id', options.instanceId) : {};
 
         return this._describeRouteTables(params)
             .then((routeTables) => Promise.resolve(routeTables.RouteTables))
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Fetches the route tables based on the provided tag
+     *
+     * @param {Boolean} filterInstance - if true, get routes for this.instancId only
+     * @returns {Promise} - Resolves or rejects with list of route tables filtered by the supplied tag
+     */
+    _getRouteTablesAPI(filterInstance) {
+        const params = filterInstance ? this._addFilterToParams({}, 'route.instance-id', this.instanceId) : {};
+
+        return this._describeRouteTablesAPI(params)
+            .then((response) => {
+                // TODO: determine what part of the xml response to return and in what format
+                const xmlDoc = this.xmlParser.parseFromString(response, 'text/xml');
+                const routeTables = xmlDoc.getElementsByTagName('RouteTables');
+                return Promise.resolve(routeTables[0] ? routeTables[0].innerHTML : response);
+            })
+            // .then((response) => { console.log(`_getRouteTablesAPI response: ${response}`); return response; })
             .catch((err) => Promise.reject(err));
     }
 
@@ -1259,10 +1413,7 @@ class Cloud extends AbstractCloud {
      *                          }
      */
     _getPrivateSecondaryIPs() {
-        let params = {
-            Filters: []
-        };
-        params = this._addFilterToParams(params, 'attachment.instance-id', this.instanceId);
+        const params = this._addFilterToParams({}, 'attachment.instance-id', this.instanceId);
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
@@ -1315,13 +1466,8 @@ class Cloud extends AbstractCloud {
                 params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
             });
         }
-        if (privateAddress) {
-            params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
-        }
-
-        if (ipv6Address) {
-            params = this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address);
-        }
+        params = privateAddress ? this._addFilterToParams(params, 'private-ip-address', privateAddress) : params;
+        params = ipv6Address ? this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address) : params;
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
@@ -1357,20 +1503,13 @@ class Cloud extends AbstractCloud {
             Filters: []
         };
         if (tags) {
-            const tagKeys = Object.keys(tags);
-            tagKeys.forEach((tagKey) => {
+            Object.keys(tags).forEach((tagKey) => {
                 params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
             });
         }
-        if (instanceId) {
-            params = this._addFilterToParams(params, 'instance-id', this.instanceId);
-        }
-        if (publicAddress) {
-            params = this._addFilterToParams(params, 'public-ip', publicAddress);
-        }
-        if (privateAddress) {
-            params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
-        }
+        params = instanceId ? this._addFilterToParams(params, 'instance-id', this.instanceId) : params;
+        params = publicAddress ? this._addFilterToParams(params, 'public-ip', publicAddress) : params;
+        params = privateAddress ? this._addFilterToParams(params, 'private-ip-address', privateAddress) : params;
         const func = (_params) => this.ec2.describeAddresses(_params).promise();
         return this._retrier(func, [params])
             .catch((err) => Promise.reject(err));
@@ -1383,18 +1522,15 @@ class Cloud extends AbstractCloud {
      *                          rejected if an error occurs
      */
     _getInstanceIdentityDoc() {
-        return new Promise((resolve, reject) => {
-            const iidPath = '/latest/dynamic/instance-identity/document';
-            this.metadata.request(iidPath, { headers: { 'x-aws-ec2-metadata-token': this._sessionToken } }, (err, data) => {
-                if (err) {
-                    this.logger.error('Unable to retrieve Instance Identity');
-                    reject(err);
-                }
-                resolve(
-                    JSON.parse(data)
-                );
-            });
-        });
+        return util.makeRequest(constants.METADATA_HOST, '/latest/dynamic/instance-identity/document', {
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'x-aws-ec2-metadata-token': this._sessionToken
+            }
+        })
+            .then((response) => (typeof response === 'object' ? response : JSON.parse(response)))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1547,6 +1683,33 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Describe EC2 instance, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeInstanceAPI(params) {
+        const options = {
+            queryParams: {
+                Action: 'DescribeInstances',
+                Version: API_VERSION_EC2
+            }
+        };
+        options.queryParams = this._addFiltersToQueryParams(params, options.queryParams);
+
+        return this._retrier(() => this.makeRequest('ec2.amazonaws.com', '/', options))
+            .then((response) => {
+                // TODO: determine what part of the xml response to return and in what format
+                const xmlDoc = this.xmlParser.parseFromString(response, 'text/xml');
+                const instances = xmlDoc.getElementsByTagName('Instances');
+                return instances[0] ? instances[0].innerHTML : response;
+            })
+            // .then((response) => { console.log(`_describeInstanceAPI response: ${response}`); return response; })
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
      * Describe EC2 network interfaces, with retry logic
      *
      * @param {Object} params - parameter options for operation
@@ -1575,6 +1738,27 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _describeRouteTablesAPI(params) {
+        const options = {
+            queryParams: {
+                Action: 'DescribeRouteTables',
+                Version: API_VERSION_EC2
+            }
+        };
+        options.queryParams = this._addFiltersToQueryParams(params, options.queryParams);
+
+        return this._retrier(() => this.makeRequest('ec2.amazonaws.com', '/', options))
+            // .then((response) => { console.log(`_describeRouteTablesAPI response: ${response}`); return response; })
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
      * Get full list of available EC2 subnets, with retry logic
      *
      * @param {Object} params - parameter options for operation
@@ -1586,6 +1770,45 @@ class Cloud extends AbstractCloud {
         const func = () => this.ec2.describeSubnets().promise();
         return this._retrier(func, [])
             .then((subnets) => {
+                if (!subnets.Subnets.length) {
+                    this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
+                    this.subnets = subnets;
+                    return Promise.resolve();
+                }
+                this.subnets = subnets;
+                return Promise.resolve();
+            })
+            .catch(() => {
+                this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
+                Promise.resolve();
+            });
+    }
+
+    /**
+     * Get full list of available EC2 subnets, with retry logic
+     *
+     * @param {Object} params - parameter options for operation
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _getSubnetsAPI() {
+        this.logger.debug('Trying to get subnets');
+
+        const options = {
+            queryParams: {
+                Action: 'DescribeSubnets',
+                Version: API_VERSION_EC2
+            }
+        };
+
+        return this._retrier(() => this.makeRequest('ec2.amazonaws.com', '/', options))
+            .then((response) => {
+                // console.log(`_getSubnetsAPI response: ${response}`);
+
+                // TODO: determine what part of the xml response to format and assign to  this.subnets
+                const xmlDoc = this.xmlParser.parseFromString(response, 'text/xml');
+                const subnets = xmlDoc.getElementsByTagName('Subnets')[0].innerHTML;
+
                 if (!subnets.Subnets.length) {
                     this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
                     this.subnets = subnets;
