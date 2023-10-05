@@ -96,7 +96,7 @@
     "optionalDependencies": {
         "dredd": "^11.2.15",
         "mermaid.cli": "^0.5.1",
-        "openapi-to-postmanv2": "0.0.16",
+        "openapi-to-postmanv2": "4.18.0",
         "redoc": "^2.0.0-rc.10",
         "redoc-cli": "^0.8.5"
     },
