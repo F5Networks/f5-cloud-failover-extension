@@ -8,9 +8,6 @@
 
 'use strict';
 
-const axios = require('axios').default;
-const https = require('https');
-const FormData = require('form-data');
 const Logger = require('./logger.js');
 
 const MAX_RETRIES = require('./constants').MAX_RETRIES;
@@ -101,85 +98,6 @@ module.exports = {
                         error
                     }));
             });
-    },
-
-    /**
-    * Sends HTTP request
-    *
-    * @param {String}  host                      - HTTP host
-    * @param {String}  uri                       - HTTP uri
-    * @param {Object}  options                   - function options
-    * @param {String}  [options.method]          - HTTP method
-    * @param {String}  [options.protocol]        - HTTP protocol
-    * @param {Integer} [options.port]            - HTTP port
-    * @param {Object}  [options.queryParams]     - HTTP query parameters
-    * @param {String}  [options.body]            - HTTP body
-    * @param {Object}  [options.formData]        - HTTP form data
-    * @param {Object}  [options.headers]         - HTTP headers
-    * @param {Object}  [options.httpsAgent]      - HTTPS Client or Proxy object
-    * @param {Boolean} [options.continueOnError] - continue on error (return info even if response contains error code)
-    * @param {Boolean} [options.advancedReturn]  - advanced return (return status code AND response body)
-    * @param {Boolean} [options.responseType]    - expected type of the response
-    * @param {Boolean} [options.validateStatus]  - validate response status codes
-    *
-    * @returns {Promise} Resolves a response for a request
-    */
-    makeRequest(host, uri, options) {
-        options.protocol = options.protocol || 'https';
-        options.port = options.port || 443;
-        options.body = options.body || '';
-        options.headers = options.headers || {};
-        let formData;
-        if (options.formData) {
-            formData = new FormData();
-            options.formData.forEach((el) => {
-                formData.append(
-                    el.name,
-                    this.stringify(el.data),
-                    {
-                        filename: el.fileName || null,
-                        contentType: el.contentType || null
-                    }
-                );
-            });
-            Object.assign(options.headers, formData.getHeaders());
-        }
-
-        return Promise.resolve()
-            .then(() => axios.request({
-                url: uri,
-                baseURL: `${options.protocol}://${host}:${options.port}`,
-                method: options.method || 'GET',
-                auth: options.auth || null,
-                withCredentials: options.auth !== null,
-                headers: options.headers,
-                responseType: options.responseType || 'json',
-                params: options.queryParams || {},
-                data: options.formData ? formData : options.body,
-                httpsAgent: options.httpsAgent && options.httpsAgent.host && options.httpsAgent.host.trim() !== ''
-                    ? options.httpsAgent
-                    : new https.Agent({
-                        rejectUnauthorized: false
-                    }),
-                validateStatus: options.validateStatus || false
-            }))
-            .then((response) => {
-                // check for HTTP errors
-                if (response.status > 300 && !options.continueOnError) {
-                    return Promise.reject(new Error(
-                        `HTTP request failed: ${response.status} ${this.stringify(response.data)}`
-                    ));
-                }
-                // check for advanced return
-                if (options.advancedReturn === true) {
-                    return {
-                        code: response.status,
-                        body: response.data
-                    };
-                }
-                return response.data;
-            })
-            .catch((err) => Promise.reject(new Error(typeof err === 'object') ? JSON.stringify(err.message) : err));
     },
 
     /**

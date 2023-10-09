@@ -17,8 +17,8 @@ const cloud = 'azure';
 
 describe('Provider - Azure', () => {
     let AzureCloudProvider;
+    let f5CloudLibs;
     let provider;
-    let srcUtil;
 
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'xxxx';
@@ -32,7 +32,7 @@ describe('Provider - Azure', () => {
 
     before(() => {
         AzureCloudProvider = require('../../../src/nodejs/providers/azure/cloud.js').Cloud;
-        srcUtil = require('../../../src/nodejs/util.js');
+        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
     });
     beforeEach(() => {
         provider = new AzureCloudProvider(mockMetadata);
@@ -62,7 +62,7 @@ describe('Provider - Azure', () => {
     });
 
     it('should initialize azure provider', () => {
-        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         const storageAccounts = [
             {
@@ -73,18 +73,21 @@ describe('Provider - Azure', () => {
             }
         ];
         provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init()
             .then(() => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.primarySubscriptionId, mockSubscriptionId);
+
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should initialize azure provider with custom enviroments', () => {
-        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         const storageAccounts = [
             {
@@ -95,6 +98,7 @@ describe('Provider - Azure', () => {
             }
         ];
         provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
         return provider.init({
             customEnvironment: {
@@ -121,14 +125,16 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.primarySubscriptionId, mockSubscriptionId);
                 assert.strictEqual(provider.customEnvironment.name, 'CustomAzureSettings');
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should initialize azure provider and throw error about missing storage account', () => {
-        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         provider._listStorageAccounts = sinon.stub().resolves([]);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init()
@@ -145,20 +151,22 @@ describe('Provider - Azure', () => {
     });
 
     it('validate if storageName is set and storageTags are not then return _discoverStorageAccount', () => {
-        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         const listStorageAccountsSpy = sinon.spy(provider, '_listStorageAccounts');
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init({ storageName: 'foo' })
             .then(() => {
                 assert.strictEqual(listStorageAccountsSpy.called, false);
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate if storageTags are set and storageName is not then return _listStorageAccounts', () => {
-        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
+        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
 
         const storageAccountResponse = [
             {
@@ -167,17 +175,19 @@ describe('Provider - Azure', () => {
         ];
 
         provider._listStorageAccounts = sinon.stub().resolves(storageAccountResponse);
+        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init({ tags: { foo: 'bar' } })
             .then(() => {
                 assert.strictEqual(provider._listStorageAccounts.called, true);
+                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should _getInstanceMetadata with promise rejection', () => {
-        srcUtil.makeRequest = sinon.stub().rejects();
+        f5CloudLibs.util.getDataFromUrl = sinon.stub().rejects();
 
         return provider._getInstanceMetadata()
             .then(() => {
@@ -191,105 +201,93 @@ describe('Provider - Azure', () => {
     });
 
     it('validate _listStorageAccounts returns all instances', () => {
-        const listResponse = {
-            value: [
-                {
-                    name: 'sa01',
-                    tags: {
-                        foo: 'bar'
-                    }
-                },
-                {
-                    name: 'sa02',
-                    tags: {}
+        const listResponse = [
+            {
+                name: 'sa01',
+                tags: {
+                    foo: 'bar'
                 }
-            ]
-        };
-        provider._makeRequest = sinon.stub().resolves(listResponse);
+            },
+            {
+                name: 'sa02',
+                tags: {}
+            }
+        ];
+
+        provider.storageClient = sinon.stub();
+        provider.storageClient.storageAccounts = sinon.stub();
+        provider.storageClient.storageAccounts.list = sinon.stub().resolves(listResponse);
 
         return provider._listStorageAccounts()
             .then((storageAccounts) => {
-                assert.deepStrictEqual(listResponse.value, storageAccounts);
+                assert.deepStrictEqual(listResponse, storageAccounts);
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate _listStorageAccounts returns tagged instances', () => {
-        const listResponse = {
-            value: [
-                {
-                    name: 'sa01',
-                    tags: {
-                        foo: 'bar'
-                    }
-                },
-                {
-                    name: 'sa02',
-                    tags: {}
+        const listResponse = [
+            {
+                name: 'sa01',
+                tags: {
+                    foo: 'bar'
                 }
-            ]
-        };
-        provider._makeRequest = sinon.stub().resolves(listResponse);
+            },
+            {
+                name: 'sa02',
+                tags: {}
+            }
+        ];
+
+        provider.storageClient = sinon.stub();
+        provider.storageClient.storageAccounts = sinon.stub();
+        provider.storageClient.storageAccounts.list = sinon.stub().resolves(listResponse);
 
         return provider._listStorageAccounts({ tags: { foo: 'bar' } })
             .then((storageAccounts) => {
-                assert.deepStrictEqual([listResponse.value[0]], storageAccounts);
+                assert.deepStrictEqual([listResponse[0]], storageAccounts);
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('validate _initStorageAccountContainer resolves when container already exists', () => {
-        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
-        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
-          <Containers>
-            <Container>
-              <Name>f5cloudfailover</Name>
-              </Properties>
-              <Metadata>
-                <metadata-name>value</metadata-name>
-              </Metadata>
-            </Container>
-          </Containers>
-        </EnumerationResults>`;
+    it('validate _getStorageAccountKey returns first key', () => {
+        const listKeysResponse = {
+            keys: [
+                {
+                    value: 'foo'
+                }
+            ]
+        };
 
-        this.storageName = 'mysa';
-        provider._makeRequest = sinon.stub().resolves(xmlResponse);
+        provider.storageClient = sinon.stub();
+        provider.storageClient.storageAccounts = sinon.stub();
+        provider.storageClient.storageAccounts.listKeys = sinon.stub().resolves(listKeysResponse);
+
+        return provider._getStorageAccountKey('mysa')
+            .then((keyInfo) => {
+                assert.deepStrictEqual({ name: 'mysa', key: 'foo' }, keyInfo);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _initStorageAccountContainer returns promise', () => {
+        provider.storageOperationsClient = sinon.stub();
+        provider.storageOperationsClient.createContainerIfNotExists = sinon.stub().yields(null, []);
 
         return provider._initStorageAccountContainer('mysa')
             .then(() => {
-                assert.ok(true);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('validate _initStorageAccountContainer resolves when container does not exist', () => {
-        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
-        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
-          <Containers>
-            <Container>
-              <Name>container-name</Name>
-              </Properties>
-              <Metadata>
-                <metadata-name>value</metadata-name>
-              </Metadata>
-            </Container>
-          </Containers>
-        </EnumerationResults>`;
-
-        this.storageName = 'mysa';
-        provider._makeRequest = sinon.stub().resolves(xmlResponse);
-
-        return provider._initStorageAccountContainer()
-            .then(() => {
-                assert.ok(true);
+                assert.strictEqual(
+                    provider.storageOperationsClient.createContainerIfNotExists.called, true
+                );
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate _initStorageAccountContainer returns reject promise', () => {
-        provider._makeRequest = sinon.stub().resolves({});
+        provider.storageOperationsClient = sinon.stub();
+        provider.storageOperationsClient.createContainerIfNotExists = sinon.stub().yields(new Error('error'), []);
 
-        return provider._initStorageAccountContainer()
+        return provider._initStorageAccountContainer('mysa')
             .then(() => {
                 assert.fail('error should be thrown');
             })
@@ -725,7 +723,6 @@ describe('Provider - Azure', () => {
         };
 
         beforeEach(() => {
-            srcUtil.makeRequest = sinon.stub().resolves(mockMetadata);
             provider._getInstanceMetadata = sinon.stub().resolves(mockMetadata);
             provider._getRouteTableByName = sinon.stub().resolves();
             provider._listStorageAccounts = sinon.stub().resolves([
@@ -736,6 +733,7 @@ describe('Provider - Azure', () => {
                     }
                 }
             ]);
+            provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
             provider._initStorageAccountContainer = sinon.stub().resolves();
 
             return provider.init({
@@ -1142,8 +1140,12 @@ describe('Provider - Azure', () => {
     });
 
     it('should execute downloadDataFromStorage', () => {
-        const payload = { body: { foo: 'bar' } };
-        provider._makeRequest = sinon.stub().resolves(payload);
+        provider.storageOperationsClient = sinon.stub();
+        const doesBlobExistSpy = sinon.stub().yields(null, { exists: true });
+        provider.storageOperationsClient.doesBlobExist = doesBlobExistSpy;
+        const getBlobToTextSpy = sinon.stub().yields(null, JSON.stringify({ foo: 'bar' }));
+        provider.storageOperationsClient.getBlobToText = getBlobToTextSpy;
+
         return provider.downloadDataFromStorage('myfile')
             .then((data) => {
                 assert.strictEqual(data.foo, 'bar');
@@ -1152,8 +1154,9 @@ describe('Provider - Azure', () => {
     });
 
     it('should execute downloadDataFromStorage and return empty object if file does not exist', () => {
-        const payload = { code: 404, body: {} };
-        provider._makeRequest = sinon.stub().resolves(payload);
+        provider.storageOperationsClient = sinon.stub();
+        provider.storageOperationsClient.doesBlobExist = sinon.stub().yields(null, { exists: false });
+
         return provider.downloadDataFromStorage('myfile')
             .then((data) => {
                 assert.deepStrictEqual(data, {});
@@ -1161,71 +1164,57 @@ describe('Provider - Azure', () => {
             .catch((err) => Promise.reject(err));
     });
 
+    it('should execute downloadDataFromStorage and retry upon failure', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const retrierSpy = sinon.spy(provider, '_retrier');
+        const downloadDataFromStorageSpy = sinon.spy(provider, 'downloadDataFromStorage');
+
+        return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 })
+            .catch(() => {
+                assert.strictEqual(retrierSpy.calledOnce, true);
+                assert.strictEqual(downloadDataFromStorageSpy.calledOnce, true);
+                provider.storageOperationsClient.doesBlobExist = sinon.stub().yields(null, { exists: false });
+                return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 });
+            })
+            .then((data) => {
+                assert.deepStrictEqual(data, {});
+                assert.strictEqual(downloadDataFromStorageSpy.calledTwice, true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
     it('should execute uploadDataToStorage', () => {
-        const payload = { foo: 'bar' };
-        const response = { code: 200, body: { foo: 'bar' } };
-        provider._makeRequest = sinon.stub().resolves(response);
+        provider.storageOperationsClient = sinon.stub();
+        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
+        provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
 
-        return provider.uploadDataToStorage('myfile', payload)
+        return provider.uploadDataToStorage('myfile', {})
             .then(() => {
-                assert.ok(true);
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('validate _makeRequest', () => {
-        const method = 'GET';
-        const requestUrl = '/';
-        const options = {};
-        const payload = { some_key: 'some_value' };
+    it('should execute uploadDataToStorage and retry upon failure', () => {
+        provider.storageOperationsClient = sinon.stub();
+        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
+        const retrierSpy = sinon.spy(provider, '_retrier');
+        const uploadDataToStorageSpy = sinon.spy(provider, 'uploadDataToStorage');
 
-        provider.resourceToken = 'foo';
-        provider.storageToken = 'bar';
-
-        srcUtil.makeRequest = sinon.stub().resolves(payload);
-
-        return provider._makeRequest(method, requestUrl, options)
-            .then((data) => {
-                assert.strictEqual(data, payload);
+        return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 })
+            .catch(() => {
+                assert.strictEqual(retrierSpy.calledOnce, true);
+                assert.strictEqual(uploadDataToStorageSpy.calledOnce, true);
+                provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
+                return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 });
+            })
+            .then(() => {
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
+                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
+                assert.strictEqual(uploadDataToStorageSpy.calledTwice, true);
             })
             .catch((err) => Promise.reject(err));
-    });
-
-    it('validate _makeRequest rejects when no access token is provided', () => {
-        const method = 'GET';
-        const requestUrl = '/';
-        const options = {};
-
-        return provider._makeRequest(method, requestUrl, options)
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch((error) => {
-                assert.strictEqual(error.message, '_makeRequest: no auth token. call init first');
-            });
-    });
-
-    it('validate _getAuthToken', () => {
-        const payload = { access_token: 'some_token' };
-        srcUtil.makeRequest = sinon.stub().resolves(payload);
-
-        return provider._getAuthToken('https://management.azure.com')
-            .then((data) => {
-                assert.strictEqual(data, payload.access_token);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('validate _getAuthToken rejects when no access token is returned', () => {
-        srcUtil.makeRequest = sinon.stub().rejects();
-
-        return provider._getAuthToken('https://management.azure.com')
-            .then(() => {
-                assert.ok(false);
-            })
-            .catch((error) => {
-                assert.strictEqual(error.message, 'Error getting auth token Error');
-            });
     });
 
     describe('function getAssociatedAddressAndRouteInfo', () => {
