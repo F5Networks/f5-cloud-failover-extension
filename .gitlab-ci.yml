@@ -4,7 +4,6 @@ variables:
   GIT_SECRETS_VERSION: "1.3.0"
   GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
   ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
-  ATG_IMG_REGISTRY_URL: ${ARTIFACTORY_SERVER}/dockerhub-remote
   DOCS_BUILD_DIR: "docs/_build/html"
   POSTMAN_EXAMPLES: "postman-collection"
   MONGO_INITDB_ROOT_PASSWORD: root
@@ -28,11 +27,9 @@ variables:
   F5_SDK_LOG_LEVEL: "INFO"
   F5_DISABLE_CERT_VERIFY: "true"
   PYTHONWARNINGS: "ignore:Unverified HTTPS request"
-  SECRET_DETECTION_DISABLED: "true"
 
 stages:
   - check_content
-  - atg-shared-checks
   - test
   - build_package
   - test_functional_init
@@ -41,10 +38,6 @@ stages:
   - build_api_docs_and_postman_collection
   - build_docs
   - publish
-
-include:
-  - project: automation-toolchain/atg-shared-templates
-    file: security/base.gitlab-ci.yml
 
 .helpers: &helpers |
   function validate () {

@@ -66,13 +66,11 @@ module.exports = {
         uri = uri || '';
         uri = uri.startsWith('/') ? uri : `/${uri}`;
 
-        options.body = typeof options.body === 'object' ? this.stringify(options.body) : options.body;
-
         const fullUri = `${protocol}://${host}:${port}${uri}`;
         const requestOptions = {
             uri: fullUri,
             method: options.method || 'GET',
-            body: options.body || undefined,
+            body: options.body ? this.stringify(options.body) : undefined,
             headers: options.headers || {},
             strictSSL: false
         };
@@ -83,7 +81,7 @@ module.exports = {
                     reject(new Error(`HTTP error for '${fullUri}' : ${err}`));
                 } else if (res.statusCode >= 200 && res.statusCode <= 299) {
                     try {
-                        resolve((typeof body === 'object' ? body : JSON.parse(body)));
+                        resolve(JSON.parse(body));
                     } catch (e) {
                         resolve(body);
                     }

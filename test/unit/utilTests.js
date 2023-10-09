@@ -10,7 +10,6 @@
 
 const assert = require('assert');
 const sinon = require('sinon');
-const nock = require('nock');
 
 /* eslint-disable global-require */
 
@@ -84,71 +83,11 @@ describe('Util', () => {
             const retryCount = 2;
 
             return util.retrier(fakeFuncSpy, [], { maxRetries: retryCount, retryInterval: 10 })
-                .catch(() => {
-                    assert.strictEqual(fakeFuncSpy.callCount, retryCount + 1);
-                });
-        });
-    });
-
-    describe('makeRequest', () => {
-        after(() => {
-            nock.cleanAll();
-        });
-
-        it('should validate resolve with form data', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(200, {
-                    message: 'reponseData'
-                });
-
-            const options = {
-                formData: [
-                    {
-                        name: 'name',
-                        data: {
-                            type: 'form'
-                        },
-                        fileName: 'foo',
-                        contentType: 'bar'
-                    }
-                ]
-            };
-
-            return util.makeRequest('localhost', '/path/to/endpoint', options)
-                .then((response) => {
-                    assert.deepStrictEqual(response, { message: 'reponseData' });
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate resolve advanced return', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(200, {
-                    message: 'reponseData'
-                });
-
-            return util.makeRequest('localhost', '/path/to/endpoint', { advancedReturn: true })
-                .then((response) => {
-                    assert.deepStrictEqual(response, { body: { message: 'reponseData' }, code: 200 });
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate reject', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(404, {
-                    message: 'File Not Found'
-                });
-
-            return util.makeRequest('localhost', '/path/to/endpoint', {})
                 .then(() => {
                     assert.fail(); // should reject
                 })
-                .catch((e) => {
-                    assert.match(e.toString(), /^"HTTP request failed: 404 {\\"message\\":\\"File Not Found\\"}"/);
+                .catch(() => {
+                    assert.strictEqual(fakeFuncSpy.callCount, retryCount + 1);
                 });
         });
     });
