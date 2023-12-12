@@ -324,7 +324,7 @@ Troubleshooting and Debugging Unexpected Behavior
         curl -su admin: -X POST -d '{"action":"dry-run"}' http://localhost:8100/mgmt/shared/cloud-failover/trigger | jq .
 
 
-     .. Tip:: Check the ``associate`` section of the response to confirm the desired objects will be re-mapped. For example, if failing over a set of expected VIP addresses, confirm those addresses are present in the ``associate`` section. 
+     .. Tip:: Check the ``toActive`` section of the response to confirm the desired objects will be re-mapped. For example, if failing over a set of expected VIP addresses, confirm those addresses are present in the ``toActive`` section. 
 
       .. code-block:: bash
     

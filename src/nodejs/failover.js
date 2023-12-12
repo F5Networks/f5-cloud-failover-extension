@@ -445,17 +445,188 @@ class FailoverClient {
     /**
      * Perform a dry run
      *
-     * @Returns {promise} - BIG-IP's addresses and routes objects
+     * @Returns {promise} - BIG-IP addresses and routes objects
      */
     dryRun() {
         logger.info('Performing dry run');
         return this._getDeviceObjects()
             .then(() => this._getFailoverDiscovery(this.trafficGroupStats, this.cmDeviceInfo, { dryRun: true }))
-            .then((results) => Promise.resolve(results))
+            .then((results) => Promise.resolve(this._normalizeOperations(results)))
             .catch((err) => {
                 logger.error(`status: ${util.stringify(err)}`);
                 return Promise.reject(err);
             });
+    }
+
+    /**
+     * Normalize dry run operations response
+     *
+     * @param {Object} input - Initial dry run operations to normalize
+     *
+     * @Returns {promise} - Normalized BIG-IP addresses and routes objects
+     */
+    _normalizeOperations(input) {
+        const results = [
+            {
+                publicAddresses: input[0].publicAddresses || {},
+                operations: {
+                    toStandby: [],
+                    toActive: []
+                },
+                loadBalancerAddresses: input[0].loadBalancerAddresses || {}
+            },
+            {
+                operations: []
+            }
+        ];
+        const nicOperations = input[0];
+        const routeOperations = input[1];
+
+        if (this.config.environment === 'aws') {
+            nicOperations.interfaces.disassociate.forEach((op) => {
+                const networkInterface = op.networkInterfaceId;
+                const addresses = op.addresses;
+                addresses.forEach((addr) => {
+                    delete addr.ipVersion;
+                });
+                results[0].operations.toStandby.push({
+                    networkInterface,
+                    addresses
+                });
+            });
+
+            nicOperations.interfaces.associate.forEach((op) => {
+                const networkInterface = op.networkInterfaceId;
+                const addresses = op.addresses;
+                addresses.forEach((addr) => {
+                    delete addr.ipVersion;
+                });
+                results[0].operations.toActive.push({
+                    networkInterface,
+                    addresses
+                });
+            });
+
+            routeOperations.operations.forEach((op) => {
+                const route = op.routeTableId;
+                const addressPrefix = op.routeAddress;
+                const nextHopAddress = op.nextHopAddress;
+                results[1].operations.push({
+                    route,
+                    addressPrefix,
+                    nextHopAddress
+                });
+            });
+        }
+
+        if (this.config.environment === 'azure') {
+            nicOperations.interfaces.disassociate.forEach((op) => {
+                const networkInterface = op[2].name;
+                const provisioningState = op[2].properties.provisioningState;
+                const ipConfigs = op[2].properties.ipConfigurations;
+                ipConfigs.forEach((ipConfig) => {
+                    const privateIPAddress = ipConfig.properties.privateIPAddress;
+                    const publicIPAddress = ipConfig.properties.publicIPAddress && ipConfig.properties.publicIPAddress.id ? ipConfig.properties.publicIPAddress.id : null;
+                    const subnet = ipConfig.properties.subnet.id;
+                    const primary = ipConfig.properties.primary;
+                    results[0].operations.toStandby.push({
+                        networkInterface,
+                        privateIPAddress,
+                        publicIPAddress,
+                        subnet,
+                        primary,
+                        provisioningState
+                    });
+                });
+            });
+
+            nicOperations.interfaces.associate.forEach((op) => {
+                const networkInterface = op[2].name;
+                const provisioningState = op[2].properties.provisioningState;
+                const ipConfigs = op[2].properties.ipConfigurations;
+                ipConfigs.forEach((ipConfig) => {
+                    const privateIPAddress = ipConfig.properties.privateIPAddress;
+                    const publicIPAddress = ipConfig.properties.publicIPAddress && ipConfig.properties.publicIPAddress.id ? ipConfig.properties.publicIPAddress.id : null;
+                    const subnet = ipConfig.properties.subnet.id;
+                    const primary = ipConfig.properties.primary;
+                    results[0].operations.toActive.push({
+                        networkInterface,
+                        privateIPAddress,
+                        publicIPAddress,
+                        subnet,
+                        primary,
+                        provisioningState
+                    });
+                });
+            });
+
+            routeOperations.operations.forEach((op) => {
+                const route = op[3].name;
+                const routeTable = op[1];
+                const addressPrefix = op[3].properties.addressPrefix;
+                const nextHopType = op[3].properties.nextHopType;
+                const nextHopAddress = op[3].nextHopIpAddress;
+                const provisioningState = op[3].properties.provisioningState;
+                results[1].operations.push({
+                    route,
+                    routeTable,
+                    addressPrefix,
+                    nextHopType,
+                    nextHopAddress,
+                    provisioningState
+                });
+            });
+        }
+
+        if (this.config.environment === 'gcp') {
+            nicOperations.interfaces.disassociate.forEach((op) => {
+                const networkInterface = op[1];
+                const aliasIpRanges = op[2].aliasIpRanges;
+                const zone = op[3].zone;
+                results[0].operations.toStandby.push({
+                    networkInterface,
+                    aliasIpRanges,
+                    zone
+                });
+            });
+
+            nicOperations.interfaces.associate.forEach((op) => {
+                const networkInterface = op[1];
+                const aliasIpRanges = op[2].aliasIpRanges;
+                const zone = op[3].zone;
+                results[0].operations.toActive.push({
+                    networkInterface,
+                    aliasIpRanges,
+                    zone
+                });
+            });
+
+            if (nicOperations.loadBalancerAddresses.operations) {
+                nicOperations.loadBalancerAddresses.operations.forEach((op) => {
+                    const forwardingRule = op[0];
+                    const targetInstance = op[1];
+                    results[0].loadBalancerAddresses.operations.pop();
+                    results[0].loadBalancerAddresses.operations.push({
+                        forwardingRule,
+                        targetInstance
+                    });
+                });
+            }
+
+            routeOperations.operations.forEach((op) => {
+                const route = op.name;
+                const routeTable = op.id;
+                const addressPrefix = op.destRange;
+                const nextHopAddress = op.nextHopIp;
+                results[1].operations.push({
+                    route,
+                    routeTable,
+                    addressPrefix,
+                    nextHopAddress
+                });
+            });
+        }
+        return Promise.resolve(results);
     }
 
     /**

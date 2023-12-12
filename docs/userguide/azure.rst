@@ -133,23 +133,26 @@ RBAC Role Definition
 
 Below is an example Azure role definition with permissions required by CFE.
 
-======================================================== ==================================== ======================= ======================================================================================== 
- Name                                                     Scope                                CFE Component           Description   
-======================================================== ==================================== ======================= ======================================================================================== 
- Microsoft.Authorization/\*/read                          Roles and Role Assignments - Read    All                     To authenticate using the managed identity.        
- Microsoft.Compute/locations/\*/read                      Locations - Read                     All                     To get the Azure location.
- Microsoft.Compute/virtualMachines/\*/read                Virtual Machines - Read              All                     To get information about a BIG-IP instance.   
- Microsoft.Network/\*/join/action                         Network Provider - Join              All                     To update network. 
- Microsoft.Network/networkInterfaces/read                 Network Interfaces - Read            All                     To get information about a network interface.
- Microsoft.Network/networkInterfaces/write                Network Interfaces - Write           All                     To update a network interface to use the active BIG-IP instance.
- Microsoft.Network/publicIPAddresses/read                 Public IP Addresses - Read           failoverAddresses       To get information about a public IP address.
- Microsoft.Network/publicIPAddresses/write                Public IP Addresses - Write          failoverAddresses       To update a public IP address to use the active BIG-IP instance.
- Microsoft.Network/routeTables/\*/read                    Route Tables - Read                  failoverRoutes          To get information about a route table.
- Microsoft.Network/routeTables/\*/write                   Route Tables - Write                 failoverRoutes          To update route next hop to use the active BIG-IP instance.
- Microsoft.Resources/subscriptions/resourceGroups/read    Resource Groups - Read               All                     To get information about a resource group.
- Microsoft.Storage/storageAccounts/listKeys/action        Storage Account Keys - List          externalStorage         To get the key for creating/writing/deleting the failover state file.
- Microsoft.Storage/storageAccounts/read                   Storage Accounts - Read              externalStorage         To get information about the storage account used for the failover state file.
-======================================================== ==================================== ======================= ======================================================================================== 
+======================================================================  ==================================== ======================= ======================================================================================== 
+ Name                                                                   Scope                                CFE Component           Description   
+======================================================================  ==================================== ======================= ======================================================================================== 
+ Microsoft.Authorization/\*/read                                        Roles and Role Assignments - Read    All                     To authenticate using the managed identity.        
+ Microsoft.Compute/locations/\*/read                                    Locations - Read                     All                     To get the Azure location.
+ Microsoft.Compute/virtualMachines/\*/read                              Virtual Machines - Read              All                     To get information about a BIG-IP instance.   
+ Microsoft.Network/\*/join/action                                       Network Provider - Join              All                     To update network. 
+ Microsoft.Network/networkInterfaces/read                               Network Interfaces - Read            All                     To get information about a network interface.
+ Microsoft.Network/networkInterfaces/write                              Network Interfaces - Write           All                     To update a network interface to use the active BIG-IP instance.
+ Microsoft.Network/publicIPAddresses/read                               Public IP Addresses - Read           failoverAddresses       To get information about a public IP address.
+ Microsoft.Network/publicIPAddresses/write                              Public IP Addresses - Write          failoverAddresses       To update a public IP address to use the active BIG-IP instance.
+ Microsoft.Network/routeTables/\*/read                                  Route Tables - Read                  failoverRoutes          To get information about a route table.
+ Microsoft.Network/routeTables/\*/write                                 Route Tables - Write                 failoverRoutes          To update route next hop to use the active BIG-IP instance.
+ Microsoft.Resources/subscriptions/resourceGroups/read                  Resource Groups - Read               All                     To get information about a resource group.
+ Microsoft.Storage/storageAccounts/read                                 Storage Accounts - Read              externalStorage         To get information about the storage account used for the failover state file.
+ Microsoft.Storage/storageAccounts/blobServices/containers/read         Storage Containers - Read            externalStorage         To get information about the storage container used for the failover state file.
+ Microsoft.Storage/storageAccounts/blobServices/containers/write        Storage Containers - Write           externalStorage         To create the storage container used for the failover state file.
+ Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read   Storage Blobs - Read                 externalStorage         To get information about the storage blob used for the failover state file.
+ Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write  Storage Blobs - Write                externalStorage         To create the storage blob used for the failover state file.
+======================================================================  ==================================== ======================= ======================================================================================== 
 
    |
 
@@ -160,6 +163,7 @@ Below is an example Azure role definition with permissions required by CFE.
    - Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.
    - Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.
    - CFE supports only **one** Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See `Deploying Access Template <https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access>`_ for more information.
+   - Previous versions of CFE required the **Microsoft.Storage/storageAccounts/listKeys/action** role definition permission; this requirement has been superseded by the **Microsoft.Storage/storageAccounts/blobServices/containers/** data actions permissions listed above.
 
 |
 

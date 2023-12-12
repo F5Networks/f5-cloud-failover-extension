@@ -113,7 +113,7 @@ This example shows a BIG-IP cluster managing route tables in multiple subscripti
 .. Note:: 
    
    - By default, the cloud failover extension looks in the subscription in which the instances are deployed. The example below looks in three different subscriptions, the one the instances are deployed in as well as 1111 and 2222.
-   - Beginning with v1.14, the Route Table **not** the routes are updated. 
+   - Beginning with v1.14, the Route Table **not** the routes are updated.
 
 .. literalinclude:: ../../examples/declarations/azureRouteTablesInMutipleSubscriptions.json
    :language: json

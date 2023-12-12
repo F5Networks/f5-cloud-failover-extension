@@ -330,21 +330,409 @@ describe('Failover', () => {
             .catch((err) => Promise.reject(err));
     });
 
-    it('should execute get failover discovery for dry run', () => config.init()
-        .then(() => config.processConfigRequest(declaration))
-        .then(() => failover.init())
-        .then(() => failover.dryRun())
-        .then(() => {
-            const discoverAddressesCall = spyOnDiscoverAddresses.getCall(0).args[0];
-            // verify that update addresses get called
-            assert.deepStrictEqual(discoverAddressesCall.localAddresses, ['1.1.1.1']);
-            assert.deepStrictEqual(discoverAddressesCall.failoverAddresses, ['2.2.2.2']);
+    it('should execute get failover discovery for dry run', () => {
+        sinon.stub(FailoverClient.prototype, '_normalizeOperations').resolves();
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.dryRun())
+            .then(() => {
+                const discoverAddressesCall = spyOnDiscoverAddresses.getCall(0).args[0];
+                // verify that update addresses get called
+                assert.deepStrictEqual(discoverAddressesCall.localAddresses, ['1.1.1.1']);
+                assert.deepStrictEqual(discoverAddressesCall.failoverAddresses, ['2.2.2.2']);
 
-            // verify that update routes get called
-            const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
-            assert.strictEqual(updateRoutesUpdateCall.discoverOnly, true);
-        })
-        .catch((err) => Promise.reject(err)));
+                // verify that update routes get called
+                const updateRoutesUpdateCall = spyOnUpdateRoutes.getCall(0).args[0];
+                assert.strictEqual(updateRoutesUpdateCall.discoverOnly, true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should execute normalize operations for dry run in AWS', () => {
+        sinon.stub(failover, '_getFailoverDiscovery').resolves(
+            [
+                {
+                    publicAddresses: {},
+                    interfaces: {
+                        disassociate: [
+                            {
+                                networkInterfaceId: 'eni-0b9b1aa42dd867b69',
+                                addresses: []
+                            },
+                            {
+                                networkInterfaceId: 'eni-077275f96f490adbd',
+                                addresses: [
+                                    {
+                                        address: '2600:1f14:277f:b103::a',
+                                        ipVersion: 6
+                                    },
+                                    {
+                                        address: '10.0.1.203',
+                                        publicAddress: '34.208.65.106',
+                                        ipVersion: 4
+                                    }
+                                ]
+                            }
+                        ],
+                        associate: [
+                            {
+                                networkInterfaceId: 'eni-0cb18ea00cf03ab35',
+                                addresses: []
+                            },
+                            {
+                                networkInterfaceId: 'eni-0604b93114a086354',
+                                addresses: [
+                                    {
+                                        address: '2600:1f14:277f:b103::a',
+                                        ipVersion: 6
+                                    },
+                                    {
+                                        address: '10.0.1.203',
+                                        publicAddress: '34.208.65.106',
+                                        ipVersion: 4
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    loadBalancerAddresses: {}
+                },
+                {
+                    operations: [
+                        {
+                            routeTableId: 'rtb-07a2a947b5d26385b',
+                            networkInterfaceId: 'eni-0604b93114a086354',
+                            routeAddress: '192.0.10.0/32',
+                            ipVersion: 4
+                        }
+                    ]
+                }
+            ]
+        );
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.config.environment = 'aws';
+            })
+            .then(() => failover.dryRun())
+            .then((output) => {
+                assert.strictEqual(output[0].operations.toStandby[0].networkInterface, 'eni-0b9b1aa42dd867b69');
+                assert.strictEqual(output[0].operations.toStandby[1].networkInterface, 'eni-077275f96f490adbd');
+                assert.strictEqual(output[0].operations.toActive[0].networkInterface, 'eni-0cb18ea00cf03ab35');
+                assert.strictEqual(output[0].operations.toActive[1].networkInterface, 'eni-0604b93114a086354');
+                assert.strictEqual(output[1].operations[0].route, 'rtb-07a2a947b5d26385b');
+                assert.strictEqual(output[1].operations[0].addressPrefix, '192.0.10.0/32');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should execute normalize operations for dry run in Azure', () => {
+        sinon.stub(failover, '_getFailoverDiscovery').resolves(
+            [
+                {
+                    publicAddresses: [],
+                    interfaces: {
+                        disassociate: [
+                            [
+                                'azure-111-cd9i47s4',
+                                'azure-111-cd9i47s4-ext1',
+                                {
+                                    name: 'azure-111-cd9i47s4-ext1',
+                                    id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkInterfaces/azure-111-cd9i47s4-ext1',
+                                    tags: {
+                                        f5_cloud_failover_label: 'azure-111-cd9i47s4',
+                                        f5_cloud_failover_nic_map: 'external'
+                                    },
+                                    properties: {
+                                        provisioningState: 'Succeeded',
+                                        resourceGuid: '797793fb-674c-4bd7-8ef4-fa44a34d918b',
+                                        ipConfigurations: [
+                                            {
+                                                name: 'azure-111-cd9i47s4-ext1',
+                                                id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkInterfaces/azure-111-cd9i47s4-ext1/ipConfigurations/azure-111-cd9i47s4-ext1',
+                                                type: 'Microsoft.Network/networkInterfaces/ipConfigurations',
+                                                properties: {
+                                                    provisioningState: 'Succeeded',
+                                                    privateIPAddress: '10.0.2.5',
+                                                    privateIPAllocationMethod: 'Static',
+                                                    subnet: {
+                                                        id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/virtualNetworks/azure-111-cd9i47s4-network/subnets/external'
+                                                    },
+                                                    primary: true,
+                                                    privateIPAddressVersion: 'IPv4'
+                                                }
+                                            }
+                                        ],
+                                        dnsSettings: {
+                                            dnsServers: [],
+                                            appliedDnsServers: [],
+                                            internalDomainNameSuffix: 'ttskpj0m4ccepddgoujw5wizug.bx.internal.cloudapp.net'
+                                        },
+                                        macAddress: '00-22-48-1C-95-97',
+                                        enableAcceleratedNetworking: false,
+                                        vnetEncryptionSupported: false,
+                                        enableIPForwarding: false,
+                                        disableTcpStateTracking: false,
+                                        networkSecurityGroup: {
+                                            id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkSecurityGroups/azure-111-cd9i47s4-sg'
+                                        },
+                                        primary: false,
+                                        virtualMachine: {
+                                            id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Compute/virtualMachines/azure-111-cd9i47s4-vm1'
+                                        },
+                                        hostedWorkloads: [],
+                                        tapConfigurations: [],
+                                        nicType: 'Standard',
+                                        allowPort25Out: true,
+                                        auxiliaryMode: 'None',
+                                        auxiliarySku: 'None'
+                                    },
+                                    type: 'Microsoft.Network/networkInterfaces',
+                                    location: 'eastus',
+                                    kind: 'Regular'
+                                },
+                                'Disassociate'
+                            ]
+                        ],
+                        associate: [
+                            [
+                                'azure-111-cd9i47s4',
+                                'azure-111-cd9i47s4-ext0',
+                                {
+                                    name: 'azure-111-cd9i47s4-ext0',
+                                    id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkInterfaces/azure-111-cd9i47s4-ext0',
+                                    tags: {
+                                        f5_cloud_failover_label: 'azure-111-cd9i47s4',
+                                        f5_cloud_failover_nic_map: 'external'
+                                    },
+                                    properties: {
+                                        provisioningState: 'Succeeded',
+                                        resourceGuid: '57c1b742-c873-4fec-a6ca-20b24d125b57',
+                                        ipConfigurations: [
+                                            {
+                                                name: 'azure-111-cd9i47s4-ext0',
+                                                id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkInterfaces/azure-111-cd9i47s4-ext0/ipConfigurations/azure-111-cd9i47s4-ext0',
+                                                type: 'Microsoft.Network/networkInterfaces/ipConfigurations',
+                                                properties: {
+                                                    provisioningState: 'Succeeded',
+                                                    privateIPAddress: '10.0.2.4',
+                                                    privateIPAllocationMethod: 'Static',
+                                                    subnet: {
+                                                        id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/virtualNetworks/azure-111-cd9i47s4-network/subnets/external'
+                                                    },
+                                                    primary: true,
+                                                    privateIPAddressVersion: 'IPv4'
+                                                }
+                                            },
+                                            {
+                                                name: 'azure-111-cd9i47s4-secondary-vip1',
+                                                id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkInterfaces/azure-111-cd9i47s4-ext1/ipConfigurations/azure-111-cd9i47s4-secondary-vip1',
+                                                type: 'Microsoft.Network/networkInterfaces/ipConfigurations',
+                                                properties: {
+                                                    provisioningState: 'Succeeded',
+                                                    privateIPAddress: '10.0.2.6',
+                                                    privateIPAllocationMethod: 'Static',
+                                                    subnet: {
+                                                        id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/virtualNetworks/azure-111-cd9i47s4-network/subnets/external'
+                                                    },
+                                                    primary: false,
+                                                    privateIPAddressVersion: 'IPv4'
+                                                }
+                                            }
+                                        ],
+                                        dnsSettings: {
+                                            dnsServers: [],
+                                            appliedDnsServers: [],
+                                            internalDomainNameSuffix: 'ttskpj0m4ccepddgoujw5wizug.bx.internal.cloudapp.net'
+                                        },
+                                        macAddress: '60-45-BD-D6-A2-90',
+                                        enableAcceleratedNetworking: false,
+                                        vnetEncryptionSupported: false,
+                                        enableIPForwarding: false,
+                                        disableTcpStateTracking: false,
+                                        networkSecurityGroup: {
+                                            id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/networkSecurityGroups/azure-111-cd9i47s4-sg'
+                                        },
+                                        primary: false,
+                                        virtualMachine: {
+                                            id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Compute/virtualMachines/azure-111-cd9i47s4-vm0'
+                                        },
+                                        hostedWorkloads: [],
+                                        tapConfigurations: [],
+                                        nicType: 'Standard',
+                                        allowPort25Out: true,
+                                        auxiliaryMode: 'None',
+                                        auxiliarySku: 'None'
+                                    },
+                                    type: 'Microsoft.Network/networkInterfaces',
+                                    location: 'eastus',
+                                    kind: 'Regular'
+                                },
+                                'Associate'
+                            ]
+                        ]
+                    },
+                    loadBalancerAddresses: {}
+                },
+                {
+                    operations: [
+                        [
+                            'azure-111-cd9i47s4',
+                            'azure-111-cd9i47s4-rt',
+                            'route1',
+                            {
+                                name: 'route1',
+                                id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/routeTables/azure-111-cd9i47s4-rt/routes/route1',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    addressPrefix: '192.0.2.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.5',
+                                    hasBgpOverride: false
+                                },
+                                type: 'Microsoft.Network/routeTables/routes',
+                                nextHopIpAddress: '10.0.1.4'
+                            }
+                        ],
+                        [
+                            'azure-111-cd9i47s4',
+                            'azure-111-cd9i47s4-rt',
+                            'route2',
+                            {
+                                name: 'route2',
+                                id: '/subscriptions/d18b486a-112d-4402-add2-7fb1006f943a/resourceGroups/azure-111-cd9i47s4/providers/Microsoft.Network/routeTables/azure-111-cd9i47s4-rt/routes/route2',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    addressPrefix: '192.0.3.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.5',
+                                    hasBgpOverride: false
+                                },
+                                type: 'Microsoft.Network/routeTables/routes',
+                                nextHopIpAddress: '10.0.1.4'
+                            }
+                        ]
+                    ]
+                }
+            ]
+        );
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover.dryRun())
+            .then((output) => {
+                assert.strictEqual(output[0].operations.toStandby[0].networkInterface, 'azure-111-cd9i47s4-ext1');
+                assert.strictEqual(output[0].operations.toActive[0].networkInterface, 'azure-111-cd9i47s4-ext0');
+                assert.strictEqual(output[1].operations[0].route, 'route1');
+                assert.strictEqual(output[1].operations[0].addressPrefix, '192.0.2.0/24');
+                assert.strictEqual(output[1].operations[0].nextHopAddress, '10.0.1.4');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should execute normalize operations for dry run in GCP', () => {
+        sinon.stub(failover, '_getFailoverDiscovery').resolves(
+            [
+                {
+                    publicAddresses: {},
+                    interfaces: {
+                        disassociate: [
+                            [
+                                'tf-func-test-vm02-okq6cmct',
+                                'nic0',
+                                {
+                                    aliasIpRanges: [],
+                                    fingerprint: '2qR6-PDRk5o='
+                                },
+                                {
+                                    zone: 'us-west1-b'
+                                }
+                            ]
+                        ],
+                        associate: [
+                            [
+                                'tf-func-test-vm01-okq6cmct',
+                                'nic0',
+                                {
+                                    aliasIpRanges: [
+                                        {
+                                            ipCidrRange: '10.0.3.4/32'
+                                        }
+                                    ],
+                                    fingerprint: 'bQVhM2BKYjY='
+                                },
+                                {
+                                    zone: 'us-west1-a'
+                                }
+                            ]
+                        ]
+                    },
+                    loadBalancerAddresses: {
+                        operations: [
+                            [
+                                'gcp-111-tf-func-test-forwarding-rule-us-west1-okq6cmct',
+                                'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/zones/us-west1-a/targetInstances/tf-func-test-target-vm01-okq6cmct'
+                            ]
+                        ]
+                    }
+                },
+                {
+                    operations: [
+                        {
+                            kind: 'compute#route',
+                            id: '3295262323262177568',
+                            creationTimestamp: '2023-11-30T13:34:07.933-08:00',
+                            name: 'gcp-111-network-route-okq6cmct',
+                            network: 'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/global/networks/gcp-111-int-net-okq6cmct',
+                            destRange: '192.0.2.0/24',
+                            priority: 100,
+                            nextHopIp: '10.0.2.2',
+                            selfLink: 'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/global/routes/gcp-111-network-route-okq6cmct',
+                            parsedTags: {
+                                f5_cloud_failover_label: 'okq6cmct',
+                                f5_self_ips: '10.0.2.2,10.0.2.3'
+                            }
+                        },
+                        {
+                            kind: 'compute#route',
+                            id: '4864436162523382060',
+                            creationTimestamp: '2023-11-30T13:33:55.420-08:00',
+                            name: 'gcp-111-network-route-okq6cmct-2',
+                            network: 'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/global/networks/gcp-111-int-net-okq6cmct',
+                            destRange: '192.0.3.0/24',
+                            priority: 100,
+                            nextHopIp: '10.0.2.2',
+                            selfLink: 'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/global/routes/gcp-111-network-route-okq6cmct-2',
+                            parsedTags: {
+                                f5_cloud_failover_label: 'okq6cmct',
+                                f5_self_ips: '10.0.2.2,10.0.2.3'
+                            }
+                        }
+                    ]
+                }
+            ]
+        );
+        return config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.config.environment = 'gcp';
+            })
+            .then(() => failover.dryRun())
+            .then((output) => {
+                assert.strictEqual(output[0].operations.toStandby[0].networkInterface, 'nic0');
+                assert.strictEqual(output[0].operations.toActive[0].networkInterface, 'nic0');
+                assert.strictEqual(output[0].operations.toActive[0].aliasIpRanges[0].ipCidrRange, '10.0.3.4/32');
+                assert.strictEqual(output[0].loadBalancerAddresses.operations[0].forwardingRule, 'gcp-111-tf-func-test-forwarding-rule-us-west1-okq6cmct');
+                assert.strictEqual(output[0].loadBalancerAddresses.operations[0].targetInstance, 'https://www.googleapis.com/compute/v1/projects/f5-7656-pdsoleng-dev/zones/us-west1-a/targetInstances/tf-func-test-target-vm01-okq6cmct');
+                assert.strictEqual(output[1].operations[0].route, 'gcp-111-network-route-okq6cmct');
+                assert.strictEqual(output[1].operations[0].addressPrefix, '192.0.2.0/24');
+                assert.strictEqual(output[1].operations[0].nextHopAddress, '10.0.2.2');
+            })
+            .catch((err) => Promise.reject(err));
+    });
 
     it('should result in no failover addresses when no virtual addresses exist', () => {
         deviceGetVirtualAddressesMock.returns([]);
