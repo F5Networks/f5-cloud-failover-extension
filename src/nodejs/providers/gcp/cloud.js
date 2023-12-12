@@ -17,10 +17,8 @@
 'use strict';
 
 const ipaddr = require('ipaddr.js');
-const Compute = require('@google-cloud/compute');
-const { Storage } = require('@google-cloud/storage');
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
-const httpUtil = require('@f5devcentral/f5-cloud-libs').httpUtil;
+const url = require('url');
+const querystring = require('querystring');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const GCP_FWD_RULE_PAIR_LABEL = require('../../constants').GCP_FWD_RULE_PAIR_LABEL;
@@ -40,14 +38,17 @@ const gcpLabelParse = (data) => {
     }
     return ret;
 };
+// The default operation timeout is two minutes
+const NETWORK_MAX_RETRIES = 24;
+const NETWORK_RETRY_INTERVAL = 5000;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.GCP, options);
-        this.BASE_URL = 'https://www.googleapis.com/compute/v1';
-        this.compute = new Compute();
-        this.storage = new Storage();
+        this.BASE_URL = 'https://www.googleapis.com';
+        this.STORAGE_URL = 'https://storage.googleapis.com';
         this.bucket = null;
+        this.proxyOptions = null;
     }
 
     /**
@@ -60,8 +61,7 @@ class Cloud extends AbstractCloud {
             this._getLocalMetadata('project/project-id'),
             this._getLocalMetadata('instance/service-accounts/default/token'),
             this._getLocalMetadata('instance/name'),
-            this._getLocalMetadata('instance/zone'),
-            this._getCloudStorage(this.storageTags)
+            this._getLocalMetadata('instance/zone')
         ])
             .then((data) => {
                 this.projectId = data[0];
@@ -69,14 +69,27 @@ class Cloud extends AbstractCloud {
                 this.accessToken = data[1].access_token;
                 this.instanceName = data[2];
                 this.instanceZone = data[3];
-                this.bucket = data[4];
-
-                this.logger.silly(`deployment bucket name: ${this.bucket.name}`);
+                if (this.proxySettings) {
+                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                    this.proxyOptions = {
+                        protocol: opts.protocol,
+                        host: opts.hostname,
+                        port: opts.port
+                    };
+                    if (opts.username && opts.password) {
+                        this.proxyOptions.auth = {};
+                        this.proxyOptions.auth.username = opts.username;
+                        this.proxyOptions.auth.password = opts.password;
+                    }
+                }
+                return this._getCloudStorage(this.storageTags);
+            })
+            .then((data) => {
+                this.bucket = data;
+                this.logger.silly(`deployment bucket name: ${this.bucket}`);
 
                 this.zone = this._parseZone(this.instanceZone);
-                this.computeZone = this.compute.zone(this.zone);
                 this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
-                this.computeRegion = this.compute.region(this.region);
 
                 this.logger.silly('Getting GCP resources');
                 return Promise.all([
@@ -118,9 +131,10 @@ class Cloud extends AbstractCloud {
     uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
 
-        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-        return this._retrier(file.save, [util.stringify(data)], { thisArg: file })
-            .catch((err) => Promise.reject(err));
+        const stateFileObject = encodeURIComponent(`${storageContainerName}/${fileName}`);
+        return new Promise((resolve, reject) => this._sendRequest('POST', `${this.STORAGE_URL}/upload/storage/v1/b/${this.bucket}/o?uploadType=media&name=${stateFileObject}`, { body: data })
+            .then(() => resolve())
+            .catch((err) => reject(err)));
     }
 
     /**
@@ -131,30 +145,22 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}
      */
     downloadDataFromStorage(fileName) {
-        const file = this.bucket.file(`${storageContainerName}/${fileName}`);
-        return file.exists()
-            .then((exists) => {
-                if (!exists[0]) {
-                    return Promise.resolve({});
-                }
-                const stream = file.createReadStream();
-                let buffer = '';
-                return new Promise((resolve, reject) => {
-                    stream
-                        .on('data', (data) => {
-                            buffer += data;
-                        });
-                    stream
-                        .on('error', (err) => {
-                            reject(err);
-                        });
-                    stream
-                        .on('end', () => {
-                            resolve(JSON.parse(buffer));
-                        });
-                });
+        this.logger.silly(`Data will be downloaded from ${fileName}`);
+
+        const stateFileObject = encodeURIComponent(`${storageContainerName}/${fileName}`);
+        return new Promise((resolve, reject) => this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b/${this.bucket}/o/${stateFileObject}?alt=media`, { advancedReturn: true, continueOnError: false })
+            .then((response) => {
+                resolve(response.body);
             })
-            .catch((err) => Promise.reject(err));
+            .catch((err) => {
+                // return success if we haven't created the file yet
+                if (err.toString().includes('404')) {
+                    this.logger.silly('downloadDataFromStorage could not find state file, continuing...');
+                    resolve({});
+                }
+                const message = `Error in downloadDataFromStorage ${err}`;
+                reject(new Error(message));
+            }));
     }
 
     /**
@@ -255,20 +261,55 @@ class Cloud extends AbstractCloud {
     /**
      * Send HTTP Request to GCP API (Compute)
      *
+     * @param {String} method       - HTTP method for the request
+     * @param {String} requestUrl   - Full URL for the request
+     * @param {Object} options      - Options to pass to the request
+     *
      * @returns {Promise} A promise which will be resolved upon complete response
      *
      */
-    _sendRequest(method, path, body) {
+    _sendRequest(method, requestUrl, options) {
         if (!this.accessToken) {
-            return Promise.reject(new Error('httpUtil.sendRequest: no auth token. call init first'));
+            return Promise.reject(new Error('_sendRequest: no auth token. call init first'));
         }
 
-        const headers = {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
+        const parsedUrl = url.parse(requestUrl);
+        const host = parsedUrl.hostname;
+        const uri = parsedUrl.pathname;
+        const queryString = parsedUrl.query || null;
+
+        options.headers = {
+            Authorization: `Bearer ${this.accessToken}`
         };
-        const url = `${this.BASE_URL}/projects/${this.projectId}/${path}`;
-        return httpUtil.request(method, url, { headers, body });
+        options.method = method;
+        options.queryParams = queryString ? querystring.parse(queryString) : {};
+        options.body = options.body || '';
+        options.advancedReturn = options.advancedReturn || false;
+        options.continueOnError = options.continueOnError || false;
+        options.validateStatus = options.validateStatus || false;
+        options.proxy = this.proxyOptions;
+
+        return this._retrier(util.makeRequest, [host, uri, options])
+            .then((data) => Promise.resolve(data))
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Get status of operation
+     *
+     * @returns {Promise} A promise which will be resolved when operation status is 'DONE'
+     *
+     */
+    _checkOperationStatus(operationLink) {
+        return this._sendRequest('GET', operationLink, {})
+            .then((response) => {
+                this.logger.silly('_checkOperationStatus found that operation status of', response.targetLink, 'is', response.status);
+                if (response.status === 'DONE') {
+                    return Promise.resolve();
+                }
+                return Promise.reject(new Error(`Resource ${response.targetLink} is not ready yet`));
+            })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -280,19 +321,15 @@ class Cloud extends AbstractCloud {
      *
      */
     _getLocalMetadata(entry) {
-        const options = {
-            headers: {
-                'Metadata-Flavor': 'Google'
-            }
+        const headers = {
+            'Metadata-Flavor': 'Google'
         };
-
-        return cloudLibsUtil.getDataFromUrl(
-            `http://metadata.google.internal/computeMetadata/v1/${entry}`,
-            options
-        )
+        const host = 'metadata.google.internal';
+        const uri = `/computeMetadata/v1/${entry}`;
+        return util.makeRequest(host, uri, { headers, port: 80, protocol: 'http' })
             .then((data) => Promise.resolve(data))
             .catch((err) => {
-                const message = `Error getting local metadata ${err.message}`;
+                const message = `Error in _getLocalMetadata ${JSON.stringify(err)}`;
                 return Promise.reject(new Error(message));
             });
     }
@@ -309,37 +346,19 @@ class Cloud extends AbstractCloud {
      */
     _getCloudStorage(labels) {
         if (this.storageName) {
-            return Promise.resolve(this.storage.bucket(this.storageName));
+            return Promise.resolve(this.storageName);
         }
 
-        // helper function
-        function getBucketLabels(bucket) {
-            return bucket.getLabels()
-                .then((bucketLabels) => Promise.resolve({
-                    name: bucket.name,
-                    labels: bucketLabels,
-                    bucketObject: bucket
-                }))
-                .catch((err) => Promise.reject(err));
-        }
-
-        return this.storage.getBuckets()
-            .then((data) => {
-                const promises = [];
-                data[0].forEach((bucket) => {
-                    promises.push(getBucketLabels(bucket));
-                });
-                return Promise.all(promises);
-            })
+        return this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b?project=${this.projectId}`, {})
             .then((buckets) => {
                 const labelKeys = Object.keys(labels);
-                const filteredBuckets = buckets.filter((bucket) => {
+                const filteredBuckets = buckets.items.filter((bucket) => {
                     this.logger.silly(
                         `bucket name: ${util.stringify(bucket.name)} bucket labels: ${util.stringify(bucket.labels)}`
                     );
                     let matchedTags = 0;
                     labelKeys.forEach((labelKey) => {
-                        bucket.labels.forEach((bucketLabel) => {
+                        Array(bucket.labels).forEach((bucketLabel) => {
                             if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
                                 && bucketLabel[labelKey] === labels[labelKey]) {
                                 matchedTags += 1;
@@ -351,7 +370,7 @@ class Cloud extends AbstractCloud {
                 if (!filteredBuckets || filteredBuckets.length === 0) {
                     return Promise.reject(new Error(`Filtered bucket does not exist: ${filteredBuckets}`));
                 }
-                return Promise.resolve(filteredBuckets[0].bucketObject); // there should only be one
+                return Promise.resolve(filteredBuckets[0].name); // there should only be one
             });
     }
 
@@ -368,16 +387,10 @@ class Cloud extends AbstractCloud {
      */
     _getVmMetadata(vmName, options) {
         options = options || {};
-
         const zone = options.zone || this.zone;
-        const computeZone = this.compute.zone(zone);
-        const vm = computeZone.vm(vmName);
 
-        return vm.getMetadata()
-            .then((data) => {
-                const metadata = data[0];
-                return Promise.resolve(metadata);
-            })
+        return this._sendRequest('GET', `https://compute.googleapis.com/compute/v1/projects/${this.projectId}/zones/${zone}/instances/${vmName}`, {})
+            .then((metadata) => Promise.resolve(metadata))
             .catch((err) => Promise.reject(err));
     }
 
@@ -437,14 +450,29 @@ class Cloud extends AbstractCloud {
             // Labels in GCP must be lower case
             options.filter.push(`labels.${tagKey.toLowerCase()} eq ${tags[tagKey].toLowerCase()}`);
         });
-        return this.compute.getVMs(options)
+        const uri = `${this.BASE_URL}/compute/v1/projects/${this.projectId}/aggregated/instances?filter=${options.filter}`;
+        return this._sendRequest('GET', uri, {})
             .then((vmsData) => {
-                const computeVms = vmsData !== undefined ? vmsData : [[]];
+                const arrayItems = vmsData.items;
+                const instance = [];
+                let i = 0;
+                Object.entries(arrayItems).forEach((entry) => {
+                    const [key, value] = entry;
+                    if (value.instances !== undefined && i === 0) {
+                        this.logger.silly('Found instance in', key);
+                        instance.push(value.instances);
+                        i = 1;
+                    } else if (value.instances !== undefined && i === 1) {
+                        this.logger.silly('Found instance in', key);
+                        instance[0].push(value.instances[0]);
+                    }
+                });
+                const computeVms = (instance !== undefined && Object.keys(instance).length > 0) ? instance : [[]];
                 const promises = [];
                 computeVms[0].forEach((vm) => {
                     promises.push(this._retrier(
                         this._getVmInfo,
-                        [vm.name, { zone: this._parseZone(vm.metadata.zone), failOnStatusCodes: ['STOPPING'] }]
+                        [vm.name, { zone: this._parseZone(vm.zone), failOnStatusCodes: ['STOPPING'] }]
                     ));
                 });
                 return Promise.all(promises);
@@ -519,7 +547,7 @@ class Cloud extends AbstractCloud {
             path = `${path}?pageToken=${nextPageToken}`;
         }
         return new Promise((resolve, reject) => {
-            this._sendRequest('GET', path)
+            this._sendRequest('GET', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/${path}`, {})
                 .then((pagedRulesList) => {
                     list = list.concat(pagedRulesList.items);
                     if (pagedRulesList.nextPageToken) {
@@ -996,25 +1024,42 @@ class Cloud extends AbstractCloud {
     _updateNics(disassociate, associate) {
         this.logger.silly('updateAddresses disassociate operations: ', disassociate);
         this.logger.silly('updateAddresses associate operations: ', associate);
-
         if (!disassociate || !associate) {
             this.logger.info('No associations to update.');
             return Promise.resolve([]);
         }
-
         const disassociatePromises = [];
         disassociate.forEach((item) => {
             disassociatePromises.push(this._retrier(this._updateNic, item));
         });
         return Promise.all(disassociatePromises)
+            .then((disassociateTasks) => {
+                const disassociateStatusPromises = [];
+                disassociateTasks.forEach((task) => {
+                    disassociateStatusPromises.push(this._retrier(this._checkOperationStatus, [task], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
+                });
+                return Promise.all(disassociateStatusPromises);
+            })
             .then(() => {
-                this.logger.info('Disassociate NICs successful.');
-
+                this.logger.info('Disassociate NIC tasks successful.');
                 const associatePromises = [];
                 associate.forEach((item) => {
                     associatePromises.push(this._retrier(this._updateNic, item));
                 });
                 return Promise.all(associatePromises);
+            })
+            .then((associateTasks) => {
+                const associateStatusPromises = [];
+                associateTasks.forEach((task) => {
+                    associateStatusPromises.push(this._retrier(this._checkOperationStatus, [task], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
+                });
+                return Promise.all(associateStatusPromises);
             })
             .then(() => {
                 this.logger.info('Associate NICs successful.');
@@ -1032,16 +1077,24 @@ class Cloud extends AbstractCloud {
      */
     _updateFwdRules(operations) {
         const promises = [];
-
         // check if operations is undefined
         if (operations === undefined || operations.length === 0) {
             return Promise.resolve([]);
         }
-
         operations.forEach((item) => {
             promises.push(this._retrier(this._updateFwdRule, item));
         });
         return Promise.all(promises)
+            .then((updateFwdRuleTasks) => {
+                const statusPromises = [];
+                updateFwdRuleTasks.forEach((task) => {
+                    statusPromises.push(this._retrier(this._checkOperationStatus, [task], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
+                });
+                return Promise.all(statusPromises);
+            })
             .then(() => {
                 this.logger.info('Updated forwarding rules successfully');
             })
@@ -1057,25 +1110,42 @@ class Cloud extends AbstractCloud {
     */
     _updateRoutes(operations) {
         this.logger.debug('updateRoutes operations: ', operations);
-
         if (!operations || !operations.length) {
             this.logger.info('No route operations to run');
             return Promise.resolve();
         }
-
         // update routes is not supported in GCP, so delete and recreate
         const deletePromises = [];
         operations.forEach((item) => {
             deletePromises.push(this._retrier(this._deleteRoute, [item]));
         });
-
         return Promise.all(deletePromises)
+            .then((deleteRouteTasks) => {
+                const deleteRoutesStatusPromises = [];
+                deleteRouteTasks.forEach((task) => {
+                    deleteRoutesStatusPromises.push(this._retrier(this._checkOperationStatus, [task], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
+                });
+                return Promise.all(deleteRoutesStatusPromises);
+            })
             .then(() => {
                 const createPromises = [];
                 operations.forEach((item) => {
                     createPromises.push(this._retrier(this._createRoute, [item]));
                 });
                 return Promise.all(createPromises);
+            })
+            .then((createRouteTasks) => {
+                const createRoutesStatusPromises = [];
+                createRouteTasks.forEach((task) => {
+                    createRoutesStatusPromises.push(this._retrier(this._checkOperationStatus, [task], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
+                });
+                return Promise.all(createRoutesStatusPromises);
             })
             .then(() => {
                 this.logger.info('Updated routes successfully');
@@ -1103,19 +1173,16 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Updating NIC: ${nicId} for VM ${vmId} in zone ${zone}`);
         return this._sendRequest(
             'PATCH',
-            `zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
-            nicArr
+            `${this.BASE_URL}/compute/v1/projects/${this.projectId}/zones/${zone}/instances/${vmId}/updateNetworkInterface?networkInterface=${nicId}`,
+            {
+                body: nicArr
+            }
         )
-            .then((data) => {
-                // updateNetworkInterface is async, returns GCP zone operation
-                const computeZone = this.compute.zone(zone);
-                const operation = computeZone.operation(data.name);
-                return operation.promise();
-            })
+            .then((response) => Promise.resolve(response.selfLink))
             .catch((err) => {
                 this.logger.silly(`Update NIC status: ${err}`);
                 // workaround for quota exceeded, retries API call response conditionNotMet during updateNic
-                if (err.message.indexOf('conditionNotMet') !== -1) {
+                if (err.message && err.message.indexOf('conditionNotMet') !== -1) {
                     return Promise.resolve();
                 }
                 return Promise.reject(err);
@@ -1134,15 +1201,13 @@ class Cloud extends AbstractCloud {
      */
     _updateFwdRule(name, target) {
         this.logger.silly(`Updating forwarding rule: ${name} to target: ${target}`);
-        const rule = this.computeRegion.rule(name);
-        return rule.setTarget(target)
-            .then((data) => {
-                const operationName = data[0].name;
+        const targetBody = JSON.parse(`{ "target": "${target}" }`);
+        const uri = `${this.BASE_URL}/compute/v1/projects/${this.projectId}/regions/${this.region}/forwardingRules/${name}/setTarget`;
+        return this._sendRequest('POST', uri, { body: targetBody })
+            .then((response) => {
+                const operationName = response.name;
                 this.logger.silly(`updateFwdRule operation name: ${operationName}`);
-
-                // returns GCP region operation, wait for that to complete
-                const operation = this.computeRegion.operation(operationName);
-                return operation.promise();
+                return Promise.resolve(response.selfLink);
             })
             .catch((err) => Promise.reject(err));
     }
@@ -1155,7 +1220,6 @@ class Cloud extends AbstractCloud {
      * @return {null|Array}      - Array of target instances
      * @private
      */
-
     _getFwdRulesTargetInstancesFromLabel(rule) {
         const targetInstanceNames = gcpLabelParse(rule.description)[GCP_FWD_RULE_PAIR_LABEL];
         if (targetInstanceNames) {
@@ -1174,16 +1238,13 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} A promise which will be resolved with the operation response
     */
     _deleteRoute(item) {
-        const uri = `global/routes/${item.id}`;
-        return this._sendRequest('DELETE', uri)
-            .then((response) => {
-                const operation = this.compute.operation(response.name);
-                return operation.promise();
-            })
+        const path = `global/routes/${item.id}`;
+        return this._sendRequest('DELETE', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/${path}`, {})
+            .then((response) => Promise.resolve(response.selfLink))
             .catch((err) => {
                 this.logger.silly(`Delete route status: ${err}`);
                 // workaround for quota exceeded, retries API call response notFound during delete route
-                if (err.message.indexOf('notFound') !== -1) {
+                if (err.message && err.message.indexOf('notFound') !== -1) {
                     return Promise.resolve();
                 }
                 return Promise.reject(err);
@@ -1203,15 +1264,12 @@ class Cloud extends AbstractCloud {
         delete item.creationTimestamp;
         delete item.kind;
         delete item.selfLink;
-        return this._sendRequest('POST', 'global/routes/', item)
-            .then((response) => {
-                const operation = this.compute.operation(response.name);
-                return operation.promise();
-            })
+        return this._sendRequest('POST', `${this.BASE_URL}/compute/v1/projects/${this.projectId}/global/routes/`, { body: item })
+            .then((response) => Promise.resolve(response.selfLink))
             .catch((err) => {
                 this.logger.silly(`Create route status: ${err}`);
                 // workaround for quota exceeded, retries API call response route alreadyExists during create route
-                if (err.message.indexOf('alreadyExists') !== -1) {
+                if (err.message && err.message.indexOf('alreadyExists') !== -1) {
                     return Promise.resolve();
                 }
                 return Promise.reject(err);

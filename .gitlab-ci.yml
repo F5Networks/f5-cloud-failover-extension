@@ -4,11 +4,12 @@ variables:
   GIT_SECRETS_VERSION: "1.3.0"
   GIT_SECRETS_PKG_URL: "https://github.com/awslabs/git-secrets/archive/${GIT_SECRETS_VERSION}.tar.gz"
   ARTIFACTORY_SERVER: "$ARTIFACTORY_SERVER"
+  ATG_IMG_REGISTRY_URL: ${ARTIFACTORY_SERVER}/dockerhub-remote
   DOCS_BUILD_DIR: "docs/_build/html"
   POSTMAN_EXAMPLES: "postman-collection"
   MONGO_INITDB_ROOT_PASSWORD: root
   MONGO_INITDB_ROOT_USERNAME: root
-  DT_IMAGE_V2: ${ARTIFACTORY_SERVER}/ecosystems-cloudsolutions-docker-dev/deployment-tool-v2:latest
+  DT_IMAGE_V3: ${ARTIFACTORY_SERVER}/ecosystems-cloudsolutions-docker-dev/deployment-tool-v3:latest
   # azure vars - normalize env var options between ansible and terraform
   AZURE_TENANT: "$AZURE_TENANT_ID"
   AZURE_SECRET: "$AZURE_CLIENT_SECRET"
@@ -27,9 +28,11 @@ variables:
   F5_SDK_LOG_LEVEL: "INFO"
   F5_DISABLE_CERT_VERIFY: "true"
   PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+  SEC_TOML_BRANCH: main
 
 stages:
   - check_content
+  - atg-shared-checks
   - test
   - build_package
   - test_functional_init
@@ -38,6 +41,10 @@ stages:
   - build_api_docs_and_postman_collection
   - build_docs
   - publish
+
+include:
+  - project: automation-toolchain/atg-shared-templates
+    file: security/base.gitlab-ci.yml
 
 .helpers: &helpers |
   function validate () {
@@ -155,16 +162,18 @@ build_package:
 # Functional Tests - Initialization phase (with 1 retries in a case of any failures)
 .test-install:
   stage: test_functional_init
-  image: $DT_IMAGE_V2
+  image: $DT_IMAGE_V3
   services:
     - alias: mongo
       name: ${ARTIFACTORY_SERVER}/dockerhub-remote/mongo:4.0-xenial
   tags:
     - azure-autoscale-runner
   script:
-    - export DEPLOYMENT_TOOL_VERSION=latest; curl -L https://cdn.f5.com/product/cloudsolutions/deployment-tool/${DEPLOYMENT_TOOL_VERSION}/install.sh | bash
-    - source ~/.bash_profile
-    - deployment_tool --command create --plan $PLAN --name ci-$CI_JOB_ID --database export --parameters "$PARAMETERS"
+    - deployment-tool create ci-$CI_JOB_ID --plan $PLAN $PARAMETERS
+    - deployment-tool database export --uri "mongodb://root:root@mongo:27017/porter?authSource=admin" --destination ./deployment/
+    - deployment-tool describe ci-$CI_JOB_ID
+    - deployment-tool get ci-$CI_JOB_ID --output-format json | jq > ./deployment/deployment_info.json
+    - cat ./deployment/deployment_info.json | jq
     - echo "ci-$CI_JOB_ID" > ./deployment/name.txt
   only:
     variables:
@@ -189,7 +198,7 @@ test_functional_init_azure:
   extends: .test-install
   variables:
     PLAN: "azure"
-    PARAMETERS: "location=westus2 bigip_version=16.1.303000"
+    PARAMETERS: "--param location=westus2 --param bigip_version=16.1.303000"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -202,7 +211,7 @@ test_functional_init_azure_1nic:
   extends: .test-install
   variables:
     PLAN: "azure"
-    PARAMETERS: "nic_count=1 location=westus2 bigip_version=16.1.303000"
+    PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=16.1.303000"
   when: manual
   except:
     variables:
@@ -217,7 +226,7 @@ test_functional_init_aws_across_net:
   extends: .test-install
   variables:
     PLAN: "aws"
-    PARAMETERS: "region=us-west-2"
+    PARAMETERS: "--param region=us-west-2"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -230,7 +239,7 @@ test_functional_init_aws_across_net_1nic:
   extends: .test-install
   variables:
     PLAN: "aws"
-    PARAMETERS: "region=us-west-2 nic_count=1"
+    PARAMETERS: "--param region=us-west-2 --param nic_count=1"
   when: manual
   except:
     variables:
@@ -245,7 +254,7 @@ test_functional_init_aws:
   extends: .test-install
   variables:
     PLAN: "aws"
-    PARAMETERS: "region=us-west-2 use_availability_zones=false"
+    PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -259,7 +268,7 @@ test_functional_init_aws_1nic:
   extends: .test-install
   variables:
     PLAN: "aws"
-    PARAMETERS: "region=us-west-2 use_availability_zones=false nic_count=1"
+    PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false --param nic_count=1"
   when: manual
   except:
     variables:
@@ -274,7 +283,7 @@ test_functional_init_gcp:
   extends: .test-install
   variables:
     PLAN: "gcp"
-    PARAMETERS: "region=us-west1 bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
+    PARAMETERS: "--param region=us-west1 --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -287,7 +296,7 @@ test_functional_init_gcp_no_forwarding:
   extends: .test-install
   variables:
     PLAN: "gcp"
-    PARAMETERS: "region=us-west1 use_forwarding_rule=false bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
+    PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
   except:
     variables:
       - $TESTS_TIER == "1"
@@ -463,7 +472,7 @@ test_functional_execute_gcp_no_forwarding:
 # Functional Tests - Cleanup phase (executes always with 1 retry in a case of any failures)
 .test-uninstall:
   stage: test_functional_cleanup
-  image: $DT_IMAGE_V2
+  image: $DT_IMAGE_V3
   retry: 1
   when: always
   services:
@@ -473,7 +482,8 @@ test_functional_execute_gcp_no_forwarding:
     - azure-autoscale-runner
   script:
     - mkdir -p /deployment-tool/deployment && cp -a ./deployment/. /deployment-tool/deployment
-    - cd /deployment-tool && ./deployment_tool.sh --command delete --plan $PLAN --name $(cat ./deployment/name.txt) --database import --parameters "$PARAMETERS"
+    - deployment-tool database import --uri "mongodb://root:root@mongo:27017/porter?authSource=admin" --backup-path ./deployment/porter
+    - deployment-tool delete $(cat ./deployment/name.txt)
   only:
     variables:
       - $CI_COMMIT_REF_NAME == "master"

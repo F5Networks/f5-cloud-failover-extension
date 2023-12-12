@@ -13,9 +13,9 @@
 const assert = require('assert');
 const sinon = require('sinon');
 
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
 const util = require('../../shared/util.js');
+const srcUtil = require('../../../src/nodejs/util.js');
 
 const cloud = 'gcp';
 let provider;
@@ -140,14 +140,6 @@ describe('Provider - GCP', () => {
                 }
             }
         ];
-        /* eslint-disable arrow-body-style */
-        provider.computeZone = {
-            operation: () => {
-                return {
-                    promise: () => Promise.resolve()
-                };
-            }
-        };
     });
     afterEach(() => {
         sinon.restore();
@@ -211,52 +203,140 @@ describe('Provider - GCP', () => {
             .catch((err) => Promise.reject(err));
     });
 
-    it('validate uploadDataToStorage', () => {
-        const fileName = 'test.json';
-        const payload = { status: 'progress' };
-        provider.bucket = payload;
-        provider.bucket.file = (name) => {
-            return {
-                fileName: name,
-                save: (data) => {
-                    if (data.toString().length > 0) {
-                        assert.strictEqual(JSON.parse(data).status, payload.status);
-                        return Promise.resolve(data);
-                    }
-                    return Promise.resolve();
-                }
-            };
-        };
+    it('validate _sendRequest', () => {
+        const method = 'GET';
+        const requestUrl = '/';
+        const options = {};
+        const payload = { some_key: 'some_value' };
 
-        return provider.uploadDataToStorage(fileName, payload)
+        const providerMakeRequestMock = sinon.stub(srcUtil, 'makeRequest');
+        providerMakeRequestMock.resolves(payload);
+
+        provider.accessToken = 'foo';
+
+        return provider._sendRequest(method, requestUrl, options)
             .then((data) => {
-                assert.strictEqual(JSON.parse(data).status, payload.status);
+                assert.strictEqual(data, payload);
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('validate downloadDataFromStorage', () => {
-        const fileName = 'test.json';
-        const payload = { status: 'progress' };
-        provider.bucket = payload;
+    it('validate _sendRequest rejects when no access token is provided', () => {
+        const method = 'GET';
+        const requestUrl = '/';
+        const options = {};
 
-        const returnObject = sinon.stub();
-        returnObject.on = sinon.stub();
-        returnObject.on.withArgs('data').yields(JSON.stringify(payload));
-        returnObject.on.withArgs('end').yields(null);
+        return provider._sendRequest(method, requestUrl, options)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, '_sendRequest: no auth token. call init first');
+            });
+    });
 
-        const createReadStreamSpy = sinon.stub().returns(returnObject);
-        const existsSpy = sinon.stub().resolves([true]);
+    it('validate _checkOperationStatus', () => {
+        const payload = { status: 'DONE' };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
 
-        provider.bucket.file = sinon.stub().returns({
-            createReadStream: createReadStreamSpy,
-            exists: existsSpy
-        });
-        return provider.downloadDataFromStorage(fileName)
-            .then((data) => {
-                assert.strictEqual(data.status, payload.status);
+        provider.accessToken = 'foo';
+
+        return provider._checkOperationStatus()
+            .then(() => {
+                assert.ok(true);
             })
             .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _checkOperationStatus rejects when task is not DONE', () => {
+        const payload = { status: 'RUNNING' };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
+
+        provider.accessToken = 'foo';
+
+        return provider._checkOperationStatus()
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+    it('validate uploadDataToStorage', () => {
+        const fileName = 'test.json';
+        const payload = { status: 'SUCCEEDED' };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
+
+        return provider.uploadDataToStorage(fileName, payload)
+            .then((data) => {
+                assert.strictEqual(data, undefined);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate uploadDataToStorage rejects on error', () => {
+        const fileName = '';
+        const payload = { status: 'SUCCEEDED' };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
+
+        return provider.uploadDataToStorage(fileName, payload)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+    it('validate downloadDataFromStorage', () => {
+        const fileName = 'test.json';
+        const payload = {
+            code: '200',
+            body: { status: 'SUCCEEDED' }
+        };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
+
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.strictEqual(data, payload.body);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate downloadDataFromStorage resolves when file not found', () => {
+        const fileName = 'test.json';
+        const payload = '404 Not Found';
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.rejects(payload);
+
+        return provider.downloadDataFromStorage(fileName)
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate downloadDataFromStorage rejects on any other error', () => {
+        const fileName = 'test.json';
+        const payload = {
+            code: '400'
+        };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves(payload);
+
+        return provider.downloadDataFromStorage(fileName)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
     });
 
     describe('updateAddresses should', () => {
@@ -309,14 +389,16 @@ describe('Provider - GCP', () => {
             ]);
 
             provider.instanceName = 'testInstanceName01';
+            provider.accessToken = 'foo';
         });
-
+        /* eslint-disable arrow-body-style */
         it('should validate method does not throw error if update operations is empty', () => {
             return provider.updateAddresses({ updateOperations: {} })
                 .catch((err) => Promise.reject(err));
         });
 
         it('validate address failover', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
@@ -332,6 +414,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate address failover with forwarding rules provided via label', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
@@ -356,6 +439,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate address failover with forwarding rules parameter', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             const updateFwdRulesSpy = sinon.stub(provider, '_updateFwdRules').resolves();
 
@@ -379,6 +463,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate address failover with forwarding rules not requiring scoping tag', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.addressTagsRequired = false;
 
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
@@ -405,6 +490,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate alias IP failover (without any fwd rules or target instances)', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
 
             getFwdRulesStub.resolves([]);
@@ -425,6 +511,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate alias IP failover (with unrelated fwd rule and no target instances)', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
 
             getFwdRulesStub.resolves([
@@ -483,6 +570,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate address failover with all instances in a single zone', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             sinon.stub(provider, '_updateFwdRules').resolves();
 
@@ -499,6 +587,7 @@ describe('Provider - GCP', () => {
         });
 
         it('validate address failover does not attempt to update access configs', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             const updateNicSpy = sinon.stub(provider, '_updateNic').resolves();
             sinon.stub(provider, '_updateFwdRules').resolves();
 
@@ -553,6 +642,7 @@ describe('Provider - GCP', () => {
     });
 
     describe('discoverAddressOperationsUsingDefinitions method', () => {
+        /* eslint-disable arrow-body-style */
         it('validate correct execution for forwardingRule type', () => {
             provider.updateAddresses = sinon.stub().callsFake((parameters) => {
                 return Promise.resolve(parameters);
@@ -584,7 +674,7 @@ describe('Provider - GCP', () => {
                 })
                 .catch(() => assert.fail());
         });
-
+        /* eslint-disable arrow-body-style */
         it('validate correct execution for aliasAddress type', () => {
             provider.updateAddresses = sinon.stub().callsFake((parameters) => {
                 return Promise.resolve(parameters);
@@ -613,7 +703,7 @@ describe('Provider - GCP', () => {
                 })
                 .catch(() => assert.fail());
         });
-
+        /* eslint-disable arrow-body-style */
         it('validate correct execution for aliasAddress type when isAddressOperationsEnabled is set to false', () => {
             provider.updateAddresses = sinon.stub().callsFake((parameters) => {
                 return Promise.resolve(parameters);
@@ -672,13 +762,6 @@ describe('Provider - GCP', () => {
             providerSendRequestMock.resolves({
                 name: 'test-name'
             });
-            sinon.stub(provider.compute, 'operation').callsFake(() => {
-                return {
-                    promise: () => {
-                        return Promise.resolve();
-                    }
-                };
-            });
 
             provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
@@ -693,6 +776,7 @@ describe('Provider - GCP', () => {
         });
 
         it('update routes using next hop discovery method: routeTag', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'routeTag',
                 tag: 'f5_self_ips'
@@ -703,12 +787,13 @@ describe('Provider - GCP', () => {
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using next hop discovery method: static', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeNextHopAddresses = {
                 type: 'static',
                 items: ['1.1.1.1', '2.2.2.2']
@@ -719,12 +804,13 @@ describe('Provider - GCP', () => {
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update multiple routes using next hop discovery method', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions[0].routeAddressRanges = [
                 {
                     routeAddresses: ['192.0.0.0/24'],
@@ -751,14 +837,15 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].body.nextHopIp, '1.1.1.1');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions = [
                 {
                     routeTags: { mylabel: 'mydeployment' },
@@ -795,14 +882,15 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].body.nextHopIp, '1.1.1.1');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions with mix name and tag', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions = [
                 {
                     routeName: 'test-route',
@@ -839,14 +927,15 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].body.nextHopIp, '1.1.1.1');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using multiple route group definitions with routes names', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions = [
                 {
                     routeName: 'test-route',
@@ -883,14 +972,15 @@ describe('Provider - GCP', () => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[2][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[2][2].body.nextHopIp, '1.1.1.1');
                     assert.deepStrictEqual(providerSendRequestMock.args[3][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[3][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
 
         it('update routes using route name and special "all" route address', () => {
+            provider._checkOperationStatus = sinon.stub().resolves();
             provider.routeGroupDefinitions = [
                 {
                     routeName: 'test-route',
@@ -911,7 +1001,7 @@ describe('Provider - GCP', () => {
                 .then(() => {
                     assert.deepStrictEqual(providerSendRequestMock.args[0][0], 'DELETE');
                     assert.deepStrictEqual(providerSendRequestMock.args[1][0], 'POST');
-                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].nextHopIp, '1.1.1.1');
+                    assert.deepStrictEqual(providerSendRequestMock.args[1][2].body.nextHopIp, '1.1.1.1');
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -921,7 +1011,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes/');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -945,7 +1035,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes/');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -960,7 +1050,7 @@ describe('Provider - GCP', () => {
 
         providerSendRequestMock.onCall(1).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes?pageToken=token');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/global/routes?pageToken=token');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -984,7 +1074,7 @@ describe('Provider - GCP', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'global/routes/');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/global/routes/');
 
             return Promise.resolve({
                 name: 'test-name',
@@ -1018,7 +1108,7 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getLocalMetadata', () => {
-        cloudLibsUtil.getDataFromUrl = sinon.stub().resolves('test-data');
+        srcUtil.makeRequest = sinon.stub().resolves('test-data');
 
         assert.strictEqual(provider.environment, cloud);
         return provider._getLocalMetadata('test-entry')
@@ -1030,7 +1120,7 @@ describe('Provider - GCP', () => {
     });
 
     it('validate promise rejection for _getLocalMetadata', () => {
-        cloudLibsUtil.getDataFromUrl = sinon.stub().rejects();
+        srcUtil.makeRequest = sinon.stub().rejects();
 
         assert.strictEqual(provider.environment, cloud);
         return provider._getLocalMetadata('test-entry')
@@ -1056,9 +1146,8 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getVmMetadata', () => {
-        provider.computeZone = provider.compute.zone('us-west1-a');
-        provider.computeZone = sinon.stub();
-        provider.computeZone.vm = sinon.stub();
+        provider.zone = 'us-west1-a';
+        sinon.stub(provider, '_sendRequest').resolves({ items: 'test_data' });
         sinon.stub(provider, '_getVmMetadata').callsFake((vmName) => {
             assert.strictEqual(vmName, 'test-vm');
             return Promise.resolve();
@@ -1171,7 +1260,7 @@ describe('Provider - GCP', () => {
         provider.region = 'region';
         providerSendRequestMock.onCall(0).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'regions/region/forwardingRules');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/regions/region/forwardingRules');
 
             return Promise.resolve({
                 items: 'test_data',
@@ -1180,7 +1269,7 @@ describe('Provider - GCP', () => {
         });
         providerSendRequestMock.onCall(1).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/regions/region/forwardingRules?pageToken=token');
 
             return Promise.resolve({
                 items: 'test_data2',
@@ -1189,7 +1278,7 @@ describe('Provider - GCP', () => {
         });
         providerSendRequestMock.onCall(2).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/regions/region/forwardingRules?pageToken=token');
 
             return Promise.resolve({
                 items: 'test_data3',
@@ -1198,7 +1287,7 @@ describe('Provider - GCP', () => {
         });
         providerSendRequestMock.onCall(3).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/regions/region/forwardingRules?pageToken=token');
 
             return Promise.resolve({
                 items: 'test_data4',
@@ -1207,7 +1296,7 @@ describe('Provider - GCP', () => {
         });
         providerSendRequestMock.onCall(4).callsFake((method, path) => {
             assert.strictEqual(method, 'GET');
-            assert.strictEqual(path, 'regions/region/forwardingRules?pageToken=token');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/undefined/regions/region/forwardingRules?pageToken=token');
 
             return Promise.resolve({
                 items: 'test_data5'
@@ -1226,23 +1315,22 @@ describe('Provider - GCP', () => {
 
     /* eslint-disable arrow-body-style */
     it('validate _updateFwdRule method execution', () => {
-        provider.computeRegion = {
-            rule: () => {
-                return {
-                    setTarget: () => {
-                        return Promise.resolve([{ name: 'test-name' }]);
+        provider.region = 'region';
+        provider.name = 'rule';
+        provider.projectId = 'project-id';
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'POST');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/project-id/regions/region/forwardingRules/test-rule/setTarget');
+
+            return Promise.resolve({
+                data:
+                    {
+                        name: 'test-rule'
                     }
-                };
-            },
-            operation: () => {
-                return {
-                    promise: () => {
-                        return Promise.resolve();
-                    }
-                };
-            }
-        };
-        return provider._updateFwdRule()
+            });
+        });
+        return provider._updateFwdRule('test-rule', 'target')
             .then(() => {
                 assert.ok(true);
             })
@@ -1250,18 +1338,6 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _updateFwdRule method promise rejection', () => {
-        provider.computeRegion = {
-            rule: () => {
-                return {
-                    setTarget: () => Promise.resolve([{ name: 'test-name' }])
-                };
-            },
-            operation: () => {
-                return {
-                    promise: () => Promise.reject()
-                };
-            }
-        };
         return provider._updateFwdRule()
             .then(() => {
                 assert.ok(false);
@@ -1271,10 +1347,109 @@ describe('Provider - GCP', () => {
             });
     });
 
+    it('validate _updateNic method execution', () => {
+        provider.zone = 'us-west-1';
+        sinon.stub(provider, '_sendRequest').resolves({
+            selfLink: 'foo'
+        });
+        return provider._updateNic()
+            .then((response) => {
+                assert.strictEqual(response, 'foo');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _updateNic method promise rejection', () => {
+        return provider._updateNic()
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+    it('validate _deleteRoute method execution', () => {
+        const item = {
+            id: 'bar'
+        };
+        sinon.stub(provider, '_sendRequest').resolves({
+            selfLink: 'foo'
+        });
+        return provider._deleteRoute(item)
+            .then((response) => {
+                assert.strictEqual(response, 'foo');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _deleteRoute method promise rejection', () => {
+        const item = {
+            id: 'bar'
+        };
+        return provider._deleteRoute(item)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
+    it('validate _createRoute method execution', () => {
+        const item = {
+            id: 'bar',
+            creationTimestamp: 'baz',
+            kind: 'bax',
+            selfLink: 'foo'
+        };
+        sinon.stub(provider, '_sendRequest').resolves({
+            selfLink: 'foo'
+        });
+        return provider._createRoute(item)
+            .then((response) => {
+                assert.strictEqual(response, 'foo');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _createRoute method promise rejection', () => {
+        const item = {
+            id: 'bar',
+            creationTimestamp: 'baz',
+            kind: 'bax',
+            selfLink: 'foo'
+        };
+        return provider._createRoute(item)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch(() => {
+                assert.ok(true);
+            });
+    });
+
     it('validate _getVmsByTags', () => {
-        provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: provider.addressTags, zone: 'projects/1111/zones/us-west1-a' } }]]);
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        provider.region = 'region';
+        provider.name = 'rule';
+        provider.projectId = 'project-id';
         provider._getVmInfo = sinon.stub().resolves('test_data');
+        provider.accessToken = 'access-token';
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/project-id/aggregated/instances?filter=labels.test-tag-key eq test-tag-value');
+
+            return Promise.resolve({
+                items: {
+                    zones: {
+                        instances: [{
+                            kind: 'vmsData', name: 'test-vm', labels: provider.addressTags, zone: 'projects/1111/zones/us-west1-a'
+                        }]
+                    }
+                }
+            });
+        });
 
         return provider._getVmsByTags(provider.addressTags)
             .then((data) => {
@@ -1283,9 +1458,27 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getVmsByTags with extra tags', () => {
-        provider.compute = sinon.stub();
-        provider.compute.getVMs = sinon.stub().resolves([[{ kind: 'vmsData', name: 'test-vm', metadata: { labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' }, zone: 'projects/1111/zones/us-west1-a' } }]]);
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        provider.region = 'region';
+        provider.name = 'rule';
+        provider.projectId = 'project-id';
         provider._getVmInfo = sinon.stub().resolves('test_data');
+        provider.accessToken = 'access-token';
+
+        providerSendRequestMock.onCall(0).callsFake((method, path) => {
+            assert.strictEqual(method, 'GET');
+            assert.strictEqual(path, 'https://www.googleapis.com/compute/v1/projects/project-id/aggregated/instances?filter=labels.test-tag-key eq test-tag-value');
+
+            return Promise.resolve({
+                items: {
+                    zones: {
+                        instances: [{
+                            kind: 'vmsData', name: 'test-vm', labels: { 'test-label-1': 'test-value-1', 'missing-label': 'missing-label-value' }, zone: 'projects/1111/zones/us-west1-a'
+                        }]
+                    }
+                }
+            });
+        });
 
         return provider._getVmsByTags(provider.addressTags)
             .then((data) => {
@@ -1295,29 +1488,12 @@ describe('Provider - GCP', () => {
     });
 
     it('validate _getCloudStorage', () => {
-        const payload = [
-            [
-                {
-                    name: 'notOurBucket',
-                    getLabels: () => {
-                        return Promise.resolve([{ some_key: 'some_value' }]);
-                    }
-                },
-                {
-                    name: 'ourBucket',
-                    getLabels: () => {
-                        return Promise.resolve([{ foo: 'bar', foo1: 'bar1' }]);
-                    }
-                }
-            ]
-        ];
-        provider.storage.getBuckets = () => {
-            return Promise.resolve(payload);
-        };
+        const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
+        providerSendRequestMock.resolves({ items: [{ name: 'notOurBucket', labels: { some_key: 'some_value' } }, { name: 'ourBucket', labels: { foo: 'bar', foo1: 'bar1' } }] });
 
         return provider._getCloudStorage({ foo: 'bar', foo1: 'bar1' })
             .then((data) => {
-                assert.strictEqual(data.name, 'ourBucket');
+                assert.strictEqual(data, 'ourBucket');
             })
             .catch((err) => Promise.reject(err));
     });

@@ -16,13 +16,10 @@
 
 'use strict';
 
-const msRestAzure = require('ms-rest-azure');
-const azureEnvironment = require('ms-rest-azure/lib/azureEnvironment');
-const NetworkManagementClient = require('azure-arm-network');
-const StorageManagementClient = require('azure-arm-storage');
-const Storage = require('azure-storage');
+const url = require('url');
+const querystring = require('querystring');
+const { parse } = require('cruftless')();
 const IPAddressLib = require('ip-address');
-const cloudLibsUtil = require('@f5devcentral/f5-cloud-libs').util;
 const util = require('../../util.js');
 const constants = require('../../constants');
 
@@ -34,19 +31,25 @@ const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSE
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
 const NETWORK_MAX_RETRIES = 60;
-const NETWORK_RETRY_INTERVAL = 5000;
+const NETWORK_RETRY_INTERVAL = 1000;
+const METADATA_VERSION = '2021-02-01';
+const X_MS_VERSION = '2017-11-09';
+const NETWORK_API_VERSION = '2023-05-01';
+const STORAGE_API_VERSION = '2023-01-01';
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AZURE, options);
+        this.resourceToken = null;
+        this.storageToken = null;
         this.nics = null;
         this.region = null;
         this.resourceGroup = null;
         this.primarySubscriptionId = null;
-        this.storageClient = null;
-        this.storageOperationsClient = null;
-        this.networkClients = {};
+        this.subscriptions = null;
+        this.storageName = null;
         this.resultAction = {};
+        this.proxyOptions = null;
     }
 
     /**
@@ -61,39 +64,38 @@ class Cloud extends AbstractCloud {
                 this.resourceGroup = metadata.compute.resourceGroupName;
                 this.primarySubscriptionId = metadata.compute.subscriptionId;
                 this.region = metadata.compute.location;
-                this.environment = this._getAzureEnvironment(metadata);
-                const credentials = new msRestAzure.MSIVmTokenCredentials({
-                    resource: this.environment.resourceManagerEndpointUrl,
-                    msiApiVersion: '2018-02-01'
-                });
                 this.customerId = metadata.compute.subscriptionId;
-                this.storageClient = this._createStorageMgmtClient(
-                    credentials,
-                    this.primarySubscriptionId,
-                    this.environment.resourceManagerEndpointUrl
-                );
-                [this.primarySubscriptionId].concat(options.subscriptions || []).forEach((subscription) => {
-                    this.networkClients[subscription] = this._createNetworkMgmtClient(
-                        credentials,
-                        subscription,
-                        this.environment.resourceManagerEndpointUrl
-                    );
-                });
+                this.environment = this._getAzureEnvironment(metadata);
+                if (this.proxySettings) {
+                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                    this.proxyOptions = {
+                        protocol: opts.protocol,
+                        host: opts.hostname,
+                        port: opts.port
+                    };
+                    if (opts.username && opts.password) {
+                        this.proxyOptions.auth = {};
+                        this.proxyOptions.auth.username = opts.username;
+                        this.proxyOptions.auth.password = opts.password;
+                    }
+                }
+                return Promise.all([
+                    this._getAuthToken(this.environment.resourceManagerEndpointUrl),
+                    this._getAuthToken('https://storage.azure.com/')
+                ]);
+            })
+            .then((tokens) => {
+                this.resourceToken = tokens[0];
+                this.storageToken = tokens[1];
+                this.subscriptions = options.subscriptions || [];
+                this.subscriptions.push(this.primarySubscriptionId);
+                this.logger.silly('Subscriptions: ', this.subscriptions);
                 return this._discoverStorageAccount();
             })
             .then((storageName) => {
-                this.logger.silly('Storage name: ', storageName);
-                return this._retrier(this._getStorageAccountKey, [storageName], { maxRetries: 5 });
-            })
-            .then((storageAccountInfo) => {
-                this.logger.silly('Storage Account Information: ', storageAccountInfo.name);
-
-                this.storageOperationsClient = Storage.createBlobService(
-                    storageAccountInfo.name,
-                    storageAccountInfo.key,
-                    `${storageAccountInfo.name}.blob${this.environment.storageEndpointSuffix}`
-                );
-                return this._retrier(this._initStorageAccountContainer, [storageContainerName]);
+                this.logger.silly('Storage Account Information: ', storageName);
+                this.storageName = storageName;
+                return this._initStorageAccountContainer();
             })
             .then(() => {
                 this.logger.silly('Cloud Provider initialization complete');
@@ -109,6 +111,66 @@ class Cloud extends AbstractCloud {
     */
     getRegion() {
         return this.region;
+    }
+
+    /**
+     * Gets token from metadata
+     *
+     * @param {String}  resource    - Resource to include in request scope
+     *
+     * @returns {String} Token
+     *
+     */
+    _getAuthToken(resource) {
+        const encodedResource = encodeURIComponent(resource);
+        const headers = { Metadata: true, 'x-ms-version': X_MS_VERSION };
+
+        return util.makeRequest(constants.METADATA_HOST, `/metadata/identity/oauth2/token?api-version=${METADATA_VERSION}&resource=${encodedResource}`, { headers, port: 80, protocol: 'http' })
+            .then((response) => Promise.resolve(response.access_token))
+            .catch((err) => {
+                const message = `Error getting auth token ${err.message}`;
+                return Promise.reject(new Error(message));
+            });
+    }
+
+    /**
+     * Send HTTP Request to Azure API
+     *
+     * @param {String} method       - HTTP method for the request
+     * @param {String} requestUrl   - Full URL for the request
+     * @param {Object} options      - Options to pass to the request
+     *
+     * @returns {Promise} A promise which will be resolved upon complete response
+     *
+     */
+    _makeRequest(method, requestUrl, options) {
+        if (!this.resourceToken || !this.storageToken) {
+            return Promise.reject(new Error('_makeRequest: no auth token. call init first'));
+        }
+
+        const parsedUrl = url.parse(requestUrl);
+        const host = parsedUrl.hostname;
+        const uri = parsedUrl.pathname;
+        const queryString = parsedUrl.query || null;
+
+        options.requestScope = options.requestScope || 'resource';
+        options.headers = options.headers || {};
+        options.headers.Authorization = `Bearer ${options.requestScope === 'resource' ? this.resourceToken : this.storageToken}`;
+        options.headers['x-ms-version'] = X_MS_VERSION;
+        options.method = method;
+        options.queryParams = queryString ? querystring.parse(queryString) : {};
+        options.body = options.body || '';
+        options.advancedReturn = options.advancedReturn || false;
+        options.continueOnError = options.continueOnError || false;
+        options.validateStatus = options.validateStatus || false;
+        options.proxy = this.proxyOptions;
+
+        return this._retrier(util.makeRequest, [host, uri, options], {
+            retryInterval: NETWORK_RETRY_INTERVAL,
+            maxRetries: NETWORK_MAX_RETRIES
+        })
+            .then((data) => Promise.resolve(data))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -168,27 +230,20 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    uploadDataToStorage(fileName, data, options) {
-        options = options || {};
-        const maxRetriesValue = options.maxRetries;
-        const retryIntervalValue = options.retryInterval;
-
+    uploadDataToStorage(fileName, data) {
         this.logger.silly(`Data will be uploaded to ${fileName}: `, data);
-
-        const uploadObject = () => new Promise(((resolve, reject) => {
-            this.storageOperationsClient.createBlockBlobFromText(
-                storageContainerName, fileName, JSON.stringify(data), (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                }
-            );
-        }))
-            .catch((err) => Promise.reject(err));
-        return this._retrier(uploadObject, [],
-            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
+        const requestScope = 'storage';
+        const headers = {
+            'Content-Length': Buffer.byteLength(JSON.stringify(data)),
+            'x-ms-blob-type': 'BlockBlob',
+            'x-ms-date': (new Date()).toUTCString()
+        };
+        return this._makeRequest('PUT', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}/${fileName}`, { requestScope, headers, body: data })
+            .then(() => Promise.resolve())
+            .catch((err) => {
+                const message = `Error in uploadDataToStorage ${err}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -201,40 +256,21 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    downloadDataFromStorage(fileName, options) {
-        options = options || {};
-        const maxRetriesValue = options.maxRetries;
-        const retryIntervalValue = options.retryInterval;
-        const downloadObject = () => new Promise(((resolve, reject) => {
-            this.storageOperationsClient.doesBlobExist(
-                storageContainerName, fileName, (err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.exists);
-                    }
-                }
-            );
-        }))
-            .then((exists) => {
-                if (exists === false) {
+    downloadDataFromStorage(fileName) {
+        this.logger.silly(`Data will be downloaded from ${fileName}`);
+        const requestScope = 'storage';
+        return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}/${fileName}`, { requestScope, advancedReturn: true, continueOnError: true })
+            .then((response) => {
+                if (response.code === 404) {
+                    this.logger.silly('downloadDataFromStorage could not find state file, continuing...');
                     return Promise.resolve({});
                 }
-                return new Promise(((resolve, reject) => {
-                    this.storageOperationsClient.getBlobToText(
-                        storageContainerName, fileName, (err, data) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve(JSON.parse(data));
-                            }
-                        }
-                    );
-                }));
+                return Promise.resolve(response.body);
             })
-            .catch((err) => Promise.reject(err));
-        return this._retrier(downloadObject, [],
-            { maxRetries: maxRetriesValue, retryInterval: retryIntervalValue });
+            .catch((err) => {
+                const message = `Error in downloadDataFromStorage ${err}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -257,34 +293,11 @@ class Cloud extends AbstractCloud {
             loadBalancerAddresses: {}
         };
 
-        const publicAddresses = addressGroupDefinitions.filter((item) => item.type === 'publicIpAddress');
         const networkInterfaceAddress = addressGroupDefinitions.filter((item) => item.type === 'networkInterfaceAddress');
         return Promise.all([
-            this._discoverPublicIpAddressOperations(publicAddresses),
             this._discoverNetworkInterfaceAddress(networkInterfaceAddress, addresses)
         ])
             .then(() => this.resultAction)
-            .catch((err) => Promise.reject(err));
-    }
-
-    _discoverPublicIpAddressOperations(addressGroupDefinitions) {
-        if (addressGroupDefinitions.length === 0) {
-            return Promise.resolve(this.resultAction);
-        }
-
-        this.logger.debug('Discover public ip address - across-net');
-        let privateAddresses = [];
-        addressGroupDefinitions.forEach((item) => {
-            privateAddresses = privateAddresses.concat(item.vipAddresses);
-        });
-        return this._listNics({ privateIpAddresses: privateAddresses })
-            .then((nics) => {
-                this.nics = nics;
-                addressGroupDefinitions.forEach((item) => {
-                    this._generatePublicIpAddressOperations(item, nics);
-                });
-                return Promise.resolve(this.resultAction);
-            })
             .catch((err) => Promise.reject(err));
     }
 
@@ -319,19 +332,19 @@ class Cloud extends AbstractCloud {
             })
             .then((nics) => {
                 nics.forEach((nic) => {
-                    if (nic.virtualMachine.id.indexOf(vmName) !== -1) {
-                        nic.ipConfigurations.forEach((conf) => {
+                    if (nic.properties.virtualMachine.id.indexOf(vmName) !== -1) {
+                        nic.properties.ipConfigurations.forEach((conf) => {
                             if (isAddressOperationsEnabled) {
                                 data.addresses.push({
-                                    privateIpAddress: conf.privateIPAddress,
-                                    publicIpAddress: conf.publicIPAddress ? conf.publicIPAddress.id : '',
+                                    privateIpAddress: conf.properties.privateIPAddress,
+                                    publicIpAddress: conf.properties.publicIPAddress ? conf.properties.publicIPAddress.id : '',
                                     networkInterfaceId: nic.id
                                 });
-                                if (conf.publicIPAddress) {
-                                    publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.publicIPAddress.id.split('/').pop() }));
+                                if (conf.properties.publicIPAddress) {
+                                    publicIpIds.push(this._getPublicIpAddress({ publicIpAddress: conf.properties.publicIPAddress.id.split('/').pop() }));
                                 }
                             }
-                            localAddresses.push(conf.privateIPAddress);
+                            localAddresses.push(conf.properties.privateIPAddress);
                         });
                     }
                 });
@@ -370,62 +383,6 @@ class Cloud extends AbstractCloud {
     }
 
     /**
-    * Append request options
-    *
-    * @param {Object} clientOptions - Client options
-    *
-    * @returns {Object} - Updated client options
-    */
-    _appendRequestOptions(clientOptions) {
-        if (this.proxySettings) {
-            clientOptions.requestOptions = {
-                proxy: this._formatProxyUrl(this.proxySettings)
-            };
-        }
-        return clientOptions;
-    }
-
-    /**
-    * Create storage management client
-    *
-    * @param {Object} credentials                - Credentials instance
-    * @param {String} subscriptionId             - Subscription ID
-    * @param {String} resourceManagerEndpointUrl - Resource Manager Endpoint URL
-    *
-    * @returns {StorageManagementClient}
-    */
-    _createStorageMgmtClient(credentials, subscriptionId, resourceManagerEndpointUrl) {
-        const clientOptions = this._appendRequestOptions({});
-
-        return new StorageManagementClient(
-            credentials,
-            subscriptionId,
-            resourceManagerEndpointUrl,
-            clientOptions
-        );
-    }
-
-    /**
-    * Create network management client
-    *
-    * @param {Object} credentials                - Credentials instance
-    * @param {String} subscriptionId             - Subscription ID
-    * @param {String} resourceManagerEndpointUrl - Resource Manager Endpoint URL
-    *
-    * @returns {NetworkManagementClient}
-    */
-    _createNetworkMgmtClient(credentials, subscriptionId, resourceManagerEndpointUrl) {
-        const clientOptions = this._appendRequestOptions({});
-
-        return new NetworkManagementClient(
-            credentials,
-            subscriptionId,
-            resourceManagerEndpointUrl,
-            clientOptions
-        );
-    }
-
-    /**
     * Discover Storage Account (scopingName)
     *
     * @returns {Object}
@@ -434,7 +391,7 @@ class Cloud extends AbstractCloud {
         if (this.storageName) {
             return Promise.resolve(this.storageName);
         }
-        return this._retrier(this._listStorageAccounts, [{ tags: this.storageTags }])
+        return this._listStorageAccounts({ tags: this.storageTags })
             .then((storageAccounts) => {
                 if (!storageAccounts.length) {
                     return Promise.reject(new Error('No storage account found!'));
@@ -451,7 +408,7 @@ class Cloud extends AbstractCloud {
     */
     _getAzureEnvironment(metadata) {
         if (Object.keys(this.customEnvironment).length > 0) {
-            return azureEnvironment.add(this.customEnvironment);
+            return this.customEnvironment;
         }
         const specialLocations = {
             AzurePublicCloud: 'Azure',
@@ -459,7 +416,7 @@ class Cloud extends AbstractCloud {
             AzureChinaCloud: 'AzureChina',
             AzureGermanCloud: 'AzureGermanCloud'
         };
-        return azureEnvironment[specialLocations[metadata.compute.azEnvironment]];
+        return constants.AZURE_ENVIRONMENTS[specialLocations[metadata.compute.azEnvironment]];
     }
 
     /**
@@ -468,25 +425,14 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getInstanceMetadata() {
-        const func = () => new Promise((resolve, reject) => {
-            cloudLibsUtil.getDataFromUrl(
-                'http://169.254.169.254/metadata/instance?api-version=2018-10-01',
-                {
-                    headers: {
-                        Metadata: true
-                    }
-                }
-            )
-                .then((metaData) => {
-                    resolve(metaData);
-                })
-                .catch((err) => {
-                    const message = `Error getting instance metadata ${err.message}`;
-                    reject(new Error(message));
-                });
-        });
-        return this._retrier(func, [])
-            .catch((err) => Promise.reject(err));
+        const headers = { Metadata: true, 'x-ms-version': X_MS_VERSION };
+
+        return util.makeRequest(constants.METADATA_HOST, `/metadata/instance?api-version=${METADATA_VERSION}`, { headers, port: 80, protocol: 'http' })
+            .then((metaData) => Promise.resolve(metaData))
+            .catch((err) => {
+                const message = `Error getting instance metadata ${err.message}`;
+                return Promise.reject(new Error(message));
+            });
     }
 
     /**
@@ -502,12 +448,11 @@ class Cloud extends AbstractCloud {
         const tags = options.tags || {};
 
         this.logger.silly('Listing Storage Accounts');
-        return this.storageClient.storageAccounts.list()
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/providers/Microsoft.Storage/storageAccounts?api-version=${STORAGE_API_VERSION}`, {})
             .then((storageAccounts) => {
-                // if true, filter storage accounts based on 1+ tags
                 if (tags) {
                     const tagKeys = Object.keys(tags);
-                    const filteredStorageAccounts = storageAccounts.filter((sa) => {
+                    const filteredStorageAccounts = storageAccounts.value.filter((sa) => {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
                             if (sa.tags && Object.keys(sa.tags).indexOf(tagKey) !== -1
@@ -519,26 +464,7 @@ class Cloud extends AbstractCloud {
                     });
                     return Promise.resolve(filteredStorageAccounts);
                 }
-                this.logger.silly('Filtered Storage Accounts', storageAccounts);
                 return Promise.resolve(storageAccounts);
-            })
-            .catch((err) => Promise.reject(err));
-    }
-
-    /**
-    * Get key for a specified storage accounts
-    *
-    * @param {String} name - storage account name
-    *
-    * @returns {Promise}
-    */
-    _getStorageAccountKey(name) {
-        this.logger.silly('Listing Storage Keys');
-        return this.storageClient.storageAccounts.listKeys(this.resourceGroup, name)
-            .then((data) => {
-                // simply grab the first key, for now
-                const key = data.keys[0].value;
-                return Promise.resolve({ name, key });
             })
             .catch((err) => Promise.reject(err));
     }
@@ -550,17 +476,25 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    _initStorageAccountContainer(name) {
-        return new Promise(((resolve, reject) => {
-            this.logger.silly('Creating storage account container');
-            this.storageOperationsClient.createContainerIfNotExists(name, (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
+    _initStorageAccountContainer() {
+        const requestScope = 'storage';
+        return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/?comp=list`, { requestScope })
+            .then((data) => {
+                const template = parse(`<EnumerationResults><Containers><Container c-bind="Containers|array">
+                        <Name>{{Name}}</Name>
+                    </Container></Containers></EnumerationResults>`);
+                const containers = template.fromXML(data).Containers || null;
+                if (containers && containers[0].Name === storageContainerName) {
+                    this.logger.silly('Container', storageContainerName, 'already exists, continuing...');
+                    return Promise.resolve();
                 }
-            });
-        }))
+                this.logger.silly('Container', storageContainerName, 'does not exist, creating...');
+                return this._makeRequest('PUT', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/${storageContainerName}?restype=container`, { requestScope })
+                    .then(() => {
+                        this.logger.silly('Container', storageContainerName, 'was created, continuing...');
+                        return Promise.resolve();
+                    });
+            })
             .catch((err) => Promise.reject(err));
     }
 
@@ -573,26 +507,15 @@ class Cloud extends AbstractCloud {
     * @returns {Promise} A promise which can be resolved with a non-error response from Azure REST API
     */
     _listNics(options) {
-        const func = () => new Promise((resolve, reject) => {
-            this.logger.silly('Listing Network Interfaces');
-            this.networkClients[this.primarySubscriptionId].networkInterfaces.list(
-                this.resourceGroup,
-                (error, data) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(data);
-                    }
-                }
-            );
-        });
+        options = options || {};
         const tags = options.tags || {};
-        return this._retrier(func, [])
+
+        this.logger.silly('Listing Network Interfaces');
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/resourceGroups/${this.resourceGroup}/providers/Microsoft.Network/networkInterfaces?api-version=${NETWORK_API_VERSION}`, {})
             .then((nics) => {
-                // if true, filter nics based on an array of tags
                 if (tags) {
                     const tagKeys = Object.keys(tags);
-                    const filteredNics = nics.filter((nic) => {
+                    const filteredNics = nics.value.filter((nic) => {
                         let matchedTags = 0;
                         tagKeys.forEach((tagKey) => {
                             if (nic.tags && Object.keys(nic.tags).indexOf(tagKey) !== -1
@@ -634,25 +557,15 @@ class Cloud extends AbstractCloud {
     *
     * @returns {Promise}
     */
-    _updateNic(resourceGroup, nicName, nicParams, action) {
-        return new Promise(
-            ((resolve, reject) => {
-                this.logger.debug(action, 'IP configurations on nic name:', nicName);
-                this.logger.silly('Updating Network Interfaces');
-                this.networkClients[this.primarySubscriptionId].networkInterfaces.beginCreateOrUpdate(
-                    resourceGroup,
-                    nicName,
-                    nicParams,
-                    (error, data) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(data);
-                        }
-                    }
-                );
+    _updateNic([resourceGroup, nicName, nicParams, action]) {
+        this.logger.debug(action, 'IP configurations on nic name:', nicName);
+
+        return this._makeRequest('PUT', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/resourceGroups/${resourceGroup}/providers/Microsoft.Network/networkInterfaces/${nicName}?api-version=${NETWORK_API_VERSION}`, { body: nicParams })
+            .then((response) => {
+                this.logger.info('_updateNic successful.');
+                return Promise.resolve(response);
             })
-        );
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -669,11 +582,11 @@ class Cloud extends AbstractCloud {
         const theirNics = [];
         // add nics to 'mine' or 'their' array based on address match
         nics.forEach((nic) => {
-            if (nic.provisioningState !== 'Succeeded') {
-                this.logger.error(`Unexpected provisioning state: ${nic.provisioningState}`);
+            if (nic.properties.provisioningState !== 'Succeeded') {
+                this.logger.error(`Unexpected provisioning state: ${nic.properties.provisioningState}`);
             }
             // identify 'my' and 'their' nics
-            const nicAddresses = nic.ipConfigurations.map((i) => i.privateIPAddress);
+            const nicAddresses = nic.properties.ipConfigurations.map((i) => i.properties.privateIPAddress);
             localAddresses.forEach((address) => {
                 const myNicIds = myNics.map((i) => i.nic.id);
                 if (nicAddresses.indexOf(address) !== -1
@@ -750,7 +663,6 @@ class Cloud extends AbstractCloud {
         }
         this.logger.debug('Update address operations to perform', operations);
         return Promise.all([
-            this._reassociatePublicIpAddresses(operations.publicAddresses),
             this._reassociateAddresses(operations.interfaces)
         ])
             .then(() => {
@@ -781,15 +693,19 @@ class Cloud extends AbstractCloud {
 
         const disassociatePromises = [];
         disassociate.forEach((item) => {
-            disassociatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+            disassociatePromises.push(this._updateNic(item));
         });
 
+        const nicStart = Math.floor(new Date().getTime() / 1000);
         return Promise.all(disassociatePromises)
             .then(() => {
                 const disassociateNicStatusPromises = [];
                 disassociate.forEach((item) => {
                     const disassociateNicName = item["1"];
-                    disassociateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [disassociateNicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                    disassociateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [disassociateNicName], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
                 });
 
                 return Promise.all(disassociateNicStatusPromises);
@@ -799,7 +715,7 @@ class Cloud extends AbstractCloud {
 
                 const associatePromises = [];
                 associate.forEach((item) => {
-                    associatePromises.push(this._retrier(this._updateNic, item, { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                    associatePromises.push(this._updateNic(item));
                 });
 
                 return Promise.all(associatePromises);
@@ -808,12 +724,17 @@ class Cloud extends AbstractCloud {
                 const associateNicStatusPromises = [];
                 associate.forEach((item) => {
                     const associateNicName = item["1"];
-                    associateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [associateNicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                    associateNicStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [associateNicName], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
                 });
 
                 return Promise.all(associateNicStatusPromises);
             })
             .then(() => {
+                const nicStop = Math.floor(new Date().getTime() / 1000);
+                this.logger.silly('Elapsed time to update network interfaces:', (nicStop - nicStart), 'seconds');
                 this.logger.info('Associate NICs successful.');
             })
             .catch((err) => Promise.reject(err));
@@ -829,23 +750,23 @@ class Cloud extends AbstractCloud {
      * @returns {Object} { 'disasociate': [], 'association: [] }
      */
     _checkForNicOperations(myNic, theirNic, failoverAddresses) {
-        const theirNicIpConfigs = this._getIpConfigs(theirNic.ipConfigurations);
-        const myNicIpConfigs = this._getIpConfigs(myNic.ipConfigurations);
+        const theirNicIpConfigs = this._getIpConfigs(theirNic.properties.ipConfigurations);
+        const myNicIpConfigs = this._getIpConfigs(myNic.properties.ipConfigurations);
 
         this.logger.silly('checking for NIC operations for my/their NIC pair:', myNic.name, theirNic.name);
 
         for (let i = theirNicIpConfigs.length - 1; i >= 0; i -= 1) {
             for (let t = failoverAddresses.length - 1; t >= 0; t -= 1) {
-                if (failoverAddresses[t] === theirNicIpConfigs[i].privateIPAddress) {
-                    this.logger.silly('Match:', theirNicIpConfigs[i].privateIPAddress);
+                if (failoverAddresses[t] === theirNicIpConfigs[i].properties.privateIPAddress) {
+                    this.logger.silly('Match:', theirNicIpConfigs[i].properties.privateIPAddress);
                     myNicIpConfigs.push(theirNicIpConfigs[i]);
                     theirNicIpConfigs.splice(i, 1);
                     break;
                 }
             }
         }
-        theirNic.ipConfigurations = theirNicIpConfigs;
-        myNic.ipConfigurations = myNicIpConfigs;
+        theirNic.properties.ipConfigurations = theirNicIpConfigs;
+        myNic.properties.ipConfigurations = myNicIpConfigs;
         return {
             disassociate: [
                 this.resourceGroup,
@@ -868,7 +789,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _getRouteTables() {
-        return Promise.all(Object.keys(this.networkClients).map((id) => this._listRouteTablesBySubscription(id)))
+        return Promise.all(Object.values(this.subscriptions).map((id) => this._listRouteTablesBySubscription(id)))
             .then((routeTables) => Promise.resolve(Array.prototype.concat.apply([], routeTables)))
             .catch((err) => Promise.reject(err));
     }
@@ -881,56 +802,41 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _listRouteTablesBySubscription(id) {
-        const func = () => new Promise((resolve, reject) => {
-            this.networkClients[id].routeTables.listAll((error, data) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    /* eslint-disable no-lonely-if */
-                    if (data.nextLink) {
-                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
-                            .then((accData) => {
-                                resolve(accData);
-                            })
-                            .catch((err) => reject(err));
-                    } else {
-                        resolve(data);
-                    }
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${id}/providers/Microsoft.Network/routeTables?api-version=${NETWORK_API_VERSION}`, {})
+            .then((data) => {
+                if (data.nextLink) {
+                    return Promise.resolve(this._listRouteTablesBySubscriptionUsingNextPageLink(data.value, data.nextLink));
                 }
-            });
-        });
-        return this._retrier(func, []);
+                return Promise.resolve(data.value);
+            })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
     * List route tables from paginated response
     *
-    * @param {String} id        - Subscription ID
     * @param {Array} results    - Array of previously acquired route tables
     * @param {String} nextLink  - The URL of the next page of results to request
     *
     * @returns {Promise}
     */
-    _listRouteTablesBySubscriptionUsingNextPageLink(id, results, nextLink) {
-        const func = () => new Promise((resolve, reject) => {
-            this.networkClients[id].routeTables.listAllNext(nextLink, (error, data) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    results = results.concat(data);
+    _listRouteTablesBySubscriptionUsingNextPageLink(results, nextLink) {
+        return new Promise((resolve, reject) => {
+            this._makeRequest('GET', nextLink, {})
+                .then((data) => {
+                    results = results.concat(data.value);
                     if (data.nextLink) {
-                        this._listRouteTablesBySubscriptionUsingNextPageLink(id, data, data.nextLink)
-                            .then((accResults) => {
-                                results = results.concat(accResults);
-                                resolve(results);
+                        this.logger.silly('_listRouteTablesBySubscriptionUsingNextPageLink called recursively to fetch next page');
+                        this._listRouteTablesBySubscriptionUsingNextPageLink(data.value, nextLink)
+                            .then((nextResults) => {
+                                resolve(nextResults.value);
                             });
                     } else {
                         resolve(results);
                     }
-                }
-            });
+                })
+                .catch((err) => reject(err));
         });
-        return this._retrier(func, []);
     }
 
     /**
@@ -1002,17 +908,17 @@ class Cloud extends AbstractCloud {
         getLocalRoutes = getLocalRoutes || false;
         routeTables.forEach((routeTable) => {
             this.logger.silly('Discovering updates for route table', routeTable.name);
-            routeTable.routes.forEach((route) => {
+            routeTable.properties.routes.forEach((route) => {
                 this.logger.silly(`Route.name: ${route.name}`);
-                this.logger.silly(`Route.nextHopIpAddress: ${route.nextHopIpAddress}`);
-                this.logger.silly(`Route.addressPrefix: ${route.addressPrefix}`);
+                this.logger.silly(`Route.nextHopIpAddress: ${route.properties.nextHopIpAddress}`);
+                this.logger.silly(`Route.addressPrefix: ${route.properties.addressPrefix}`);
                 const matchedAddressRange = this._matchRouteToAddressRange(
-                    route.addressPrefix,
+                    route.properties.addressPrefix,
                     routeGroup.routeAddressRanges
                 );
                 if (matchedAddressRange) {
                     const filteredLocalAddresses = this._filterLocalAddresses(
-                        route.addressPrefix,
+                        route.properties.addressPrefix,
                         localAddresses
                     );
                     const nextHopAddress = this._discoverNextHopAddress(
@@ -1022,16 +928,16 @@ class Cloud extends AbstractCloud {
                     );
                     this.logger.silly('Discovered nextHopAddress', nextHopAddress);
                     if (nextHopAddress) {
-                        if (!getLocalRoutes && route.nextHopIpAddress !== nextHopAddress) {
+                        if (!getLocalRoutes && route.properties.nextHopIpAddress !== nextHopAddress) {
                             route.nextHopIpAddress = nextHopAddress;
                             const parameters = [routeTable.id.split('/')[4], routeTable.name, route.name, route];
                             data.push(parameters);
-                        } else if (getLocalRoutes && nextHopAddress === route.nextHopIpAddress) {
+                        } else if (getLocalRoutes && nextHopAddress === route.properties.nextHopIpAddress) {
                             this.logger.silly('this is an associated route', routeTable);
                             data.push({
                                 routeTableId: routeTable.id,
                                 routeTableName: routeTable.name,
-                                networkId: routeTable.subnets && routeTable.subnets.length ? routeTable.subnets[0].id : ''
+                                networkId: routeTable.properties.subnets && routeTable.properties.subnets.length ? routeTable.properties.subnets[0].id : ''
                             });
                         }
                     }
@@ -1049,7 +955,7 @@ class Cloud extends AbstractCloud {
     * @returns {Promise}
     */
     _updateRoutes(operations) {
-        this.logger.debug('updateRoutes operations: ', operations);
+        // this.logger.debug('updateRoutes operations: ', operations);
 
         if (!operations || Object.keys(operations).length === 0) {
             this.logger.info('No route operations to run');
@@ -1066,8 +972,10 @@ class Cloud extends AbstractCloud {
         });
         const routeTableListFiltered = routeTableList.filter((item, index, self) => index === self.findIndex((i) => i.name === item.name && i.group === item.group && i.id === item.id));
         routeTableListFiltered.forEach((item) => {
-            routeTableOperationsPromises.push(this._retrier(this._getRouteTableConfig, [item.group, item.name, item.id], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+            routeTableOperationsPromises.push(this._getRouteTableConfig(item.group, item.name, item.id));
         });
+
+        const routeStart = Math.floor(new Date().getTime() / 1000);
         return Promise.all(routeTableOperationsPromises)
             .then((routeTableConfigs) => {
                 const operationsPromises = [];
@@ -1085,31 +993,36 @@ class Cloud extends AbstractCloud {
                 });
 
                 routeTableConfigs.forEach((routeTableConfig) => {
+                    this.logger.silly('_updateRoutes sending routeTableConfig:', routeTableConfig);
                     const routeTableName = routeTableConfig.name;
                     const routeTableId = routeTableConfig.id;
                     const routeTableGroup = routeTableConfig.id.split('/')[4];
-                    Object.keys(routeTableConfig.routes).forEach((oldRoute) => {
+                    Object.keys(routeTableConfig.properties.routes).forEach((oldRoute) => {
                         Object.keys(opRoutes).forEach((opRoute) => {
-                            if (routeTableConfig.routes[oldRoute].id === opRoutes[opRoute].id) {
-                                this.logger.silly('Updating matching route', routeTableConfig.routes[oldRoute].name, 'to use next hop address', opRoutes[opRoute].nextHopIpAddress);
-                                routeTableConfig.routes[oldRoute].nextHopType = 'VirtualAppliance';
-                                routeTableConfig.routes[oldRoute].nextHopIpAddress = opRoutes[opRoute].nextHopIpAddress;
+                            if (routeTableConfig.properties.routes[oldRoute].id === opRoutes[opRoute].id) {
+                                this.logger.silly('Updating matching route', routeTableConfig.properties.routes[oldRoute].name, 'to use next hop address', opRoutes[opRoute].nextHopIpAddress);
+                                routeTableConfig.properties.routes[oldRoute].properties.nextHopType = 'VirtualAppliance';
+                                routeTableConfig.properties.routes[oldRoute].properties.nextHopIpAddress = opRoutes[opRoute].nextHopIpAddress;
                             }
                         });
                     });
-
-                    operationsPromises.push(this._retrier(this._updateRouteTable, [routeTableGroup, routeTableName, routeTableConfig, routeTableId], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                    operationsPromises.push(this._updateRouteTable(routeTableGroup, routeTableName, routeTableConfig, routeTableId));
                 });
                 return Promise.all(operationsPromises);
             })
             .then(() => {
                 const operationsStatusPromises = [];
                 routeTableListFiltered.forEach((item) => {
-                    operationsStatusPromises.push(this._retrier(this._getRouteTableByName, [item.group, item.name, item.id], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
+                    operationsStatusPromises.push(this._retrier(this._getRouteTableByName, [item.group, item.name, item.id], {
+                        retryInterval: NETWORK_RETRY_INTERVAL,
+                        maxRetries: NETWORK_MAX_RETRIES
+                    }));
                 });
                 return Promise.all(operationsStatusPromises);
             })
             .then(() => {
+                const routeStop = Math.floor(new Date().getTime() / 1000);
+                this.logger.silly('Elapsed time to update route tables:', (routeStop - routeStart), 'seconds');
                 this.logger.info('Update routes successful.');
             })
             .catch((err) => Promise.reject(err));
@@ -1128,18 +1041,12 @@ class Cloud extends AbstractCloud {
     _updateRouteTable(routeTableGroup, routeTableName, routeTableConfig, routeTableId) {
         this.logger.silly('Updating route table: ', routeTableName);
 
-        return new Promise((resolve, reject) => {
-            this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.beginCreateOrUpdate(
-                routeTableGroup, routeTableName, routeTableConfig,
-                (error, data) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(data);
-                    }
-                }
-            );
-        });
+        return this._makeRequest('PUT', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this._parseResourceId(routeTableId).subscriptionId}/resourceGroups/${routeTableGroup}/providers/Microsoft.Network/routeTables/${routeTableName}?api-version=${NETWORK_API_VERSION}`, { body: routeTableConfig })
+            .then((response) => {
+                this.logger.info('_updateRouteTable successful.');
+                return Promise.resolve(response);
+            })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1151,41 +1058,6 @@ class Cloud extends AbstractCloud {
         return {
             subscriptionId: resourceString.split('/')[2]
         };
-    }
-
-    /**
-     * Generate public IP address operations required to reassociate a public IP address
-     *
-     * @param {Object} providedDeclaration
-     * @param {Object} nics
-     *
-     * @returns {Promise} - A Promise that is resolved with the public IP configuration
-     */
-    _generatePublicIpAddressOperations(providedDeclaration, nics) {
-        const networkInterfaces = [];
-        providedDeclaration.vipAddresses.forEach((privateIpAddress) => {
-            nics.forEach((nic) => {
-                nic.ipConfigurations.forEach((ipConfig) => {
-                    if (ipConfig.privateIPAddress === privateIpAddress && ipConfig.primary === false) {
-                        networkInterfaces.push(nic);
-                    }
-                });
-            });
-        });
-        const operations = this._setCurrentTargetOperations(networkInterfaces, providedDeclaration);
-        this.resultAction.publicAddresses.push({
-            publicIpAddress: { id: this._createResourceID({ provider: 'Microsoft.Network/publicIPAddresses', name: providedDeclaration.scopingName }) },
-            current: {
-                name: operations.currentConfig.nicName,
-                privateIPAddress: operations.currentConfig.privateIpAddress
-            },
-            target: {
-                name: operations.targetConfig.nicName,
-                privateIPAddress: operations.targetConfig.privateIpAddress
-            }
-        });
-        this.logger.silly('Generated public IP address operations:', this.resultAction);
-        return this.resultAction;
     }
 
     /**
@@ -1204,33 +1076,6 @@ class Cloud extends AbstractCloud {
             return `/subscriptions/${this.primarySubscriptionId}/resourceGroups/${this.resourceGroup}/providers/${options.provider}/${options.name}`;
         }
         return options.name;
-    }
-
-    /**
-     * Set the current and target operations
-     *
-     * @param {Object} networkInterfaces    - network interfaces resource
-     * @param {Object} providedDeclaration  - virtual addresses
-     *
-     * @returns {Promise} - A Promise that is resolved with the public IP configuration
-     */
-    _setCurrentTargetOperations(networkInterfaces, providedDeclaration) {
-        const currentConfig = {};
-        const targetConfig = {};
-        Object.keys(networkInterfaces).forEach((key) => {
-            networkInterfaces[key].ipConfigurations.forEach((ipConfig) => {
-                if (ipConfig.publicIPAddress && ipConfig.primary === false
-                    && providedDeclaration.vipAddresses.indexOf(ipConfig.privateIPAddress) !== -1) {
-                    currentConfig.privateIpAddress = ipConfig.privateIPAddress;
-                    currentConfig.nicName = networkInterfaces[key].name;
-                } else if (ipConfig.primary === false
-                    && providedDeclaration.vipAddresses.indexOf(ipConfig.privateIPAddress) !== -1) {
-                    targetConfig.privateIpAddress = ipConfig.privateIPAddress;
-                    targetConfig.nicName = networkInterfaces[key].name;
-                }
-            });
-        });
-        return { currentConfig, targetConfig };
     }
 
     /**
@@ -1269,9 +1114,9 @@ class Cloud extends AbstractCloud {
                         const theirNic = parsedNics.theirs[h].nic;
                         const myNic = parsedNics.mine[s].nic;
                         /* eslint-disable max-len */
-                        if (theirNic.ipConfigurations[0].subnet.id === undefined || myNic.ipConfigurations[0].subnet.id === undefined) {
+                        if (theirNic.properties.ipConfigurations[0].properties.subnet.id === undefined || myNic.properties.ipConfigurations[0].properties.subnet.id === undefined) {
                             this.logger.warning('Subnet ID values do not match or do not exist for a interface');
-                        } else if (theirNic.ipConfigurations[0].subnet.id === myNic.ipConfigurations[0].subnet.id) {
+                        } else if (theirNic.properties.ipConfigurations[0].properties.subnet.id === myNic.properties.ipConfigurations[0].properties.subnet.id) {
                             const nicOperations = this._checkForNicOperations(myNic, theirNic, failoverAddresses);
 
                             if (nicOperations.disassociate && nicOperations.associate) {
@@ -1298,9 +1143,7 @@ class Cloud extends AbstractCloud {
     _getPublicIpAddress(options) {
         options = options || {};
         const publicIpAddressName = options.publicIpAddress;
-        return this.networkClients[this.primarySubscriptionId].publicIPAddresses.get(
-            this.resourceGroup, publicIpAddressName
-        )
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/resourceGroups/${this.resourceGroup}/providers/Microsoft.Network/publicIPAddresses/${publicIpAddressName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
                 if (response.name.match(publicIpAddressName)) {
                     return Promise.resolve(response);
@@ -1323,12 +1166,10 @@ class Cloud extends AbstractCloud {
      */
     _getNetworkInterfaceByName(networkInterfaceName) {
         this.logger.silly(`Checking provisioning state of NIC: ${networkInterfaceName}`);
-        return this.networkClients[this.primarySubscriptionId].networkInterfaces.get(
-            this.resourceGroup, networkInterfaceName
-        )
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/resourceGroups/${this.resourceGroup}/providers/Microsoft.Network/networkInterfaces/${networkInterfaceName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
-                this.logger.silly(`Provisioning state of NIC ${networkInterfaceName}: ${response.provisioningState}`);
-                if (response.name.match(networkInterfaceName) && response.provisioningState.match('Succeeded')) {
+                this.logger.silly(`Provisioning state of NIC ${networkInterfaceName}: ${response.properties.provisioningState}`);
+                if (response.name.match(networkInterfaceName) && response.properties.provisioningState.match('Succeeded')) {
                     return Promise.resolve(response);
                 }
                 return Promise.reject(new Error(`NIC ${networkInterfaceName} is not ready yet`));
@@ -1349,12 +1190,10 @@ class Cloud extends AbstractCloud {
      */
     _getRouteTableByName(routeTableGroup, routeTableName, routeTableId) {
         this.logger.silly(`Checking provisioning state of route table: ${routeTableName}`);
-        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
-            routeTableGroup, routeTableName
-        )
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this._parseResourceId(routeTableId).subscriptionId}/resourceGroups/${routeTableGroup}/providers/Microsoft.Network/routeTables/${routeTableName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
-                this.logger.silly(`Provisioning state of route table ${routeTableName}: ${response.provisioningState}`);
-                if (response.name.match(routeTableName) && response.provisioningState.match('Succeeded')) {
+                this.logger.silly(`Provisioning state of route table ${routeTableName}: ${response.properties.provisioningState}`);
+                if (response.name.match(routeTableName) && response.properties.provisioningState.match('Succeeded')) {
                     return Promise.resolve(response);
                 }
                 return Promise.reject(new Error(`Route table ${routeTableName} is not ready yet`));
@@ -1375,9 +1214,7 @@ class Cloud extends AbstractCloud {
      */
     _getRouteTableConfig(routeTableGroup, routeTableName, routeTableId) {
         this.logger.silly(`Getting config of route table: ${routeTableName}`);
-        return this.networkClients[this._parseResourceId(routeTableId).subscriptionId].routeTables.get(
-            routeTableGroup, routeTableName
-        )
+        return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this._parseResourceId(routeTableId).subscriptionId}/resourceGroups/${routeTableGroup}/providers/Microsoft.Network/routeTables/${routeTableName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
                 this.logger.silly(`Found existing config for ${routeTableName}:`, response);
                 return Promise.resolve(response);
@@ -1386,82 +1223,6 @@ class Cloud extends AbstractCloud {
                 this.logger.silly(`Get route table config. Status: ${err}`);
                 return Promise.reject(err);
             });
-    }
-
-    /**
-     * Re-associates the Public IP Addresses. Will first attempt to disassociate and then associate
-     * the Public IP Address(es) to the newly active BIG-IP
-     *
-     * @param {Object} operations - reassocate public addresses operations
-     *
-     * @returns {Promise}         - Resolves or rejects with status public IP address
-     */
-    _reassociatePublicIpAddresses(operations) {
-        if (!operations || !operations.length) {
-            this.logger.silly('No public IP address reassociation operations to perform');
-            return Promise.resolve();
-        }
-        const currentPromises = [];
-        const targetPromises = [];
-        const processedNics = {
-            current: {},
-            target: {}
-        };
-        // identify current and target nics
-        let currentNic;
-        let targetNic;
-        operations.forEach((operation) => {
-            currentNic = this.nics.find((nic) => nic.name === operation.current.name);
-            targetNic = this.nics.find((nic) => nic.name === operation.target.name);
-            if (processedNics.current[currentNic.name] !== undefined) {
-                currentNic = processedNics.current[currentNic.name];
-            }
-            if (processedNics.target[targetNic.name] !== undefined) {
-                targetNic = processedNics.target[targetNic.name];
-            }
-            currentNic.ipConfigurations.forEach((ipConfig) => {
-                if (ipConfig.privateIPAddress === operation.current.privateIPAddress) {
-                    delete ipConfig.publicIPAddress;
-                }
-            });
-            targetNic.ipConfigurations.forEach((ipConfig) => {
-                if (ipConfig.privateIPAddress === operation.target.privateIPAddress) {
-                    ipConfig.publicIPAddress = operation.publicIpAddress;
-                }
-            });
-            processedNics.current[currentNic.name] = currentNic;
-            processedNics.target[targetNic.name] = targetNic;
-        });
-        Object.keys(processedNics.current).forEach((nicName) => {
-            currentPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.current[nicName], 'Disassociate'], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
-        });
-        return Promise.all(currentPromises)
-            .then(() => {
-                const currentStatusPromises = [];
-                Object.keys(processedNics.current).forEach((nicName) => {
-                    currentStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
-                });
-                return Promise.all(currentStatusPromises);
-            })
-            .then(() => {
-                this.logger.info('Public IP Addresses were dissassociated from current nic.');
-                Object.keys(processedNics.target).forEach((nicName) => {
-                    targetPromises.push(this._retrier(this._updateNic, [this.resourceGroup, nicName, processedNics.target[nicName], 'Associate'], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
-                });
-                return Promise.all(targetPromises);
-            })
-            .then(() => {
-                const targetStatusPromises = [];
-                Object.keys(processedNics.current).forEach((nicName) => {
-                    targetStatusPromises.push(this._retrier(this._getNetworkInterfaceByName, [nicName], { retryInterval: NETWORK_RETRY_INTERVAL, maxRetries: NETWORK_MAX_RETRIES }));
-                });
-                return Promise.all(targetStatusPromises);
-            })
-            .then(() => {
-                this.logger.info('Public IP Addresses were associated with target nic.');
-                return Promise.resolve();
-            })
-            .catch((err) => Promise.reject(err));
     }
 }
 

@@ -136,6 +136,10 @@ class AbstractCloud {
         throw new Error('Method must be implemented in child class!');
     }
 
+    _createResourceID() {
+        throw new Error('Method must be implemented in child class!');
+    }
+
     /**
     * Discover next hop address - support 'none' (static) and routeTag discovery types
     *
@@ -220,12 +224,11 @@ class AbstractCloud {
      */
     _filterRouteTables(routeTables, options) {
         options = options || {};
-
         if (options.tags && Object.keys(options.tags)) {
             return routeTables.filter((item) => {
                 let matchedTags = 0;
                 Object.keys(options.tags).forEach((key) => {
-                    const itemTags = this._normalizeTags(item.Tags || item.tags || item.parsedTags);
+                    const itemTags = this._normalizeTags(item.Tags || item.tags || item.parsedTags || []);
                     if (itemTags && Object.keys(itemTags).indexOf(key) !== -1
                         && itemTags[key] === options.tags[key]) {
                         matchedTags += 1;
@@ -294,7 +297,6 @@ class AbstractCloud {
     * @returns {Object} - tags: { 'key1': 'value1' }
     */
     _normalizeTags(tags) {
-        this.logger.silly('_normalizeTags received tags:', tags);
         let ret = {};
         if (Array.isArray(tags)) {
             ret = tags.reduce((acc, cur) => {
@@ -304,13 +306,11 @@ class AbstractCloud {
         } else {
             ret = tags;
         }
-        Object.entries(ret).forEach((entry) => {
-            if (entry[0] !== undefined && entry[1] !== undefined) {
-                const key = entry[0].trim();
-                ret[key] = entry[1].trim();
+        Object.keys(ret).forEach((key) => {
+            if (ret[key] !== undefined) {
+                ret[key.trim()] = ret[key].trim();
             }
         });
-        this.logger.silly('_normalizeTags finished processing tags:', ret);
         return ret;
     }
 

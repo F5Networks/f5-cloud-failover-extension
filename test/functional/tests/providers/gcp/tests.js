@@ -512,10 +512,16 @@ describe('Provider: GCP', () => {
                         port: dutSecondary.port
                     }))
                 .then((data) => {
-                    const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
-                    const routeTableId = data.routes.operations[0].id;
-                    assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
-                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                    const addressesInterfaceId = data.addresses.operations.toActive[0].networkInterface;
+                    const routeName = data.routes.operations[0].route;
+                    const routeTableId = data.routes.operations[0].routeTable;
+                    assert.strictEqual(addressesInterfaceId, 'nic0');
+                    assert.ok(routeName.includes(deploymentInfo.deploymentId));
+                    assert.strictEqual(routeTableId, expectedResult.routeTableId);
+                    if (deploymentInfo.forwardingRule === 'true') {
+                        const forwardingRuleId = data.addresses.loadBalancerAddresses.operations[0].forwardingRule;
+                        assert.ok(forwardingRuleId.includes(deploymentInfo.deploymentId));
+                    }
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -788,10 +794,16 @@ describe('Provider: GCP', () => {
                         port: dutSecondary.port
                     }))
                 .then((data) => {
-                    const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
-                    const routeTableId = data.routes.operations[0].id;
-                    assert.deepStrictEqual(addressesInterfaceId, expectedResult.addressesInterfaceId);
-                    assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
+                    const addressesInterfaceId = data.addresses.operations.toActive[0].networkInterface;
+                    const routeName = data.routes.operations[0].route;
+                    const routeTableId = data.routes.operations[0].routeTable;
+                    assert.strictEqual(addressesInterfaceId, 'nic0');
+                    assert.ok(routeName.includes(deploymentInfo.deploymentId));
+                    assert.strictEqual(routeTableId, expectedResult.routeTableId);
+                    if (deploymentInfo.forwardingRule === 'true') {
+                        const forwardingRuleId = data.addresses.loadBalancerAddresses.operations[0].forwardingRule;
+                        assert.ok(forwardingRuleId.includes(deploymentInfo.deploymentId));
+                    }
                 })
                 .catch((err) => Promise.reject(err));
         });
