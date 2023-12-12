@@ -60,7 +60,7 @@ describe('Performance Tests', () => {
                     port: dutPrimary.port
                 }))
             .then((data) => {
-                assert(data.boolean, data);
+                assert(data.taskStateResponse.taskState, constants.FAILOVER_STATES.PASS);
             })
             .catch((err) => Promise.reject(err));
     });
@@ -104,7 +104,7 @@ describe('Performance Tests', () => {
                     port: dutSecondary.port
                 }))
             .then((data) => {
-                assert(data.boolean, data);
+                assert.strictEqual(data.taskStateResponse.taskState, constants.FAILOVER_STATES.PASS);
             })
             .catch((err) => Promise.reject(err));
     });
