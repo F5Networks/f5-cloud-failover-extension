@@ -419,11 +419,12 @@ module.exports = {
     * @returns {Object}
     */
     privateAddressesCount(taskStatus) {
+        const environment = this.getEnvironmentInfo().environment;
         let associatePrivateIP = 0;
         const associateOperations = taskStatus.failoverOperations.addresses.interfaces.associate;
-        (associateOperations.length ? associateOperations[0] : []).forEach((obj) => {
-            if (obj.ipConfigurations) {
-                associatePrivateIP = obj.ipConfigurations.length;
+        (environment !== 'aws' && associateOperations.length ? associateOperations[0] : []).forEach((obj) => {
+            if (obj.properties && obj.properties.ipConfigurations) {
+                associatePrivateIP = obj.properties.ipConfigurations.length;
             }
             if (obj.aliasIpRanges) {
                 associatePrivateIP = obj.aliasIpRanges.length;
