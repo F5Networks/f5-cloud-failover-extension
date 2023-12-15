@@ -500,7 +500,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                     }))
                 .then((data) => {
                     const addresses = utils.stringify(data.addresses);
-                    const routeTableId = data.routes.operations[0].routeTableId;
+                    const routeTableId = data.routes.operations[0].route;
                     assert(addresses.indexOf(expectedResult.publicIp) !== -1);
                     assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
                 })
@@ -799,7 +799,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                     }))
                 .then((data) => {
                     const addresses = utils.stringify(data.addresses);
-                    const routeTableId = data.routes.operations[0].routeTableId;
+                    const routeTableId = data.routes.operations[0].route;
                     assert(addresses.indexOf(expectedResult.publicIp) !== -1);
                     assert.deepStrictEqual(routeTableId, expectedResult.routeTableId);
                 })

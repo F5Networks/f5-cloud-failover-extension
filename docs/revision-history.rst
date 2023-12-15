@@ -11,7 +11,11 @@ Document Revision History
         - Description
         - Date
 
-        * - 2.2.7
+      * - 2.3.0
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated documentation in :ref:`troubleshooting`and :ref:`azure`.
+        - 12-13-23
+
+      * - 2.2.7
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated documentation in :ref:`troubleshooting`.
         - 03-14-23
 

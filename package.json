@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "1.15.0",
+    "version": "2.0.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "repository": {
@@ -17,16 +17,15 @@
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
         "functional-test": "mocha --recursive --full-trace \"./test/functional/tests/testRunner.js\"",
-        "deployment-create": "deployment_tool --command create --plan ${CF_ENV_CLOUD} --name ${NAMESPACE}",
-        "deployment-delete": "deployment_tool --command delete --plan ${CF_ENV_CLOUD} --name ${NAMESPACE}",
-        "deployment-info": "deployment_tool --command info --plan ${CF_ENV_CLOUD} --name ${NAMESPACE}",
-        "deployment-show": "deployment_tool --command show --plan ${CF_ENV_CLOUD} --name ${NAMESPACE}",
+        "deployment-create": "deployment-tool create ${NAMESPACE} --plan ${CF_ENV_CLOUD}",
+        "deployment-delete": "deployment-tool delete ${NAMESPACE}",
+        "deployment-info": "deployment-tool plans describe ${CF_ENV_CLOUD}",
+        "deployment-show": "deployment-tool describe ${NAMESPACE}",
         "deployment-setup": "bash scripts/build_rpm.sh && npm run deployment-create && npm run functional-test",
         "build-rpm": "bash scripts/build_rpm.sh",
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
         "preinstall": "npx npm-force-resolutions",
-        "postinstall": "npx patch-package",
         "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_PORT=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_port' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:${CF_ENV_PORT}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/postmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
@@ -39,7 +38,8 @@
         "statements": 80,
         "reporter": [
             "html",
-            "text"
+            "text",
+            "lcov"
         ],
         "cache": false
     },
@@ -50,32 +50,28 @@
         "json-bigint": "^1.0.0",
         "ansi-regex": "^4.1.1",
         "minimist": "^1.2.6",
-        "moment": "^2.29.2"
+        "moment": "^2.29.2",
+        "tough-cookie": "^4.1.3"
     },
     "dependencies": {
         "@f5devcentral/f5-cloud-libs": "4.14.0",
         "@f5devcentral/f5-teem": "1.5.0",
-        "@google-cloud/compute": "^1.2.0",
-        "@google-cloud/storage": "^4.7.2",
         "ajv": "^6.10.0",
-        "aws-sdk": "^2.1034.0",
-        "azure-arm-network": "^13.0.0",
-        "azure-arm-storage": "^8.1.0",
-        "azure-storage": "^2.10.4",
+        "aws4": "^1.12.0",
+        "axios": "^0.21.4",
         "commander": "^2.19.0",
+        "cruftless": "^1.2.1",
+        "form-data": "^4.0.0",
         "get-user-locale": "^1.4.0",
-        "googleapis": "^60.0.1",
-        "gtoken": "5.0.3",
         "hooks": "^0.3.2",
         "https-proxy-agent": "3.0.1",
         "ip-address": "^6.2.0",
         "ipaddr.js": "^1.7.0",
         "jsonschema": "^1.2.5",
-        "ms-rest-azure": "^2.6.0",
-        "request": "^2.83.0",
         "uuid": "^3.3.2"
     },
     "devDependencies": {
+        "aws-sdk": "^2.1034.0",
         "@azure/arm-network": "^14.0.0",
         "@azure/ms-rest-nodeauth": "^3.0.8",
         "@f5devcentral/eslint-config-f5-atg": "^0.1.5",
@@ -83,12 +79,14 @@
         "eslint": "^7.32.0",
         "eslint-config-airbnb-base": "^14.2.1",
         "eslint-plugin-import": "^2.17.3",
+        "googleapis": "^60.0.1",
+        "gtoken": "5.0.3",
         "icrdk": "https://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^7.2.0",
         "mustache": "^3.0.1",
         "nock": "^9.6.1",
         "nyc": "^15.1.0",
-        "patch-package": "^8.0.0",
+        "request": "^2.83.0",
         "sinon": "7.4.1",
         "ssh2": "^0.8.2",
         "yargs": "^15.4.0"
@@ -105,6 +103,7 @@
         "rules": {
             "max-classes-per-file": "off",
             "func-names": "off",
+            "import/extensions": "off",
             "import/no-extraneous-dependencies": [
                 "error",
                 {
@@ -118,52 +117,12 @@
         "bail": false
     },
     "auditProcessor": {
-        "whitelist": [
-            "1067480",
-            "1067560",
-            "1070440",
-            "1082433",
-            "1084901",
-            "1085139",
-            "1085307",
-            "1085135",
-            "1085814",
-            "1085867",
-            "1086434",
-            "1087903",
-            "1088639",
-            "1088643",
-            "1088666",
-            "1089152",
-            "1089641",
-            "1090053",
-            "1088664",
-            "1089395",
-            "1090139",
+        "allowlist": [
+            "1094762",
+            "1094220",
             "1089556",
-            "1089394",
-            "1089600",
-            "1090135",
-            "1090179",
             "1091573",
-            "1091459",
-            "1091837",
-            "1091725",
-            "1092301",
-            "1092423",
-            "1092460",
-            "1092430",
-            "1092470",
-            "1092779",
-            "1088227",
-            "1088229",
-            "1088746",
-            "1089848",
-            "1090460",
-            "1091350",
-            "1091351",
-            "1092826",
-            "1092972"
+            "1094889"
         ]
     }
 }

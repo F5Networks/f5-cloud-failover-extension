@@ -16,27 +16,34 @@
 
 'use strict';
 
-const AWS = require('aws-sdk');
+const aws4 = require('aws4');
+const { parse } = require('cruftless')();
 const IPAddressLib = require('ip-address');
-const PROXY = require('https-proxy-agent');
-const fs = require('fs');
 const https = require('https');
+const fs = require('fs');
 const url = require('url');
-const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
-const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const util = require('../../util');
-const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const AbstractCloud = require('../abstract/cloud').AbstractCloud;
 const constants = require('../../constants');
+
+const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
+const INSPECT_ADDRESSES_AND_ROUTES = constants.INSPECT_ADDRESSES_AND_ROUTES;
+const API_VERSION_EC2 = constants.API_VERSION_EC2;
+const XML_TEMPLATES = constants.XML_TEMPLATES.AWS;
 
 class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AWS, options);
 
-        this.metadata = new AWS.MetadataService();
-        this.s3 = {};
         this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
-        this.ec2 = {};
         this._sessionToken = null;
+        this._credentials = null;
+        this._httpOptions = null;
+        this.s3_host = null;
+        this.s3BucketName = null;
+        this.s3BucketRegion = null;
+        this.ec2_host = null;
+        this.proxyOptions = null;
     }
 
     /**
@@ -46,43 +53,47 @@ class Cloud extends AbstractCloud {
         super.init(options);
 
         return this._fetchMetadataSessionToken()
+            .then(() => this._getCredentials())
             .then(() => this._getInstanceIdentityDoc())
             .then((metadata) => {
                 this.region = metadata.region;
+                this.s3_host = `s3.${this.region}.amazonaws.com`;
+                this.ec2_host = `ec2.${this.region}.amazonaws.com`;
                 this.instanceId = metadata.instanceId;
                 this.customerId = metadata.accountId;
-                const config = {
-                    region: this.region
-                };
 
-                let opts = {};
                 if (this.proxySettings) {
-                    opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                    this.proxyOptions = {
+                        protocol: opts.protocol,
+                        host: opts.hostname,
+                        port: opts.port
+                    };
+                    if (opts.username && opts.password) {
+                        this.proxyOptions.auth = {};
+                        this.proxyOptions.auth.username = opts.username;
+                        this.proxyOptions.auth.password = opts.password;
+                    }
                 }
+
+                const agentOpts = {};
                 if (this.trustedCertBundle) {
                     if (fs.existsSync(this.trustedCertBundle)) {
                         const certs = fs.readFileSync(this.trustedCertBundle);
-                        opts.rejectUnauthorized = true;
-                        opts.ca = certs;
+                        agentOpts.rejectUnauthorized = true;
+                        agentOpts.ca = certs;
                     }
                 }
-                if (this.proxySettings) {
-                    config.httpOptions = { agent: new PROXY(opts) };
-                } else {
-                    config.httpOptions = { agent: new https.Agent(opts) };
-                }
-
-                AWS.config.update(config);
-                this.ec2 = new AWS.EC2();
-                this.s3 = new AWS.S3();
+                this._httpOptions = new https.Agent(agentOpts);
 
                 if (this.storageName) {
-                    return this.storageName;
+                    return this._getBucketRegion(this.storageName);
                 }
                 return this._getS3BucketByTags(this.storageTags);
             })
-            .then((bucketName) => {
-                this.s3BucketName = bucketName;
+            .then((bucket) => {
+                this.s3BucketName = bucket.name;
+                this.s3BucketRegion = bucket.region;
                 this.logger.silly('Cloud Provider initialization complete');
             })
             .catch((err) => Promise.reject(err));
@@ -92,16 +103,16 @@ class Cloud extends AbstractCloud {
      * Fetches IMDSv2 session token
      */
     _fetchMetadataSessionToken() {
-        return new Promise((resolve, reject) => {
-            const sessionTokenPath = '/latest/api/token';
-            this.metadata.request(sessionTokenPath, { method: 'PUT', headers: { 'X-aws-ec2-metadata-token-ttl-seconds': '3600' } }, (err, data) => {
-                if (err) {
-                    reject(err);
-                }
-                this._sessionToken = data;
-                resolve();
-            });
-        });
+        return util.makeRequest(constants.METADATA_HOST, '/latest/api/token', {
+            method: 'PUT',
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'X-aws-ec2-metadata-token-ttl-seconds': '3600'
+            }
+        })
+            .then((response) => { this._sessionToken = response; })
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -115,6 +126,158 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+    * Get credentials from metadata
+    *
+    * @returns {Promise} A promise which is resolved with credentials
+    *
+    */
+    _getCredentials() {
+        const host = constants.METADATA_HOST;
+        const options = {
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'x-aws-ec2-metadata-token': this._sessionToken
+            }
+        };
+
+        return util.makeRequest(host, '/latest/meta-data/iam/security-credentials/', options)
+            .then((instanceProfileResponse) => util.makeRequest(
+                host,
+                `/latest/meta-data/iam/security-credentials/${instanceProfileResponse}`,
+                options
+            ))
+            .then((credentialsResponse) => {
+                this._credentials = {
+                    accessKeyId: credentialsResponse.AccessKeyId,
+                    secretAccessKey: credentialsResponse.SecretAccessKey,
+                    sessionToken: credentialsResponse.Token
+                };
+            })
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Fetches IMDSv2 session token, if not this._sessionToken
+     * Then gets credentials from metadata, if not this._credentials
+     *
+     * @param {String}  host                      - HTTP host
+     * @param {String}  path                      - HTTP uri and query string
+     * @param {Object}  [headers]         - HTTP headers to sign
+     *
+     * @returns {Object} All headers, including AWS Signature V4 requirements, for a specific request
+     *
+     */
+    _getAuthHeaders(options) {
+        return Promise.resolve()
+            .then(() => (this._sessionToken
+                ? Promise.resolve()
+                : this._fetchMetadataSessionToken()
+            ))
+            .then(() => (this._credentials
+                ? Promise.resolve()
+                : this._getCredentials()
+            ))
+            .then(() => aws4.sign(options, this._credentials).headers)
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Sends HTTP request
+    *
+    * @param {String}  host                      - HTTP host
+    * @param {String}  uri                       - HTTP uri
+    * @param {Object}  options                   - function options
+    * @param {String}  [options.region]          - AWS region
+    * @param {String}  [options.service]         - AWS service
+    * @param {String}  [options.method]          - HTTP method
+    * @param {String}  [options.protocol]        - HTTP protocol
+    * @param {Integer} [options.port]            - HTTP port
+    * @param {Object}  [options.queryParams]     - HTTP query parameters
+    * @param {String}  [options.body]            - HTTP body
+    * @param {Object}  [options.formData]        - HTTP form data
+    * @param {Object}  [options.headers]         - HTTP headers
+    * @param {Boolean} [options.continueOnError] - continue on error (return info even if response contains error code)
+    * @param {Boolean} [options.advancedReturn]  - advanced return (return status code AND response body)
+    *
+    * @returns {Promise} Resolves a response for a request
+    */
+    makeRequest(host, uri, options) {
+        options = options || {};
+        options.headers = options.headers || {};
+        options.queryParams = options.queryParams || {};
+        options.proxy = this.proxyOptions;
+        let path = '';
+        Object.keys(options.queryParams).forEach((key) => {
+            path += path === '' ? '' : '&';
+            path += `${key}=${options.queryParams[key]}`;
+        });
+        path = path === '' ? uri : `${uri}?${path}`;
+        const authArgs = {
+            host,
+            path,
+            service: host.match(/s3/) ? 's3' : 'ec2',
+            region: options.region || this.region,
+            method: options.method || 'GET',
+            headers: options.headers || {},
+            body: options.body || ''
+        };
+
+        return this._getAuthHeaders(authArgs)
+            .then((headers) => {
+                options.headers = headers;
+                options.httpsAgent = this._httpOptions;
+                return util.makeRequest(host, uri, options);
+            })
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
+     * Sends EC2 API HTTP request
+    *
+    * @param {Object}  options               - function options
+    * @param {String}  [options.region]      - AWS region
+    * @param {String}  [options.service]     - AWS service
+    * @param {String}  [options.host]        - HTTP host
+    * @param {Object}  [options.queryParams] - HTTP query parameters
+    * @param {String}  [template]            - XML template for conversion into JSON
+    *
+    * @returns {Promise} A promise which will be resolved once function resolves
+    */
+    ec2ApiRequest(options) {
+        options.region = options.region || this.region;
+        options.queryParams.Version = options.queryParams.Version || API_VERSION_EC2;
+        const host = options.host || this.ec2_host || constants.API_HOST_EC2;
+
+        const makeEc2Request = (_options) => this.makeRequest(host, '/', _options)
+            .then((response) => {
+                const tmpl = parse(XML_TEMPLATES[_options.queryParams.Action]);
+                return tmpl.fromXML(response) || {};
+            })
+            .catch((err) => Promise.reject(err));
+
+        return this._retrier(makeEc2Request, [options]);
+    }
+
+    /**
+     * Sends EC2 API HTTP request
+    *
+    * @param {Object}  queryParams           - request queryParams
+    * @param {String}  [queryParams.Action]  - EC2 API Action
+    *
+    * @returns {Boolean} Returns response after request
+    */
+    makeBooleanEc2Request(queryParams) {
+        queryParams.Version = API_VERSION_EC2;
+        const options = {
+            region: this.region,
+            queryParams
+        };
+        return this.makeRequest(this.ec2_host || constants.API_HOST_EC2, '/', options)
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
     * Upload data to storage (cloud)
     *
     * @param {Object} fileName - file name where data should be uploaded
@@ -124,23 +287,25 @@ class Cloud extends AbstractCloud {
     */
     uploadDataToStorage(fileName, data) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Uploading data to: ${s3Key}`);
+        this.logger.silly(`Uploading data to ${this.s3BucketName}: ${s3Key}`);
 
         const uploadObject = () => new Promise((resolve, reject) => {
-            const params = {
-                Body: util.stringify(data),
-                Bucket: this.s3BucketName,
-                Key: s3Key
+            const host = `${this.s3BucketName}.s3.${this.s3BucketRegion}.amazonaws.com`;
+            const options = {
+                method: 'PUT',
+                headers: {},
+                body: util.stringify(data),
+                region: this.s3BucketRegion
             };
             if (this.storageEncryption
-                && this.storageEncryption.serverSide
-                && this.storageEncryption.serverSide.enabled) {
-                params.ServerSideEncryption = this.storageEncryption.serverSide.algorithm;
+            && this.storageEncryption.serverSide
+            && this.storageEncryption.serverSide.enabled) {
+                options.headers['x-amz-server-side-encryption'] = this.storageEncryption.serverSide.algorithm;
                 if (this.storageEncryption.serverSide.keyId) {
-                    params.SSEKMSKeyId = this.storageEncryption.serverSide.keyId;
+                    options.headers['x-amz-server-side-encryption-aws-kms-key-id'] = this.storageEncryption.serverSide.keyId;
                 }
             }
-            this.s3.putObject(params).promise()
+            this.makeRequest(host, `/${s3Key}`, options)
                 .then(() => resolve())
                 .catch((err) => reject(err));
         });
@@ -157,14 +322,24 @@ class Cloud extends AbstractCloud {
     */
     downloadDataFromStorage(fileName) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
-        this.logger.silly(`Downloading data from: ${s3Key}`);
+        this.logger.silly(`Downloading data from ${this.s3BucketName}: ${s3Key}`);
+        const host = `${this.s3BucketName}.s3.${this.s3BucketRegion}.amazonaws.com`;
+        const options = {
+            queryParams: {
+                'list-type': 2,
+                Bucket: this.s3BucketName,
+                Prefix: s3Key
+            },
+            region: this.s3BucketRegion
+        };
         const downloadObject = () => new Promise((resolve, reject) => {
             // check if the object exists first, if not return an empty object
-            this.s3.listObjectsV2({ Bucket: this.s3BucketName, Prefix: s3Key }).promise()
+            this.makeRequest(host, '/', options)
                 .then((data) => {
-                    if (data.Contents && data.Contents.length) {
-                        return this.s3.getObject({ Bucket: this.s3BucketName, Key: s3Key }).promise()
-                            .then((response) => JSON.parse(response.Body.toString()));
+                    const template = parse('<ListBucketResult><Contents><Key>{{Key}}</Key></Contents></ListBucketResult>');
+                    const Key = template.fromXML(data).Key || null;
+                    if (Key && Key.match(s3Key)) {
+                        return this.makeRequest(host, `/${s3Key}`, { region: this.s3BucketRegion });
                     }
                     return Promise.resolve({});
                 })
@@ -362,7 +537,7 @@ class Cloud extends AbstractCloud {
                         const theirNic = parsedNics.theirs[h].nic;
                         const myNic = parsedNics.mine[s].nic;
                         if ((theirNic.SubnetId === undefined || myNic.SubnetId === undefined)
-                            || (theirNic.SubnetId !== myNic.SubnetId)) {
+                        || (theirNic.SubnetId !== myNic.SubnetId)) {
                             this.logger.silly('subnetID does not exist or does not match for interfaces', myNic.NetworkInterfaceId, theirNic.NetworkInterfaceId);
                         } else {
                             const nicOperations = this._checkForNicOperations(myNic, theirNic, scopingAddresses);
@@ -394,10 +569,7 @@ class Cloud extends AbstractCloud {
     getAssociatedAddressAndRouteInfo(isAddressOperationsEnabled, isRouteOperationsEnabled) {
         const data = util.deepCopy(INSPECT_ADDRESSES_AND_ROUTES);
         data.instance = this.instanceId;
-        let params = {
-            Filters: []
-        };
-        params = this._addFilterToParams(params, 'instance-id', this.instanceId);
+        const params = this._addFilterToParams({}, 'instance-id', this.instanceId);
         return this._describeInstance(params)
             .then((instance) => {
                 if (isAddressOperationsEnabled) {
@@ -437,10 +609,10 @@ class Cloud extends AbstractCloud {
      */
     _addFilterToParams(params, filterName, filterValue) {
         params = params || {};
-
         if (!params.Filters) {
             params.Filters = [];
         }
+
         if (Array.isArray(filterValue)) {
             params.Filters.push(
                 {
@@ -460,6 +632,41 @@ class Cloud extends AbstractCloud {
         }
 
         return params;
+    }
+
+    /**
+     * Convert filter object to query parameters
+     *
+     * @param {Object} params      - filter object
+     * @param {String} filterName  - name to filter on
+     * @param {Array} filterValues - array of values to filter on
+     * @param {Object} queryParams - existing query parameters to push filters into
+     *
+     * @returns {Object} - Updated query parameters object
+     */
+    _addFiltersToQueryParams(params, queryParams) {
+        queryParams = queryParams || {};
+        params = params || {};
+        if (!params.Filters) {
+            params.Filters = [];
+        }
+
+        let ctrFilter = 0;
+        Object.keys(params.Filters).forEach((key) => {
+            ctrFilter += 1;
+            queryParams[`Filter.${ctrFilter}.Name`] = params.Filters[key].Name;
+
+            let ctrVal = 0;
+            params.Filters[key].Values.forEach((val) => {
+                ctrVal += 1;
+                const index = params.Filters[key].Values.length > 1
+                    ? `Filter.${ctrFilter}.Value.${ctrVal}`
+                    : `Filter.${ctrFilter}.Value`;
+                queryParams[index] = val;
+            });
+        });
+
+        return queryParams;
     }
 
     /**
@@ -566,17 +773,10 @@ class Cloud extends AbstractCloud {
     * @returns {Object} { cidrBlock: '192.0.2.0/24', ipVersion: '4' }
     */
     _resolveRouteCidrBlock(route) {
-        // default to IPv4
-        let ipVersion = '4';
-        let cidrBlock = route.DestinationCidrBlock;
-
-        // check if this route is using IPv6
-        if (route.DestinationIpv6CidrBlock) {
-            cidrBlock = route.DestinationIpv6CidrBlock;
-            ipVersion = '6';
-        }
-
-        return { cidrBlock, ipVersion };
+        return {
+            cidrBlock: route.DestinationIpv6CidrBlock ? route.DestinationIpv6CidrBlock : route.DestinationCidrBlock,
+            ipVersion: route.DestinationIpv6CidrBlock ? '6' : '4'
+        };
     }
 
     /**
@@ -639,7 +839,7 @@ class Cloud extends AbstractCloud {
             .then((networkInterfaceId) => {
                 this.logger.silly('Discovered networkInterfaceId ', networkInterfaceId);
                 const updateRequired = (routeAddresses.indexOf(this._resolveRouteCidrBlock(route).cidrBlock) !== -1
-                        && route.NetworkInterfaceId !== networkInterfaceId);
+                    && (route.NetworkInterfaceId && route.NetworkInterfaceId !== networkInterfaceId));
                 this.logger.silly(`Update required (${updateRequired}) for route cidr block ${this._resolveRouteCidrBlock(route).cidrBlock}`);
                 // if an update is not required just return an empty object
                 if (!updateRequired) {
@@ -650,6 +850,7 @@ class Cloud extends AbstractCloud {
                     routeTableId: routeTable.RouteTableId,
                     networkInterfaceId,
                     routeAddress: this._resolveRouteCidrBlock(route).cidrBlock,
+                    nextHopAddress: address,
                     ipVersion: this._resolveRouteCidrBlock(route).ipVersion
                 });
             })
@@ -710,8 +911,7 @@ class Cloud extends AbstractCloud {
             params.DestinationCidrBlock = routeAddressRange;
         }
 
-        return this._replaceRoute(params)
-            .catch((err) => Promise.reject(err));
+        return this._replaceRoute(params);
     }
 
     /**
@@ -747,14 +947,10 @@ class Cloud extends AbstractCloud {
      */
     _getRouteTables(options) {
         options = options || {};
-
-        let params = {};
-        if (options.instanceId) {
-            params = this._addFilterToParams(params, 'route.instance-id', options.instanceId);
-        }
+        const params = options.instanceId ? this._addFilterToParams({}, 'route.instance-id', options.instanceId) : {};
 
         return this._describeRouteTables(params)
-            .then((routeTables) => Promise.resolve(routeTables.RouteTables))
+            .then((routeTables) => Promise.resolve(routeTables.RouteTables || []))
             .catch((err) => Promise.reject(err));
     }
 
@@ -819,12 +1015,13 @@ class Cloud extends AbstractCloud {
     _disassociatePublicAddress(disassociationId) {
         this.logger.debug(`Disassociating address using ${disassociationId}`);
 
-        const params = {
+        const queryParams = {
+            Action: 'DisassociateAddress',
             AssociationId: disassociationId
         };
-
-        return this.ec2.disassociateAddress(params).promise()
-            .catch((err) => Promise.reject(err));
+        return this.ec2ApiRequest({ queryParams })
+            .then((response) => response.Return)
+            .catch(() => Promise.resolve(false));
     }
 
     /**
@@ -839,15 +1036,17 @@ class Cloud extends AbstractCloud {
     _associatePublicAddress(allocationId, networkInterfaceId, privateIpAddress) {
         this.logger.debug(`Associating ${privateIpAddress} to ${networkInterfaceId} using ID ${allocationId}`);
 
-        const params = {
-            AllocationId: allocationId,
-            NetworkInterfaceId: networkInterfaceId,
-            PrivateIpAddress: privateIpAddress,
-            AllowReassociation: true
+        const options = {
+            queryParams: {
+                Action: 'AssociateAddress',
+                AllocationId: allocationId,
+                NetworkInterfaceId: networkInterfaceId,
+                PrivateIpAddress: privateIpAddress,
+                AllowReassociation: true
+            }
         };
 
-        return this.ec2.associateAddress(params).promise()
-            .catch((err) => Promise.reject(err));
+        return this.ec2ApiRequest(options);
     }
 
     /**
@@ -911,6 +1110,32 @@ class Cloud extends AbstractCloud {
     }
 
     /**
+     * Make EC2 (Un)AssignIpv6Addresses API request
+     *
+     * @param {String} action             - ec2 api endpoint name
+     * @param {String} networkInterfaceId - network interface ID
+     * @param {Array} ipv6                - ipv6 addresses to (un))assign
+     *
+     * @returns {Promise} - Resolves when all addresses are disassociated or rejects if an error occurs
+     */
+    _getIpv6Ec2ApiRequest(action, networkInterfaceId, ipv6) {
+        const options = {
+            queryParams: {
+                Action: action === 'AssignIpv6Addresses' ? 'AssignIpv6Addresses' : 'UnassignIpv6Addresses',
+                NetworkInterfaceId: networkInterfaceId
+            },
+            host: this.ec2_host
+        };
+        let paramCtr = 1;
+        ipv6.Ipv6Addresses.forEach((ipv6Key) => {
+            options.queryParams[`Ipv6Addresses.${paramCtr}`] = ipv6Key;
+            paramCtr += 1;
+        });
+
+        return this.ec2ApiRequest(options);
+    }
+
+    /**
      * Disassociate address from NIC
      *
      * @param {String} networkInterfaceId - network interface ID
@@ -927,12 +1152,23 @@ class Cloud extends AbstractCloud {
         let promise = {};
         if (params.ipv6.Ipv6Addresses.length > 0) {
             this.logger.debug(`disassociating ipv6 addresses: ${util.stringify(params.ipv6)}`);
-            promise = this.ec2.unassignIpv6Addresses(params.ipv6).promise();
+            promise = this._getIpv6Ec2ApiRequest('UnassignIpv6Addresses', networkInterfaceId, params.ipv6);
         }
         return Promise.resolve(promise)
             .then(() => {
                 if (params.ipv4.PrivateIpAddresses.length > 0) {
-                    return this.ec2.unassignPrivateIpAddresses(params.ipv4).promise();
+                    const queryParams = {
+                        Action: 'UnassignPrivateIpAddresses',
+                        NetworkInterfaceId: networkInterfaceId
+                    };
+                    let paramCtr = 1;
+                    params.ipv4.PrivateIpAddresses.forEach((ipv4) => {
+                        queryParams[`PrivateIpAddress.${paramCtr}`] = ipv4;
+                        paramCtr += 1;
+                    });
+                    return this.ec2ApiRequest({ queryParams })
+                        .then((response) => response.Return)
+                        .catch(() => Promise.resolve(false));
                 }
                 return Promise.resolve({});
             })
@@ -956,7 +1192,8 @@ class Cloud extends AbstractCloud {
         let promise = {};
         if (params.ipv6.Ipv6Addresses.length > 0) {
             this.logger.debug(`associating ipv6 addresses: ${util.stringify(params.ipv6)}`);
-            promise = this.ec2.assignIpv6Addresses(params.ipv6).promise();
+
+            promise = this._getIpv6Ec2ApiRequest('AssignIpv6Addresses', networkInterfaceId, params.ipv6);
         }
         return Promise.resolve(promise)
             .then(() => {
@@ -1008,7 +1245,16 @@ class Cloud extends AbstractCloud {
      * public addresses are reassociated to NIC
      */
     _assignPrivateIpv4Addresses(ipv4Params, addresses) {
-        return this.ec2.assignPrivateIpAddresses(ipv4Params).promise()
+        const queryParams = {
+            Action: 'AssignPrivateIpAddresses',
+            NetworkInterfaceId: ipv4Params.NetworkInterfaceId
+        };
+        let paramCtr = 1;
+        ipv4Params.PrivateIpAddresses.forEach((ipv4) => {
+            queryParams[`PrivateIpAddress.${paramCtr}`] = ipv4;
+            paramCtr += 1;
+        });
+        return this.ec2ApiRequest({ queryParams })
             .then(() => {
                 const promises = [];
                 addresses.forEach((address) => {
@@ -1036,7 +1282,7 @@ class Cloud extends AbstractCloud {
         this.logger.debug(`eips: ${JSON.stringify(eips)}, privateInstanceIPs: ${JSON.stringify(privateInstanceIPs)}`);
         eips.forEach((eip) => {
             const vipsTag = eip.Tags.find((tag) => constants.AWS_VIPS_TAGS.indexOf(tag.Key) !== -1);
-            const targetAddresses = vipsTag ? vipsTag.Value.split(',') : [];
+            const targetAddresses = vipsTag && vipsTag.Value ? vipsTag.Value.split(',') : [];
             targetAddresses.forEach((targetAddress) => {
                 // Check if the target address is present on local BIG-IP, and if the EIP isn't already associated
                 if (targetAddress in privateInstanceIPs && targetAddress !== eip.PrivateIpAddress) {
@@ -1100,15 +1346,10 @@ class Cloud extends AbstractCloud {
     */
     _parseSubnets(nic, subnets) {
         let foundSubnet = {};
-        this.logger.debug('_parseSubnets filtering on list of subnets');
-        this.logger.debug('_parseSubnets incoming nic SubnetId', nic.SubnetId);
 
         /* eslint-disable-next-line no-restricted-syntax */
         for (const subnet of subnets.Subnets) {
-            this.logger.debug('_parseSubnets SubnetId nic', nic.SubnetId);
-            this.logger.debug('_parseSubnets SubnetId subnet', subnet.SubnetId);
             if (nic.SubnetId === subnet.SubnetId) {
-                this.logger.debug('_parseSubnets found subnet');
                 foundSubnet = subnet;
                 break;
             }
@@ -1190,8 +1431,9 @@ class Cloud extends AbstractCloud {
 
                     if (theirAddress.isInSubnet(mySubnetCidr) && myAddress.isInSubnet(theirSubnetCidr)) {
                         if (theirNicAddresses[i].PrivateIpAddress
-                            && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
-                            && theirNicAddresses[i].Primary !== true) {
+                        && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                        && theirNicAddresses[i].Primary !== true
+                        && theirNicAddresses[i].Primary !== 'true') {
                             this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
 
                             addressesToTake.push({
@@ -1200,9 +1442,9 @@ class Cloud extends AbstractCloud {
                                 ipVersion: 4
                             });
                         } else if (theirNicAddresses[i].Ipv6Address
-                            && util.validateIpv6Address(failoverAddresses[t])
-                            && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
-                            && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
+                        && util.validateIpv6Address(failoverAddresses[t])
+                        && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                        && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                             this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                             addressesToTake.push({
                                 address: failoverAddresses[t],
@@ -1213,8 +1455,9 @@ class Cloud extends AbstractCloud {
                         this.logger.warning('Assumed same-net operation, but subnet CIDRs do not match, therefore no private IP disassociation will happen');
                     }
                 } else if (theirNicAddresses[i].PrivateIpAddress
-                    && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
-                    && theirNicAddresses[i].Primary !== true) {
+                && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                && theirNicAddresses[i].Primary !== true
+                && theirNicAddresses[i].Primary !== 'true') {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
@@ -1222,9 +1465,9 @@ class Cloud extends AbstractCloud {
                         ipVersion: 4
                     });
                 } else if (theirNicAddresses[i].Ipv6Address
-                    && util.validateIpv6Address(failoverAddresses[t])
-                    && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
-                    && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
+                && util.validateIpv6Address(failoverAddresses[t])
+                && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                     this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                     addressesToTake.push({
                         address: failoverAddresses[t],
@@ -1259,10 +1502,7 @@ class Cloud extends AbstractCloud {
      *                          }
      */
     _getPrivateSecondaryIPs() {
-        let params = {
-            Filters: []
-        };
-        params = this._addFilterToParams(params, 'attachment.instance-id', this.instanceId);
+        const params = this._addFilterToParams({}, 'attachment.instance-id', this.instanceId);
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
@@ -1270,7 +1510,7 @@ class Cloud extends AbstractCloud {
                 const privateIps = {};
                 data.NetworkInterfaces.forEach((nic) => {
                     nic.PrivateIpAddresses.forEach((privateIp) => {
-                        if (privateIp.Primary === false) {
+                        if (privateIp.Primary === false || privateIp.Primary === 'false') {
                             privateIps[privateIp.PrivateIpAddress] = {
                                 NetworkInterfaceId: nic.NetworkInterfaceId
                             };
@@ -1315,13 +1555,8 @@ class Cloud extends AbstractCloud {
                 params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
             });
         }
-        if (privateAddress) {
-            params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
-        }
-
-        if (ipv6Address) {
-            params = this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address);
-        }
+        params = privateAddress ? this._addFilterToParams(params, 'private-ip-address', privateAddress) : params;
+        params = ipv6Address ? this._addFilterToParams(params, 'ipv6-addresses.ipv6-address', ipv6Address) : params;
 
         return this._describeNetworkInterfaces(params)
             .then((data) => {
@@ -1346,34 +1581,31 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}   - A Promise that will be resolved with an array of Elastic IP(s), or
      *                          rejected if an error occurs
      */
-    _getElasticIPs(options) {
-        options = options || {};
-        const tags = options.tags || null;
-        const instanceId = options.instanceId || null;
-        const publicAddress = options.publicAddress || null;
-        const privateAddress = options.privateAddress || null;
-
+    _getElasticIPs(opts) {
+        const options = {
+            queryParams: {
+                Action: 'DescribeAddresses',
+                Version: API_VERSION_EC2
+            },
+            region: this.region,
+            host: this.ec2_host || constants.API_HOST_EC2
+        };
         let params = {
             Filters: []
         };
+        opts = opts || {};
+        const tags = opts.tags || null;
         if (tags) {
-            const tagKeys = Object.keys(tags);
-            tagKeys.forEach((tagKey) => {
+            Object.keys(tags).forEach((tagKey) => {
                 params = this._addFilterToParams(params, `tag:${tagKey}`, tags[tagKey]);
             });
         }
-        if (instanceId) {
-            params = this._addFilterToParams(params, 'instance-id', this.instanceId);
-        }
-        if (publicAddress) {
-            params = this._addFilterToParams(params, 'public-ip', publicAddress);
-        }
-        if (privateAddress) {
-            params = this._addFilterToParams(params, 'private-ip-address', privateAddress);
-        }
-        const func = (_params) => this.ec2.describeAddresses(_params).promise();
-        return this._retrier(func, [params])
-            .catch((err) => Promise.reject(err));
+        params = opts.instanceId || null ? this._addFilterToParams(params, 'instance-id', this.instanceId) : params;
+        params = opts.publicAddress || null ? this._addFilterToParams(params, 'public-ip', opts.publicAddress) : params;
+        params = opts.privateAddress || null ? this._addFilterToParams(params, 'private-ip-address', opts.privateAddress) : params;
+        options.queryParams = this._addFiltersToQueryParams(params, options.queryParams);
+
+        return this.ec2ApiRequest(options);
     }
 
     /**
@@ -1383,18 +1615,15 @@ class Cloud extends AbstractCloud {
      *                          rejected if an error occurs
      */
     _getInstanceIdentityDoc() {
-        return new Promise((resolve, reject) => {
-            const iidPath = '/latest/dynamic/instance-identity/document';
-            this.metadata.request(iidPath, { headers: { 'x-aws-ec2-metadata-token': this._sessionToken } }, (err, data) => {
-                if (err) {
-                    this.logger.error('Unable to retrieve Instance Identity');
-                    reject(err);
-                }
-                resolve(
-                    JSON.parse(data)
-                );
-            });
-        });
+        return util.makeRequest(constants.METADATA_HOST, '/latest/dynamic/instance-identity/document', {
+            protocol: 'http',
+            port: 80,
+            headers: {
+                'x-aws-ec2-metadata-token': this._sessionToken
+            }
+        })
+            .then((response) => (typeof response === 'object' ? response : JSON.parse(response)))
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1411,8 +1640,8 @@ class Cloud extends AbstractCloud {
         return this._getAllS3Buckets()
             .then((data) => {
                 data.forEach((bucket) => {
-                    const getTagsArgs = [bucket, { continueOnError: true }];
-                    getBucketTagsPromises.push(this._retrier(this._getTags, getTagsArgs));
+                    const args = [bucket, { continueOnError: true }];
+                    getBucketTagsPromises.push(this._retrier(this._getBucketTags, args));
                 });
                 return Promise.all(getBucketTagsPromises);
             })
@@ -1437,70 +1666,58 @@ class Cloud extends AbstractCloud {
                 if (!filteredBuckets.length) {
                     return Promise.reject(new Error('No valid S3 Buckets found!'));
                 }
-                return Promise.resolve(filteredBuckets[0].Bucket); // grab the first bucket for now
+                return Promise.resolve(filteredBuckets[0].bucket); // grab the first bucket for now
             })
             .catch((err) => Promise.reject(err));
     }
 
     /**
-     * Get all S3 buckets in account filtered by current region, however if no buckets are found in the region
-     * or any error occurs during region filtering this method returns all the s3 buckets.
+     * Get all S3 buckets in an account.
      * These buckets will later be filtered by tags
      *
-     * @returns {Promise}   - A Promise that will be resolved with an array of every S3 bucket name or
-     *                          rejected if an error occurs
+     * @returns {Promise}   - A Promise that will be resolved with an array of objects containing each bucket
+     *                        and its region, or rejected if an error occurs
      */
     _getAllS3Buckets() {
-        let bucketNameList = [];
-        const listAllBuckets = () => this.s3.listBuckets({}).promise()
-            .then((data) => {
-                const bucketNames = data.Buckets.map((b) => b.Name);
-                return Promise.resolve(bucketNames);
-            })
-            .then((bucketNames) => {
+        const listAllBuckets = () => this.makeRequest(this.s3_host, '/', { region: this.region })
+            .then((response) => {
                 const promises = [];
-                bucketNameList = bucketNames;
-                bucketNames.forEach((bucketName) => {
-                    promises.push(this._matchBucketLocationWithCurrentRegion(bucketName));
+                const template = parse(`<ListAllMyBucketsResult><Buckets>
+                    <Bucket><Name c-bind="buckets|array">{{name}}</Name></Bucket>
+                    </Buckets></ListAllMyBucketsResult>`);
+                const buckets = template.fromXML(response).buckets || null;
+                buckets.forEach((bucket) => {
+                    promises.push(this._getBucketRegion(bucket.name));
                 });
                 return Promise.all(promises);
             })
-            .then((matchedBuckets) => {
-                const filteredBuckets = matchedBuckets.filter((matchedBucket) => matchedBucket.matched === true);
-                return Promise.resolve(filteredBuckets.length === 0
-                    ? bucketNameList : filteredBuckets.map((b) => b.name));
-            })
+            .then((buckets) => Promise.resolve(buckets))
             .catch((err) => Promise.reject(err));
 
-        return this._retrier(listAllBuckets, []);
+        return listAllBuckets();
     }
 
     /**
      * Get the region of a given S3 bucket
      *
-     * @param   {String}    bucketName                    - name of the S3 bucket
+     * @param   {String}    bucketName - name of the S3 bucket
      *
-     * @returns {Promise}     - A Promise that will be resolved with a boolean value
-     *                          if the configured region matches the buckets region and bucket name.
-     *                          If an error occurs when getting the location the bucket will
-     *                          not be considered matched.
+     * @returns {Promise} - A Promise that will be resolved with a bucket object
+     *                      containing the bucket name and region
      */
-    _matchBucketLocationWithCurrentRegion(bucketName) {
+    _getBucketRegion(bucketName) {
         const bucketObject = {
             name: bucketName,
-            matched: false
+            region: this.region
         };
-        let bucketRegion = 'us-east-1'; // default since if region is null then the bucket is in us-east-1
-        return this.s3.getBucketLocation({ Bucket: bucketName }).promise()
-            .then((data) => {
-                bucketRegion = data.LocationConstraint || bucketRegion;
-                bucketObject.matched = bucketRegion === this.region;
+        const options = { method: 'HEAD', advancedReturn: true, continueOnError: true };
+
+        return this.makeRequest(`${bucketName}.${constants.API_HOST_S3}`, '/', options)
+            .then((response) => {
+                bucketObject.region = response.headers['x-amz-bucket-region'] || this.region;
                 return Promise.resolve(bucketObject);
             })
-            .catch((err) => {
-                this.logger.debug(`Unable to get ${bucketName} region info. ${err}`);
-                return Promise.resolve(bucketObject);
-            });
+            .catch((err) => Promise.reject(err));
     }
 
     /**
@@ -1513,23 +1730,30 @@ class Cloud extends AbstractCloud {
      * @returns {Promise}   - A Promise that will be resolved with the S3 bucket name or
      *                          rejected if an error occurs
      */
-    _getTags(bucket, options) {
+    _getBucketTags(bucket, options) {
         options = options || {};
-        const continueOnError = options.continueOnError || false;
-        const params = {
-            Bucket: bucket
-        };
-        return this.s3.getBucketTagging(params).promise()
-            .then((data) => Promise.resolve({
-                Bucket: params.Bucket,
-                TagSet: data.TagSet
-            }))
-            .catch((err) => {
-                if (!continueOnError) {
-                    return Promise.reject(err);
+        options.queryParams = { tagging: '' };
+        options.region = bucket.region;
+        const host = `${bucket.name}.s3.${bucket.region}.amazonaws.com`;
+
+        return this.makeRequest(host, '/', options)
+            .then((data) => {
+                if (data.match(/<Error><Code>/)) {
+                    const error = parse('<Error><Code>{{code}}</Code><Message>{{message}}</Message></Error>');
+                    const err = error.fromXML(data);
+                    throw new Error(`${err.code}; Message: ${err.message}`);
                 }
-                return Promise.resolve(); // resolving since ignoring permissions errors to extraneous buckets
-            });
+                const template = parse(`<Tagging><TagSet><Tag c-bind="TagSet|array">
+                        <Key>{{Key}}</Key><Value>{{Value}}</Value>
+                    </Tag></TagSet></Tagging>`);
+                const TagSet = template.fromXML(data).TagSet;
+                if (TagSet && TagSet[0].Key) {
+                    return Promise.resolve({ bucket, TagSet });
+                }
+
+                throw new Error(`Error: No tags found for Bucket: ${bucket}`);
+            })
+            .catch((err) => (options.continueOnError ? Promise.resolve() : Promise.reject(err)));
     }
 
     /**
@@ -1540,10 +1764,11 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - A Promise that will be resolved with the API response
      */
     _describeInstance(params) {
-        const func = (_params) => this.ec2.describeInstances(_params).promise();
-
-        return this._retrier(func, [params])
-            .catch((err) => Promise.reject(err));
+        const options = {
+            queryParams: this._addFiltersToQueryParams(params, { Action: 'DescribeInstances' }),
+            host: this.ec2_host
+        };
+        return this.ec2ApiRequest(options);
     }
 
     /**
@@ -1554,10 +1779,10 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - A Promise that will be resolved with the API response
      */
     _describeNetworkInterfaces(params) {
-        const func = (_params) => this.ec2.describeNetworkInterfaces(_params).promise();
-
-        return this._retrier(func, [params])
-            .catch((err) => Promise.reject(err));
+        const options = {
+            queryParams: this._addFiltersToQueryParams(params, { Action: 'DescribeNetworkInterfaces' })
+        };
+        return this.ec2ApiRequest(options);
     }
 
     /**
@@ -1568,10 +1793,10 @@ class Cloud extends AbstractCloud {
      * @returns {Promise} - A Promise that will be resolved with the API response
      */
     _describeRouteTables(params) {
-        const func = (_params) => this.ec2.describeRouteTables(_params).promise();
-
-        return this._retrier(func, [params])
-            .catch((err) => Promise.reject(err));
+        const options = {
+            queryParams: this._addFiltersToQueryParams(params, { Action: 'DescribeRouteTables' })
+        };
+        return this.ec2ApiRequest(options);
     }
 
     /**
@@ -1583,8 +1808,9 @@ class Cloud extends AbstractCloud {
      */
     _getSubnets() {
         this.logger.debug('Trying to get subnets');
-        const func = () => this.ec2.describeSubnets().promise();
-        return this._retrier(func, [])
+
+        const options = { queryParams: { Action: 'DescribeSubnets' } };
+        return this.ec2ApiRequest(options)
             .then((subnets) => {
                 if (!subnets.Subnets.length) {
                     this.logger.debug('No subnets found! Please check for ec2:DescribeSubnets permission.');
@@ -1603,14 +1829,38 @@ class Cloud extends AbstractCloud {
     /**
      * Describe EC2 route tables, with retry logic
      *
-     * @param {Object} params - parameter options for operation
+     * @param {Object} queryParams - request queryParams
      *
      * @returns {Promise} - A Promise that will be resolved with the API response
      */
-    _replaceRoute(params) {
-        const func = (_params) => this.ec2.replaceRoute(_params).promise();
+    _replaceRoute(queryParams) {
+        queryParams = queryParams || {};
+        queryParams.Action = 'ReplaceRoute';
 
-        return this._retrier(func, [params])
+        const replaceEc2Route = (_params) => Promise.resolve(this._replaceEc2Route(_params));
+        return this._retrier(replaceEc2Route, [queryParams]);
+    }
+
+    /**
+     * Describe EC2 route tables, with retry logic
+     *
+     * @param {Object} queryParams - request queryParams
+     *
+     * @returns {Promise} - A Promise that will be resolved with the API response
+     */
+    _replaceEc2Route(queryParams) {
+        const options = {
+            queryParams,
+            region: this.region
+        };
+        options.queryParams.Version = options.queryParams.Version || API_VERSION_EC2;
+        const host = this.ec2_host || constants.API_HOST_EC2;
+
+        return this.makeRequest(host, '/', options)
+            .then((response) => {
+                const tmpl = parse(XML_TEMPLATES[options.queryParams.Action]);
+                return Promise.resolve(tmpl.fromXML(response) || {});
+            })
             .catch((err) => Promise.reject(err));
     }
 }
