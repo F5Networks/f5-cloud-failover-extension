@@ -331,10 +331,10 @@ describe('Provider: Azure', () => {
                 port: dutSecondary.port
             })
             .then((data) => {
-                const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
-                const routeTableId = data.routes.operations[0][0];
-                assert.deepStrictEqual(addressesInterfaceId.toLowerCase(), rgName.toLowerCase());
-                assert.deepStrictEqual(routeTableId.toLowerCase(), rgName.toLowerCase());
+                const addressesInterfaceId = data.addresses.operations.toActive[0].networkInterface;
+                const routeTableId = data.routes.operations[0].routeTable;
+                assert.ok(addressesInterfaceId.toLowerCase().includes(rgName.toLowerCase()));
+                assert.ok(routeTableId.toLowerCase().includes(rgName.toLowerCase()));
             })
             .catch((err) => Promise.reject(err)));
     });
@@ -524,10 +524,10 @@ describe('Provider: Azure', () => {
                 port: dutSecondary.port
             })
             .then((data) => {
-                const addressesInterfaceId = data.addresses.interfaces.associate[0][0];
-                const routeTableId = data.routes.operations[0][0];
-                assert.deepStrictEqual(addressesInterfaceId.toLowerCase(), rgName.toLowerCase());
-                assert.deepStrictEqual(routeTableId.toLowerCase(), rgName.toLowerCase());
+                const addressesInterfaceId = data.addresses.operations.toActive[0].networkInterface;
+                const routeTableId = data.routes.operations[0].routeTable;
+                assert.ok(addressesInterfaceId.toLowerCase().includes(rgName.toLowerCase()));
+                assert.ok(routeTableId.toLowerCase().includes(rgName.toLowerCase()));
             })
             .catch((err) => Promise.reject(err)));
     });

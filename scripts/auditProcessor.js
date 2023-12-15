@@ -1,22 +1,9 @@
-/**
- * Copyright 2021 F5 Networks, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
- * Note: This is a light wrapper around "npm audit" to support features such as:
- * - Whitelisting specific vulnerabilities (typically until fix is released in downstream package)
- * - Providing options in package.json inside "auditProcessor" property
+/*
+ * Copyright 2023. F5 Networks, Inc. See End User License Agreement ("EULA") for
+ * license terms. Notwithstanding anything to the contrary in the EULA, Licensee
+ * may copy and modify this software product for its internal business purposes.
+ * Further, Licensee may upload, publish and distribute the modified version of
+ * the software product on devcentral.f5.com.
  *
  * Usage: node auditProcessor.js --help
  */
@@ -58,31 +45,50 @@ class AuditProcessor {
     * Process report
     *
     * @param {Object} options            - function options
-    * @param {Array} [options.whitelist] - array containing zero or more ID's to ignore
+    * @param {Array} [options.allowlist] - array containing zero or more ID's to ignore
     *
     * @returns {Void}
     */
     processReport(options) {
         options = options || {};
-        const whitelist = options.whitelist || [];
+        const allowlist = options.allowlist || [];
 
         // parse out vulnerabilities
-        this.report.actions.forEach((action) => {
-            action.resolves.forEach((item) => {
+        if (this.report.auditReportVersion === 2) {
+            Object.keys(this.report.vulnerabilities).forEach((key) => {
+                this.report.vulnerabilities = this._resolveVia(this.report.vulnerabilities, key);
                 this.vulnerabilities.push({
-                    module: action.module,
-                    path: item.path,
+                    module: key,
+                    path: this.report.vulnerabilities[key].nodes[0],
                     vulnerability: {
-                        id: item.id,
-                        url: this.report.advisories[item.id].url,
-                        recommendation: this.report.advisories[item.id].recommendation
+                        id: this.report.vulnerabilities[key].via[0].source,
+                        url: this.report.vulnerabilities[key].via[0].url,
+                        advisory: this.report.vulnerabilities[key].via[0].url.split('/').slice(-1)[0],
+                        recommendation: null
                     }
                 });
             });
-        });
+        } else {
+            this.report.actions.forEach((action) => {
+                action.resolves.forEach((item) => {
+                    this.vulnerabilities.push({
+                        module: action.module,
+                        path: item.path,
+                        vulnerability: {
+                            id: item.id,
+                            url: this.report.advisories[item.id].url,
+                            advisory: this.report.advisories[item.id].url.split('/').slice(-1)[0],
+                            recommendation: this.report.advisories[item.id].recommendation
+                        }
+                    });
+                });
+            });
+        }
         // determine if any vulnerabilities should be ignored
-        if (whitelist.length) {
-            this.vulnerabilities = this.vulnerabilities.filter((vuln) => !whitelist.includes(vuln.vulnerability.id));
+        if (allowlist.length) {
+            this.vulnerabilities = this.vulnerabilities.filter(
+                (vuln) => !allowlist.includes(vuln.vulnerability.id) && !allowlist.includes(vuln.vulnerability.advisory)
+            );
         }
     }
 
@@ -99,28 +105,39 @@ class AuditProcessor {
             process.exit(1);
         }
         // good to go
-        this.log('No dependency vulnerabilities exist!');
+        this.log('No package dependency vulnerabilities exist!');
         process.exit(this.exitCode);
+    }
+
+    _resolveVia(vulnerabilities, key) {
+        while (typeof vulnerabilities[key].via[0] === 'string') {
+            let count = 0;
+            if (vulnerabilities[key].via[0] === vulnerabilities[vulnerabilities[key].via[0]].via[0]) {
+                count += 1;
+            }
+            vulnerabilities[key].via[0] = vulnerabilities[vulnerabilities[key].via[0]].via[count];
+        }
+        return vulnerabilities;
     }
 }
 
 function main() {
     const argv = yargs
         .version('1.0.0')
-        .command('whitelist', 'Whitelist specific vulnerabilities by ID')
-        .example('$0 --whitelist 1234,1235', 'Whitelist vulnerabilities 1234 and 1235')
+        .command('allowlist', 'Allow specific vulnerabilities by ID')
+        .example('$0 --allowlist 1234,1235', 'Allow vulnerabilities 1234 and 1235')
         .help('help')
         .argv;
 
     const optionsFromConfig = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).auditProcessor;
     const parsedArgs = {
-        whitelist: argv.whitelist || optionsFromConfig.whitelist || ''
+        allowlist: argv.allowlist || optionsFromConfig.allowlist || ''
     };
 
     const auditProcessor = new AuditProcessor();
     auditProcessor.loadReport();
     auditProcessor.processReport({
-        whitelist: parsedArgs.whitelist.toString().split(',').map((item) => parseInt(item, 10))
+        allowlist: parsedArgs.allowlist.toString().split(',').map((item) => parseInt(item, 10) || item)
     });
     auditProcessor.notify();
 }

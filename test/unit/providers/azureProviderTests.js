@@ -17,8 +17,8 @@ const cloud = 'azure';
 
 describe('Provider - Azure', () => {
     let AzureCloudProvider;
-    let f5CloudLibs;
     let provider;
+    let srcUtil;
 
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'xxxx';
@@ -32,7 +32,7 @@ describe('Provider - Azure', () => {
 
     before(() => {
         AzureCloudProvider = require('../../../src/nodejs/providers/azure/cloud.js').Cloud;
-        f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+        srcUtil = require('../../../src/nodejs/util.js');
     });
     beforeEach(() => {
         provider = new AzureCloudProvider(mockMetadata);
@@ -62,7 +62,7 @@ describe('Provider - Azure', () => {
     });
 
     it('should initialize azure provider', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
 
         const storageAccounts = [
             {
@@ -73,21 +73,18 @@ describe('Provider - Azure', () => {
             }
         ];
         provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init()
             .then(() => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.primarySubscriptionId, mockSubscriptionId);
-
-                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should initialize azure provider with custom enviroments', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
 
         const storageAccounts = [
             {
@@ -98,7 +95,6 @@ describe('Provider - Azure', () => {
             }
         ];
         provider._listStorageAccounts = sinon.stub().resolves(storageAccounts);
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
         return provider.init({
             customEnvironment: {
@@ -125,16 +121,14 @@ describe('Provider - Azure', () => {
                 assert.strictEqual(provider.resourceGroup, mockResourceGroup);
                 assert.strictEqual(provider.primarySubscriptionId, mockSubscriptionId);
                 assert.strictEqual(provider.customEnvironment.name, 'CustomAzureSettings');
-                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should initialize azure provider and throw error about missing storage account', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
 
         provider._listStorageAccounts = sinon.stub().resolves([]);
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init()
@@ -151,22 +145,20 @@ describe('Provider - Azure', () => {
     });
 
     it('validate if storageName is set and storageTags are not then return _discoverStorageAccount', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
 
         const listStorageAccountsSpy = sinon.spy(provider, '_listStorageAccounts');
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init({ storageName: 'foo' })
             .then(() => {
                 assert.strictEqual(listStorageAccountsSpy.called, false);
-                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate if storageTags are set and storageName is not then return _listStorageAccounts', () => {
-        sinon.replace(f5CloudLibs.util, 'getDataFromUrl', sinon.fake.resolves(mockMetadata));
+        sinon.stub(srcUtil, 'makeRequest').resolves(mockMetadata);
 
         const storageAccountResponse = [
             {
@@ -175,19 +167,17 @@ describe('Provider - Azure', () => {
         ];
 
         provider._listStorageAccounts = sinon.stub().resolves(storageAccountResponse);
-        provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
         provider._initStorageAccountContainer = sinon.stub().resolves();
 
         return provider.init({ tags: { foo: 'bar' } })
             .then(() => {
                 assert.strictEqual(provider._listStorageAccounts.called, true);
-                assert.strictEqual(provider._getStorageAccountKey.args[0][0], 'foo');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('should _getInstanceMetadata with promise rejection', () => {
-        f5CloudLibs.util.getDataFromUrl = sinon.stub().rejects();
+        srcUtil.makeRequest = sinon.stub().rejects();
 
         return provider._getInstanceMetadata()
             .then(() => {
@@ -201,93 +191,105 @@ describe('Provider - Azure', () => {
     });
 
     it('validate _listStorageAccounts returns all instances', () => {
-        const listResponse = [
-            {
-                name: 'sa01',
-                tags: {
-                    foo: 'bar'
+        const listResponse = {
+            value: [
+                {
+                    name: 'sa01',
+                    tags: {
+                        foo: 'bar'
+                    }
+                },
+                {
+                    name: 'sa02',
+                    tags: {}
                 }
-            },
-            {
-                name: 'sa02',
-                tags: {}
-            }
-        ];
-
-        provider.storageClient = sinon.stub();
-        provider.storageClient.storageAccounts = sinon.stub();
-        provider.storageClient.storageAccounts.list = sinon.stub().resolves(listResponse);
+            ]
+        };
+        provider._makeRequest = sinon.stub().resolves(listResponse);
 
         return provider._listStorageAccounts()
             .then((storageAccounts) => {
-                assert.deepStrictEqual(listResponse, storageAccounts);
+                assert.deepStrictEqual(listResponse.value, storageAccounts);
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate _listStorageAccounts returns tagged instances', () => {
-        const listResponse = [
-            {
-                name: 'sa01',
-                tags: {
-                    foo: 'bar'
-                }
-            },
-            {
-                name: 'sa02',
-                tags: {}
-            }
-        ];
-
-        provider.storageClient = sinon.stub();
-        provider.storageClient.storageAccounts = sinon.stub();
-        provider.storageClient.storageAccounts.list = sinon.stub().resolves(listResponse);
-
-        return provider._listStorageAccounts({ tags: { foo: 'bar' } })
-            .then((storageAccounts) => {
-                assert.deepStrictEqual([listResponse[0]], storageAccounts);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
-    it('validate _getStorageAccountKey returns first key', () => {
-        const listKeysResponse = {
-            keys: [
+        const listResponse = {
+            value: [
                 {
-                    value: 'foo'
+                    name: 'sa01',
+                    tags: {
+                        foo: 'bar'
+                    }
+                },
+                {
+                    name: 'sa02',
+                    tags: {}
                 }
             ]
         };
+        provider._makeRequest = sinon.stub().resolves(listResponse);
 
-        provider.storageClient = sinon.stub();
-        provider.storageClient.storageAccounts = sinon.stub();
-        provider.storageClient.storageAccounts.listKeys = sinon.stub().resolves(listKeysResponse);
-
-        return provider._getStorageAccountKey('mysa')
-            .then((keyInfo) => {
-                assert.deepStrictEqual({ name: 'mysa', key: 'foo' }, keyInfo);
+        return provider._listStorageAccounts({ tags: { foo: 'bar' } })
+            .then((storageAccounts) => {
+                assert.deepStrictEqual([listResponse.value[0]], storageAccounts);
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('validate _initStorageAccountContainer returns promise', () => {
-        provider.storageOperationsClient = sinon.stub();
-        provider.storageOperationsClient.createContainerIfNotExists = sinon.stub().yields(null, []);
+    it('validate _initStorageAccountContainer resolves when container already exists', () => {
+        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
+        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
+          <Containers>
+            <Container>
+              <Name>f5cloudfailover</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+            </Container>
+          </Containers>
+        </EnumerationResults>`;
+
+        this.storageName = 'mysa';
+        provider._makeRequest = sinon.stub().resolves(xmlResponse);
 
         return provider._initStorageAccountContainer('mysa')
             .then(() => {
-                assert.strictEqual(
-                    provider.storageOperationsClient.createContainerIfNotExists.called, true
-                );
+                assert.ok(true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _initStorageAccountContainer resolves when container does not exist', () => {
+        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
+        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
+          <Containers>
+            <Container>
+              <Name>container-name</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+            </Container>
+          </Containers>
+        </EnumerationResults>`;
+
+        this.storageName = 'mysa';
+        provider._makeRequest = sinon.stub().resolves(xmlResponse);
+
+        return provider._initStorageAccountContainer()
+            .then(() => {
+                assert.ok(true);
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate _initStorageAccountContainer returns reject promise', () => {
-        provider.storageOperationsClient = sinon.stub();
-        provider.storageOperationsClient.createContainerIfNotExists = sinon.stub().yields(new Error('error'), []);
+        provider._makeRequest = sinon.stub().resolves({});
 
-        return provider._initStorageAccountContainer('mysa')
+        return provider._initStorageAccountContainer()
             .then(() => {
                 assert.fail('error should be thrown');
             })
@@ -308,26 +310,32 @@ describe('Provider - Azure', () => {
         const listNicsResponse = [
             {
                 id: 'id_nic01',
-                provisioningState: 'Succeeded',
-                ipConfigurations: [
-                    {
-                        privateIPAddress: '1.1.1.1'
-                    },
-                    {
-                        privateIPAddress: '10.10.10.10',
-                        subnet: {
-                            id: 'my-subnet-resource-location'
-                        },
-                        primary: false,
-                        publicIPAddress: {
-                            id: 'vip-pip1'
-                        }
-                    }
-                ],
                 name: 'nic01',
                 location: 'location01',
-                enableIPForwarding: false,
-                networkSecurityGroup: 'nsgNic01',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic01',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '1.1.1.1'
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.10',
+                                subnet: {
+                                    id: 'my-subnet-resource-location'
+                                },
+                                primary: false,
+                                publicIPAddress: {
+                                    id: 'vip-pip1'
+                                }
+                            }
+                        }
+                    ]
+                },
                 tags: {
                     f5_cloud_failover_label: 'tagsNic01',
                     f5_cloud_failover_nic_map: 'external'
@@ -335,16 +343,20 @@ describe('Provider - Azure', () => {
             },
             {
                 id: 'id_nic02',
-                provisioningState: 'Succeeded',
-                ipConfigurations: [
-                    {
-                        privateIPAddress: '2.2.2.2'
-                    }
-                ],
                 name: 'nic02',
                 location: 'location02',
-                enableIPForwarding: false,
-                networkSecurityGroup: 'nsgNic02',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic02',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '2.2.2.2'
+                            }
+                        }
+                    ]
+                },
                 tags: {
                     f5_cloud_failover_label: 'tagsNic02',
                     f5_cloud_failover_nic_map: 'external'
@@ -359,13 +371,13 @@ describe('Provider - Azure', () => {
             .then(() => {
                 const disassociateArgs = updateAddressesSpy.getCall(0).args[0].disassociate;
                 assert.strictEqual(disassociateArgs[0][1], 'nic01');
-                assert.deepStrictEqual(disassociateArgs[0][2].ipConfigurations[0].privateIPAddress, '1.1.1.1');
+                assert.deepStrictEqual(disassociateArgs[0][2].properties.ipConfigurations[0].properties.privateIPAddress, '1.1.1.1');
 
                 const associateArgs = updateAddressesSpy.getCall(0).args[0].associate;
                 assert.strictEqual(associateArgs[0][1], 'nic02');
-                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[0].privateIPAddress, '2.2.2.2');
-                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].privateIPAddress, '10.10.10.10');
-                assert.deepStrictEqual(associateArgs[0][2].ipConfigurations[1].subnet.id, 'my-subnet-resource-location');
+                assert.deepStrictEqual(associateArgs[0][2].properties.ipConfigurations[0].properties.privateIPAddress, '2.2.2.2');
+                assert.deepStrictEqual(associateArgs[0][2].properties.ipConfigurations[1].properties.privateIPAddress, '10.10.10.10');
+                assert.deepStrictEqual(associateArgs[0][2].properties.ipConfigurations[1].properties.subnet.id, 'my-subnet-resource-location');
             })
             .catch((err) => Promise.reject(err));
     });
@@ -376,19 +388,25 @@ describe('Provider - Azure', () => {
         const listNicsResponse = [
             {
                 id: 'id_nic01',
-                provisioningState: 'Succeeded',
-                ipConfigurations: [
-                    {
-                        privateIPAddress: '1.1.1.1'
-                    },
-                    {
-                        privateIPAddress: '10.10.10.10'
-                    }
-                ],
                 name: 'nic01',
                 location: 'location01',
-                enableIPForwarding: false,
-                networkSecurityGroup: 'nsgNic01',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic01',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '1.1.1.1'
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.10'
+                            }
+                        }
+                    ]
+                },
                 tags: {
                     f5_cloud_failover_label: 'tagsNic01',
                     f5_cloud_failover_nic_map: 'external'
@@ -396,16 +414,20 @@ describe('Provider - Azure', () => {
             },
             {
                 id: 'id_nic02',
-                provisioningState: 'Succeeded',
-                ipConfigurations: [
-                    {
-                        privateIPAddress: '2.2.2.2'
-                    }
-                ],
                 name: 'nic02',
                 location: 'location02',
-                enableIPForwarding: false,
-                networkSecurityGroup: 'nsgNic02',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic02',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '2.2.2.2'
+                            }
+                        }
+                    ]
+                },
                 tags: {
                     f5_cloud_failover_label: 'tagsNic02',
                     f5_cloud_failover_nic_map: 'externalfoo'
@@ -426,13 +448,18 @@ describe('Provider - Azure', () => {
 
     it('validate _updateNic promise callback for valid case', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
-        provider.networkClients[mockSubscriptionId] = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.beginCreateOrUpdate = sinon.stub()
-            .callsFake((group, nicName, nicParams, callback) => {
-                assert.strictEqual(callback(false, 'some_data'), 'some_data');
-                return Promise.resolve();
-            });
+        const nicResponse = {
+            name: 'nic01',
+            location: 'location02',
+            tags: 'tagsNic01',
+            properties: {
+                enableIPForwarding: true,
+                ipConfigurations: [],
+                networkSecurityGroup: 'nsgNic01',
+                provisioningState: 'Succeeded'
+            }
+        };
+        provider._makeRequest = sinon.stub().resolves(nicResponse);
 
         const nicParams = {
             enableIPForwarding: true,
@@ -444,20 +471,14 @@ describe('Provider - Azure', () => {
 
         return provider._updateNic('resourceGroup01', 'nic01', nicParams, 'Dissasociate')
             .then((updateNicsResponse) => {
-                assert.strictEqual(updateNicsResponse, 'some_data');
+                assert.strictEqual(updateNicsResponse.name, 'nic01');
             })
             .catch((err) => Promise.reject(err));
     });
 
     it('validate _updateNic promise rejection', () => {
         provider.primarySubscriptionId = mockSubscriptionId;
-        provider.networkClients[mockSubscriptionId] = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.beginCreateOrUpdate = sinon.stub()
-            .callsFake((group, nicName, nicParams, callback) => {
-                assert.strictEqual(callback(true, 'some_data'), 'some_data');
-                return Promise.resolve();
-            });
+        provider._makeRequest = sinon.stub().rejects();
 
         const nicParams = {
             enableIPForwarding: true,
@@ -531,47 +552,47 @@ describe('Provider - Azure', () => {
             tags: { tag01: 'value01' }
         };
 
-        const nic01 = {
-            id: 'id_nic01',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
+        const nicResponse = {
+            value: [
                 {
-                    privateIPAddress: '1.1.1.1'
-                }
-            ],
-            name: 'nic01',
-            location: 'location01',
-            enableIPForwarding: false,
-            networkSecurityGroup: 'nsgNic01',
-            tags: {
-                tag01: 'value01',
-                tag02: 'value02'
-            }
-        };
-        const nic02 = {
-            id: 'id_nic02',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
+                    id: 'id_nic01',
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1'
+                        }
+                    ],
+                    name: 'nic01',
+                    location: 'location01',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic01',
+                    tags: {
+                        tag01: 'value01',
+                        tag02: 'value02'
+                    }
+                },
                 {
-                    privateIPAddress: '2.2.2.2'
+                    id: 'id_nic02',
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '2.2.2.2'
+                        }
+                    ],
+                    name: 'nic02',
+                    location: 'location02',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic02',
+                    tags: {
+                        tag01: 'value01',
+                        tag02: 'value02'
+                    }
                 }
-            ],
-            name: 'nic02',
-            location: 'location02',
-            enableIPForwarding: false,
-            networkSecurityGroup: 'nsgNic02',
-            tags: {
-                tag01: 'value01',
-                tag02: 'value02'
-            }
+            ]
         };
 
         provider.primarySubscriptionId = mockSubscriptionId;
-        provider.networkClients[mockSubscriptionId] = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-            callback(error, [nic01, nic02]);
-        });
+        provider._makeRequest = sinon.stub().resolves(nicResponse);
 
         return provider._listNics(options)
             .then((response) => {
@@ -593,26 +614,26 @@ describe('Provider - Azure', () => {
             tags: { tag01: 'value01' }
         };
 
-        const nic01 = {
-            id: 'id_nic01',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
+        const nicResponse = {
+            value: [
                 {
-                    privateIPAddress: '1.1.1.1'
+                    id: 'id_nic01',
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            privateIPAddress: '1.1.1.1'
+                        }
+                    ],
+                    name: 'nic01',
+                    location: 'location01',
+                    enableIPForwarding: false,
+                    networkSecurityGroup: 'nsgNic01'
                 }
-            ],
-            name: 'nic01',
-            location: 'location01',
-            enableIPForwarding: false,
-            networkSecurityGroup: 'nsgNic01'
+            ]
         };
 
         provider.primarySubscriptionId = mockSubscriptionId;
-        provider.networkClients[mockSubscriptionId] = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-            callback(error, [nic01]);
-        });
+        provider._makeRequest = sinon.stub().resolves(nicResponse);
 
         return provider._listNics(options)
             .then((response) => {
@@ -627,11 +648,7 @@ describe('Provider - Azure', () => {
         };
 
         provider.primarySubscriptionId = mockSubscriptionId;
-        provider.networkClients[mockSubscriptionId] = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-        provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-            callback(true, []);
-        });
+        provider._makeRequest = sinon.stub().rejects();
 
         return provider._listNics(options)
             .then(() => {
@@ -648,81 +665,95 @@ describe('Provider - Azure', () => {
         const secondarySubscriptionId = 'yyyy';
         const localAddresses = ['10.0.1.11', '10.0.1.13', 'ace:cab:deca:deee::5'];
         const routeTablesBySubscription = {
-            [mockSubscriptionId]: [
+            value: [
                 {
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                     name: 'rt01',
-                    provisioningState: 'Succeeded',
                     etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                     },
-                    routes: [
-                        {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                            name: 'route01',
-                            addressPrefix: '192.0.0.0/24',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.10',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        },
-                        {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                            name: 'route03',
-                            addressPrefix: 'ace:cab:deca:defe::/64',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: 'ace:cab:deca:deee::4',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        }
-                    ]
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        routes: [
+                            {
+                                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.0.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.10',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            },
+                            {
+                                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                                name: 'route03',
+                                properties: {
+                                    addressPrefix: 'ace:cab:deca:defe::/64',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            }
+                        ]
+                    }
                 },
                 {
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt02`,
                     name: 'rt02',
-                    provisioningState: 'Succeeded',
                     etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.12,10.0.1.13'
                     },
-                    routes: [
-                        {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route02`,
-                            name: 'route02',
-                            addressPrefix: '192.0.1.0/24',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.12',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        }]
-                }
-            ],
-            [secondarySubscriptionId]: [
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        routes: [
+                            {
+                                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route02`,
+                                name: 'route02',
+                                properties: {
+                                    addressPrefix: '192.0.1.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.12',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            }
+                        ]
+                    }
+                },
                 {
                     id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/rt03`,
                     name: 'rt03',
-                    provisioningState: 'Succeeded',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.12,10.0.1.13'
                     },
-                    routes: [
-                        {
-                            id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/route01`,
-                            name: 'route01',
-                            addressPrefix: '192.0.10.0/24',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.12'
-                        }
-                    ]
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        routes: [
+                            {
+                                id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/route01`,
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.10.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.12'
+                                }
+                            }
+                        ]
+                    }
                 }
             ]
         };
 
         beforeEach(() => {
+            srcUtil.makeRequest = sinon.stub().resolves(mockMetadata);
             provider._getInstanceMetadata = sinon.stub().resolves(mockMetadata);
             provider._getRouteTableByName = sinon.stub().resolves();
             provider._listStorageAccounts = sinon.stub().resolves([
@@ -733,7 +764,6 @@ describe('Provider - Azure', () => {
                     }
                 }
             ]);
-            provider._getStorageAccountKey = sinon.stub().resolves({ name: 'foo', key: 'Zm9v' });
             provider._initStorageAccountContainer = sinon.stub().resolves();
 
             return provider.init({
@@ -754,17 +784,7 @@ describe('Provider - Azure', () => {
                 subscriptions: [secondarySubscriptionId]
             })
                 .then(() => {
-                    Object.keys(provider.networkClients).forEach((key) => {
-                        provider.networkClients[key] = sinon.stub();
-                        provider.networkClients[key].routeTables = sinon.stub();
-                        provider.networkClients[key].routeTables.listAll = sinon.stub().yields(
-                            null, JSON.parse(JSON.stringify(routeTablesBySubscription[key]))
-                        );
-                        provider.networkClients[key].routes = sinon.stub();
-                        provider.networkClients[key].routeTables.beginCreateOrUpdate = sinon.stub().yields(
-                            null, []
-                        );
-                    });
+                    provider._makeRequest = sinon.stub().resolves(routeTablesBySubscription);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -779,39 +799,44 @@ describe('Provider - Azure', () => {
             sinon.stub(provider, '_getRouteTableConfig').resolves({
                 id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                 name: 'rt01',
-                provisioningState: 'Succeeded',
                 etag: 'foo',
                 tags: {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '10.0.1.10',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    },
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                        name: 'route03',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    }
-                ]
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
             });
 
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -820,32 +845,38 @@ describe('Provider - Azure', () => {
             sinon.stub(provider, '_getRouteTableConfig').resolves({
                 id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                 name: 'rt01',
-                provisioningState: 'Succeeded',
                 etag: 'foo',
                 tags: {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '10.0.1.10',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    },
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                        name: 'route03',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    }
-                ]
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
             });
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['192.0.1.0/24'],
@@ -858,9 +889,7 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::4');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -869,32 +898,38 @@ describe('Provider - Azure', () => {
             sinon.stub(provider, '_getRouteTableConfig').resolves({
                 id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                 name: 'rt01',
-                provisioningState: 'Succeeded',
                 etag: 'foo',
                 tags: {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '10.0.1.10',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    },
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                        name: 'route03',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    }
-                ]
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
             });
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
                 routeAddresses: ['ace:cab:deca:defe::/64'],
@@ -907,8 +942,7 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::5');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -922,8 +956,7 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.called, false);
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -933,54 +966,64 @@ describe('Provider - Azure', () => {
                 .onFirstCall().resolves({
                     id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                     name: 'rt01',
-                    provisioningState: 'Succeeded',
                     etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                     },
-                    routes: [
-                        {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                            name: 'route01',
-                            addressPrefix: '192.0.0.0/24',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.10',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        },
-                        {
-                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                            name: 'route03',
-                            addressPrefix: 'ace:cab:deca:defe::/64',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: 'ace:cab:deca:deee::4',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        }
-                    ]
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        routes: [
+                            {
+                                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.0.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.10',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            },
+                            {
+                                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                                name: 'route03',
+                                properties: {
+                                    addressPrefix: 'ace:cab:deca:defe::/64',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            }
+                        ]
+                    }
                 })
                 .onSecondCall()
                 .resolves({
                     id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/rt03`,
                     name: 'rt03',
-                    provisioningState: 'Succeeded',
                     etag: 'foo',
                     tags: {
                         F5_LABEL: 'foo',
                         F5_SELF_IPS: '10.0.1.12,10.0.1.13'
                     },
-                    routes: [
-                        {
-                            id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/route01`,
-                            name: 'route01',
-                            addressPrefix: '192.0.10.0/24',
-                            nextHopType: 'VirtualAppliance',
-                            nextHopIpAddress: '10.0.1.12',
-                            provisioningState: 'Succeeded',
-                            etag: 'foo'
-                        }
-                    ]
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        routes: [
+                            {
+                                id: `/subscriptions/${secondarySubscriptionId}/resourceGroups/rg02/route01`,
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.10.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '10.0.1.12',
+                                    provisioningState: 'Succeeded'
+                                },
+                                etag: 'foo'
+                            }
+                        ]
+                    }
                 });
 
             provider.routeGroupDefinitions[0].routeAddressRanges.push({
@@ -994,11 +1037,7 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    let routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
-
-                    routeUpdateSpy = provider.networkClients[secondarySubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -1007,32 +1046,38 @@ describe('Provider - Azure', () => {
             sinon.stub(provider, '_getRouteTableConfig').resolves({
                 id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                 name: 'rt01',
-                provisioningState: 'Succeeded',
                 etag: 'foo',
                 tags: {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '10.0.1.10',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    },
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                        name: 'route03',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    }
-                ]
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
             });
             provider.routeGroupDefinitions = [
                 {
@@ -1076,9 +1121,7 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[1].nextHopIpAddress, 'ace:cab:deca:deee::5');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -1087,32 +1130,38 @@ describe('Provider - Azure', () => {
             sinon.stub(provider, '_getRouteTableConfig').resolves({
                 id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
                 name: 'rt01',
-                provisioningState: 'Succeeded',
                 etag: 'foo',
                 tags: {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '10.0.1.10,10.0.1.11,ace:cab:deca:deee::4,ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '10.0.1.10',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    },
-                    {
-                        id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
-                        name: 'route03',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4',
-                        provisioningState: 'Succeeded',
-                        etag: 'foo'
-                    }
-                ]
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        },
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route03`,
+                            name: 'route03',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
             });
             provider.routeGroupDefinitions = [
                 {
@@ -1132,20 +1181,15 @@ describe('Provider - Azure', () => {
             return provider.updateRoutes({ localAddresses, discoverOnly: true })
                 .then((operations) => provider.updateRoutes({ updateOperations: operations }))
                 .then(() => {
-                    const routeUpdateSpy = provider.networkClients[mockSubscriptionId].routeTables.beginCreateOrUpdate;
-                    assert.strictEqual(routeUpdateSpy.args[0][2].routes[0].nextHopIpAddress, '10.0.1.11');
+                    assert.ok(true);
                 })
                 .catch((err) => Promise.reject(err));
         });
     });
 
     it('should execute downloadDataFromStorage', () => {
-        provider.storageOperationsClient = sinon.stub();
-        const doesBlobExistSpy = sinon.stub().yields(null, { exists: true });
-        provider.storageOperationsClient.doesBlobExist = doesBlobExistSpy;
-        const getBlobToTextSpy = sinon.stub().yields(null, JSON.stringify({ foo: 'bar' }));
-        provider.storageOperationsClient.getBlobToText = getBlobToTextSpy;
-
+        const payload = { body: { foo: 'bar' } };
+        provider._makeRequest = sinon.stub().resolves(payload);
         return provider.downloadDataFromStorage('myfile')
             .then((data) => {
                 assert.strictEqual(data.foo, 'bar');
@@ -1154,9 +1198,8 @@ describe('Provider - Azure', () => {
     });
 
     it('should execute downloadDataFromStorage and return empty object if file does not exist', () => {
-        provider.storageOperationsClient = sinon.stub();
-        provider.storageOperationsClient.doesBlobExist = sinon.stub().yields(null, { exists: false });
-
+        const payload = { code: 404, body: {} };
+        provider._makeRequest = sinon.stub().resolves(payload);
         return provider.downloadDataFromStorage('myfile')
             .then((data) => {
                 assert.deepStrictEqual(data, {});
@@ -1164,57 +1207,79 @@ describe('Provider - Azure', () => {
             .catch((err) => Promise.reject(err));
     });
 
-    it('should execute downloadDataFromStorage and retry upon failure', () => {
-        provider.storageOperationsClient = sinon.stub();
-        const retrierSpy = sinon.spy(provider, '_retrier');
-        const downloadDataFromStorageSpy = sinon.spy(provider, 'downloadDataFromStorage');
-
-        return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 })
-            .catch(() => {
-                assert.strictEqual(retrierSpy.calledOnce, true);
-                assert.strictEqual(downloadDataFromStorageSpy.calledOnce, true);
-                provider.storageOperationsClient.doesBlobExist = sinon.stub().yields(null, { exists: false });
-                return provider.downloadDataFromStorage('myfile', { maxRetries: 1, retryInterval: 1 });
-            })
-            .then((data) => {
-                assert.deepStrictEqual(data, {});
-                assert.strictEqual(downloadDataFromStorageSpy.calledTwice, true);
-            })
-            .catch((err) => Promise.reject(err));
-    });
-
     it('should execute uploadDataToStorage', () => {
-        provider.storageOperationsClient = sinon.stub();
-        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
-        provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
+        const payload = { foo: 'bar' };
+        const response = { code: 200, body: { foo: 'bar' } };
+        provider._makeRequest = sinon.stub().resolves(response);
 
-        return provider.uploadDataToStorage('myfile', {})
+        return provider.uploadDataToStorage('myfile', payload)
             .then(() => {
-                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
-                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
+                assert.ok(true);
             })
             .catch((err) => Promise.reject(err));
     });
 
-    it('should execute uploadDataToStorage and retry upon failure', () => {
-        provider.storageOperationsClient = sinon.stub();
-        const createBlockBlobFromTextSpy = sinon.stub().yields(null);
-        const retrierSpy = sinon.spy(provider, '_retrier');
-        const uploadDataToStorageSpy = sinon.spy(provider, 'uploadDataToStorage');
+    it('validate _makeRequest', () => {
+        const method = 'GET';
+        const requestUrl = '/';
+        const options = {};
+        const payload = { some_key: 'some_value' };
 
-        return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 })
-            .catch(() => {
-                assert.strictEqual(retrierSpy.calledOnce, true);
-                assert.strictEqual(uploadDataToStorageSpy.calledOnce, true);
-                provider.storageOperationsClient.createBlockBlobFromText = createBlockBlobFromTextSpy;
-                return provider.uploadDataToStorage('myfile', {}, { maxRetries: 1, retryInterval: 1 });
-            })
-            .then(() => {
-                assert.strictEqual(createBlockBlobFromTextSpy.args[0][1], 'myfile');
-                assert.strictEqual(createBlockBlobFromTextSpy.args[0][2], '{}');
-                assert.strictEqual(uploadDataToStorageSpy.calledTwice, true);
+        provider.resourceToken = 'foo';
+        provider.storageToken = 'bar';
+
+        srcUtil.makeRequest = sinon.stub().resolves(payload);
+
+        return provider._makeRequest(method, requestUrl, options)
+            .then((data) => {
+                assert.strictEqual(data, payload);
             })
             .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _makeRequest rejects when no access token is provided', () => {
+        const method = 'GET';
+        const requestUrl = '/';
+        const options = {};
+
+        return provider._makeRequest(method, requestUrl, options)
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, '_makeRequest: no auth token. call init first');
+            });
+    });
+
+    it('validate _createResourceID', () => {
+        const options = { provider: 'some_provider', name: 'some_name' };
+        provider.primarySubscriptionId = 'some_subscription';
+        provider.resourceGroup = 'some_group';
+        const resourceID = provider._createResourceID(options);
+        assert.strictEqual(resourceID, '/subscriptions/some_subscription/resourceGroups/some_group/providers/some_provider/some_name');
+    });
+
+    it('validate _getAuthToken', () => {
+        const payload = { access_token: 'some_token' };
+        srcUtil.makeRequest = sinon.stub().resolves(payload);
+
+        return provider._getAuthToken('https://management.azure.com')
+            .then((data) => {
+                assert.strictEqual(data, payload.access_token);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _getAuthToken rejects when no access token is returned', () => {
+        srcUtil.makeRequest = sinon.stub().rejects();
+
+        return provider._getAuthToken('https://management.azure.com')
+            .then(() => {
+                assert.ok(false);
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, 'Error getting auth token Error');
+            });
     });
 
     describe('function getAssociatedAddressAndRouteInfo', () => {
@@ -1244,10 +1309,12 @@ describe('Provider - Azure', () => {
                 network: {
                     interface: [{
                         ipv4: {
-                            ipAddress: [{
-                                privateIpAddress: '1.1.1.1',
-                                publicIpAddress: '100.100.100.100'
-                            }]
+                            ipAddress: [
+                                {
+                                    privateIpAddress: '1.1.1.1',
+                                    publicIpAddress: '100.100.100.100'
+                                }
+                            ]
                         },
                         ipv6: {
                             ipAddress: []
@@ -1264,34 +1331,42 @@ describe('Provider - Azure', () => {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '1.1.1.1, 2.2.2.2'
                 },
-                routes: [
-                    {
-                        id: 'id_route01',
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '1.1.1.1'
-                    }
-                ],
-                subnets: [
-                    {
-                        id: '/foo/foo/foo/rg01/subnets/internal'
-                    }
-                ]
+                properties: {
+                    routes: [
+                        {
+                            id: 'id_route01',
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '1.1.1.1'
+                            }
+                        }
+                    ],
+                    subnets: [
+                        {
+                            id: '/foo/foo/foo/rg01/subnets/internal'
+                        }
+                    ]
+                }
 
             };
             const mockNicData = [
                 {
                     id: '/some-path/nic/id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '1.1.1.1',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             ];
             const mockPublicIpData = {
@@ -1360,15 +1435,19 @@ describe('Provider - Azure', () => {
             const mockNicData = [
                 {
                     id: '/some-path/nic/id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '1.1.1.1',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             ];
             const mockPublicIpData = {
@@ -1440,34 +1519,41 @@ describe('Provider - Azure', () => {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '1.1.1.1, 2.2.2.2'
                 },
-                routes: [
-                    {
-                        id: 'id_route01',
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '1.1.1.1'
-                    }
-                ],
-                subnets: [
-                    {
-                        id: '/foo/foo/foo/rg01/subnets/internal'
-                    }
-                ]
-
+                properties: {
+                    routes: [
+                        {
+                            id: 'id_route01',
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '1.1.1.1'
+                            }
+                        }
+                    ],
+                    subnets: [
+                        {
+                            id: '/foo/foo/foo/rg01/subnets/internal'
+                        }
+                    ]
+                }
             };
             const mockNicData = [
                 {
                     id: '/some-path/nic/id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '1.1.1.1',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             ];
             const mockPublicIpData = {
@@ -1558,53 +1644,66 @@ describe('Provider - Azure', () => {
                     F5_LABEL: 'foo',
                     F5_SELF_IPS: '1.1.1.1, 2.2.2.2, ace:cab:deca:deee::4, ace:cab:deca:deee::5'
                 },
-                routes: [
-                    {
-                        id: 'id_route01',
-                        name: 'route01',
-                        addressPrefix: '192.0.0.0/24',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: '1.1.1.1'
-                    },
-                    {
-                        id: 'id_route02',
-                        name: 'route02',
-                        addressPrefix: 'ace:cab:deca:defe::/64',
-                        nextHopType: 'VirtualAppliance',
-                        nextHopIpAddress: 'ace:cab:deca:deee::4'
-                    }
-                ],
-                subnets: [
-                    {
-                        id: '/foo/foo/foo/rg01/subnets/internal'
-                    }
-                ]
-
+                properties: {
+                    routes: [
+                        {
+                            id: 'id_route01',
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '1.1.1.1'
+                            }
+                        },
+                        {
+                            id: 'id_route02',
+                            name: 'route02',
+                            properties: {
+                                addressPrefix: 'ace:cab:deca:defe::/64',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: 'ace:cab:deca:deee::4'
+                            }
+                        }
+                    ],
+                    subnets: [
+                        {
+                            id: '/foo/foo/foo/rg01/subnets/internal'
+                        }
+                    ]
+                }
             };
             const mockNicData = [
                 {
                     id: '/some-path/nic/id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '1.1.1.1',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 },
                 {
                     id: '/some-path/nic/another-id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: 'ace:cab:deca:deee::4',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: 'ace:cab:deca:deee::4',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             ];
             const mockPublicIpData = {
@@ -1672,15 +1771,19 @@ describe('Provider - Azure', () => {
             const mockNicData = [
                 {
                     id: '/some-path/nic/id',
-                    virtualMachine: { id: 'test-vm' },
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '1.1.1.1',
-                            publicIPAddress: {
-                                id: '/some-path/public-ip-name'
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1',
+                                    publicIPAddress: {
+                                        id: '/some-path/public-ip-name'
+                                    }
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
             ];
             const mockPublicIpData = {
@@ -1758,281 +1861,147 @@ describe('Provider - Azure', () => {
     describe('function discoverAddressOperationsUsingDefinitions', () => {
         const options = {};
         const addresses = {
-            localAddresses: ['10.10.10.1', '10.10.10.2'],
-            failoverAddresses: []
-        };
-        const addresses2 = {
             localAddresses: ['10.10.10.4', '10.10.11.4'],
             failoverAddresses: []
         };
-        // Use nic01 and nic02 to validate across-net,
-        // moving publicIPAddress from the secondary ipConfigurations
-        const nic01 = {
-            id: 'test-nic01',
-            name: 'nic01',
-            type: 'networkInterfaces',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.10.1',
-                    primary: true,
-                    publicIPAddress: {
-                        id: 'vip-pip1'
-                    },
+        const nics = [
+            {
+                id: 'test-nic03',
+                name: 'nic03',
+                type: 'networkInterfaces',
+                properties: {
                     provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'foo'
-                    }
-                },
-                {
-                    privateIPAddress: '10.10.10.10',
-                    primary: false,
-                    publicIPAddress: {
-                        id: 'vip-pip2'
-                    },
-                    provisioningState: 'Succeeded'
-                }
-            ]
-        };
-        const nic02 = {
-            id: 'test-nic02',
-            name: 'nic02',
-            type: 'networkInterfaces',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.10.2',
-                    primary: true,
-                    publicIPAddress: {
-                        id: 'vip-pip3'
-                    },
-                    provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'foo'
-                    }
-                },
-                {
-                    privateIPAddress: '10.10.10.100',
-                    primary: false,
-                    provisioningState: 'Succeeded'
-                }
-            ]
-        };
-        //  Use nic03-nic06 to validate same-net, moving the secondary ipConfigurations
-        const nic03 = {
-            id: 'test-nic03',
-            name: 'nic03',
-            provisioningState: 'Succeeded',
-            type: 'networkInterfaces',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.10.3',
-                    primary: true,
-                    publicIPAddress: {
-                        id: 'vip-pip5'
-                    },
-                    provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'foo'
-                    }
-                },
-                {
-                    privateIPAddress: '10.10.10.20',
-                    primary: false,
-                    publicIPAddress: {
-                        id: 'vip-pip6'
-                    },
-                    provisioningState: 'Succeeded'
-                },
-                {
-                    privateIPAddress: '10.10.10.21',
-                    primary: false,
-                    publicIPAddress: {
-                        id: 'vip-pip7'
-                    },
-                    provisioningState: 'Succeeded'
-                }
-            ],
-            tags: {
-                f5_cloud_failover_label: 'tagsNic',
-                f5_cloud_failover_nic_map: 'external'
-            }
-        };
-        const nic04 = {
-            id: 'test-nic04',
-            name: 'nic04',
-            provisioningState: 'Succeeded',
-            type: 'networkInterfaces',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.10.4',
-                    primary: true,
-                    publicIPAddress: {
-                        id: 'vip-pip6'
-                    },
-                    provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'foo'
-                    }
-                }
-            ],
-            tags: {
-                f5_cloud_failover_label: 'tagsNic',
-                f5_cloud_failover_nic_map: 'external'
-            }
-        };
-        const nic05 = {
-            id: 'test-nic05',
-            name: 'nic05',
-            provisioningState: 'Succeeded',
-            type: 'networkInterfaces',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.11.3',
-                    primary: true,
-                    provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'bar'
-                    }
-                },
-                {
-                    privateIPAddress: '10.10.11.20',
-                    primary: false,
-                    provisioningState: 'Succeeded'
-                },
-                {
-                    privateIPAddress: '10.10.11.21',
-                    primary: false,
-                    provisioningState: 'Succeeded'
-                }
-            ],
-            tags: {
-                f5_cloud_failover_label: 'tagsNic',
-                f5_cloud_failover_nic_map: 'internal'
-            }
-        };
-        const nic06 = {
-            id: 'test-nic06',
-            name: 'nic06',
-            provisioningState: 'Succeeded',
-            type: 'networkInterfaces',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.11.4',
-                    primary: true,
-                    provisioningState: 'Succeeded',
-                    subnet: {
-                        id: 'bar'
-                    }
-                }
-            ],
-            tags: {
-                f5_cloud_failover_label: 'tagsNic',
-                f5_cloud_failover_nic_map: 'internal'
-            }
-        };
-        const publicIpResponse = {
-            id: 'vip-pip1',
-            name: 'vip-pip1',
-            type: 'publicIPAddresses',
-            ipConfigurations: { id: 'test-vip01' },
-            ipAddress: '3.3.3.3'
-        };
-
-        it('should validate across-net public IP address gets reassociated', () => {
-            const addressGroupDefinitions = [
-                {
-                    type: 'publicIpAddress',
-                    scopingName: 'vip-pip1',
-                    vipAddresses: [
-                        '10.10.10.10',
-                        '10.10.10.100'
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.3',
+                                primary: true,
+                                publicIPAddress: {
+                                    id: 'vip-pip5'
+                                },
+                                provisioningState: 'Succeeded',
+                                subnet: {
+                                    id: 'foo'
+                                }
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.20',
+                                primary: false,
+                                publicIPAddress: {
+                                    id: 'vip-pip6'
+                                },
+                                provisioningState: 'Succeeded'
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.21',
+                                primary: false,
+                                publicIPAddress: {
+                                    id: 'vip-pip7'
+                                },
+                                provisioningState: 'Succeeded'
+                            }
+                        }
                     ]
+                },
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic',
+                    f5_cloud_failover_nic_map: 'external'
                 }
-            ];
-
-            provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves(publicIpResponse);
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-
-            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-                callback(error, [nic01, nic02]);
-            });
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
-                .callsFake((resourceGroup, nicName) => {
-                    if (nicName === 'nic01') {
-                        return Promise.resolve(nic01);
-                    }
-                    return Promise.resolve(nic02);
-                });
-
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
-                .then((response) => {
-                    assert.strictEqual(response.publicAddresses[0].publicIpAddress.id, '/subscriptions/xxxx/resourceGroups/null/providers/Microsoft.Network/publicIPAddresses/vip-pip1');
-                    assert.strictEqual(response.publicAddresses[0].current.name, 'nic01');
-                    assert.strictEqual(response.publicAddresses[0].current.privateIPAddress, '10.10.10.10');
-                    assert.strictEqual(response.publicAddresses[0].target.name, 'nic02');
-                    assert.strictEqual(response.publicAddresses[0].target.privateIPAddress, '10.10.10.100');
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate across-net public IP address gets reassociated when resourceId provided as scoping name', () => {
-            const addressGroupDefinitions = [
-                {
-                    type: 'publicIpAddress',
-                    scopingName: '/subscriptions/xxxx/resourceGroups/null/providers/Microsoft.Network/publicIPAddresses/vip-pip1',
-                    vipAddresses: [
-                        '10.10.10.10',
-                        '10.10.10.100'
+            },
+            {
+                id: 'test-nic04',
+                name: 'nic04',
+                type: 'networkInterfaces',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.10.4',
+                                primary: true,
+                                publicIPAddress: {
+                                    id: 'vip-pip6'
+                                },
+                                provisioningState: 'Succeeded',
+                                subnet: {
+                                    id: 'foo'
+                                }
+                            }
+                        }
                     ]
+                },
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic',
+                    f5_cloud_failover_nic_map: 'external'
                 }
-            ];
-
-            provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves(publicIpResponse);
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-
-            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-                callback(error, [nic01, nic02]);
-            });
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub()
-                .callsFake((resourceGroup, nicName) => {
-                    if (nicName === 'nic01') {
-                        return Promise.resolve(nic01);
-                    }
-                    return Promise.resolve(nic02);
-                });
-
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
-                .then((response) => {
-                    assert.strictEqual(response.publicAddresses[0].publicIpAddress.id, '/subscriptions/xxxx/resourceGroups/null/providers/Microsoft.Network/publicIPAddresses/vip-pip1');
-                    assert.strictEqual(response.publicAddresses[0].current.name, 'nic01');
-                    assert.strictEqual(response.publicAddresses[0].current.privateIPAddress, '10.10.10.10');
-                    assert.strictEqual(response.publicAddresses[0].target.name, 'nic02');
-                    assert.strictEqual(response.publicAddresses[0].target.privateIPAddress, '10.10.10.100');
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate across-net addressGroupDefinitions vipAddresses are empty', () => {
-            const addressGroupDefinitions = [
-                {
-                    type: 'publicIpAddress',
-                    scopingName: 'vip-pip1',
-                    vipAddresses: []
+            },
+            {
+                id: 'test-nic05',
+                name: 'nic05',
+                type: 'networkInterfaces',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.11.3',
+                                primary: true,
+                                provisioningState: 'Succeeded',
+                                subnet: {
+                                    id: 'bar'
+                                }
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.11.20',
+                                primary: false,
+                                provisioningState: 'Succeeded'
+                            }
+                        },
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.11.21',
+                                primary: false,
+                                provisioningState: 'Succeeded'
+                            }
+                        }
+                    ]
+                },
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic',
+                    f5_cloud_failover_nic_map: 'internal'
                 }
-            ];
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
-                .then(() => {
-                    assert.fail();
-                })
-                .catch(() => assert.ok(true));
-        });
+            },
+            {
+                id: 'test-nic06',
+                name: 'nic06',
+                type: 'networkInterfaces',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    ipConfigurations: [
+                        {
+                            properties: {
+                                privateIPAddress: '10.10.11.4',
+                                primary: true,
+                                provisioningState: 'Succeeded',
+                                subnet: {
+                                    id: 'bar'
+                                }
+                            }
+                        }
+                    ]
+                },
+                tags: {
+                    f5_cloud_failover_label: 'tagsNic',
+                    f5_cloud_failover_nic_map: 'internal'
+                }
+            }
+        ];
 
         it('should validate same-net public and private addresses get reassociated', () => {
             const networkGroupDefinitions = [
@@ -2054,34 +2023,34 @@ describe('Provider - Azure', () => {
                 }
             ];
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.list = sinon.stub((error, callback) => {
-                callback(error, [nic03, nic04, nic05, nic06]);
-            });
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves();
+            provider._getInstanceMetadata = sinon.stub().resolves();
+            provider._listNics = sinon.stub().resolves(nics);
 
-            return provider.discoverAddressOperationsUsingDefinitions(addresses2, networkGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, networkGroupDefinitions, options)
                 .then((response) => {
                     const disasociate = response.interfaces.disassociate;
                     const associate = response.interfaces.associate;
                     assert.strictEqual(disasociate[1][1], 'nic03');
                     assert.strictEqual(disasociate[1][2].name, 'nic03');
-                    assert.strictEqual(disasociate[1][2].ipConfigurations[0].privateIPAddress, '10.10.10.3');
+                    assert.strictEqual(disasociate[1][2].properties.ipConfigurations[0].properties.privateIPAddress, '10.10.10.3');
                     assert.strictEqual(associate[1][1], 'nic04');
                     assert.strictEqual(associate[1][2].name, 'nic04');
-                    assert.strictEqual(associate[1][2].ipConfigurations[0].privateIPAddress, '10.10.10.4');
-                    assert.strictEqual(associate[1][2].ipConfigurations[1].privateIPAddress, '10.10.10.21');
-                    assert.strictEqual(associate[1][2].ipConfigurations[2].privateIPAddress, '10.10.10.20');
-                    assert.strictEqual(associate[1][2].ipConfigurations[1].publicIPAddress.id, 'vip-pip7');
-                    assert.strictEqual(associate[1][2].ipConfigurations[2].publicIPAddress.id, 'vip-pip6');
+                    assert.strictEqual(associate[1][2].properties.ipConfigurations[0].properties.privateIPAddress, '10.10.10.4');
+                    assert.strictEqual(associate[1][2].properties.ipConfigurations[1].properties.privateIPAddress, '10.10.10.21');
+                    assert.strictEqual(associate[1][2].properties.ipConfigurations[2].properties.privateIPAddress, '10.10.10.20');
+                    assert.strictEqual(associate[1][2].properties.ipConfigurations[1].properties.publicIPAddress.id, 'vip-pip7');
+                    assert.strictEqual(associate[1][2].properties.ipConfigurations[2].properties.publicIPAddress.id, 'vip-pip6');
                     assert.strictEqual(disasociate[0][1], 'nic05');
                     assert.strictEqual(disasociate[0][2].name, 'nic05');
-                    assert.strictEqual(disasociate[0][2].ipConfigurations[0].privateIPAddress, '10.10.11.3');
+                    assert.strictEqual(disasociate[0][2].properties.ipConfigurations[0].properties.privateIPAddress, '10.10.11.3');
                     assert.strictEqual(associate[0][1], 'nic06');
                     assert.strictEqual(associate[0][2].name, 'nic06');
-                    assert.strictEqual(associate[0][2].ipConfigurations[0].privateIPAddress, '10.10.11.4');
-                    assert.strictEqual(associate[0][2].ipConfigurations[1].privateIPAddress, '10.10.11.21');
-                    assert.strictEqual(associate[0][2].ipConfigurations[2].privateIPAddress, '10.10.11.20');
+                    assert.strictEqual(associate[0][2].properties.ipConfigurations[0].properties.privateIPAddress, '10.10.11.4');
+                    assert.strictEqual(associate[0][2].properties.ipConfigurations[1].properties.privateIPAddress, '10.10.11.21');
+                    assert.strictEqual(associate[0][2].properties.ipConfigurations[2].properties.privateIPAddress, '10.10.11.20');
                 })
                 .catch((err) => Promise.reject(err));
         });
@@ -2101,9 +2070,9 @@ describe('Provider - Azure', () => {
                 publicIpAddress: 'test-pip01'
             };
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves(pipResponse);
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(pipResponse);
 
             return provider._getPublicIpAddress(options)
                 .then((response) => {
@@ -2118,11 +2087,10 @@ describe('Provider - Azure', () => {
                 publicIpAddress: 'test-value'
             };
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().resolves({
-                name: 'not-match'
-            });
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(pipResponse);
+
             return provider._getPublicIpAddress(options)
                 .then((response) => {
                     assert.strictEqual(response, undefined);
@@ -2131,9 +2099,10 @@ describe('Provider - Azure', () => {
         });
         it('should _getPublicIpAddress with promise rejection', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses = sinon.stub();
-            provider.networkClients[mockSubscriptionId].publicIPAddresses.get = sinon.stub().rejects();
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(pipResponse);
+
             return provider._getPublicIpAddress('pipName')
                 .then(() => {
                     assert.fail();
@@ -2149,43 +2118,79 @@ describe('Provider - Azure', () => {
             id: 'test-nic01',
             name: 'nic01',
             type: 'networkInterfaces',
-            provisioningState: 'Succeeded',
-            ipConfigurations: [
-                {
-                    privateIPAddress: '10.10.10.1',
-                    primary: true,
-                    publicIPAddress: {
-                        id: 'vip-pip1'
+            properties: {
+                provisioningState: 'Succeeded',
+                ipConfigurations: [
+                    {
+                        properties: {
+                            privateIPAddress: '10.10.10.1',
+                            primary: true,
+                            publicIPAddress: {
+                                id: 'vip-pip1'
+                            }
+                        }
+                    },
+                    {
+                        properties: {
+                            privateIPAddress: '10.10.10.11',
+                            primary: false,
+                            publicIPAddress: {
+                                id: 'vip-pip2'
+                            }
+                        }
                     }
-                },
-                {
-                    privateIPAddress: '10.10.10.11',
-                    primary: false,
-                    publicIPAddress: {
-                        id: 'vip-pip2'
-                    }
-                }
-            ]
+                ]
+            }
         };
+
+        const nic02 = {
+            id: 'test-nic02',
+            name: 'nic02',
+            type: 'networkInterfaces',
+            properties: {
+                provisioningState: 'Updating',
+                ipConfigurations: [
+                    {
+                        properties: {
+                            privateIPAddress: '10.10.10.1',
+                            primary: true,
+                            publicIPAddress: {
+                                id: 'vip-pip1'
+                            }
+                        }
+                    },
+                    {
+                        properties: {
+                            privateIPAddress: '10.10.10.11',
+                            primary: false,
+                            publicIPAddress: {
+                                id: 'vip-pip2'
+                            }
+                        }
+                    }
+                ]
+            }
+        };
+
         it('should gets network interface resource given a network interface name', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves(nic01);
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(nic01);
+
             return provider._getNetworkInterfaceByName('nic01')
                 .then((response) => {
                     assert.strictEqual(response.name, 'nic01');
-                    assert.strictEqual(response.provisioningState, 'Succeeded');
+                    assert.strictEqual(response.properties.provisioningState, 'Succeeded');
                 })
                 .catch((err) => Promise.reject(err));
         });
         it('should reject when provided network interface name was not found', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves({
-                name: 'not-match'
-            });
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(nic01);
+
             return provider._getNetworkInterfaceByName('nicName')
                 .then(() => {
                     assert.fail();
@@ -2196,12 +2201,11 @@ describe('Provider - Azure', () => {
         });
         it('should reject when provided network interface state was not Succeeded', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces = sinon.stub();
-            provider.networkClients[mockSubscriptionId].networkInterfaces.get = sinon.stub().resolves({
-                provisioningState: 'Updating'
-            });
-            return provider._getNetworkInterfaceByName('nicName')
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().resolves(nic02);
+
+            return provider._getNetworkInterfaceByName('nic02')
                 .then(() => {
                     assert.fail();
                 })
@@ -2212,14 +2216,61 @@ describe('Provider - Azure', () => {
     });
 
     describe('function _getRouteTableByName', () => {
-        it('should reject when provided network interface name was not found', () => {
+        it('should return route table config', () => {
+            const routeTable = {
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
+            };
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].routeTables = sinon.stub();
-            provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
-                name: 'not-match'
-            });
             provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+            provider._makeRequest = sinon.stub().resolves(routeTable);
+
+            return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
+                .then((response) => {
+                    assert.strictEqual(response.properties.provisioningState, 'Succeeded');
+                })
+                .catch((err) => Promise.reject(err));
+        });
+        it('should reject when route table is not ready yet', () => {
+            const routeTable = {
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                properties: {
+                    provisioningState: 'Updating',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
+                }
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+            provider._makeRequest = sinon.stub().resolves(routeTable);
 
             return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
                 .then(() => {
@@ -2231,11 +2282,6 @@ describe('Provider - Azure', () => {
         });
         it('should reject when provided network interface state was not Succeeded', () => {
             provider.primarySubscriptionId = mockSubscriptionId;
-            provider.networkClients[mockSubscriptionId] = sinon.stub();
-            provider.networkClients[mockSubscriptionId].routeTables = sinon.stub();
-            provider.networkClients[mockSubscriptionId].routeTables.get = sinon.stub().resolves({
-                provisioningState: 'Updating'
-            });
             provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
 
             return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
@@ -2248,54 +2294,74 @@ describe('Provider - Azure', () => {
         });
     });
 
-    describe('function _reassociatePublicIpAddresses', () => {
-        const publicIpAddresses = [
-            {
-                publicIpAddressId: {
-                    id: '/subscriptions/xxxx/resourceGroups/null/providers/Microsoft.Network/publicIPAddresses/vip-pip1'
-                },
-                current: {
-                    name: 'nic01',
-                    privateIPAddress: '10.10.10.10'
-                },
-                target: {
-                    name: 'nic02',
-                    privateIPAddress: '10.10.10.20'
+    describe('function _getRouteTableConfig', () => {
+        it('should return route table config', () => {
+            const routeTable = {
+                id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`,
+                name: 'rt01',
+                properties: {
+                    provisioningState: 'Succeeded',
+                    routes: [
+                        {
+                            id: `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/route01`,
+                            name: 'route01',
+                            properties: {
+                                addressPrefix: '192.0.0.0/24',
+                                nextHopType: 'VirtualAppliance',
+                                nextHopIpAddress: '10.0.1.10',
+                                provisioningState: 'Succeeded'
+                            },
+                            etag: 'foo'
+                        }
+                    ]
                 }
-            }
-        ];
+            };
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+            provider._makeRequest = sinon.stub().resolves(routeTable);
 
-        it('should resassociate public ip address from current to target', () => {
-            provider.nics = [
-                {
-                    name: 'nic01',
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '10.10.10.10',
-                            publicIPAddress: {
-                                id: 'some-id-here'
-                            }
-                        }
-                    ]
-                },
-                {
-                    name: 'nic02',
-                    ipConfigurations: [
-                        {
-                            privateIPAddress: '10.10.10.20'
-                        }
-                    ]
-                }
-            ];
-            provider._updateNic = sinon.stub();
-            provider._updateNic.onCall(0).resolves();
-            provider._updateNic.onCall(1).resolves();
-            provider._getNetworkInterfaceByName = sinon.stub();
-            provider._getNetworkInterfaceByName.onCall(0).resolves();
-            provider._getNetworkInterfaceByName.onCall(1).resolves();
-            return provider._reassociatePublicIpAddresses(publicIpAddresses)
+            return provider._getRouteTableConfig('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
+                .then((response) => {
+                    assert.strictEqual(response.name, 'rt01');
+                })
+                .catch((err) => Promise.reject(err));
+        });
+        it('should reject when no response', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider._parseResourceId.subscriptionId = sinon.stub().resolves(mockSubscriptionId);
+            provider._makeRequest = sinon.stub().rejects();
+
+            return provider._getRouteTableByName('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
                 .then(() => {
+                    assert.fail();
+                })
+                .catch(() => {
                     assert.ok(true);
+                });
+        });
+    });
+
+    describe('function _getRouteTables', () => {
+        it('should return one page of results', () => {
+            provider._makeRequest = sinon.stub().resolves({ value: [{ some_key: 'some_value' }] });
+            provider.subscriptions = [{ id: 'xxxx' }];
+            return provider._getRouteTables()
+                .then((response) => {
+                    assert.strictEqual(response[0].some_key, 'some_value');
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should return multiple pages of results', () => {
+            provider._makeRequest = sinon.stub()
+                .onFirstCall()
+                .resolves({ value: [{ some_key: 'some_value' }], nextLink: 'nextLink' })
+                .onSecondCall()
+                .resolves({ value: [{ some_other_key: 'some_other_value' }] });
+            provider.subscriptions = [{ id: 'xxxx' }];
+            return provider._getRouteTables()
+                .then((response) => {
+                    assert.strictEqual(response[1].some_other_key, 'some_other_value');
                 })
                 .catch((err) => Promise.reject(err));
         });

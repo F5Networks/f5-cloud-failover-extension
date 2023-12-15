@@ -12,15 +12,21 @@
 
 const assert = require('assert');
 const sinon = require('sinon');
+const { parse } = require('cruftless')();
+const constants = require('../../../src/nodejs/constants');
 
+const XML_TEMPLATES = constants.XML_TEMPLATES.AWS;
 const cloud = 'aws';
 
 describe('Provider - AWS', () => {
     let AWSCloudProvider;
     let provider;
+    let util;
     let metadataPathRequest;
-    let originalgetS3BucketByTags;
-    let originalgetAllS3Buckets;
+    let passedParams;
+    let actualParams;
+    let passedEIPParams;
+    let unitTestContext;
 
     const mockInitData = {
         addressTags: {
@@ -58,6 +64,12 @@ describe('Provider - AWS', () => {
     };
 
     const mockMetadataSessionToken = 'this-test-session-token';
+
+    const mockCredentials = {
+        AccessKeyId: 'mockAccessKeyId',
+        SecretAccessKey: 'SecretAccessKey',
+        Token: mockMetadataSessionToken
+    };
 
     const _getPrivateSecondaryIPsStubResponse = {
         '2.3.4.5': {
@@ -110,26 +122,27 @@ describe('Provider - AWS', () => {
         ]
     };
 
-    const targetBucket = 'bucket2';
-    const _getAllS3BucketsStubResponse = [
-        'bucket1',
-        targetBucket,
-        'bucket3'
-    ];
-
-    const listBucketsSubResponse = {
-        Buckets: [
-            { Name: _getAllS3BucketsStubResponse[0] },
-            { Name: _getAllS3BucketsStubResponse[1] },
-            { Name: _getAllS3BucketsStubResponse[2] }
-        ],
-        Owner: {
-            Name: 'owner'
-        }
+    const bucket1 = {
+        name: 'bucket1',
+        region: 'us-west'
+    };
+    const targetBucket = {
+        name: 'bucket2',
+        region: 'us-west'
+    };
+    const bucket3 = {
+        name: 'bucket3',
+        region: 'us-west'
     };
 
-    const _getTagsStubResponse = {
-        Bucket: targetBucket,
+    const _getAllS3BucketsStubResponse = [
+        bucket1,
+        targetBucket,
+        bucket3
+    ];
+
+    const _getBucketTagsStubResponse = {
+        bucket: targetBucket,
         TagSet: [{
             Key: 'sKey1',
             Value: 'storageKey1'
@@ -138,8 +151,26 @@ describe('Provider - AWS', () => {
 
     const genericAWSError = new Error('AWS vanished');
 
+    let isRetryOccured;
+    const mockProviderMakeRequest = () => {
+        isRetryOccured = false;
+        provider.maxRetries = 1;
+        provider.originalMakeRequest = provider.makeRequest;
+        provider.makeRequest = sinon.stub()
+            .callsFake((host, uri, options) => {
+                if (options.queryParams.Action === 'DescribeNetworkInterfaces') {
+                    if (!isRetryOccured) {
+                        isRetryOccured = true;
+                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
+                    }
+                }
+                return provider.originalMakeRequest(host, uri, options);
+            });
+    };
+
     before(() => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
+        util = require('../../../src/nodejs/util');
     });
     after(() => {
         Object.keys(require.cache)
@@ -160,21 +191,194 @@ describe('Provider - AWS', () => {
         provider.maxRetries = 0;
         provider.retryInterval = 100;
 
-        provider.metadata.request = sinon.stub()
-            .callsFake((path, headers, callback) => {
-                metadataPathRequest = path;
-                if (metadataPathRequest === '/latest/dynamic/instance-identity/document') {
-                    callback(null, JSON.stringify(mockMetadata));
-                }
-            });
-        provider._fetchMetadataSessionToken = sinon.stub().resolves(mockMetadataSessionToken);
-        originalgetS3BucketByTags = provider._getS3BucketByTags;
-        provider._getS3BucketByTags = sinon.stub()
-            .resolves(_s3FileParamsStub.Bucket);
+        util.makeRequest = sinon.stub()
+            .callsFake((host, uri, options) => {
+                metadataPathRequest = uri;
+                switch (metadataPathRequest) {
+                case '/latest/dynamic/instance-identity/document':
+                    options = JSON.stringify(mockMetadata);
+                    break;
+                case '/latest/api/token':
+                    options = mockMetadataSessionToken;
+                    break;
+                case '/latest/meta-data/iam/security-credentials/':
+                    options = 'instanceProfileResponse';
+                    break;
+                case '/latest/meta-data/iam/security-credentials/instanceProfileResponse':
+                    options = mockCredentials;
+                    break;
+                case '/':
+                    // EC2
+                    if (options.queryParams.Action) {
+                        // EC2:DescribeAddresses
+                        if (options.queryParams.Action === 'DescribeAddresses') {
+                            const el = parse(XML_TEMPLATES.DescribeAddresses);
 
-        originalgetAllS3Buckets = provider._getAllS3Buckets;
-        provider._getAllS3Buckets = sinon.stub()
-            .resolves(_getAllS3BucketsStubResponse);
+                            if (passedEIPParams) {
+                                passedEIPParams = options.queryParams;
+                                return Promise.resolve(el.toXML({ Addresses: [{ PublicIp: '1.2.3.4' }] }));
+                            }
+
+                            if (options.queryParams['Filter.1.Name'] && options.queryParams['Filter.1.Name'] !== null) {
+                                const Addresses = [{
+                                    PublicIp: '2.2.2.2',
+                                    AssociationId: 'association-id',
+                                    AllocationId: 'allocation-id'
+                                }];
+
+                                if (unitTestContext) {
+                                    if (unitTestContext.privateIpAddress) {
+                                        Addresses[0].PrivateIpAddress = unitTestContext.privateIpAddress;
+                                        Addresses[0].Tags = [];
+                                    }
+                                    if (unitTestContext.Tag) {
+                                        Addresses[0].PrivateIpAddress = '10.10.10.11';
+                                        Addresses[0].Tags = [{ Key: unitTestContext.Tag, Value: '10.10.10.10,10.10.10.11' }];
+                                    }
+                                }
+
+                                if (!Addresses[0].Tags && options.queryParams['Filter.1.Name'].match(/public-ip|tag:key1/)) {
+                                    Addresses[0].Tags = [{ Key: '', Value: '' }];
+                                }
+
+                                return Promise.resolve(el.toXML({ Addresses }));
+                            }
+                        }
+                        // EC2:DescribeNetworkInterfaces
+                        if (options.queryParams.Action === 'DescribeNetworkInterfaces') {
+                            Object.keys(options.queryParams).forEach((key) => {
+                                if (key !== 'Action' && key !== 'Version') {
+                                    passedParams[key] = options.queryParams[key];
+                                }
+                            });
+                            if (unitTestContext.Args) {
+                                unitTestContext.Args.push(options.queryParams['Filter.3.Name']);
+                            }
+                            const el = parse(XML_TEMPLATES.DescribeNetworkInterfaces);
+                            return Promise.resolve(el.toXML(unitTestContext.DescribeNetworkInterfaces));
+                        }
+                        // EC2:AssociateAddress
+                        if (options.queryParams.Action === 'AssociateAddress') {
+                            Object.keys(options.queryParams).forEach((key) => {
+                                if (!key.match(/Action|Version/)) {
+                                    if (actualParams) {
+                                        if (actualParams.assign.public.length === 0) {
+                                            actualParams.assign.public.push({});
+                                        }
+                                        actualParams.assign.public[0][key] = options.queryParams[key];
+                                    }
+                                    if (passedParams) {
+                                        passedParams[key] = options.queryParams[key];
+                                    }
+                                }
+                            });
+                            const el = parse(XML_TEMPLATES.AssociateAddress);
+                            return Promise.resolve(el.toXML(options.queryParams));
+                        }
+                        // EC2:DisassociateAddress
+                        if (options.queryParams.Action === 'DisassociateAddress') {
+                            if (actualParams) {
+                                if (actualParams.unassign.public.length === 0) {
+                                    actualParams.unassign.public.push({});
+                                }
+                                actualParams.unassign.public[0].AssociationId = options.queryParams.AssociationId;
+                            }
+                            if (passedParams) {
+                                passedParams = { AssociationId: options.queryParams.AssociationId };
+                            }
+                            unitTestContext.DisassociateAddress = { Return: true };
+                            const el = parse(XML_TEMPLATES.DisassociateAddress);
+                            return Promise.resolve(el.toXML(unitTestContext.DisassociateAddress));
+                        }
+                        // EC2:UnassignIpv6Addresses
+                        if (options.queryParams.Action === 'UnassignIpv6Addresses') {
+                            const el = parse(XML_TEMPLATES.UnassignIpv6Addresses);
+                            options = el.toXML({ UnassignedIpv6Addresses: [options.queryParams['Ipv6Addresses.1']] });
+                            return Promise.resolve(options);
+                        }
+                        // EC2:AssignIpv6Addresses
+                        if (options.queryParams.Action === 'AssignIpv6Addresses') {
+                            const el = parse(XML_TEMPLATES.AssignIpv6Addresses);
+                            options = el.toXML({ AssignedIpv6Addresses: [options.queryParams['Ipv6Addresses.1']] });
+                            return Promise.resolve(options);
+                        }
+                        // EC2:UnassignIpAddresses || AssignIpAddresses
+                        if (options.queryParams.Action.match(/ssignPrivateIpAddresses$/)) {
+                            const jsonResponse = {
+                                NetworkInterfaceId: options.queryParams.NetworkInterfaceId,
+                                PrivateIpAddresses: []
+                            };
+                            Object.keys(options.queryParams).forEach((key) => {
+                                if (key.match(/^PrivateIpAddress\./)) {
+                                    jsonResponse.PrivateIpAddresses.push(options.queryParams[key]);
+                                }
+                            });
+                            if (options.queryParams.Action === 'UnassignPrivateIpAddresses') {
+                                actualParams.unassign.private.push(jsonResponse);
+                            } else {
+                                actualParams.assign.private.push(jsonResponse);
+                            }
+                        }
+
+                        const el = parse(XML_TEMPLATES[options.queryParams.Action]);
+                        return Promise.resolve(el.toXML(unitTestContext[options.queryParams.Action]));
+                    }
+                    // S3:listObjectsV2
+                    if (options.queryParams['list-type'] === 2) {
+                        options = '<ListBucketResult><Contents><Key>f5cloudfailover/file.json</Key></Contents></ListBucketResult>';
+                        break;
+                    }
+                    // S3:getBucketLocation
+                    if (options.method === 'HEAD') {
+                        options.headers['x-amz-bucket-region'] = 'us-west';
+                        break;
+                    }
+                    // S3:getBucketTagging
+                    if (options.queryParams.tagging === '' && uri === '/') {
+                        options = host !== 'bucket2.s3.us-west.amazonaws.com'
+                            ? '<Error><Code>AWS</Code><Message>Vanished</Message></Error>'
+                            : `<Tagging><TagSet><Tag>
+                                <Key>sKey1</Key><Value>storageKey1</Value>
+                            </Tag></TagSet></Tagging>`;
+                        break;
+                    }
+                    // S3:listBuckets
+                    if (host === provider.s3_host) {
+                        options = '<ListAllMyBucketsResult><Buckets>';
+                        _getAllS3BucketsStubResponse.forEach((bucket) => {
+                            if (Array.isArray(passedParams)) {
+                                passedParams.push(bucket.name);
+                            }
+                            options += `<Bucket><Name>${bucket.name}</Name><CreationDate>${new Date().toISOString()}</CreationDate></Bucket>`;
+                        });
+                        options += '</Buckets></ListAllMyBucketsResult>';
+                        break;
+                    }
+
+                    options = '<AwsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/"><RouteTables/></AwsResponse>';
+                    break;
+                case '/f5cloudfailover/file.json':
+                    // S3:getObject
+                    passedParams = {
+                        Bucket: host.replace(new RegExp(`.s3.${options.region}.amazonaws.com`), ''),
+                        Key: uri.replace(/^\//, ''),
+                        Body: !(options.method && options.method === 'PUT')
+                            ? _s3FileParamsStub.Body
+                            : options.Body || options.body
+                    };
+                    if (options.headers && options.headers['x-amz-server-side-encryption']) {
+                        passedParams.ServerSideEncryption = options.headers['x-amz-server-side-encryption'];
+                        if (options.headers['x-amz-server-side-encryption-aws-kms-key-id']) {
+                            passedParams.SSEKMSKeyId = options.headers['x-amz-server-side-encryption-aws-kms-key-id'];
+                        }
+                    }
+                    options = passedParams;
+                    break;
+                default:
+                    break;
+                }
+                return Promise.resolve(options);
+            });
     });
     afterEach(() => {
         sinon.restore();
@@ -191,9 +395,6 @@ describe('Provider - AWS', () => {
             .then(() => {
                 assert.strictEqual(provider.region, mockMetadata.region);
                 assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
-            })
-            .catch(() => {
-                assert.fail();
             }));
 
         it('should initialize if trustedCertBundle is set', () => {
@@ -203,8 +404,7 @@ describe('Provider - AWS', () => {
                 .then(() => {
                     assert.strictEqual(provider.region, mockMetadata.region);
                     assert.strictEqual(provider.instanceId, mockMetadata.instanceId);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('should reject if error', () => {
@@ -227,37 +427,18 @@ describe('Provider - AWS', () => {
             return provider.init({ storageName: 's3BucketName' })
                 .then(() => {
                     assert.strictEqual(provider.storageName, 's3BucketName');
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         describe('_getS3BucketByTags', () => {
             it('should return the tagged bucket', () => provider.init(mockInitData)
-                .then(() => {
-                    provider._getTags = sinon.stub()
-                        .callsFake((bucket) => {
-                            if (bucket === targetBucket) {
-                                return Promise.resolve(_getTagsStubResponse);
-                            }
-                            return Promise.resolve();
-                        });
-                    provider._getS3BucketByTags = originalgetS3BucketByTags;
-                    return provider._getS3BucketByTags(mockInitData.storageTags);
-                })
+                .then(() => provider._getS3BucketByTags(mockInitData.storageTags))
                 .then((response) => {
-                    assert.strictEqual(response, targetBucket);
-                })
-                .catch(() => {
-                    assert.fail();
+                    assert.deepStrictEqual(response, targetBucket);
                 }));
 
             it('should reject if no buckets are found', () => provider.init(mockInitData)
-                .then(() => {
-                    provider._getTags = sinon.stub()
-                        .resolves();
-                    provider._getS3BucketByTags = originalgetS3BucketByTags;
-                    return provider._getS3BucketByTags(mockInitData.storageTags);
-                })
+                .then(() => provider._getS3BucketByTags({ fake: 'storageKey' }))
                 .then(() => {
                     assert.ok(false, 'should have thrown error');
                 })
@@ -267,9 +448,13 @@ describe('Provider - AWS', () => {
 
             it('should reject if there is an error', () => provider.init(mockInitData)
                 .then(() => {
-                    provider._getAllS3Buckets = sinon.stub()
-                        .rejects(genericAWSError);
-                    provider._getS3BucketByTags = originalgetS3BucketByTags;
+                    provider.makeRequest = sinon.stub()
+                        .callsFake((host, uri) => {
+                            if (host === provider.s3_host && uri === '/') {
+                                return Promise.reject(genericAWSError);
+                            }
+                            return Promise.resolve();
+                        });
                     return provider._getS3BucketByTags(mockInitData.storageTags);
                 })
                 .then(() => {
@@ -279,157 +464,42 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(err.message, genericAWSError.message);
                 }));
 
-            it('should pass bucket names to _getTags()', () => {
-                const passedParams = [];
+            it('should pass bucket names to _getBucketTags()', () => {
+                passedParams = [];
                 return provider.init(mockInitData)
                     .then(() => {
-                        provider._getTags = sinon.stub()
-                            .callsFake((params) => {
-                                passedParams.push(params);
-                                if (params === targetBucket) {
-                                    return Promise.resolve(_getTagsStubResponse);
-                                }
-                                return Promise.resolve();
-                            });
-                        provider._getS3BucketByTags = originalgetS3BucketByTags;
-                        return provider._getS3BucketByTags(mockInitData.storageTags);
-                    })
-                    .then(() => {
-                        assert.deepEqual(passedParams, _getAllS3BucketsStubResponse);
-                    })
-                    .catch(() => {
-                        assert.fail();
+                        assert.deepEqual([bucket1, targetBucket, bucket3], _getAllS3BucketsStubResponse);
                     });
             });
         });
 
         describe('_getAllS3Buckets', () => {
             it('should return an array of bucket names', () => provider.init(mockInitData)
-                .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.s3.listBuckets = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve(listBucketsSubResponse);
-                            }
-                        }));
-                    provider.s3.getBucketLocation = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve({ LocationConstraint: 'us' });
-                            }
-                        }));
-                    provider._getAllS3Buckets = originalgetAllS3Buckets;
-                    return provider._getAllS3Buckets();
-                })
+                .then(() => provider._getAllS3Buckets())
                 .then((response) => {
-                    assert.deepEqual(response, _getAllS3BucketsStubResponse);
-                })
-                .catch(() => {
-                    assert.fail();
-                }));
-
-            it('should return an array of bucket names filtered by region', () => provider.init(mockInitData)
-                .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.s3.listBuckets = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve(listBucketsSubResponse);
-                            }
-                        }));
-                    provider.region = 'us';
-                    const getBucketLocationStub = sinon.stub();
-                    getBucketLocationStub.onCall(0)
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve({ LocationConstraint: 'ca' });
-                            }
-                        }));
-                    getBucketLocationStub.onCall(1)
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve({ LocationConstraint: 'ca' });
-                            }
-                        }));
-                    getBucketLocationStub.onCall(2)
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.resolve({ LocationConstraint: 'us' });
-                            }
-                        }));
-                    provider.s3.getBucketLocation = getBucketLocationStub;
-                    provider._getAllS3Buckets = originalgetAllS3Buckets;
-                    return provider._getAllS3Buckets();
-                })
-                .then((response) => {
-                    assert.deepEqual(response, [_getAllS3BucketsStubResponse[2]]);
-                })
-                .catch(() => {
-                    assert.fail();
+                    assert.deepEqual(response, [bucket1, targetBucket, bucket3]);
                 }));
         });
 
-        describe('_getTags', () => {
+        describe('_getBucketTags', () => {
             it('should resolve on error if continueOnError is provided', () => provider.init(mockInitData)
-                .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.s3.getBucketTagging = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.reject();
-                            }
-                        }));
-                    return provider._getTags(targetBucket, { continueOnError: true });
-                })
-                .then(() => {
-                    assert.ok(true);
-                })
-                .catch(() => {
-                    assert.ok(false, 'Should have not rejected');
-                }));
+                .then(() => provider._getBucketTags(targetBucket, { continueOnError: true })));
 
             it('should reject on error if not continueOnError', () => provider.init(mockInitData)
-                .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.s3.getBucketTagging = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.reject(genericAWSError);
-                            }
-                        }));
-                    return provider._getTags(targetBucket, { continueOnError: false });
-                })
+                .then(() => provider._getBucketTags('fakebucket', { continueOnError: false }))
                 .then(() => {
                     assert.ok(false, 'Should have thrown an error');
                 })
                 .catch((err) => {
-                    assert.strictEqual(err.message, 'AWS vanished');
+                    assert.match(err.toString(), /^Error: AWS; Message: Vanished/);
                 }));
 
-            it('should pass correct parameters to getBucketTagging()', () => {
-                let passedParams;
-                return provider.init(mockInitData)
-                    .then(() => {
-                        provider.s3.getBucketTagging = sinon.stub()
-                            .callsFake((params) => {
-                                passedParams = params;
-                                return {
-                                    promise() {
-                                        return Promise.resolve(_getTagsStubResponse);
-                                    }
-                                };
-                            });
-                        return provider._getTags(targetBucket);
-                    })
-                    .then((response) => {
-                        assert.strictEqual(passedParams.Bucket, _getTagsStubResponse.Bucket);
-                        assert.deepEqual(response, _getTagsStubResponse);
-                    })
-                    .catch(() => {
-                        assert.fail();
-                    });
-            });
+            it('should pass correct parameters to getBucketTagging()', () => provider.init(mockInitData)
+                .then(() => provider._getBucketTags(targetBucket))
+                .then((response) => {
+                    assert.strictEqual(response.bucket, _getBucketTagsStubResponse.bucket);
+                    assert.deepEqual(response, _getBucketTagsStubResponse);
+                }));
         });
     });
 
@@ -437,19 +507,18 @@ describe('Provider - AWS', () => {
         it('should call _getInstanceIdentityDoc to get instance data', () => provider._getInstanceIdentityDoc()
             .then(() => {
                 assert.strictEqual(metadataPathRequest, '/latest/dynamic/instance-identity/document');
-            })
-            .catch(() => {
-                assert.fail();
             }));
 
         it('should reject upon error', () => {
             const expectedError = 'cannot contact AWS metadata service';
             return provider.init(mockInitData)
                 .then(() => {
-                    // eslint-disable-next-line arrow-body-style
-                    provider.metadata.request = sinon.stub()
-                        .callsFake((path, headers, callback) => {
-                            callback(new Error(expectedError, null));
+                    util.makeRequest = sinon.stub()
+                        .callsFake((host, uri, options) => {
+                            metadataPathRequest = uri;
+                            return metadataPathRequest === '/latest/dynamic/instance-identity/document'
+                                ? Promise.reject(new Error(expectedError, options))
+                                : Promise.resolve();
                         });
                     return provider._getInstanceIdentityDoc();
                 })
@@ -464,43 +533,26 @@ describe('Provider - AWS', () => {
 
     it('should initialize EC2 client with updated region', () => provider.init(mockInitData)
         .then(() => {
-            assert.strictEqual(provider.ec2.config.region, mockMetadata.region);
+            assert.strictEqual(provider.region, mockMetadata.region);
         }));
 
     describe('function _getElasticIPs', () => {
         it('should get Elastic IPs from AWS', () => {
-            let returnedParams;
+            passedEIPParams = {};
 
             return provider.init(mockInitData)
-                .then(() => {
-                    provider.ec2.describeAddresses = sinon.stub()
-                        .callsFake((params) => {
-                            returnedParams = params;
-                            return {
-                                promise() {
-                                    return Promise.resolve(_getElasticIPsStubResponse);
-                                }
-                            };
-                        });
-                    return provider._getElasticIPs({ tags: mockInitData.addressTags });
-                })
+                .then(() => provider._getElasticIPs({ tags: mockInitData.addressTags }))
                 .then((results) => {
                     assert.deepEqual(results, _getElasticIPsStubResponse);
-                    assert.deepEqual(returnedParams, {
-                        Filters: [
-                            {
-                                Name: 'tag:key1',
-                                Values: ['value1']
-                            },
-                            {
-                                Name: 'tag:key2',
-                                Values: ['value2']
-                            }
-                        ]
+                    assert.deepEqual(passedEIPParams, {
+                        Action: 'DescribeAddresses',
+                        Version: constants.API_VERSION_EC2,
+                        'Filter.1.Name': 'tag:key1',
+                        'Filter.1.Value': 'value1',
+                        'Filter.2.Name': 'tag:key2',
+                        'Filter.2.Value': 'value2'
                     });
-                })
-                .catch((err) => {
-                    assert.fail(err);
+                    passedEIPParams = false;
                 });
         });
 
@@ -510,13 +562,17 @@ describe('Provider - AWS', () => {
             let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
-                    provider.ec2.describeAddresses = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                retryCount += 1;
-                                return Promise.reject(new Error(expectedError));
+                    provider.originalMakeRequest = provider.makeRequest;
+                    provider.makeRequest = sinon.stub()
+                        .callsFake((host, uri, options) => {
+                            if (options.queryParams.Action === 'DescribeAddresses') {
+                                if (retryCount <= provider.maxRetries) {
+                                    retryCount += 1;
+                                    return Promise.reject(new Error(expectedError));
+                                }
                             }
-                        }));
+                            return provider.originalMakeRequest(host, uri, options);
+                        });
                     return provider._getElasticIPs(mockInitData.addressTags);
                 })
                 .then(() => {
@@ -530,28 +586,19 @@ describe('Provider - AWS', () => {
     });
 
     describe('function _getSubnets', () => {
-        const describeSubnetsResponse = { Subnets: [{ foo: 1, bar: 2 }] };
+        unitTestContext = unitTestContext || {};
+        unitTestContext.DescribeSubnets = { Subnets: [{ State: 'foo', OwnerId: 'bar' }] };
 
         it('should verify _getSubnets method resolution', () => provider.init(mockInitData)
+            .then(() => provider._getSubnets())
             .then(() => {
-                provider.ec2.describeSubnets = sinon.stub()
-                    .callsFake(() => ({
-                        promise() {
-                            return Promise.resolve(describeSubnetsResponse);
-                        }
-                    }));
-                return provider._getSubnets();
-            })
-            .then(() => {
-                assert.strictEqual(provider.subnets, describeSubnetsResponse);
-            })
-            .catch(() => {
-                assert.fail();
+                assert.deepStrictEqual(provider.subnets, unitTestContext.DescribeSubnets);
             }));
     });
 
     describe('function _getPrivateSecondaryIPs', () => {
-        const describeNetworkInterfacesResponse = {
+        unitTestContext = unitTestContext || {};
+        unitTestContext.DescribeNetworkInterfaces = {
             NetworkInterfaces: [
                 {
                     NetworkInterfaceId: 'eni-2345',
@@ -584,50 +631,20 @@ describe('Provider - AWS', () => {
             ]
         };
         it('should get Private Secondary IPs from AWS', () => provider.init(mockInitData)
-            .then(() => {
-                provider.ec2.describeNetworkInterfaces = sinon.stub()
-                    .callsFake(() => ({
-                        promise() {
-                            return Promise.resolve(describeNetworkInterfacesResponse);
-                        }
-                    }));
-                return provider._getPrivateSecondaryIPs();
-            })
+            .then(() => provider._getPrivateSecondaryIPs())
             .then((results) => {
                 assert.deepEqual(results, _getPrivateSecondaryIPsStubResponse);
-            })
-            .catch(() => {
-                assert.fail();
             }));
 
         it('should pass correct parameters', () => {
-            let passedParams;
+            passedParams = {};
             return provider.init(mockInitData)
+                .then(() => provider._getPrivateSecondaryIPs())
                 .then(() => {
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .callsFake((params) => {
-                            passedParams = params;
-                            return {
-                                promise() {
-                                    return Promise.resolve(describeNetworkInterfacesResponse);
-                                }
-                            };
-                        });
-                    return provider._getPrivateSecondaryIPs();
-                })
-                .then(() => {
-                    assert.deepEqual(passedParams,
-                        {
-                            Filters: [
-                                {
-                                    Name: 'attachment.instance-id',
-                                    Values: [mockMetadata.instanceId]
-                                }
-                            ]
-                        });
-                })
-                .catch(() => {
-                    assert.fail();
+                    assert.deepEqual(passedParams, {
+                        'Filter.1.Name': 'attachment.instance-id',
+                        'Filter.1.Value': 'i-123'
+                    });
                 });
         });
 
@@ -637,13 +654,17 @@ describe('Provider - AWS', () => {
             let retryCount = 0;
             return provider.init(mockInitData)
                 .then(() => {
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                retryCount += 1;
-                                return Promise.reject(new Error(expectedError));
+                    provider.originalMakeRequest = provider.makeRequest;
+                    provider.makeRequest = sinon.stub()
+                        .callsFake((host, uri, options) => {
+                            if (options.queryParams.Action === 'DescribeNetworkInterfaces') {
+                                if (retryCount <= provider.maxRetries) {
+                                    retryCount += 1;
+                                    return Promise.reject(new Error(expectedError));
+                                }
                             }
-                        }));
+                            return provider.originalMakeRequest(host, uri, options);
+                        });
                     return provider._getPrivateSecondaryIPs();
                 })
                 .then(() => {
@@ -688,9 +709,6 @@ describe('Provider - AWS', () => {
             .then(() => provider._generatePublicAddressOperations(EIPdata, _getPrivateSecondaryIPsStubResponse))
             .then((results) => {
                 assert.deepEqual(results, _generatePublicAddressOperationsStubResponse);
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
@@ -699,21 +717,12 @@ describe('Provider - AWS', () => {
         const networkInterfaceId = 'eni-0157ac0f9506af78b';
         const privateIpAddress = '10.0.1.11';
 
-        let passedParams;
+        beforeEach(() => {
+            passedParams = {};
+        });
 
         it('should pass correct parameters to AWS call', () => provider.init(mockInitData)
-            .then(() => {
-                provider.ec2.associateAddress = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve();
-                            }
-                        };
-                    });
-                return provider._associatePublicAddress(allocationId, networkInterfaceId, privateIpAddress);
-            })
+            .then(() => provider._associatePublicAddress(allocationId, networkInterfaceId, privateIpAddress))
             .then(() => {
                 assert.deepEqual(passedParams, {
                     AllocationId: allocationId,
@@ -721,9 +730,6 @@ describe('Provider - AWS', () => {
                     PrivateIpAddress: privateIpAddress,
                     AllowReassociation: true
                 });
-            })
-            .catch(() => {
-                assert.fail();
             }));
 
         it('should reject upon error', () => {
@@ -731,12 +737,8 @@ describe('Provider - AWS', () => {
             return provider.init(mockInitData)
                 .then(() => {
                     // eslint-disable-next-line arrow-body-style
-                    provider.ec2.associateAddress = sinon.stub()
-                        .callsFake(() => ({
-                            promise() {
-                                return Promise.reject(new Error(expectedError));
-                            }
-                        }));
+                    provider._associatePublicAddress = sinon.stub()
+                        .callsFake(() => Promise.reject(new Error(expectedError)));
                     return provider._associatePublicAddress();
                 })
                 .then(() => {
@@ -749,109 +751,80 @@ describe('Provider - AWS', () => {
     });
 
     describe('function _disassociatePublicAddress', () => {
-        let passedParams;
+        passedParams = {};
         const associationIdToDisassociate = 'eipassoc-00523b2b8b8c01793';
 
         it('should pass correct parameters to AWS call', () => provider.init(mockInitData)
-            .then(() => {
-                provider.ec2.disassociateAddress = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve();
-                            }
-                        };
-                    });
-                return provider._disassociatePublicAddress(associationIdToDisassociate);
-            })
+            .then(() => provider._disassociatePublicAddress(associationIdToDisassociate))
             .then(() => {
                 assert.deepEqual(passedParams, {
                     AssociationId: associationIdToDisassociate
                 });
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
     describe('function _reassociatePublicAddresses', () => {
-        it('should call _disassociatePublicAddress with correct params', () => {
-            const passedParams = [];
-            return provider.init(mockInitData)
-                .then(() => {
-                    provider._disassociatePublicAddress = sinon.stub()
-                        .callsFake((params) => {
-                            passedParams.push(params);
+        it('should call _disassociatePublicAddress with correct params', () => provider.init(mockInitData)
+            .then(() => {
+                passedParams = [];
+                provider._disassociatePublicAddress = sinon.stub()
+                    .callsFake((params) => {
+                        passedParams.push(params);
+                        return Promise.resolve();
+                    });
+                provider._associatePublicAddress = sinon.stub()
+                    .resolves();
+
+                return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, ['eipassoc-123', 'eipassoc-321']);
+                assert.strictEqual(passedParams.length, 2);
+            }));
+
+        it('should call _associatePublicAddress with correct params', () => provider.init(mockInitData)
+            .then(() => {
+                passedParams = [];
+                provider._disassociatePublicAddress = sinon.stub()
+                    .resolves();
+                provider._associatePublicAddress = sinon.stub()
+                    .callsFake(
+                        (allocationId, networkInterfaceId, privateIpAddress) => {
+                            passedParams.push({
+                                allocationId,
+                                networkInterfaceId,
+                                privateIpAddress
+                            });
                             return Promise.resolve();
-                        });
-                    provider._associatePublicAddress = sinon.stub()
-                        .resolves();
-
-                    return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
-                })
-                .then(() => {
-                    assert.deepEqual(passedParams, ['eipassoc-123', 'eipassoc-321']);
-                    assert.strictEqual(passedParams.length, 2);
-                })
-                .catch(() => {
-                    assert.fail();
-                });
-        });
-
-        it('should call _associatePublicAddress with correct params', () => {
-            const passedParams = [];
-            return provider.init(mockInitData)
-                .then(() => {
-                    provider._disassociatePublicAddress = sinon.stub()
-                        .resolves();
-                    provider._associatePublicAddress = sinon.stub()
-                        .callsFake(
-                            (allocationId, networkInterfaceId, privateIpAddress) => {
-                                passedParams.push({
-                                    allocationId,
-                                    networkInterfaceId,
-                                    privateIpAddress
-                                });
-                                return Promise.resolve();
-                            }
-                        );
-
-                    return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
-                })
-                .then(() => {
-                    assert.deepEqual(passedParams, [
-                        {
-                            allocationId: 'eipalloc-456',
-                            networkInterfaceId: 'eni-2345',
-                            privateIpAddress: '2.3.4.5'
-                        },
-                        {
-                            allocationId: 'eipalloc-654',
-                            networkInterfaceId: 'eni-3456',
-                            privateIpAddress: '3.4.5.6'
                         }
-                    ]);
-                    assert.strictEqual(passedParams.length, 2);
-                })
-                .catch(() => {
-                    assert.fail();
-                });
-        });
+                    );
+
+                return provider._reassociatePublicAddresses(_generatePublicAddressOperationsStubResponse);
+            })
+            .then(() => {
+                assert.deepEqual(passedParams, [
+                    {
+                        allocationId: 'eipalloc-456',
+                        networkInterfaceId: 'eni-2345',
+                        privateIpAddress: '2.3.4.5'
+                    },
+                    {
+                        allocationId: 'eipalloc-654',
+                        networkInterfaceId: 'eni-3456',
+                        privateIpAddress: '3.4.5.6'
+                    }
+                ]);
+                assert.strictEqual(passedParams.length, 2);
+            }));
 
         it('should not reject if there is no work to do', () => provider.init(mockInitData)
             .then(() => provider._reassociatePublicAddresses([]))
             .then(() => {
                 assert.ok(true);
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
     describe('function updateAddress', () => {
-        let actualParams;
-
         const nicsTagSet = [
             {
                 Key: 'f5_cloud_failover_nic_map',
@@ -873,55 +846,17 @@ describe('Provider - AWS', () => {
                 }
             };
             return provider.init(mockInitData)
-                .then(() => {
-                    provider.ec2.unassignPrivateIpAddresses = sinon.stub()
-                        .callsFake((params) => {
-                            actualParams.unassign.private.push(params);
-                            return {
-                                promise() {
-                                    return Promise.resolve();
-                                }
-                            };
-                        });
-                    provider.ec2.assignPrivateIpAddresses = sinon.stub()
-                        .callsFake((params) => {
-                            actualParams.assign.private.push(params);
-                            return {
-                                promise() {
-                                    return Promise.resolve();
-                                }
-                            };
-                        });
-                    provider.ec2.disassociateAddress = sinon.stub()
-                        .callsFake((params) => {
-                            actualParams.unassign.public.push(params);
-                            return {
-                                promise() {
-                                    return Promise.resolve();
-                                }
-                            };
-                        });
-                    provider.ec2.associateAddress = sinon.stub()
-                        .callsFake((params) => {
-                            actualParams.assign.public.push(params);
-                            return {
-                                promise() {
-                                    return Promise.resolve();
-                                }
-                            };
-                        });
-                })
                 .catch((err) => Promise.reject(err));
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
-            return provider.updateAddresses(opts)
-                .catch((err) => Promise.reject(err));
+            return provider.updateAddresses(opts);
         });
 
         it('should validate private+public address gets reassociated', () => {
-            const describeNetworkInterfacesResponse = {
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-1',
@@ -961,17 +896,7 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: []
-                    }
-                ]
-            };
-            const describeSubnetsResponse = {
+            unitTestContext.DescribeSubnets = {
                 Subnets: [
                     {
                         CidrBlock: '1.2.3.0/24',
@@ -979,24 +904,6 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            provider.ec2.describeAddresses = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                });
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
-                    }
-                });
-            provider.ec2.describeSubnets = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeSubnetsResponse);
-                    }
-                });
 
             return provider.updateAddresses({ localAddresses, failoverAddresses })
                 .then(() => {
@@ -1004,7 +911,6 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(actualParams.unassign.private.length, 1);
                     assert.strictEqual(actualParams.assign.private.length, 1);
                     assert.strictEqual(actualParams.assign.public.length, 1);
-
                     // assert private address gets reassociated properly
                     assert.deepStrictEqual(actualParams.unassign.private, [{ NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
                     assert.deepStrictEqual(actualParams.assign.private, [{ NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
@@ -1016,12 +922,12 @@ describe('Provider - AWS', () => {
                         PrivateIpAddress: '10.10.10.10',
                         AllowReassociation: true
                     }]);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('should validate private+public address gets reassociated without Subnet information', () => {
-            const describeNetworkInterfacesResponse = {
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-1',
@@ -1059,29 +965,8 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: []
-                    }
-                ]
-            };
-            provider.ec2.describeAddresses = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                });
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
-                    }
-                });
-            provider.ec2.describeSubnets = sinon.stub()
+            const originalDescribeSubnets = provider._getSubnets;
+            provider._getSubnets = sinon.stub()
                 .returns({
                     promise() {
                         return Promise.reject(new Error('No permissions'));
@@ -1090,11 +975,11 @@ describe('Provider - AWS', () => {
 
             return provider.updateAddresses({ localAddresses, failoverAddresses })
                 .then(() => {
+                    provider._getSubnets = originalDescribeSubnets;
                     // assert correct unassign/assign call count
                     assert.strictEqual(actualParams.unassign.private.length, 1);
                     assert.strictEqual(actualParams.assign.private.length, 1);
                     assert.strictEqual(actualParams.assign.public.length, 1);
-
                     // assert private address gets reassociated properly
                     assert.deepStrictEqual(actualParams.unassign.private, [{ NetworkInterfaceId: 'eni-2', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
                     assert.deepStrictEqual(actualParams.assign.private, [{ NetworkInterfaceId: 'eni-1', PrivateIpAddresses: ['10.10.10.11', '10.10.10.10'] }]);
@@ -1106,30 +991,14 @@ describe('Provider - AWS', () => {
                         PrivateIpAddress: '10.10.10.10',
                         AllowReassociation: true
                     }]);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         // validate
         ['f5_cloud_failover_vips', 'VIPS'].forEach((vipTagName) => {
             it(`should validate public address gets reassociated (using ${vipTagName} tag)`, () => {
-                const describeAddressesResponse = {
-                    Addresses: [
-                        {
-                            PublicIp: '2.2.2.2',
-                            PrivateIpAddress: '10.10.10.11',
-                            AssociationId: 'association-id',
-                            AllocationId: 'allocation-id',
-                            Tags: [
-                                {
-                                    Key: vipTagName,
-                                    Value: '10.10.10.10,10.10.10.11'
-                                }
-                            ]
-                        }
-                    ]
-                };
-                const describeNetworkInterfacesResponse = {
+                unitTestContext = { Tag: vipTagName };
+                unitTestContext.DescribeNetworkInterfaces = {
                     NetworkInterfaces: [
                         {
                             NetworkInterfaceId: 'eni-1',
@@ -1157,7 +1026,7 @@ describe('Provider - AWS', () => {
                         }
                     ]
                 };
-                const describeSubnetsResponse = {
+                unitTestContext.DescribeSubnets = {
                     Subnets: [
                         {
                             CidrBlock: '10.10.10.0/24',
@@ -1165,28 +1034,11 @@ describe('Provider - AWS', () => {
                         }
                     ]
                 };
-                provider.ec2.describeAddresses = sinon.stub()
-                    .returns({
-                        promise() {
-                            return Promise.resolve(describeAddressesResponse);
-                        }
-                    });
-                provider.ec2.describeNetworkInterfaces = sinon.stub()
-                    .returns({
-                        promise() {
-                            return Promise.resolve(describeNetworkInterfacesResponse);
-                        }
-                    });
-                provider.ec2.describeSubnets = sinon.stub()
-                    .returns({
-                        promise() {
-                            return Promise.resolve(describeSubnetsResponse);
-                        }
-                    });
 
                 return provider.discoverAddresses()
                     .then((operations) => provider.updateAddresses({ updateOperations: operations }))
                     .then(() => {
+                        // unitTestContext = false;
                         // assert public address gets reassociated properly
                         assert.deepStrictEqual(actualParams.unassign.public, [{ AssociationId: 'association-id' }]);
                         assert.deepStrictEqual(actualParams.assign.public, [{
@@ -1195,8 +1047,7 @@ describe('Provider - AWS', () => {
                             PrivateIpAddress: '10.10.10.10',
                             AllowReassociation: true
                         }]);
-                    })
-                    .catch((err) => Promise.reject(err));
+                    });
             });
         });
     });
@@ -1206,21 +1057,12 @@ describe('Provider - AWS', () => {
             localAddresses: ['1.2.3.4', '2.3.4.5'],
             failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32a2', '2600:1f14:92a:bc03:8459:976:1950:33a2', '2600:1f14:92a:bc03:8459:976:1950:34a2']
         };
-        const options = {};
+        after(() => {
+            unitTestContext = false;
+        });
         it('should validate same-net case', () => {
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        PrivateIpAddress: '10.10.10.10',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: []
-                    }
-                ],
-                Tags: []
-            };
-            const describeNetworkInterfacesResponse = {
+            unitTestContext = { privateIpAddress: '10.10.10.10' };
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-000001',
@@ -1340,7 +1182,7 @@ describe('Provider - AWS', () => {
                     scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:34a2'
                 }
             ];
-            const describeSubnetsResponse = {
+            unitTestContext.DescribeSubnets = {
                 Subnets: [
                     {
                         CidrBlock: '1.2.3.0/24',
@@ -1352,36 +1194,12 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                }));
 
-            let isRetryOccured = false;
-            provider.maxRetries = 1;
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        provider.ec2.describeNetworkInterfaces = sinon.stub()
-                            .returns({
-                                promise() {
-                                    return Promise.resolve(describeNetworkInterfacesResponse);
-                                }
-                            });
-                        isRetryOccured = true;
-                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
-                    }
-                });
-            provider.ec2.describeSubnets = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeSubnetsResponse);
-                    }
-                });
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            mockProviderMakeRequest();
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
+                    unitTestContext = {};
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));
                     assert.strictEqual(response.interfaces.disassociate[1].networkInterfaceId, 'eni-000002');
@@ -1420,11 +1238,11 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(response.interfaces.associate[0].addresses[0].address, '10.10.11.11');
                     assert.strictEqual(response.interfaces.associate[0].addresses[1].address, '10.10.11.10');
                     assert.ok(isRetryOccured);
-                })
-                .catch((err) => assert.fail(err));
+                });
         });
 
         it('should validate across-net case', () => {
+            unitTestContext = { privateIpAddress: '10.10.10.10' };
             provider.addressTags = {
                 f5_cloud_failover_label: 'foo'
             };
@@ -1438,19 +1256,7 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        PrivateIpAddress: '10.10.10.10',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: []
-                    }
-                ],
-                Tags: []
-            };
-            const describeNetworkInterfacesResponse = {
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-000002',
@@ -1465,27 +1271,15 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                }));
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeNetworkInterfacesResponse);
-                    }
-                });
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
+                    unitTestContext = false;
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].current.PrivateIpAddress, '10.10.10.10');
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].current.AssociationId, 'association-id');
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].target.PrivateIpAddress, '10.10.10.100');
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].target.NetworkInterfaceId, 'eni-000002');
                     assert.strictEqual(response.publicAddresses['2.2.2.2'].AllocationId, 'allocation-id');
-                })
-                .catch(() => assert.fail());
+                });
         });
 
         it('across-net addressGroupDefinitions vipAddress are empty', () => {
@@ -1496,11 +1290,10 @@ describe('Provider - AWS', () => {
                     vipAddresses: []
                 }
             ];
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
-                })
-                .catch(() => assert.fail());
+                });
         });
 
         it('across-net publicIp not found', () => {
@@ -1514,17 +1307,10 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve({});
-                    }
-                }));
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
-                })
-                .catch(() => assert.fail());
+                });
         });
 
         it('across-net publicIp metadata is undefined', () => {
@@ -1538,17 +1324,10 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve(undefined);
-                    }
-                }));
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
-                })
-                .catch(() => assert.fail());
+                });
         });
 
         it('across-net publicIp has not private address association', () => {
@@ -1562,23 +1341,10 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve({
-                            Addresses: [
-                                {
-                                    PublicIp: '2.2.2.2'
-                                }
-                            ]
-                        });
-                    }
-                }));
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
-                })
-                .catch(() => assert.fail());
+                });
         });
 
         it('across-net publicIp includes private address which is not under vipAddresses', () => {
@@ -1592,29 +1358,14 @@ describe('Provider - AWS', () => {
                     ]
                 }
             ];
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve({
-                            Addresses: [
-                                {
-                                    PublicIp: '2.2.2.2',
-                                    PrivateIpAddress: '10.0.0.1'
-                                }
-                            ]
-                        });
-                    }
-                }));
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
-                })
-                .catch(() => assert.fail());
+                });
         });
     });
 
     describe('function uploadDataToStorage', () => {
-        let passedParams;
         const thisMockInitData = {
             storageEncryption: {
                 serverSide: {
@@ -1626,28 +1377,15 @@ describe('Provider - AWS', () => {
         it('should pass correct params to putObject', () => provider.init(thisMockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
-
-                provider.s3.putObject = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve();
-                            }
-                        };
-                    });
+                passedParams = {};
                 return provider.uploadDataToStorage('file.json', _s3FileParamsStub.Body);
             })
             .then(() => {
                 assert.deepEqual(passedParams, _s3FileParamsStub);
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
     describe('function uploadDataToStorage encrypted with AWS managed key', () => {
-        let passedParams;
         const _s3FileParamsStubEncrypted = {
             Body: 's3 state file body',
             Bucket: 'myfailoverbucket',
@@ -1667,28 +1405,15 @@ describe('Provider - AWS', () => {
         it('should pass correct params to putObject with AWS managed key', () => provider.init(thisMockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
-
-                provider.s3.putObject = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve();
-                            }
-                        };
-                    });
+                passedParams = {};
                 return provider.uploadDataToStorage('file.json', _s3FileParamsStubEncrypted.Body);
             })
             .then(() => {
                 assert.deepEqual(passedParams, _s3FileParamsStubEncrypted);
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
     describe('function uploadDataToStorage encrypted with customer key', () => {
-        let passedParams;
         const _s3FileParamsStubEncryptedCustomerKey = {
             Body: 's3 state file body',
             Bucket: 'myfailoverbucket',
@@ -1710,138 +1435,95 @@ describe('Provider - AWS', () => {
         it('should pass correct params to putObject with customer key', () => provider.init(thisMockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
-
-                provider.s3.putObject = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve();
-                            }
-                        };
-                    });
+                passedParams = {};
                 return provider.uploadDataToStorage('file.json', _s3FileParamsStubEncryptedCustomerKey.Body);
             })
             .then(() => {
                 assert.deepEqual(passedParams, _s3FileParamsStubEncryptedCustomerKey);
-            })
-            .catch(() => {
-                assert.fail();
             }));
     });
 
     describe('function downloadDataFromStorage', () => {
-        let passedParams;
-        const mockResponseBody = { foo: 'bar' };
-        const mockObjectBody = {
-            Body: Buffer.from(JSON.stringify(mockResponseBody))
-        };
-
         it('should pass correct params to downloadObject', () => provider.init(mockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
-
-                provider.s3.listObjectsV2 = sinon.stub()
-                    .callsFake(() => {
-                        const response = { Contents: ['foo'] };
-                        return {
-                            promise() {
-                                return Promise.resolve(response);
-                            }
-                        };
-                    });
-                provider.s3.getObject = sinon.stub()
-                    .callsFake((params) => {
-                        passedParams = params;
-                        return {
-                            promise() {
-                                return Promise.resolve(mockObjectBody);
-                            }
-                        };
-                    });
+                passedParams = {};
                 return provider.downloadDataFromStorage('file.json');
             })
             .then((data) => {
-                assert.strictEqual(passedParams.Bucket, _s3FileParamsStub.Bucket);
-                assert.strictEqual(passedParams.Key, _s3FileParamsStub.Key);
-                assert.deepStrictEqual(data, mockResponseBody);
-            })
-            .catch((err) => Promise.reject(err)));
+                assert.strictEqual(data.Bucket, _s3FileParamsStub.Bucket);
+                assert.strictEqual(data.Key, _s3FileParamsStub.Key);
+                assert.deepStrictEqual(data.Body, _s3FileParamsStub.Body);
+            }));
 
         it('should return empty object if listObjects is empty', () => provider.init(mockInitData)
             .then(() => {
                 provider.s3BucketName = 'myfailoverbucket';
 
-                provider.s3.listObjectsV2 = sinon.stub()
-                    .callsFake(() => {
-                        const response = { Contents: [] };
-                        return {
-                            promise() {
-                                return Promise.resolve(response);
-                            }
-                        };
-                    });
-                return provider.downloadDataFromStorage('file.json');
+                return provider.downloadDataFromStorage('fake.json');
             })
             .then((data) => {
                 assert.deepStrictEqual(data, {});
-            })
-            .catch((err) => Promise.reject(err)));
+            }));
     });
 
     describe('function updateRoutes should', () => {
         const localAddresses = ['10.0.1.211'];
 
         beforeEach(() => {
-            const routeTable = {
-                RouteTableId: 'rtb-123',
-                Routes: [
-                    // IPv4
-                    {
-                        DestinationCidrBlock: '192.0.2.0/24',
-                        InstanceId: 'i-123',
-                        InstanceOwnerId: '123',
-                        NetworkInterfaceId: 'eni-123',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    },
-                    {
-                        DestinationCidrBlock: '192.0.2.1/24',
-                        InstanceId: 'i-123',
-                        InstanceOwnerId: '123',
-                        NetworkInterfaceId: 'eni-123',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    },
-                    // IPv6
-                    {
-                        DestinationIpv6CidrBlock: '::/0',
-                        InstanceId: 'i-123',
-                        InstanceOwnerId: '123',
-                        NetworkInterfaceId: 'eni-123',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    },
-                    // "extra route"
-                    {
-                        DestinationCidrBlock: '10.0.0.0/16',
-                        GatewayId: 'local',
-                        Origin: 'CreateRoute',
-                        State: 'active'
-                    }
-                ],
-                Tags: [
-                    {
-                        Key: 'F5_CLOUD_FAILOVER_LABEL',
-                        Value: 'foo'
-                    },
-                    {
-                        Key: 'F5_SELF_IPS',
-                        Value: '10.0.1.211, 10.0.11.52'
-                    }
-                ]
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeRouteTables = {
+                RouteTables: [{
+                    RouteTableId: 'rtb-123',
+                    Routes: [
+                        // IPv4
+                        {
+                            DestinationCidrBlock: '192.0.2.0/24',
+                            InstanceId: 'i-123',
+                            InstanceOwnerId: '123',
+                            NetworkInterfaceId: 'eni-123',
+                            Origin: 'CreateRoute',
+                            State: 'active'
+                        },
+                        {
+                            DestinationCidrBlock: '192.0.2.1/24',
+                            InstanceId: 'i-123',
+                            InstanceOwnerId: '123',
+                            NetworkInterfaceId: 'eni-123',
+                            Origin: 'CreateRoute',
+                            State: 'active'
+                        },
+                        // IPv6
+                        {
+                            DestinationIpv6CidrBlock: '::/0',
+                            InstanceId: 'i-123',
+                            InstanceOwnerId: '123',
+                            NetworkInterfaceId: 'eni-123',
+                            Origin: 'CreateRoute',
+                            State: 'active'
+                        },
+                        // "extra route"
+                        {
+                            DestinationCidrBlock: '10.0.0.0/16',
+                            GatewayId: 'local',
+                            Origin: 'CreateRoute',
+                            State: 'active'
+                        }
+                    ],
+                    Tags: [
+                        {
+                            Key: 'F5_CLOUD_FAILOVER_LABEL',
+                            Value: 'foo'
+                        },
+                        {
+                            Key: 'F5_SELF_IPS',
+                            Value: '10.0.1.211, 10.0.11.52'
+                        }
+                    ]
+                }]
             };
-            const describeNetworkInterfacesResponse = {
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-345'
@@ -1857,32 +1539,21 @@ describe('Provider - AWS', () => {
 
             return provider.init(thisMockInitData)
                 .then(() => {
-                    provider.ec2.describeNetworkInterfaces = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve(describeNetworkInterfacesResponse);
-                            }
-                        });
-                    provider.ec2.describeRouteTables = sinon.stub()
-                        .returns({
-                            promise() {
-                                return Promise.resolve({ RouteTables: [routeTable] });
-                            }
-                        });
-                    provider.ec2.replaceRoute = sinon.stub()
+                    provider._replaceEc2Route = sinon.stub()
                         .returns({
                             promise() {
                                 return Promise.resolve({});
                             }
                         });
-                })
-                .catch((err) => Promise.reject(err));
+                });
+        });
+        after(() => {
+            unitTestContext = {};
         });
 
         it('should not throw error if update operations is empty', () => {
             const opts = { updateOperations: {} };
-            return provider.updateRoutes(opts)
-                .catch((err) => Promise.reject(err));
+            return provider.updateRoutes(opts);
         });
 
         it('update routes using next hop discovery method: routeTag', () => provider.updateRoutes({
@@ -1891,23 +1562,22 @@ describe('Provider - AWS', () => {
         })
             .then((operations) => provider.updateRoutes({ updateOperations: operations }))
             .then(() => {
-                assert(provider.ec2.replaceRoute.calledOnce);
-                assert(provider.ec2.replaceRoute.calledWith({
-                    DestinationCidrBlock: '192.0.2.0/24',
+                assert(provider._replaceEc2Route.calledOnce);
+                assert(provider._replaceEc2Route.calledWith({
                     NetworkInterfaceId: 'eni-345',
-                    RouteTableId: 'rtb-123'
+                    RouteTableId: 'rtb-123',
+                    DestinationCidrBlock: '192.0.2.0/24',
+                    Action: 'ReplaceRoute'
                 }));
-            })
-            .catch((err) => Promise.reject(err)));
+            }));
 
         it('not update routes if matching route is not found', () => {
             provider.routeGroupDefinitions[0].routeAddressRanges[0].routeAddresses = ['192.0.100.0/24'];
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.notCalled);
-                })
-                .catch((err) => Promise.reject(err));
+                    assert(provider._replaceEc2Route.notCalled);
+                });
         });
 
         it('update routes using next hop discovery method: static', () => {
@@ -1921,14 +1591,14 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.calledOnce);
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(provider._replaceEc2Route.calledOnce);
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationCidrBlock: '192.0.2.0/24',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('update routes using multiple next hop discovery method: static', () => {
@@ -1957,30 +1627,33 @@ describe('Provider - AWS', () => {
                 }
             ];
 
+            unitTestContext.Args = [];
             return provider.updateRoutes({ localAddresses: ['10.0.1.211', '2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
-                    assert(provider.ec2.describeNetworkInterfaces.calledThrice);
-                    assert(provider.ec2.describeNetworkInterfaces.args[0][0].Filters[2].Name === 'private-ip-address');
-                    assert(provider.ec2.describeNetworkInterfaces.args[1][0].Filters[2].Name === 'private-ip-address');
-                    assert(provider.ec2.describeNetworkInterfaces.args[2][0].Filters[2].Name === 'ipv6-addresses.ipv6-address');
-                    assert(provider.ec2.replaceRoute.calledThrice);
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(unitTestContext.Args[0] === 'private-ip-address');
+                    assert(unitTestContext.Args[1] === 'private-ip-address');
+                    assert(unitTestContext.Args[2] === 'ipv6-addresses.ipv6-address');
+                    assert(unitTestContext.Args.length === 3);
+                    unitTestContext.Args = undefined;
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationCidrBlock: '192.0.2.0/24',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationIpv6CidrBlock: '::/0',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationCidrBlock: '192.0.2.1/24',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('update routes using next hop discovery method: static using IPv6 next hop IP addresses', () => {
@@ -1994,14 +1667,14 @@ describe('Provider - AWS', () => {
                 }];
             return provider.updateRoutes({ localAddresses: ['2600:1f13:12f:a803:5d15:e0e:1af9:8221'] })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.calledOnce);
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(provider._replaceEc2Route.calledOnce);
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationIpv6CidrBlock: '::/0',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('update routes using next hop discovery method: static (with retries)', () => {
@@ -2012,32 +1685,32 @@ describe('Provider - AWS', () => {
                     items: ['10.0.1.211', '10.0.11.52']
                 }
             };
-            provider.ec2.replaceRoute = sinon.stub();
-            provider.ec2.replaceRoute
-                .onCall(0)
-                .returns({
-                    promise() {
-                        return Promise.reject(new Error('Request limit exceeded'));
-                    }
-                });
-            provider.ec2.replaceRoute
-                .returns({
-                    promise() {
-                        return Promise.resolve({});
-                    }
-                });
+
             provider.maxRetries = 10;
+            let retryOccured = false;
+            provider.maxRetries = 1;
+            provider.originalReplaceEc2Route = provider._replaceEc2Route;
+            provider._replaceEc2Route = sinon.stub()
+                .callsFake((queryParams) => {
+                    if (queryParams.Action === 'ReplaceRoute') {
+                        if (!retryOccured) {
+                            retryOccured = true;
+                            return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
+                        }
+                    }
+                    return provider.originalReplaceEc2Route(queryParams);
+                });
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.calledTwice);
-                    assert(provider.ec2.replaceRoute.calledWith({
+                    assert(provider._replaceEc2Route.calledTwice);
+                    assert(provider._replaceEc2Route.calledWith({
                         DestinationCidrBlock: '192.0.2.0/24',
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        Action: 'ReplaceRoute'
                     }));
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('update routes using route name', () => {
@@ -2058,14 +1731,14 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.calledOnce);
-                    assert(provider.ec2.replaceRoute.calledWith({
-                        DestinationCidrBlock: '192.0.2.0/24',
+                    assert(provider._replaceEc2Route.calledOnce);
+                    assert(provider._replaceEc2Route.calledWith({
                         NetworkInterfaceId: 'eni-345',
-                        RouteTableId: 'rtb-123'
+                        RouteTableId: 'rtb-123',
+                        DestinationCidrBlock: '192.0.2.0/24',
+                        Action: 'ReplaceRoute'
                     }));
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('not update routes when matching next hop address is not found', () => {
@@ -2079,9 +1752,8 @@ describe('Provider - AWS', () => {
 
             return provider.updateRoutes({ localAddresses })
                 .then(() => {
-                    assert(provider.ec2.replaceRoute.notCalled);
-                })
-                .catch((err) => Promise.reject(err));
+                    assert(provider._replaceEc2Route.notCalled);
+                });
         });
 
         it('throw an error on an unknown next hop discovery method', () => {
@@ -2115,31 +1787,24 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeInstances = {
+                Reservations: [{
+                    Instances: [{
+                        NetworkInterfaces: [{
+                            NetworkInterfaceId: '123',
+                            PrivateIpAddresses: [{
+                                PrivateIpAddress: '1.1.1.1',
+                                Association: {
+                                    PublicIp: '1.1.1.1'
+                                }
+                            }]
+                        }]
+                    }]
+                }]
+            };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._describeInstance = sinon.stub().resolves({
-                        Reservations: [{
-                            Instances: [
-                                {
-                                    NetworkInterfaces: [
-                                        {
-                                            NetworkInterfaceId: '123',
-                                            PrivateIpAddress: '1.1.1.1',
-                                            PrivateIpAddresses: [
-                                                {
-                                                    Association: {
-                                                        PublicIp: '1.1.1.1'
-                                                    },
-                                                    Primary: true,
-                                                    PrivateIpAddress: '1.1.1.1'
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }]
-                    });
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
@@ -2151,8 +1816,7 @@ describe('Provider - AWS', () => {
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('skip routes for active device ', () => {
@@ -2169,29 +1833,6 @@ describe('Provider - AWS', () => {
             };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._describeInstance = sinon.stub().resolves({
-                        Reservations: [{
-                            Instances: [
-                                {
-                                    NetworkInterfaces: [
-                                        {
-                                            NetworkInterfaceId: '123',
-                                            PrivateIpAddress: '1.1.1.1',
-                                            PrivateIpAddresses: [
-                                                {
-                                                    Association: {
-                                                        PublicIp: '1.1.1.1'
-                                                    },
-                                                    Primary: true,
-                                                    PrivateIpAddress: '1.1.1.1'
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }]
-                    });
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
@@ -2203,8 +1844,7 @@ describe('Provider - AWS', () => {
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('skip addresses for active device ', () => {
@@ -2221,29 +1861,6 @@ describe('Provider - AWS', () => {
             };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._describeInstance = sinon.stub().resolves({
-                        Reservations: [{
-                            Instances: [
-                                {
-                                    NetworkInterfaces: [
-                                        {
-                                            NetworkInterfaceId: '123',
-                                            PrivateIpAddress: '1.1.1.1',
-                                            PrivateIpAddresses: [
-                                                {
-                                                    Association: {
-                                                        PublicIp: '1.1.1.1'
-                                                    },
-                                                    Primary: true,
-                                                    PrivateIpAddress: '1.1.1.1'
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }]
-                    });
                     provider._getRouteTables = sinon.stub().resolves([
                         {
                             RouteTableId: '123',
@@ -2255,8 +1872,7 @@ describe('Provider - AWS', () => {
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
 
         it('return addresses and not routes for standby device ', () => {
@@ -2273,36 +1889,12 @@ describe('Provider - AWS', () => {
             };
             return provider.init(mockInitData)
                 .then(() => {
-                    provider._describeInstance = sinon.stub().resolves({
-                        Reservations: [{
-                            Instances: [
-                                {
-                                    NetworkInterfaces: [
-                                        {
-                                            NetworkInterfaceId: '123',
-                                            PrivateIpAddress: '1.1.1.1',
-                                            PrivateIpAddresses: [
-                                                {
-                                                    Association: {
-                                                        PublicIp: '1.1.1.1'
-                                                    },
-                                                    Primary: true,
-                                                    PrivateIpAddress: '1.1.1.1'
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }]
-                    });
                     provider._getRouteTables = sinon.stub().resolves([]);
                     return provider.getAssociatedAddressAndRouteInfo(true, true);
                 })
                 .then((data) => {
                     assert.deepStrictEqual(expectedData, data);
-                })
-                .catch((err) => Promise.reject(err));
+                });
         });
     });
 
@@ -2311,21 +1903,9 @@ describe('Provider - AWS', () => {
             localAddresses: ['1.2.3.4'],
             failoverAddresses: ['10.10.10.10', '10.10.10.11', '2600:1f14:92a:bc03:8459:976:1950:32b2', '2600:1f14:92a:bc03:8459:976:1950:32a2', '2600:1f14:92a:bc03:8459:976:1950:33a2', '2600:1f14:92a:bc03:8459:976:1950:34a2', '2600:1f14:92a:bc03:8459:976:1950:32c2']
         };
-        const options = {};
         it('should ignore additional failoverAddress', () => {
-            const describeAddressesResponse = {
-                Addresses: [
-                    {
-                        PublicIp: '2.2.2.2',
-                        PrivateIpAddress: '10.10.10.10',
-                        AssociationId: 'association-id',
-                        AllocationId: 'allocation-id',
-                        Tags: []
-                    }
-                ],
-                Tags: []
-            };
-            const describeNetworkInterfacesResponse = {
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeNetworkInterfaces = {
                 NetworkInterfaces: [
                     {
                         NetworkInterfaceId: 'eni-000001',
@@ -2402,7 +1982,7 @@ describe('Provider - AWS', () => {
                     scopingAddress: '2600:1f14:92a:bc03:8459:976:1950:34a2'
                 }
             ];
-            const describeSubnetsResponse = {
+            unitTestContext.DescribeSubnets = {
                 Subnets: [
                     {
                         CidrBlock: '1.2.3.0/24',
@@ -2410,35 +1990,10 @@ describe('Provider - AWS', () => {
                     }
                 ]
             };
-            provider.ec2.describeAddresses = sinon.stub()
-                .callsFake(() => ({
-                    promise() {
-                        return Promise.resolve(describeAddressesResponse);
-                    }
-                }));
 
-            let isRetryOccured = false;
-            provider.maxRetries = 1;
-            provider.ec2.describeNetworkInterfaces = sinon.stub()
-                .returns({
-                    promise() {
-                        provider.ec2.describeNetworkInterfaces = sinon.stub()
-                            .returns({
-                                promise() {
-                                    return Promise.resolve(describeNetworkInterfacesResponse);
-                                }
-                            });
-                        isRetryOccured = true;
-                        return Promise.reject(new Error('this is test error to confirm retry is enabled.'));
-                    }
-                });
-            provider.ec2.describeSubnets = sinon.stub()
-                .returns({
-                    promise() {
-                        return Promise.resolve(describeSubnetsResponse);
-                    }
-                });
-            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, options)
+            mockProviderMakeRequest();
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, addressGroupDefinitions, {})
                 .then((response) => {
                     assert.strictEqual(JSON.stringify(response.publicAddresses), JSON.stringify({}));
                     assert.strictEqual(JSON.stringify(response.loadBalancerAddresses), JSON.stringify({}));

@@ -468,9 +468,14 @@ Define Remote Storage for State File in AWS
    - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
    - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
 
+
+
 1. Create an `S3 bucket in AWS <https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html>`_ for Cloud Failover Extension cluster-wide file(s). 
 
-   .. WARNING:: To avoid a potential data breach, ensure the required S3 buckets are properly secured and do not have public access. See your cloud provider for best practices.
+   .. WARNING:: 
+      - Amazon S3 now applies server-side encryption with Amazon S3 managed keys (SSE-S3) as the base level of encryption for every bucket in Amazon S3. Starting January 5, 2023, all new object uploads to Amazon S3 are automatically encrypted.
+      - Although SSE-S3 is applied automatcially, the IAM policy to require encrypted uploads must be created separately. To avoid a potential data breach, ensure the required S3 buckets are properly secured per the IAM role examples provided above, and do not allow public access. See your cloud provider for best practices.
+      - The ``encryption`` configuration block is required when an IAM policy that blocks unencrypted uploads is applied to the S3 bucket (recommended).
   
 
 2. Update/modify the Cloud Failover ``scopingName`` value with name of your S3 bucket:
