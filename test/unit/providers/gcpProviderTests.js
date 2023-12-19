@@ -313,7 +313,7 @@ describe('Provider - GCP', () => {
         const fileName = 'test.json';
         const payload = '404 Not Found';
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
-        providerSendRequestMock.rejects(payload);
+        providerSendRequestMock.resolves(payload);
 
         return provider.downloadDataFromStorage(fileName)
             .then(() => {

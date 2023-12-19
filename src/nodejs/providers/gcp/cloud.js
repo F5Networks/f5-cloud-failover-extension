@@ -148,16 +148,19 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Data will be downloaded from ${fileName}`);
 
         const stateFileObject = encodeURIComponent(`${storageContainerName}/${fileName}`);
-        return new Promise((resolve, reject) => this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b/${this.bucket}/o/${stateFileObject}?alt=media`, { advancedReturn: true, continueOnError: false })
+        return new Promise((resolve, reject) => this._sendRequest('GET', `${this.STORAGE_URL}/storage/v1/b/${this.bucket}/o/${stateFileObject}?alt=media`, { advancedReturn: true, continueOnError: true })
             .then((response) => {
-                resolve(response.body);
-            })
-            .catch((err) => {
+                this.logger.silly(`downloadDataFromStorage found response code ${response.code}`);
                 // return success if we haven't created the file yet
-                if (err.toString().includes('404')) {
+                if (response.code === 404) {
                     this.logger.silly('downloadDataFromStorage could not find state file, continuing...');
                     resolve({});
+                } else {
+                    resolve(response.body);
                 }
+            })
+            .catch((err) => {
+                this.logger.silly(`downloadDataFromStorage received error ${err.toString()}`);
                 const message = `Error in downloadDataFromStorage ${err}`;
                 reject(new Error(message));
             }));
