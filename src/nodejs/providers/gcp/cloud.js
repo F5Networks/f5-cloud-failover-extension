@@ -357,16 +357,18 @@ class Cloud extends AbstractCloud {
                 const labelKeys = Object.keys(labels);
                 const filteredBuckets = buckets.items.filter((bucket) => {
                     this.logger.silly(
-                        `bucket name: ${util.stringify(bucket.name)} bucket labels: ${util.stringify(bucket.labels)}`
+                        `bucket name: ${util.stringify(bucket.name)}`
                     );
                     let matchedTags = 0;
                     labelKeys.forEach((labelKey) => {
-                        Array(bucket.labels).forEach((bucketLabel) => {
-                            if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
-                                && bucketLabel[labelKey] === labels[labelKey]) {
-                                matchedTags += 1;
-                            }
-                        });
+                        if (bucket.labels) {
+                            Array(bucket.labels).forEach((bucketLabel) => {
+                                if (Object.keys(bucketLabel).indexOf(labelKey) !== -1
+                                    && bucketLabel[labelKey] === labels[labelKey]) {
+                                    matchedTags += 1;
+                                }
+                            });
+                        }
                     });
                     return labelKeys.length === matchedTags;
                 });
