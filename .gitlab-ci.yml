@@ -169,7 +169,7 @@ build_package:
   tags:
     - azure-autoscale-runner
   script:
-    - deployment-tool create ci-$CI_JOB_ID --plan $PLAN $PARAMETERS
+    - deployment-tool create ci-$CI_JOB_ID --plan $PLAN_bigip_classic_ha $PARAMETERS
     - deployment-tool database export --uri "mongodb://root:root@mongo:27017/porter?authSource=admin" --destination ./deployment/
     - deployment-tool describe ci-$CI_JOB_ID
     - deployment-tool get ci-$CI_JOB_ID --output-format json | jq > ./deployment/deployment_info.json
