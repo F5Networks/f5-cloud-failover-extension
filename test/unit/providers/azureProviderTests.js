@@ -35,8 +35,15 @@ describe('Provider - Azure', () => {
         srcUtil = require('../../../src/nodejs/util.js');
     });
     beforeEach(() => {
-        provider = new AzureCloudProvider(mockMetadata);
+        const Device = require('../../../src/nodejs/device.js');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getProxySettings').resolves({
+            host: '',
+            port: 8080,
+            protocol: 'http'
+        });
 
+        provider = new AzureCloudProvider(mockMetadata);
         provider.logger = sinon.stub();
         provider.logger.error = sinon.stub();
         provider.logger.warning = sinon.stub();

@@ -24,6 +24,7 @@ const fs = require('fs');
 const url = require('url');
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud').AbstractCloud;
+const Device = require('../../device.js');
 const constants = require('../../constants');
 
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
@@ -44,6 +45,7 @@ class Cloud extends AbstractCloud {
         this.s3BucketRegion = null;
         this.ec2_host = null;
         this.proxyOptions = null;
+        this.device = new Device();
     }
 
     /**
@@ -52,51 +54,56 @@ class Cloud extends AbstractCloud {
     init(options) {
         super.init(options);
 
-        return this._fetchMetadataSessionToken()
-            .then(() => this._getCredentials())
-            .then(() => this._getInstanceIdentityDoc())
-            .then((metadata) => {
-                this.region = metadata.region;
-                this.s3_host = `s3.${this.region}.amazonaws.com`;
-                this.ec2_host = `ec2.${this.region}.amazonaws.com`;
-                this.instanceId = metadata.instanceId;
-                this.customerId = metadata.accountId;
+        return this.device.init()
+            .then(() => this.device.getProxySettings()
+                .then((data) => {
+                    this.proxySettings = data.host ? data : null;
+                    return this._fetchMetadataSessionToken();
+                })
+                .then(() => this._getCredentials())
+                .then(() => this._getInstanceIdentityDoc())
+                .then((metadata) => {
+                    this.region = metadata.region;
+                    this.s3_host = `s3.${this.region}.amazonaws.com`;
+                    this.ec2_host = `ec2.${this.region}.amazonaws.com`;
+                    this.instanceId = metadata.instanceId;
+                    this.customerId = metadata.accountId;
 
-                if (this.proxySettings) {
-                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                    this.proxyOptions = {
-                        protocol: opts.protocol,
-                        host: opts.hostname,
-                        port: opts.port
-                    };
-                    if (opts.username && opts.password) {
-                        this.proxyOptions.auth = {};
-                        this.proxyOptions.auth.username = opts.username;
-                        this.proxyOptions.auth.password = opts.password;
+                    if (this.proxySettings) {
+                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                        this.proxyOptions = {
+                            protocol: opts.protocol,
+                            host: opts.hostname,
+                            port: opts.port
+                        };
+                        if (opts.username && opts.password) {
+                            this.proxyOptions.auth = {};
+                            this.proxyOptions.auth.username = opts.username;
+                            this.proxyOptions.auth.password = opts.password;
+                        }
                     }
-                }
 
-                const agentOpts = {};
-                if (this.trustedCertBundle) {
-                    if (fs.existsSync(this.trustedCertBundle)) {
-                        const certs = fs.readFileSync(this.trustedCertBundle);
-                        agentOpts.rejectUnauthorized = true;
-                        agentOpts.ca = certs;
+                    const agentOpts = {};
+                    if (this.trustedCertBundle) {
+                        if (fs.existsSync(this.trustedCertBundle)) {
+                            const certs = fs.readFileSync(this.trustedCertBundle);
+                            agentOpts.rejectUnauthorized = true;
+                            agentOpts.ca = certs;
+                        }
                     }
-                }
-                this._httpOptions = new https.Agent(agentOpts);
+                    this._httpOptions = new https.Agent(agentOpts);
 
-                if (this.storageName) {
-                    return this._getBucketRegion(this.storageName);
-                }
-                return this._getS3BucketByTags(this.storageTags);
-            })
-            .then((bucket) => {
-                this.s3BucketName = bucket.name;
-                this.s3BucketRegion = bucket.region;
-                this.logger.silly('Cloud Provider initialization complete');
-            })
-            .catch((err) => Promise.reject(err));
+                    if (this.storageName) {
+                        return this._getBucketRegion(this.storageName);
+                    }
+                    return this._getS3BucketByTags(this.storageTags);
+                })
+                .then((bucket) => {
+                    this.s3BucketName = bucket.name;
+                    this.s3BucketRegion = bucket.region;
+                    this.logger.silly('Cloud Provider initialization complete');
+                })
+                .catch((err) => Promise.reject(err)));
     }
 
     /**
@@ -298,8 +305,8 @@ class Cloud extends AbstractCloud {
                 region: this.s3BucketRegion
             };
             if (this.storageEncryption
-            && this.storageEncryption.serverSide
-            && this.storageEncryption.serverSide.enabled) {
+                && this.storageEncryption.serverSide
+                && this.storageEncryption.serverSide.enabled) {
                 options.headers['x-amz-server-side-encryption'] = this.storageEncryption.serverSide.algorithm;
                 if (this.storageEncryption.serverSide.keyId) {
                     options.headers['x-amz-server-side-encryption-aws-kms-key-id'] = this.storageEncryption.serverSide.keyId;
@@ -537,7 +544,7 @@ class Cloud extends AbstractCloud {
                         const theirNic = parsedNics.theirs[h].nic;
                         const myNic = parsedNics.mine[s].nic;
                         if ((theirNic.SubnetId === undefined || myNic.SubnetId === undefined)
-                        || (theirNic.SubnetId !== myNic.SubnetId)) {
+                            || (theirNic.SubnetId !== myNic.SubnetId)) {
                             this.logger.silly('subnetID does not exist or does not match for interfaces', myNic.NetworkInterfaceId, theirNic.NetworkInterfaceId);
                         } else {
                             const nicOperations = this._checkForNicOperations(myNic, theirNic, scopingAddresses);
@@ -1431,9 +1438,9 @@ class Cloud extends AbstractCloud {
 
                     if (theirAddress.isInSubnet(mySubnetCidr) && myAddress.isInSubnet(theirSubnetCidr)) {
                         if (theirNicAddresses[i].PrivateIpAddress
-                        && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
-                        && theirNicAddresses[i].Primary !== true
-                        && theirNicAddresses[i].Primary !== 'true') {
+                            && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                            && theirNicAddresses[i].Primary !== true
+                            && theirNicAddresses[i].Primary !== 'true') {
                             this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
 
                             addressesToTake.push({
@@ -1442,9 +1449,9 @@ class Cloud extends AbstractCloud {
                                 ipVersion: 4
                             });
                         } else if (theirNicAddresses[i].Ipv6Address
-                        && util.validateIpv6Address(failoverAddresses[t])
-                        && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
-                        && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
+                            && util.validateIpv6Address(failoverAddresses[t])
+                            && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                            && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                             this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                             addressesToTake.push({
                                 address: failoverAddresses[t],
@@ -1455,9 +1462,9 @@ class Cloud extends AbstractCloud {
                         this.logger.warning('Assumed same-net operation, but subnet CIDRs do not match, therefore no private IP disassociation will happen');
                     }
                 } else if (theirNicAddresses[i].PrivateIpAddress
-                && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
-                && theirNicAddresses[i].Primary !== true
-                && theirNicAddresses[i].Primary !== 'true') {
+                    && failoverAddresses[t] === theirNicAddresses[i].PrivateIpAddress
+                    && theirNicAddresses[i].Primary !== true
+                    && theirNicAddresses[i].Primary !== 'true') {
                     this.logger.silly('Match:', theirNicAddresses[i].PrivateIpAddress, theirNicAddresses[i]);
                     addressesToTake.push({
                         address: theirNicAddresses[i].PrivateIpAddress,
@@ -1465,9 +1472,9 @@ class Cloud extends AbstractCloud {
                         ipVersion: 4
                     });
                 } else if (theirNicAddresses[i].Ipv6Address
-                && util.validateIpv6Address(failoverAddresses[t])
-                && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
-                && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
+                    && util.validateIpv6Address(failoverAddresses[t])
+                    && failoverAddresses[t] === theirNicAddresses[i].Ipv6Address
+                    && !util.stringify(addressesToTake).includes(failoverAddresses[t])) {
                     this.logger.silly(`will add address ${failoverAddresses[t]} into addressToTake`);
                     addressesToTake.push({
                         address: failoverAddresses[t],

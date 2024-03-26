@@ -24,6 +24,7 @@ const util = require('../../util.js');
 const constants = require('../../constants');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const Device = require('../../device.js');
 
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
@@ -50,6 +51,7 @@ class Cloud extends AbstractCloud {
         this.storageName = null;
         this.resultAction = {};
         this.proxyOptions = null;
+        this.device = new Device();
     }
 
     /**
@@ -59,48 +61,53 @@ class Cloud extends AbstractCloud {
         options = options || {};
         super.init(options);
 
-        return this._getInstanceMetadata()
-            .then((metadata) => {
-                this.resourceGroup = metadata.compute.resourceGroupName;
-                this.primarySubscriptionId = metadata.compute.subscriptionId;
-                this.region = metadata.compute.location;
-                this.customerId = metadata.compute.subscriptionId;
-                this.environment = this._getAzureEnvironment(metadata);
-                if (this.proxySettings) {
-                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                    this.proxyOptions = {
-                        protocol: opts.protocol,
-                        host: opts.hostname,
-                        port: opts.port
-                    };
-                    if (opts.username && opts.password) {
-                        this.proxyOptions.auth = {};
-                        this.proxyOptions.auth.username = opts.username;
-                        this.proxyOptions.auth.password = opts.password;
+        return this.device.init()
+            .then(() => this.device.getProxySettings()
+                .then((data) => {
+                    this.proxySettings = data.host ? data : null;
+                    return this._getInstanceMetadata();
+                })
+                .then((metadata) => {
+                    this.resourceGroup = metadata.compute.resourceGroupName;
+                    this.primarySubscriptionId = metadata.compute.subscriptionId;
+                    this.region = metadata.compute.location;
+                    this.customerId = metadata.compute.subscriptionId;
+                    this.environment = this._getAzureEnvironment(metadata);
+                    if (this.proxySettings) {
+                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                        this.proxyOptions = {
+                            protocol: opts.protocol,
+                            host: opts.hostname,
+                            port: opts.port
+                        };
+                        if (opts.username && opts.password) {
+                            this.proxyOptions.auth = {};
+                            this.proxyOptions.auth.username = opts.username;
+                            this.proxyOptions.auth.password = opts.password;
+                        }
                     }
-                }
-                return Promise.all([
-                    this._getAuthToken(this.environment.resourceManagerEndpointUrl),
-                    this._getAuthToken('https://storage.azure.com/')
-                ]);
-            })
-            .then((tokens) => {
-                this.resourceToken = tokens[0];
-                this.storageToken = tokens[1];
-                this.subscriptions = options.subscriptions || [];
-                this.subscriptions.push(this.primarySubscriptionId);
-                this.logger.silly('Subscriptions: ', this.subscriptions);
-                return this._discoverStorageAccount();
-            })
-            .then((storageName) => {
-                this.logger.silly('Storage Account Information: ', storageName);
-                this.storageName = storageName;
-                return this._initStorageAccountContainer();
-            })
-            .then(() => {
-                this.logger.silly('Cloud Provider initialization complete');
-            })
-            .catch((err) => Promise.reject(err));
+                    return Promise.all([
+                        this._getAuthToken(this.environment.resourceManagerEndpointUrl),
+                        this._getAuthToken('https://storage.azure.com/')
+                    ]);
+                })
+                .then((tokens) => {
+                    this.resourceToken = tokens[0];
+                    this.storageToken = tokens[1];
+                    this.subscriptions = options.subscriptions || [];
+                    this.subscriptions.push(this.primarySubscriptionId);
+                    this.logger.silly('Subscriptions: ', this.subscriptions);
+                    return this._discoverStorageAccount();
+                })
+                .then((storageName) => {
+                    this.logger.silly('Storage Account Information: ', storageName);
+                    this.storageName = storageName;
+                    return this._initStorageAccountContainer();
+                })
+                .then(() => {
+                    this.logger.silly('Cloud Provider initialization complete');
+                })
+                .catch((err) => Promise.reject(err)));
     }
 
     /**
