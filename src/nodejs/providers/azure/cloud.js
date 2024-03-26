@@ -485,13 +485,22 @@ class Cloud extends AbstractCloud {
     */
     _initStorageAccountContainer() {
         const requestScope = 'storage';
+        let matchedContainers = 0;
         return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/?comp=list`, { requestScope })
             .then((data) => {
                 const template = parse(`<EnumerationResults><Containers><Container c-bind="Containers|array">
                         <Name>{{Name}}</Name>
                     </Container></Containers></EnumerationResults>`);
                 const containers = template.fromXML(data).Containers || null;
-                if (containers && containers[0].Name === storageContainerName) {
+                if (containers) {
+                    containers.forEach((container) => {
+                        this.logger.silly('Container', container, 'was found...');
+                        if (container.Name && container.Name === storageContainerName) {
+                            matchedContainers += 1;
+                        }
+                    });
+                }
+                if (matchedContainers === 1) {
                     this.logger.silly('Container', storageContainerName, 'already exists, continuing...');
                     return Promise.resolve();
                 }

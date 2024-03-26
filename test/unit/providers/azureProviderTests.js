@@ -293,6 +293,37 @@ describe('Provider - Azure', () => {
             .catch((err) => Promise.reject(err));
     });
 
+    it('validate _initStorageAccountContainer resolves when the first container is not ours', () => {
+        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
+        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
+          <Containers>
+          <Container>
+              <Name>container-name</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+          </Container>  
+          <Container>
+              <Name>f5cloudfailover</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+            </Container>
+          </Containers>
+        </EnumerationResults>`;
+
+        this.storageName = 'mysa';
+        provider._makeRequest = sinon.stub().resolves(xmlResponse);
+
+        return provider._initStorageAccountContainer('mysa')
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
     it('validate _initStorageAccountContainer returns reject promise', () => {
         provider._makeRequest = sinon.stub().resolves({});
 
