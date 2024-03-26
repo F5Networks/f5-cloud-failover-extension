@@ -172,15 +172,16 @@ describe('Provider - AWS', () => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
         util = require('../../../src/nodejs/util');
     });
-    after(() => {
-        Object.keys(require.cache)
-            .forEach((key) => {
-                delete require.cache[key];
-            });
-    });
     beforeEach(() => {
-        provider = new AWSCloudProvider(mockInitData);
+        const Device = require('../../../src/nodejs/device.js');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getProxySettings').resolves({
+            host: '',
+            port: 8080,
+            protocol: 'http'
+        });
 
+        provider = new AWSCloudProvider(mockInitData);
         provider.logger = sinon.stub();
         provider.logger.info = sinon.stub();
         provider.logger.debug = sinon.stub();
@@ -378,6 +379,12 @@ describe('Provider - AWS', () => {
                     break;
                 }
                 return Promise.resolve(options);
+            });
+    });
+    after(() => {
+        Object.keys(require.cache)
+            .forEach((key) => {
+                delete require.cache[key];
             });
     });
     afterEach(() => {

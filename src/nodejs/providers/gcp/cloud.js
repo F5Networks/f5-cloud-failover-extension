@@ -27,6 +27,7 @@ const GCP_LABEL_NAME = require('../../constants').GCP_LABEL_NAME;
 const util = require('../../util.js');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const Device = require('../../device.js');
 
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
@@ -49,6 +50,7 @@ class Cloud extends AbstractCloud {
         this.STORAGE_URL = 'https://storage.googleapis.com';
         this.bucket = null;
         this.proxyOptions = null;
+        this.device = new Device();
     }
 
     /**
@@ -57,57 +59,62 @@ class Cloud extends AbstractCloud {
     init(options) {
         super.init(options);
 
-        return Promise.all([
-            this._getLocalMetadata('project/project-id'),
-            this._getLocalMetadata('instance/service-accounts/default/token'),
-            this._getLocalMetadata('instance/name'),
-            this._getLocalMetadata('instance/zone')
-        ])
-            .then((data) => {
-                this.projectId = data[0];
-                this.customerId = data[0];
-                this.accessToken = data[1].access_token;
-                this.instanceName = data[2];
-                this.instanceZone = data[3];
-                if (this.proxySettings) {
-                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                    this.proxyOptions = {
-                        protocol: opts.protocol,
-                        host: opts.hostname,
-                        port: opts.port
-                    };
-                    if (opts.username && opts.password) {
-                        this.proxyOptions.auth = {};
-                        this.proxyOptions.auth.username = opts.username;
-                        this.proxyOptions.auth.password = opts.password;
+        return this.device.init()
+            .then(() => this.device.getProxySettings()
+                .then((data) => {
+                    this.proxySettings = data.host ? data : null;
+                    return Promise.all([
+                        this._getLocalMetadata('project/project-id'),
+                        this._getLocalMetadata('instance/service-accounts/default/token'),
+                        this._getLocalMetadata('instance/name'),
+                        this._getLocalMetadata('instance/zone')
+                    ]);
+                })
+                .then((data) => {
+                    this.projectId = data[0];
+                    this.customerId = data[0];
+                    this.accessToken = data[1].access_token;
+                    this.instanceName = data[2];
+                    this.instanceZone = data[3];
+                    if (this.proxySettings) {
+                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                        this.proxyOptions = {
+                            protocol: opts.protocol,
+                            host: opts.hostname,
+                            port: opts.port
+                        };
+                        if (opts.username && opts.password) {
+                            this.proxyOptions.auth = {};
+                            this.proxyOptions.auth.username = opts.username;
+                            this.proxyOptions.auth.password = opts.password;
+                        }
                     }
-                }
-                return this._getCloudStorage(this.storageTags);
-            })
-            .then((data) => {
-                this.bucket = data;
-                this.logger.silly(`deployment bucket name: ${this.bucket}`);
+                    return this._getCloudStorage(this.storageTags);
+                })
+                .then((data) => {
+                    this.bucket = data;
+                    this.logger.silly(`deployment bucket name: ${this.bucket}`);
 
-                this.zone = this._parseZone(this.instanceZone);
-                this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
+                    this.zone = this._parseZone(this.instanceZone);
+                    this.region = this.zone.substring(0, this.zone.lastIndexOf('-'));
 
-                this.logger.silly('Getting GCP resources');
-                return Promise.all([
-                    this._getVmsByTags(this.addressTags),
-                    this._getFwdRules({ tags: this.addressTagsRequired === true ? this.addressTags : null }),
-                    this._getTargetInstances()
-                ]);
-            })
-            .then((vmsData) => {
-                this.vms = vmsData[0] || [];
-                this.fwdRules = vmsData[1] || [];
-                this.targetInstances = vmsData[2] || [];
-                this.logger.debug('Cloud provider found vms:', this.vms);
-                this.logger.debug('Cloud provider found fwdRules:', this.fwdRules);
-                this.logger.debug('Cloud provider found targetInstances:', this.targetInstances);
-                this.logger.silly('Cloud Provider initialization complete');
-            })
-            .catch((err) => Promise.reject(err));
+                    this.logger.silly('Getting GCP resources');
+                    return Promise.all([
+                        this._getVmsByTags(this.addressTags),
+                        this._getFwdRules({ tags: this.addressTagsRequired === true ? this.addressTags : null }),
+                        this._getTargetInstances()
+                    ]);
+                })
+                .then((vmsData) => {
+                    this.vms = vmsData[0] || [];
+                    this.fwdRules = vmsData[1] || [];
+                    this.targetInstances = vmsData[2] || [];
+                    this.logger.debug('Cloud provider found vms:', this.vms);
+                    this.logger.debug('Cloud provider found fwdRules:', this.fwdRules);
+                    this.logger.debug('Cloud provider found targetInstances:', this.targetInstances);
+                    this.logger.silly('Cloud Provider initialization complete');
+                })
+                .catch((err) => Promise.reject(err)));
     }
 
     /**
