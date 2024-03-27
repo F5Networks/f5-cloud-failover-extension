@@ -1316,7 +1316,7 @@ describe('Provider - Azure', () => {
                 assert.ok(false);
             })
             .catch((error) => {
-                assert.strictEqual(error.message, 'Error getting auth token Error');
+                assert.strictEqual(error.message, 'Error getting auth token Error: Error');
             });
     });
 
