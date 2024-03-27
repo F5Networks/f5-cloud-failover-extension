@@ -135,7 +135,7 @@ class Cloud extends AbstractCloud {
         return util.makeRequest(constants.METADATA_HOST, `/metadata/identity/oauth2/token?api-version=${METADATA_VERSION}&resource=${encodedResource}`, { headers, port: 80, protocol: 'http' })
             .then((response) => Promise.resolve(response.access_token))
             .catch((err) => {
-                const message = `Error getting auth token ${err.message}`;
+                const message = `Error getting auth token ${err}`;
                 return Promise.reject(new Error(message));
             });
     }
@@ -437,7 +437,7 @@ class Cloud extends AbstractCloud {
         return util.makeRequest(constants.METADATA_HOST, `/metadata/instance?api-version=${METADATA_VERSION}`, { headers, port: 80, protocol: 'http' })
             .then((metaData) => Promise.resolve(metaData))
             .catch((err) => {
-                const message = `Error getting instance metadata ${err.message}`;
+                const message = `Error getting instance metadata ${err}`;
                 return Promise.reject(new Error(message));
             });
     }
