@@ -437,6 +437,18 @@ describe('Provider - AWS', () => {
                 });
         });
 
+        it('should initialize if storageName is fully qualified then return bucket name', () => {
+            provider.region = mockMetadata.region;
+            provider.instanceId = mockMetadata.instanceId;
+            provider.storageName = 's3BucketName.s3.us-east-1.amazonaws.com';
+
+            return provider.init({ storageName: 's3BucketName.s3.us-east-1.amazonaws.com' })
+                .then(() => {
+                    assert.strictEqual(provider.s3BucketName, 's3BucketName');
+                    assert.strictEqual(provider.s3BucketRegion, 'us-east-1');
+                });
+        });
+
         describe('_getS3BucketByTags', () => {
             it('should return the tagged bucket', () => provider.init(mockInitData)
                 .then(() => provider._getS3BucketByTags(mockInitData.storageTags))

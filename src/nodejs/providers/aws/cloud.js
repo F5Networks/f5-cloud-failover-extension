@@ -1643,7 +1643,7 @@ class Cloud extends AbstractCloud {
      */
     _getS3BucketByTags(tags) {
         const getBucketTagsPromises = [];
-
+        // need to document that the instance region is used when finding buckets by tag
         return this._getAllS3Buckets()
             .then((data) => {
                 data.forEach((bucket) => {
@@ -1707,7 +1707,8 @@ class Cloud extends AbstractCloud {
     /**
      * Get the region of a given S3 bucket
      *
-     * @param   {String}    bucketName - name of the S3 bucket
+     * @param   {String}  bucketName - name of the S3 bucket, friendly (bucket-name) or
+     *                                 virtual host style (bucket-name.s3.region-code.amazonaws.com)
      *
      * @returns {Promise} - A Promise that will be resolved with a bucket object
      *                      containing the bucket name and region
@@ -1717,8 +1718,13 @@ class Cloud extends AbstractCloud {
             name: bucketName,
             region: this.region
         };
+        if (bucketName.includes('.s3.')) {
+            const bucketParts = bucketName.split('.');
+            bucketObject.name = bucketParts[0];
+            bucketObject.region = bucketParts[2] || this.region;
+            return Promise.resolve(bucketObject);
+        }
         const options = { method: 'HEAD', advancedReturn: true, continueOnError: true };
-
         return this.makeRequest(`${bucketName}.${constants.API_HOST_S3}`, '/', options)
             .then((response) => {
                 bucketObject.region = response.headers['x-amz-bucket-region'] || this.region;
