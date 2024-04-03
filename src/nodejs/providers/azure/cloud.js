@@ -24,6 +24,7 @@ const util = require('../../util.js');
 const constants = require('../../constants');
 
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
+const Device = require('../../device.js');
 
 const CLOUD_PROVIDERS = constants.CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
@@ -50,6 +51,7 @@ class Cloud extends AbstractCloud {
         this.storageName = null;
         this.resultAction = {};
         this.proxyOptions = null;
+        this.device = new Device();
     }
 
     /**
@@ -59,48 +61,53 @@ class Cloud extends AbstractCloud {
         options = options || {};
         super.init(options);
 
-        return this._getInstanceMetadata()
-            .then((metadata) => {
-                this.resourceGroup = metadata.compute.resourceGroupName;
-                this.primarySubscriptionId = metadata.compute.subscriptionId;
-                this.region = metadata.compute.location;
-                this.customerId = metadata.compute.subscriptionId;
-                this.environment = this._getAzureEnvironment(metadata);
-                if (this.proxySettings) {
-                    const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                    this.proxyOptions = {
-                        protocol: opts.protocol,
-                        host: opts.hostname,
-                        port: opts.port
-                    };
-                    if (opts.username && opts.password) {
-                        this.proxyOptions.auth = {};
-                        this.proxyOptions.auth.username = opts.username;
-                        this.proxyOptions.auth.password = opts.password;
+        return this.device.init()
+            .then(() => this.device.getProxySettings()
+                .then((data) => {
+                    this.proxySettings = data.host ? data : null;
+                    return this._getInstanceMetadata();
+                })
+                .then((metadata) => {
+                    this.resourceGroup = metadata.compute.resourceGroupName;
+                    this.primarySubscriptionId = metadata.compute.subscriptionId;
+                    this.region = metadata.compute.location;
+                    this.customerId = metadata.compute.subscriptionId;
+                    this.environment = this._getAzureEnvironment(metadata);
+                    if (this.proxySettings) {
+                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                        this.proxyOptions = {
+                            protocol: opts.protocol,
+                            host: opts.hostname,
+                            port: opts.port
+                        };
+                        if (opts.username && opts.password) {
+                            this.proxyOptions.auth = {};
+                            this.proxyOptions.auth.username = opts.username;
+                            this.proxyOptions.auth.password = opts.password;
+                        }
                     }
-                }
-                return Promise.all([
-                    this._getAuthToken(this.environment.resourceManagerEndpointUrl),
-                    this._getAuthToken('https://storage.azure.com/')
-                ]);
-            })
-            .then((tokens) => {
-                this.resourceToken = tokens[0];
-                this.storageToken = tokens[1];
-                this.subscriptions = options.subscriptions || [];
-                this.subscriptions.push(this.primarySubscriptionId);
-                this.logger.silly('Subscriptions: ', this.subscriptions);
-                return this._discoverStorageAccount();
-            })
-            .then((storageName) => {
-                this.logger.silly('Storage Account Information: ', storageName);
-                this.storageName = storageName;
-                return this._initStorageAccountContainer();
-            })
-            .then(() => {
-                this.logger.silly('Cloud Provider initialization complete');
-            })
-            .catch((err) => Promise.reject(err));
+                    return Promise.all([
+                        this._getAuthToken(this.environment.resourceManagerEndpointUrl),
+                        this._getAuthToken('https://storage.azure.com/')
+                    ]);
+                })
+                .then((tokens) => {
+                    this.resourceToken = tokens[0];
+                    this.storageToken = tokens[1];
+                    this.subscriptions = options.subscriptions || [];
+                    this.subscriptions.push(this.primarySubscriptionId);
+                    this.logger.silly('Subscriptions: ', this.subscriptions);
+                    return this._discoverStorageAccount();
+                })
+                .then((storageName) => {
+                    this.logger.silly('Storage Account Information: ', storageName);
+                    this.storageName = storageName;
+                    return this._initStorageAccountContainer();
+                })
+                .then(() => {
+                    this.logger.silly('Cloud Provider initialization complete');
+                })
+                .catch((err) => Promise.reject(err)));
     }
 
     /**
@@ -128,7 +135,7 @@ class Cloud extends AbstractCloud {
         return util.makeRequest(constants.METADATA_HOST, `/metadata/identity/oauth2/token?api-version=${METADATA_VERSION}&resource=${encodedResource}`, { headers, port: 80, protocol: 'http' })
             .then((response) => Promise.resolve(response.access_token))
             .catch((err) => {
-                const message = `Error getting auth token ${err.message}`;
+                const message = `Error getting auth token ${err}`;
                 return Promise.reject(new Error(message));
             });
     }
@@ -430,7 +437,7 @@ class Cloud extends AbstractCloud {
         return util.makeRequest(constants.METADATA_HOST, `/metadata/instance?api-version=${METADATA_VERSION}`, { headers, port: 80, protocol: 'http' })
             .then((metaData) => Promise.resolve(metaData))
             .catch((err) => {
-                const message = `Error getting instance metadata ${err.message}`;
+                const message = `Error getting instance metadata ${err}`;
                 return Promise.reject(new Error(message));
             });
     }
@@ -478,13 +485,22 @@ class Cloud extends AbstractCloud {
     */
     _initStorageAccountContainer() {
         const requestScope = 'storage';
+        let matchedContainers = 0;
         return this._makeRequest('GET', `https://${this.storageName}.blob${this.environment.storageEndpointSuffix}/?comp=list`, { requestScope })
             .then((data) => {
                 const template = parse(`<EnumerationResults><Containers><Container c-bind="Containers|array">
                         <Name>{{Name}}</Name>
                     </Container></Containers></EnumerationResults>`);
                 const containers = template.fromXML(data).Containers || null;
-                if (containers && containers[0].Name === storageContainerName) {
+                if (containers) {
+                    containers.forEach((container) => {
+                        this.logger.silly('Container', container, 'was found...');
+                        if (container.Name && container.Name === storageContainerName) {
+                            matchedContainers += 1;
+                        }
+                    });
+                }
+                if (matchedContainers === 1) {
                     this.logger.silly('Container', storageContainerName, 'already exists, continuing...');
                     return Promise.resolve();
                 }

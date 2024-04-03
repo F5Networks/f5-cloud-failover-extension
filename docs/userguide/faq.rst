@@ -9,6 +9,7 @@ Index
 - :ref:`faq-what-is`
 - :ref:`faq-when-is`
 - :ref:`faq-active-active`
+- :ref:`faq-route-domains`
 - :ref:`faq-cfe-caveats`
 - :ref:`faq-where-download`
 - :ref:`faq-which-version`
@@ -83,6 +84,16 @@ Active/Active or ScaleN (multiple traffic groups) is not supported at this time.
 
 .. Note:: VIPs can be placed in ``traffic-group-none`` so `each` instance can actively process traffic regardless of the Active/Standby status. This is done to reduce service interruption during cloud resource re-mapping. However, on the cloud side, NATs/routes are only mapped to the single Active instance.
 
+
+-----------------------------------------
+
+.. _faq-route-domains:
+
+Are non-default route domains supported?
+```````````````````````````
+Using failover addresses configured with non-default route domains is not supported at this time. CFE currently does not fail over IP addresses configured with non-default route domains. 
+
+.. Note:: Failover addresses can be configured with the default route domain 0.
 
 
 -----------------------------------------

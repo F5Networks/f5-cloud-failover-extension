@@ -90,7 +90,7 @@ module.exports = {
         }
         return func.apply(thisArg, args)
             .catch((error) => {
-                logger.silly(`Status: ${error.message} Retries left: ${maxRetries}`);
+                logger.silly(`Status: ${error} Retries left: ${maxRetries}`);
 
                 return new Promise((resolve) => setTimeout(resolve, retryInterval))
                     .then(() => this.retrier(func, args, {
@@ -135,7 +135,7 @@ module.exports = {
             options.formData.forEach((el) => {
                 formData.append(
                     el.name,
-                    this.stringify(el.data),
+                    JSON.stringify(el.data),
                     {
                         filename: el.fileName || null,
                         contentType: el.contentType || null
@@ -168,7 +168,7 @@ module.exports = {
                 // check for HTTP errors
                 if (response.status > 300 && !options.continueOnError) {
                     return Promise.reject(new Error(
-                        `HTTP request failed: ${response.status} ${this.stringify(response.data)}`
+                        `HTTP request failed: ${response.status} ${JSON.stringify(response.data)}`
                     ));
                 }
                 // check for advanced return

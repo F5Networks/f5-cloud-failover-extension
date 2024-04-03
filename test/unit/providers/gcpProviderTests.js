@@ -13,10 +13,6 @@
 const assert = require('assert');
 const sinon = require('sinon');
 
-const GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
-const util = require('../../shared/util.js');
-const srcUtil = require('../../../src/nodejs/util.js');
-
 const cloud = 'gcp';
 let provider;
 
@@ -96,6 +92,9 @@ const routeTableDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment
 const fwdRuleDescription = 'f5_cloud_failover_labels={"mylabel":"mydeployment","f5_target_instance_pair":"testInstanceName01,testInstanceName02"}';
 
 describe('Provider - GCP', () => {
+    let GoogleCloudProvider;
+    let util;
+    let srcUtil;
     const mockResourceGroup = 'foo';
     const mockSubscriptionId = 'foo';
     const mockMetadata = {
@@ -106,13 +105,20 @@ describe('Provider - GCP', () => {
         }
     };
 
-    after(() => {
-        Object.keys(require.cache).forEach((key) => {
-            delete require.cache[key];
-        });
+    before(() => {
+        GoogleCloudProvider = require('../../../src/nodejs/providers/gcp/cloud.js').Cloud;
+        util = require('../../shared/util.js');
+        srcUtil = require('../../../src/nodejs/util.js');
     });
-
     beforeEach(() => {
+        const Device = require('../../../src/nodejs/device.js');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getProxySettings').resolves({
+            host: '',
+            port: 8080,
+            protocol: 'http'
+        });
+
         provider = new GoogleCloudProvider(mockMetadata);
         provider.logger = sinon.stub();
         provider.logger.error = sinon.stub();
@@ -140,6 +146,11 @@ describe('Provider - GCP', () => {
                 }
             }
         ];
+    });
+    after(() => {
+        Object.keys(require.cache).forEach((key) => {
+            delete require.cache[key];
+        });
     });
     afterEach(() => {
         sinon.restore();

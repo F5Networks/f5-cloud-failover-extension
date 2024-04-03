@@ -197,7 +197,7 @@ build_package:
 test_functional_init_azure:
   extends: .test-install
   variables:
-    PLAN: "azure"
+    PLAN: "azure_bigip_classic_ha"
     PARAMETERS: "--param location=westus2 --param bigip_version=16.1.303000"
   except:
     variables:
@@ -210,7 +210,7 @@ test_functional_init_azure:
 test_functional_init_azure_1nic:
   extends: .test-install
   variables:
-    PLAN: "azure"
+    PLAN: "azure_bigip_classic_ha"
     PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=16.1.303000"
   when: manual
   except:
@@ -225,7 +225,7 @@ test_functional_init_azure_1nic:
 test_functional_init_aws_across_net:
   extends: .test-install
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
     PARAMETERS: "--param region=us-west-2"
   except:
     variables:
@@ -238,7 +238,7 @@ test_functional_init_aws_across_net:
 test_functional_init_aws_across_net_1nic:
   extends: .test-install
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
     PARAMETERS: "--param region=us-west-2 --param nic_count=1"
   when: manual
   except:
@@ -253,7 +253,7 @@ test_functional_init_aws_across_net_1nic:
 test_functional_init_aws:
   extends: .test-install
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
     PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false"
   except:
     variables:
@@ -267,7 +267,7 @@ test_functional_init_aws:
 test_functional_init_aws_1nic:
   extends: .test-install
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
     PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false --param nic_count=1"
   when: manual
   except:
@@ -282,7 +282,7 @@ test_functional_init_aws_1nic:
 test_functional_init_gcp:
   extends: .test-install
   variables:
-    PLAN: "gcp"
+    PLAN: "gcp_bigip_classic_ha"
     PARAMETERS: "--param region=us-west1 --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
   except:
     variables:
@@ -295,7 +295,7 @@ test_functional_init_gcp:
 test_functional_init_gcp_no_forwarding:
   extends: .test-install
   variables:
-    PLAN: "gcp"
+    PLAN: "gcp_bigip_classic_ha"
     PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
   except:
     variables:
@@ -502,7 +502,7 @@ test_functional_execute_gcp_no_forwarding:
 test_functional_cleanup_azure:
   extends: .test-uninstall
   variables:
-    PLAN: "azure"
+    PLAN: "azure_bigip_classic_ha"
   dependencies:
     - test_functional_init_azure
     - test_functional_execute_azure
@@ -519,7 +519,7 @@ test_functional_cleanup_azure:
 test_functional_cleanup_azure_1nic:
   extends: .test-uninstall
   variables:
-    PLAN: "azure"
+    PLAN: "azure_bigip_classic_ha"
   dependencies:
     - test_functional_init_azure_1nic
     - test_functional_execute_azure_1nic
@@ -538,7 +538,7 @@ test_functional_cleanup_azure_1nic:
 test_functional_cleanup_aws_across_net:
   extends: .test-uninstall
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
   dependencies:
     - test_functional_init_aws_across_net
     - test_functional_execute_aws_across_net
@@ -555,7 +555,7 @@ test_functional_cleanup_aws_across_net:
 test_functional_cleanup_aws_across_net_1nic:
   extends: .test-uninstall
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
   dependencies:
     - test_functional_init_aws_across_net_1nic
     - test_functional_execute_aws_across_net_1nic
@@ -574,7 +574,7 @@ test_functional_cleanup_aws_across_net_1nic:
 test_functional_cleanup_aws:
   extends: .test-uninstall
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
   dependencies:
     - test_functional_init_aws
     - test_functional_execute_aws
@@ -592,7 +592,7 @@ test_functional_cleanup_aws:
 test_functional_cleanup_aws_1nic:
   extends: .test-uninstall
   variables:
-    PLAN: "aws"
+    PLAN: "aws_bigip_classic_ha"
   dependencies:
     - test_functional_init_aws_1nic
     - test_functional_execute_aws_1nic
@@ -611,7 +611,7 @@ test_functional_cleanup_aws_1nic:
 test_functional_cleanup_gcp:
   extends: .test-uninstall
   variables:
-    PLAN: "gcp"
+    PLAN: "gcp_bigip_classic_ha"
   dependencies:
     - test_functional_init_gcp
     - test_functional_execute_gcp
@@ -628,7 +628,7 @@ test_functional_cleanup_gcp:
 test_functional_cleanup_gcp_no_forwarding:
   extends: .test-uninstall
   variables:
-    PLAN: "gcp"
+    PLAN: "gcp_bigip_classic_ha"
   dependencies:
     - test_functional_init_gcp_no_forwarding
     - test_functional_execute_gcp_no_forwarding
