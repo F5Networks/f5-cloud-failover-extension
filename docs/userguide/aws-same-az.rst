@@ -465,8 +465,13 @@ Define Remote Storage for State File in AWS
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
   
-   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the ``scopingName`` property for external storage instead of ``scopingTags``.
+   - Beginning v2.1.0, CFE supports providing a fully-qualified "virtual host" style bucket name for ``scopingName``. When using this feature, the bucket name must be provided in the following format: ``bucket-name.s3.region-code.amazonaws.com``. Click `here <https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html>`_ for more information on S3 bucket naming conventions.
+   - Using the fully-qualified "virtual host" style ``scopingName`` property to specify external storage is **required** when the EC2 instances are deployed in a non-commercial AWS environment. 
    - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
+
+   .. IMPORTANT::
+      - Because it is accessed via an HTTPS endpoint, the S3 bucket name **MUST NOT** contain dots.
 
 
 

@@ -35,8 +35,15 @@ describe('Provider - Azure', () => {
         srcUtil = require('../../../src/nodejs/util.js');
     });
     beforeEach(() => {
-        provider = new AzureCloudProvider(mockMetadata);
+        const Device = require('../../../src/nodejs/device.js');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getProxySettings').resolves({
+            host: '',
+            port: 8080,
+            protocol: 'http'
+        });
 
+        provider = new AzureCloudProvider(mockMetadata);
         provider.logger = sinon.stub();
         provider.logger.error = sinon.stub();
         provider.logger.warning = sinon.stub();
@@ -280,6 +287,37 @@ describe('Provider - Azure', () => {
         provider._makeRequest = sinon.stub().resolves(xmlResponse);
 
         return provider._initStorageAccountContainer()
+            .then(() => {
+                assert.ok(true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('validate _initStorageAccountContainer resolves when the first container is not ours', () => {
+        const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
+        <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
+          <Containers>
+          <Container>
+              <Name>container-name</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+          </Container>  
+          <Container>
+              <Name>f5cloudfailover</Name>
+              </Properties>
+              <Metadata>
+                <metadata-name>value</metadata-name>
+              </Metadata>
+            </Container>
+          </Containers>
+        </EnumerationResults>`;
+
+        this.storageName = 'mysa';
+        provider._makeRequest = sinon.stub().resolves(xmlResponse);
+
+        return provider._initStorageAccountContainer('mysa')
             .then(() => {
                 assert.ok(true);
             })
@@ -1278,7 +1316,7 @@ describe('Provider - Azure', () => {
                 assert.ok(false);
             })
             .catch((error) => {
-                assert.strictEqual(error.message, 'Error getting auth token Error');
+                assert.strictEqual(error.message, 'Error getting auth token Error: Error');
             });
     });
 

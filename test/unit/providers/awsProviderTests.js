@@ -172,15 +172,16 @@ describe('Provider - AWS', () => {
         AWSCloudProvider = require('../../../src/nodejs/providers/aws/cloud.js').Cloud;
         util = require('../../../src/nodejs/util');
     });
-    after(() => {
-        Object.keys(require.cache)
-            .forEach((key) => {
-                delete require.cache[key];
-            });
-    });
     beforeEach(() => {
-        provider = new AWSCloudProvider(mockInitData);
+        const Device = require('../../../src/nodejs/device.js');
+        sinon.stub(Device.prototype, 'init').resolves();
+        sinon.stub(Device.prototype, 'getProxySettings').resolves({
+            host: '',
+            port: 8080,
+            protocol: 'http'
+        });
 
+        provider = new AWSCloudProvider(mockInitData);
         provider.logger = sinon.stub();
         provider.logger.info = sinon.stub();
         provider.logger.debug = sinon.stub();
@@ -380,6 +381,12 @@ describe('Provider - AWS', () => {
                 return Promise.resolve(options);
             });
     });
+    after(() => {
+        Object.keys(require.cache)
+            .forEach((key) => {
+                delete require.cache[key];
+            });
+    });
     afterEach(() => {
         sinon.restore();
     });
@@ -427,6 +434,18 @@ describe('Provider - AWS', () => {
             return provider.init({ storageName: 's3BucketName' })
                 .then(() => {
                     assert.strictEqual(provider.storageName, 's3BucketName');
+                });
+        });
+
+        it('should initialize if storageName is fully qualified then return bucket name', () => {
+            provider.region = mockMetadata.region;
+            provider.instanceId = mockMetadata.instanceId;
+            provider.storageName = 's3BucketName.s3.us-east-1.amazonaws.com';
+
+            return provider.init({ storageName: 's3BucketName.s3.us-east-1.amazonaws.com' })
+                .then(() => {
+                    assert.strictEqual(provider.s3BucketName, 's3BucketName');
+                    assert.strictEqual(provider.s3BucketRegion, 'us-east-1');
                 });
         });
 
