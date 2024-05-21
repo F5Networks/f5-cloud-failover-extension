@@ -223,7 +223,7 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
 Tag the Network Interfaces in Azure
 ```````````````````````````````````
 
-.. Important:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
+.. IMPORTANT:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
 
 
 1. Within Azure, go to **NIC > Tags**. 

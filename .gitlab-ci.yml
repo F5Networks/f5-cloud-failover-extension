@@ -198,7 +198,7 @@ test_functional_init_azure:
   extends: .test-install
   variables:
     PLAN: "azure_bigip_classic_ha"
-    PARAMETERS: "--param location=westus2 --param bigip_version=16.1.303000"
+    PARAMETERS: "--param location=westus2 --param bigip_version=16.1.401053"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -211,7 +211,7 @@ test_functional_init_azure_1nic:
   extends: .test-install
   variables:
     PLAN: "azure_bigip_classic_ha"
-    PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=16.1.303000"
+    PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=16.1.401053"
   when: manual
   except:
     variables:
@@ -283,7 +283,7 @@ test_functional_init_gcp:
   extends: .test-install
   variables:
     PLAN: "gcp_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west1 --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
+    PARAMETERS: "--param region=us-west1 --param bigip_version=f5-bigip-17-1-1-0-2-6-payg-best-plus-25mbps-231101130547"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -296,7 +296,7 @@ test_functional_init_gcp_no_forwarding:
   extends: .test-install
   variables:
     PLAN: "gcp_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=f5-bigip-16-1-3-3-0-0-3-payg-best-plus-25mbps-221222234728"
+    PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=f5-bigip-17-1-1-0-2-6-payg-best-plus-25mbps-231101130547"
   except:
     variables:
       - $TESTS_TIER == "1"
