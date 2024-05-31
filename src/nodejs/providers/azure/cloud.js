@@ -20,6 +20,7 @@ const url = require('url');
 const querystring = require('querystring');
 const { parse } = require('cruftless')();
 const IPAddressLib = require('ip-address');
+const ProxyAgent = require('https-proxy-agent');
 const util = require('../../util.js');
 const constants = require('../../constants');
 
@@ -50,7 +51,7 @@ class Cloud extends AbstractCloud {
         this.subscriptions = null;
         this.storageName = null;
         this.resultAction = {};
-        this.proxyOptions = null;
+        this.proxyAgent = null;
         this.device = new Device();
     }
 
@@ -75,15 +76,10 @@ class Cloud extends AbstractCloud {
                     this.environment = this._getAzureEnvironment(metadata);
                     if (this.proxySettings) {
                         const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                        this.proxyOptions = {
-                            protocol: opts.protocol,
-                            host: opts.hostname,
-                            port: opts.port
-                        };
                         if (opts.username && opts.password) {
-                            this.proxyOptions.auth = {};
-                            this.proxyOptions.auth.username = opts.username;
-                            this.proxyOptions.auth.password = opts.password;
+                            this.proxyAgent = ProxyAgent(`${opts.protocol}//${opts.username}:${opts.password}@${opts.hostname}:${opts.port}`);
+                        } else {
+                            this.proxyAgent = ProxyAgent(`${opts.protocol}//${opts.hostname}:${opts.port}`);
                         }
                     }
                     return Promise.all([
@@ -170,7 +166,8 @@ class Cloud extends AbstractCloud {
         options.advancedReturn = options.advancedReturn || false;
         options.continueOnError = options.continueOnError || false;
         options.validateStatus = options.validateStatus || false;
-        options.proxy = this.proxyOptions;
+        options.proxy = false;
+        options.httpsAgent = this.proxyAgent ? this.proxyAgent : null;
 
         return this._retrier(util.makeRequest, [host, uri, options], {
             retryInterval: NETWORK_RETRY_INTERVAL,

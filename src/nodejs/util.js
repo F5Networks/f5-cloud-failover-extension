@@ -156,7 +156,7 @@ module.exports = {
                 responseType: options.responseType || 'json',
                 params: options.queryParams || {},
                 data: options.formData ? formData : options.body,
-                httpsAgent: options.httpsAgent && options.httpsAgent.host && options.httpsAgent.host.trim() !== ''
+                httpsAgent: options.httpsAgent
                     ? options.httpsAgent
                     : new https.Agent({
                         rejectUnauthorized: false
