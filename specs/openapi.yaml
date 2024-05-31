@@ -23,9 +23,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/InformationResponse"
               example:
-                version: "2.1.0"
+                version: "2.1.1"
                 release: "1"
-                schemaCurrent: "2.1.0"
+                schemaCurrent: "2.1.1"
                 schemaMinimum: "1.0.0"
         "400":
           description: Bad Request Error
