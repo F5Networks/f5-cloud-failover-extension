@@ -20,7 +20,11 @@ const funcUtils = require('./shared/util.js');
 funcUtils.createDirectory(constants.ARTIFACTS_LOGS_DIR);
 
 const duts = funcUtils.getHostInfo();
-duts.forEach((dut) => {
+const dutPrimary = duts.filter((dut) => dut.primary)[0];
+const dutSecondary = duts.filter((dut) => !dut.primary)[0];
+const clusterMembers = [dutPrimary, dutSecondary];
+
+clusterMembers.forEach((dut) => {
     describe(`DUT - ${dut.ip} (${dut.primary})`, () => {
         const dutHost = dut.ip;
         const dutPort = dut.port;
