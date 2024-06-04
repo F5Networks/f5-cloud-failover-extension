@@ -247,7 +247,7 @@ Confirm CFE Configuration
      .. Note:: 
       - A declaration needs to be posted at least once to *each* unit in order to initialize. After that, you only need to post to one unit and the CFE configuration will be synced to the other unit. If auto-sync is enabled, the CFE configurations will automatically sync. Otherwise, you can manually |Sync| the units to sync the CFE config).
   
-
+    .. Tip:: To prevent unexpected behavior, ensure that you are using a CFE configuration that is appropriate for your use case. For example, if you are only failing over route resources, do not include the failoverAddresses block in the CFE configuration and vice-versa. Limit the CFE configuration to include only the resources you want to move between BIG-IP devices.
 
     .. Tip:: If you are deploying for the first time and having issues, F5 recommends deploying an example full-stack deployment template as a working baseline. This can potentially help you isolate and identify any issues/differences with your configuration and/or environment.
 
@@ -437,7 +437,7 @@ I'm receiving a **recovery operations are empty** error when failover is trigger
 
 If you receive this error, it means Cloud Failover Extension had a previous failure which left it in a bad state. 
 
-*Recommendation:*  Manually ensure *(either through the Cloud's GUI or CLI)* that all the desired resources are attached the to ACTIVE instance again *(to get in the expected initial pre-failover state)*, then *RESET* the state file and run through the INSPECT and DRY-RUN debugging steps as described :ref:`above<debugging>` to determine any descrepencies before attempting failing over again.
+*Recommendation:*  Manually ensure *(either through the Cloud's GUI or CLI)* that all the desired resources are attached the to ACTIVE instance again *(to get in the expected initial pre-failover state)*, then *RESET* the state file and run through the INSPECT and DRY-RUN debugging steps as described :ref:`above<debugging>` to determine any discrepencies before attempting failing over again.
  
 
 |
@@ -455,7 +455,7 @@ There could be a number of reasons why some of your failover objects are not re-
 
 If you see some of your failover objects are not re-mapped after failover, this could also mean Cloud Failover Extension was unable to discover or remap those objects. Check to make sure there were no changes to the environment that may have caused the objects to be discovered or mismatched. 
 
-Run through the INSPECT and DRY-RUN debugging steps as described :ref:`above<debugging>` to help determine any descrepencies and gather debug logs.
+Run through the INSPECT and DRY-RUN debugging steps as described :ref:`above<debugging>` to help determine any discrepencies and gather debug logs.
 
 |
 

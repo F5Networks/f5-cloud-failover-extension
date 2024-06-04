@@ -167,181 +167,146 @@ In order to successfully implement CFE in AWS, you need an AWS Identity and Acce
 
 IAM Role Example Declaration
 ````````````````````````````
-Below is an example F5 policy that includes IAM roles.
+Below is an example F5 policy that can be associated with an IAM role assigned to each BIG-IP instance.
 
 
 .. IMPORTANT:: The example below provides the minimum permissions required and serves as an illustration. *Resource* statements should be limited as much as possible. For *Actions* that **do not** allow resource level permissions and require a wildcard "*", this example uses *Condition* statements to restrict resources to a specific Account and Region. For *Actions* that **do** allow resource level permissions, provide the specific Resource IDs. *NOTE: Some Actions like ec2:AssociateAddress may require access to multiple types of Resources. In the snippet below, the resource IDs for ec2:AssociateAddress action include the EIP for the Virtual Service, the dataplane NICs where addresses are being remapped and both BIG-IP instances.*
 
 .. code-block:: json
 
-   {
-    "BigIpHighAvailabilityAccessRole": {
-        "Condition": "failover",
-        "Type": "AWS::IAM::Role",
-        "Properties": {
-            "AssumeRolePolicyDocument": {
-                "Statement": [
-                    {
-                        "Action": [
-                            "sts:AssumeRole"
-                        ],
-                        "Effect": "Allow",
-                        "Principal": {
-                            "Service": [
-                                "ec2.amazonaws.com"
-                            ]
-                        }
-                    }
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:ListAllMyBuckets"
                 ],
-                "Version": "2012-10-17T00:00:00.000Z"
-            },
-            "Path": "/",
-            "Policies": [
-                {
-                    "PolicyDocument": {
-                        "Statement": [
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:ListAllMyBuckets"
-                                ],
-                                "Resource": [
-                                    \*
-                                ],
-                                "Condition": {
-                                    "StringEquals": {
-                                        "aws:PrincipalAccount": "<my_account_id>"
-                                    }
-                                }
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:ListBucket",
-                                    "s3:GetBucketLocation",
-                                    "s3:GetBucketTagging"
-                                ],
-                                "Resource": "arn:*:s3:::<my_bucket_id>"
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "s3:PutObject",
-                                    "s3:GetObject",
-                                    "s3:DeleteObject"
-                                ],
-                                "Resource": "arn:*:s3:::<my_bucket_id>/*"
-                            },
-                            {
-                                "Action": [
-                                    "s3:PutObject"
-                                ],
-                                "Condition": {
-                                    "Null": {
-                                        "s3:x-amz-server-side-encryption": true
-                                    }
-                                },
-                                "Effect": "Deny",
-                                "Resource": {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "arn:*:s3:::<my_bucket_id>/*"
-                                        ]
-                                    ]
-                                },
-                                "Sid": "DenyPublishingUnencryptedResources"
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:DescribeAddresses",
-                                    "ec2:DescribeInstances",
-                                    "ec2:DescribeInstanceStatus",
-                                    "ec2:DescribeNetworkInterfaces",
-                                    "ec2:DescribeNetworkInterfaceAttribute",
-                                    "ec2:DescribeSubnets"
-                                ],
-                                "Resource": [
-                                    \*
-                                ],
-                                "Condition": {
-                                    "StringEquals": {
-                                        "aws:RequestedRegion": "<my_region>",
-                                        "aws:PrincipalAccount": "<my_account_id>"
-                                    }
-                                }
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:DescribeRouteTables"
-                                ],
-                                "Resource": [
-                                    \*
-                                ],
-                                "Condition": {
-                                    "StringEquals": {
-                                        "aws:RequestedRegion": "<my_region>",
-                                        "aws:PrincipalAccount": "<my_account_id>"
-                                    }
-                                }
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:AssociateAddress",
-                                    "ec2:DisassociateAddress",
-                                    "ec2:AssignPrivateIpAddresses",
-                                    "ec2:UnassignPrivateIpAddresses",
-                                    "ec2:AssignIpv6Addresses",
-                                    "ec2:UnassignIpv6Addresses"
-                                ],
-                                "Resource": [
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:elastic-ip/eipalloc-0c95857a871766c89",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-0b6048204159911f6",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-04d62e9925725bd50",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-0ca369c4a3943ed00",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-0720fae100b8bf380",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:instance/i-0da99e772e3391dd7",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:instance/i-0954f69207c32e1b5"
-                                ]
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:DescribeRouteTables"
-                                ],
-                                "Resource": [
-                                    "*"
-                                ],
-                                "Condition": {
-                                    "StringEquals": {
-                                        "aws:RequestedRegion": "<my_region>",
-                                        "aws:PrincipalAccount": "<my_account_id>"
-                                    }
-                                }
-                            },
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:CreateRoute",
-                                    "ec2:ReplaceRoute"
-                                ],
-                                "Resource": [
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:route-table/rtb-11111111111111111",
-                                    "arn:aws:ec2:<my_region>:<my_account_id>:route-table/rtb-22222222222222222"
-                                ]
-                            }
-                        ],
-                        "Version": "2012-10-17T00:00:00.000Z"
-                    },
-                    "PolicyName": "BigipHighAvailabilityAcccessPolicy"
+                "Resource": [
+                    "*"
+                ],
+                "Condition": {
+                    "StringEquals": {
+                        "aws:PrincipalAccount": "<my_account_id>"
+                    }
                 }
-            ]
-        }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:ListBucket",
+                    "s3:GetBucketLocation",
+                    "s3:GetBucketTagging"
+                ],
+                "Resource": "arn:*:s3:::<my_bucket_id>"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:DeleteObject"
+                ],
+                "Resource": "arn:*:s3:::<my_bucket_id>/*"
+            },
+            {
+                "Action": [
+                    "s3:PutObject"
+                ],
+                "Condition": {
+                    "Null": {
+                        "s3:x-amz-server-side-encryption": true
+                    }
+                },
+                "Effect": "Deny",
+                "Resource": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "arn:*:s3:::<my_bucket_id>/*"
+                        ]
+                    ]
+                },
+                "Sid": "DenyPublishingUnencryptedResources"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:DescribeAddresses",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeInstanceStatus",
+                    "ec2:DescribeNetworkInterfaces",
+                    "ec2:DescribeNetworkInterfaceAttribute",
+                    "ec2:DescribeSubnets"
+                ],
+                "Resource": [
+                    "*"
+                ],
+                "Condition": {
+                    "StringEquals": {
+                        "aws:RequestedRegion": "<my_region>",
+                        "aws:PrincipalAccount": "<my_account_id>"
+                    }
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:DescribeRouteTables"
+                ],
+                "Resource": [
+                    "*"
+                ],
+                "Condition": {
+                    "StringEquals": {
+                        "aws:RequestedRegion": "<my_region>",
+                        "aws:PrincipalAccount": "<my_account_id>"
+                    }
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:AssociateAddress",
+                    "ec2:DisassociateAddress"
+                ],
+                "Resource": [
+                    "arn:aws:ec2:<my_region>:<my_account_id>:elastic-ip/eipalloc-0c95857a871766c89",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:elastic-ip/eipalloc-0c95857a871766c11",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-0b6048204159911f6",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:network-interface/eni-04d62e9925725bd50",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:instance/i-0da99e772e3391dd7",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:instance/i-0954f69207c32e1b5"
+                ]
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:DescribeRouteTables"
+                ],
+                "Resource": [
+                    "*"
+                ],
+                "Condition": {
+                    "StringEquals": {
+                        "aws:RequestedRegion": "<my_region>",
+                        "aws:PrincipalAccount": "<my_account_id>"
+                    }
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:CreateRoute",
+                    "ec2:ReplaceRoute"
+                ],
+                "Resource": [
+                    "arn:aws:ec2:<my_region>:<my_account_id>:route-table/rtb-11111111111111111",
+                    "arn:aws:ec2:<my_region>:<my_account_id>:route-table/rtb-22222222222222222"
+                ]
+            }
+        ]
     }
-   }
 
 |
 
@@ -349,15 +314,15 @@ NOTE: If a customer managed KMS Encryption Key is used for server-side encryptio
 
 .. code-block:: json
 
-  {
-      "Effect": "Allow",
-      "Action": [
-          "kms:DescribeKey",
-          "kms:GenerateDataKey",
-          "kms:Decrypt"
-      ],
-      "Resource": "arn:aws:kms:<my_region>:<my_account_id>:key/<my_customer_managed_key_id>"
-  },
+    {
+        "Effect": "Allow",
+        "Action": [
+            "kms:DescribeKey",
+            "kms:GenerateDataKey",
+            "kms:Decrypt"
+        ],
+        "Resource": "arn:aws:kms:<my_region>:<my_account_id>:key/<my_customer_managed_key_id>"
+    }
 
 |
 
@@ -369,41 +334,35 @@ Alternatively, for *Actions* that **do** allow resource level permissions, but t
 .. code-block:: json
 
    {
-                        "snippet": "...",
-                        "Statement":  [
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:AssociateAddress",
-                                    "ec2:DisassociateAddress"
-                                ],
-                                "Resource": [
-                                    \*
-                                ],
-                                "Condition": {
-                                    "StringLike": {
-                                        "aws:ResourceTag/f5_cloud_failover_label": "<my_f5_cloud_failover_label_tag_value>"
-                                    }
-                                }
-                            }
-                            {
-                                "Effect": "Allow",
-                                "Action": [
-                                    "ec2:CreateRoute",
-                                    "ec2:ReplaceRoute"
-                                ],
-                                "Resource": [
-                                    \*
-                                ],
-                                "Condition": {
-                                    "StringLike": {
-                                        "aws:ResourceTag/f5_cloud_failover_label": "<my_f5_cloud_failover_label_tag_value>"
-                                    }
-                                }
-                            },
-                            "snippet": "..."
-                        ]
-  }
+        "Effect": "Allow",
+        "Action": [
+            "ec2:AssociateAddress",
+            "ec2:DisassociateAddress"
+        ],
+        "Resource": [
+            "*"
+        ],
+        "Condition": {
+            "StringLike": {
+                "aws:ResourceTag/f5_cloud_failover_label": "<my_f5_cloud_failover_label_tag_value>"
+            }
+        }
+    }
+    {
+        "Effect": "Allow",
+        "Action": [
+            "ec2:CreateRoute",
+            "ec2:ReplaceRoute"
+        ],
+        "Resource": [
+            "*"
+        ],
+        "Condition": {
+            "StringLike": {
+                "aws:ResourceTag/f5_cloud_failover_label": "<my_f5_cloud_failover_label_tag_value>"
+            }
+        }
+    }
 
 |
 
