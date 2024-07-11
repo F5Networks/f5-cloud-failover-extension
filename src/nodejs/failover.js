@@ -960,7 +960,7 @@ class FailoverClient {
                 type: 'address',
                 ipAddresses: addresses.failoverAddresses
             }
-        }) : {});
+        }) : { interfaces: { disassociate: [], associate: [] } });
         return updateActions;
     }
 }
