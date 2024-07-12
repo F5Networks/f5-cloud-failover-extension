@@ -726,7 +726,7 @@ class Cloud extends AbstractCloud {
             this._getSubnets()
         ])
             .then((results) => {
-                const eips = results[0].Addresses;
+                const eips = results[0].Addresses || [];
                 const secondaryPrivateIps = results[1];
                 const nics = results[2];
                 this.logger.debug('_discoverAddressOperations found Elastic IPs:', eips);
