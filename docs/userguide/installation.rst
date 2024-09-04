@@ -34,10 +34,10 @@ You can compare the checksum produced by that command against the **.sha256** fi
 
 .. _upload-install:
 
-Upload and install the Cloud Failover Extension file on each BIG-IP
+Upload and install the Cloud Failover Extension (CFE) file
 -------------------------------------------------------------------
-After you download the RPM, you must upload and then install it on each BIG-IP system. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
-
+After you download the RPM, with CFE version 1.15.0 or earlier you must upload and then install RPM on each BIG-IP system. However, with the CFE version 2.0.0 or later, uploading and installing the RPM on one BIG-IP system results in auto file transfer and CFE installation in rest of the BIG-IP systems that are part of same device group. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to **/var/config/rest/downloads**, but you will still have to use the cURL command to install the package). Use only one of the following procedures.
+ 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
    Cloud Failover Extension supports BIG-IP version 14.1.X and later.
