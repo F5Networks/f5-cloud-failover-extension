@@ -155,7 +155,6 @@ module.exports = {
             }))
         };
         const renderedData = mustache.render(fs.readFileSync(declarationTemplate).toString(), declarationData);
-        // console.log('RENDERED DATA FOR DECLARATION', declarationLocation, 'is:', renderedData);
         return JSON.parse(renderedData);
     },
 
@@ -294,7 +293,10 @@ module.exports = {
         const opts = {
             HOST: host,
             PORT: port,
-            AUTH_TOKEN: authToken
+            AUTH_TOKEN: authToken,
+            headers: {
+                'x-f5-auth-token': authToken
+            }
         };
 
         return new Promise((resolve, reject) => {
@@ -326,7 +328,10 @@ module.exports = {
         const opts = {
             HOST: host,
             PORT: port,
-            AUTH_TOKEN: authToken
+            AUTH_TOKEN: authToken,
+            headers: {
+                'x-f5-auth-token': authToken
+            }
         };
 
         return new Promise((resolve, reject) => {

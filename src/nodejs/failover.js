@@ -433,7 +433,7 @@ class FailoverClient {
         updateActions.push(this.isRouteOperationsEnabled ? this.cloudProvider.updateRoutes({
             localAddresses: addresses.localAddresses,
             discoverOnly: true
-        }) : {});
+        }) : { operations: [] });
 
         return Promise.all(updateActions)
             .catch((err) => {

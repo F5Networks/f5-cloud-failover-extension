@@ -198,7 +198,7 @@ test_functional_init_azure:
   extends: .test-install
   variables:
     PLAN: "azure_bigip_classic_ha"
-    PARAMETERS: "--param location=westus2 --param bigip_version=16.1.401053"
+    PARAMETERS: "--param location=westus2 --param bigip_version=17.1.103000"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -312,7 +312,13 @@ test_functional_init_gcp_no_forwarding:
   script:
     # install jq
     - apt-get update
-    - apt-get install -y jq
+    - apt-get install -y jq openssh-client sshpass
+    # create ssh key
+    - echo "*** Configuring SSH"
+    - eval $(ssh-agent -s)
+    - echo "$SSH_KEY" | sed 's/\\n/\n/g' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
     # install node (and package dependencies)
     - curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
     - export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -320,6 +326,15 @@ test_functional_init_gcp_no_forwarding:
     - npm install --unsafe-perm
     # copying artifacts inherited from functional_test_init target to root directory
     - cp -a deployment/. .
+    - cat deployment_info.json | jq
+    # proactively restarting rest services
+    - export USERNAME=$(cat deployment_info.json | jq .instances[0].admin_username -r) && echo "USERNAME is ${USERNAME}"
+    - export PASSWORD=$(cat deployment_info.json | jq .instances[0].admin_password -r) && echo "PASSWORD is ${PASSWORD}"
+    - export MGMT_IP_1=$(cat deployment_info.json | jq .instances[0].mgmt_address -r) && echo "MGMT_IP_1 is ${MGMT_IP_1}"
+    - export MGMT_IP_2=$(cat deployment_info.json | jq .instances[1].mgmt_address -r) && echo "MGMT_IP_2 is ${MGMT_IP_2}"
+    - sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$MGMT_IP_1 "bigstart restart restnoded restjavad"
+    - sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$MGMT_IP_2 "bigstart restart restnoded restjavad"
+    - sleep 30
     # executing fuctional test
     - validate npm run functional-test
   tags:
