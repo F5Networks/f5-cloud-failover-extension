@@ -277,4 +277,29 @@ describe('Rest Operations', () => {
             })
             .catch((err) => Promise.reject(err));
     });
+
+    it('should set 500 when FailoverClient.execute throws', function () {
+        const worker = new WorkerClient();
+
+        sinon.stub(FailoverClient.prototype, 'getTaskStateFile').resolves({
+            taskState: constants.FAILOVER_STATES.PASS
+        });
+        sinon.stub(FailoverClient.prototype, 'execute').rejects(new Error('exec fail'));
+
+        const restOp = {
+            method: 'POST',
+            getUri: () => ({ pathname: 'mgmt/shared/cloud-failover/trigger' }),
+            getContentType: () => 'application/json',
+            getBody: () => ({}),
+            setBody: (b) => { this._body = b; },
+            setStatusCode: (c) => { this._status = c; },
+            complete: () => {}
+        };
+
+        return worker.onPost(restOp)
+            .then((response) => {
+                assert.strictEqual(response.status, 500);
+                assert(response.body.message.indexOf('max tries reached') !== -1);
+            });
+    });
 });

@@ -134,11 +134,16 @@ describe('Provider - AWS', () => {
         name: 'bucket3',
         region: 'us-west'
     };
+    const bucket4 = {
+        name: 'bucket4',
+        region: 'cn-north-1'
+    };
 
     const _getAllS3BucketsStubResponse = [
         bucket1,
         targetBucket,
-        bucket3
+        bucket3,
+        bucket4
     ];
 
     const _getBucketTagsStubResponse = {
@@ -331,12 +336,12 @@ describe('Provider - AWS', () => {
                     }
                     // S3:getBucketLocation
                     if (options.method === 'HEAD') {
-                        options.headers['x-amz-bucket-region'] = 'us-west';
+                        options.headers['x-amz-bucket-region'] = !host.includes('bucket4') ? 'us-west' : 'cn-north-1';
                         break;
                     }
                     // S3:getBucketTagging
                     if (options.queryParams.tagging === '' && uri === '/') {
-                        options = host !== 'bucket2.s3.us-west.amazonaws.com'
+                        options = host !== 'bucket2.s3.us-west.amazonaws.com' && !host.includes('s3.cn-north-1.amazonaws.com.cn')
                             ? '<Error><Code>AWS</Code><Message>Vanished</Message></Error>'
                             : `<Tagging><TagSet><Tag>
                                 <Key>sKey1</Key><Value>storageKey1</Value>
@@ -487,7 +492,7 @@ describe('Provider - AWS', () => {
                 passedParams = [];
                 return provider.init(mockInitData)
                     .then(() => {
-                        assert.deepEqual([bucket1, targetBucket, bucket3], _getAllS3BucketsStubResponse);
+                        assert.deepEqual([bucket1, targetBucket, bucket3, bucket4], _getAllS3BucketsStubResponse);
                     });
             });
         });
@@ -496,7 +501,7 @@ describe('Provider - AWS', () => {
             it('should return an array of bucket names', () => provider.init(mockInitData)
                 .then(() => provider._getAllS3Buckets())
                 .then((response) => {
-                    assert.deepEqual(response, [bucket1, targetBucket, bucket3]);
+                    assert.deepEqual(response, [bucket1, targetBucket, bucket3, bucket4]);
                 }));
         });
 
@@ -602,6 +607,96 @@ describe('Provider - AWS', () => {
                     assert.strictEqual(retryCount - 1, provider.maxRetries);
                 });
         });
+
+        it('should filter by instanceId (instance-id) when provided', () => {
+            passedEIPParams = false;
+            provider.init(mockInitData)
+                .then(() => {
+                    provider.instanceId = 'i-xyz';
+                    return provider._getElasticIPs({ instanceId: true });
+                })
+                .then(() => {
+                    assert.strictEqual(passedEIPParams['Filter.1.Name'], 'instance-id');
+                    assert.strictEqual(passedEIPParams['Filter.1.Value'], provider.instanceId);
+                });
+        });
+
+        it('should not throw if no Addresses for valid CIDR', () => {
+            provider._getElasticIPs = sinon.stub().resolves({ Addresses: [] });
+            return provider._getElasticIPsFromCIDR('10.0.0.0/32')
+                .then((result) => {
+                    assert.strictEqual(result.addresses.length, 0);
+                });
+        });
+
+        it('should continue when one IP lookup fails and still resolve aggregate', () => {
+            // Stub provider._getElasticIPs to reject for first IP and resolve for second
+            provider._getElasticIPs = sinon.stub()
+                .onFirstCall().rejects(new Error('temporary'))
+                .onSecondCall()
+                .resolves({
+                    Addresses: [{
+                        PublicIp: '54.1.1.1',
+                        PrivateIpAddress: '10.10.0.1',
+                        NetworkInterfaceId: 'eni-1',
+                        AllocationId: 'eipalloc-1',
+                        AssociationId: 'eipassoc-1',
+                        Tags: []
+                    }]
+                });
+            return provider._getElasticIPsFromCIDR('10.10.0.0/31') // two IPs: .0 and .1
+                .then((result) => {
+                    // One address should have been added
+                    assert.strictEqual(result.addresses.length, 1);
+                    assert.strictEqual(result.addresses[0].publicIpAddress, '54.1.1.1');
+                });
+        });
+    });
+
+    describe('function _createActionForElasticIpAddress early-return branches', () => {
+        it('should return unchanged when EIP not found', () => {
+            provider._getElasticIPs = sinon.stub().resolves(null);
+            const resultAction = { publicAddresses: {} };
+            return provider._createActionForElasticIpAddress(resultAction, {
+                scopingAddress: '2.2.2.2',
+                vipAddresses: ['10.0.0.1', '10.0.0.2']
+            })
+                .then((updated) => {
+                    assert.deepStrictEqual(updated.publicAddresses, {});
+                });
+        });
+
+        it('should return unchanged when Addresses array empty', () => {
+            provider._getElasticIPs = sinon.stub().resolves({ Addresses: [] });
+            const resultAction = { publicAddresses: {} };
+            return provider._createActionForElasticIpAddress(resultAction, {
+                scopingAddress: '2.2.2.2',
+                vipAddresses: ['10.0.0.1', '10.0.0.2']
+            })
+                .then((updated) => {
+                    assert.deepStrictEqual(updated.publicAddresses, {});
+                });
+        });
+
+        it('should return unchanged when PrivateIpAddress not in provided vipAddresses', () => {
+            provider._getElasticIPs = sinon.stub().resolves({
+                Addresses: [{
+                    PublicIp: '2.2.2.2',
+                    PrivateIpAddress: '10.0.0.99',
+                    AllocationId: 'alloc-1',
+                    AssociationId: 'assoc-1',
+                    Tags: []
+                }]
+            });
+            const resultAction = { publicAddresses: {} };
+            return provider._createActionForElasticIpAddress(resultAction, {
+                scopingAddress: '2.2.2.2',
+                vipAddresses: ['10.0.0.1', '10.0.0.2']
+            })
+                .then((updated) => {
+                    assert.deepStrictEqual(updated.publicAddresses, {});
+                });
+        });
     });
 
     describe('function _getSubnets', () => {
@@ -613,6 +708,15 @@ describe('Provider - AWS', () => {
             .then(() => {
                 assert.deepStrictEqual(provider.subnets, unitTestContext.DescribeSubnets);
             }));
+
+        it('should resolve _getSubnets with empty list branch', () => {
+            provider.ec2ApiRequest = () => Promise.resolve({ Subnets: [] });
+            return provider._getSubnets()
+                .then(() => {
+                    // provider.subnets should be set to empty container
+                    assert.deepStrictEqual(provider.subnets.Subnets, []);
+                });
+        });
     });
 
     describe('function _getPrivateSecondaryIPs', () => {
@@ -765,6 +869,24 @@ describe('Provider - AWS', () => {
                 })
                 .catch((err) => {
                     assert.strictEqual(err.message, expectedError);
+                });
+        });
+    });
+
+    describe('AWS _getIpv6Ec2ApiRequest branches', () => {
+        it('should build AssignIpv6Addresses request', () => {
+            provider.ec2ApiRequest = sinon.stub().resolves({ AssignedIpv6Addresses: ['2001:db8::1'] });
+            return provider._getIpv6Ec2ApiRequest('AssignIpv6Addresses', 'eni-1', { Ipv6Addresses: ['2001:db8::1'] })
+                .then((r) => {
+                    assert.ok(r.AssignedIpv6Addresses);
+                });
+        });
+
+        it('should build UnassignIpv6Addresses request', () => {
+            provider.ec2ApiRequest = sinon.stub().resolves({ UnassignedIpv6Addresses: ['2001:db8::1'] });
+            return provider._getIpv6Ec2ApiRequest('UnassignIpv6Addresses', 'eni-1', { Ipv6Addresses: ['2001:db8::1'] })
+                .then((r) => {
+                    assert.ok(r.UnassignedIpv6Addresses);
                 });
         });
     });
@@ -1402,6 +1524,29 @@ describe('Provider - AWS', () => {
             .then(() => {
                 assert.deepEqual(passedParams, _s3FileParamsStub);
             }));
+    });
+
+    describe('function _getDomainSuffix', () => {
+        // Test for CN region domain suffix
+        it('should return amazonaws.com.cn for cn region', () => {
+            mockMetadata.region = 'cn-north-1';
+            return provider.init(mockInitData)
+                .then(() => provider._getDomainSuffix())
+                .then(() => {
+                    // For regions in China, the domain suffix should be amazonaws.com.cn
+                    assert.strictEqual(provider.domainSuffix, 'amazonaws.com.cn', 'not equal');
+                });
+        });
+
+        it('should return amazonaws.com for none-cn region', () => {
+            mockMetadata.region = 'us-west-2';
+            return provider.init(mockInitData)
+                .then(() => provider._getDomainSuffix())
+                .then(() => {
+                    // For regions not in China, the domain suffix should be amazonaws.com
+                    assert.strictEqual(provider.domainSuffix, 'amazonaws.com');
+                });
+        });
     });
 
     describe('function uploadDataToStorage encrypted with AWS managed key', () => {
@@ -2046,6 +2191,158 @@ describe('Provider - AWS', () => {
                     assert.ok(isRetryOccured);
                 })
                 .catch((err) => assert.fail(err));
+        });
+    });
+
+    describe('function _createActionForElasticPrefixIpAddress', () => {
+        it('should resolve with correct resultAction for valid prefix address', () => {
+            const addresses = {
+                localAddresses: ['10.0.0.1'],
+                failoverAddresses: ['10.0.0.2']
+            };
+            const resultAction = { publicAddresses: {} };
+            const providedPrefixAddress = { scopingAddress: '10.0.0.0/28' };
+
+            return provider._createActionForElasticPrefixIpAddress(addresses, resultAction, providedPrefixAddress)
+                .then((actions) => {
+                    assert.ok(actions.publicAddresses);
+                    assert.ok(actions.publicAddresses['2.2.2.2']);
+                    assert.strictEqual(actions.publicAddresses['2.2.2.2'].AllocationId, 'allocation-id');
+                    assert.ok(actions.publicAddresses['2.2.2.2'].current);
+                    assert.ok(actions.publicAddresses['2.2.2.2'].target);
+                });
+        });
+
+        it('should assign target NetworkInterfaceId based on matching subnet & prefix', () => {
+            provider.init(mockInitData)
+                .then(() => {
+                    provider._listNics = sinon.stub().resolves([
+                        {
+                            NetworkInterfaceId: 'eni-mine', SubnetId: 'subnet-1', PrivateIpAddress: '10.0.0.5', Ipv4Prefixes: [{ Ipv4Prefix: '10.0.0.0/28' }]
+                        },
+                        {
+                            NetworkInterfaceId: 'eni-theirs', SubnetId: 'subnet-1', PrivateIpAddress: '10.0.0.6', Ipv4Prefixes: [{ Ipv4Prefix: '10.0.0.0/28' }]
+                        }
+                    ]);
+                    provider._getElasticIPsFromCIDR = sinon.stub().resolves({
+                        addresses: [{
+                            publicIpAddress: '203.0.113.20',
+                            privateIpAddress: '10.0.0.6',
+                            allocationId: 'alloc-x'
+                        }]
+                    });
+                    const addresses = { localAddresses: ['10.0.0.5'] };
+                    const resultAction = {
+                        publicAddresses: {},
+                        interfaces: { disassociate: [], associate: [] },
+                        loadBalancerAddresses: {}
+                    };
+                    return provider._createActionForElasticPrefixIpAddress(addresses, resultAction, { scopingAddress: '10.0.0.0/28' });
+                })
+                .then((updated) => {
+                    assert.ok(updated.publicAddresses['203.0.113.20']);
+                    assert.strictEqual(updated.publicAddresses['203.0.113.20'].target.NetworkInterfaceId, 'eni-mine');
+                });
+        });
+    });
+
+    describe('AWS _getIpParamsByVersion prefix + ipv6 accumulation', () => {
+        it('should separate ipv4 prefix, ipv4, and ipv6 addresses', () => {
+            provider.init(mockInitData)
+                .then(() => {
+                    const addresses = [
+                        { address: '10.0.0.8', ipVersion: 4 },
+                        { address: '10.0.0.0/28', ipVersion: 4, prefix: true },
+                        { address: '2001:db8::5', ipVersion: 6 }
+                    ];
+                    const params = provider._getIpParamsByVersion('eni-xyz', addresses);
+                    assert.deepStrictEqual(params.ipv4.PrivateIpAddresses, ['10.0.0.8']);
+                    assert.deepStrictEqual(params.ipv4Prefix.Ipv4Prefixes, ['10.0.0.0/28']);
+                    assert.deepStrictEqual(params.ipv6.Ipv6Addresses, ['2001:db8::5']);
+                });
+        });
+    });
+
+    describe('function _unassignPrivateIp4Addresses', () => {
+        it('should resolve when unassigning valid IPv4 addresses', () => {
+            const ipv4Params = { NetworkInterfaceId: 'eni-123', PrivateIpAddresses: ['10.0.0.2'] };
+            const addresses = [{ address: '10.0.0.2', publicAddress: '1.2.3.4' }];
+
+            provider._reassociatePublicAddressToNic = sinon.stub().resolves();
+
+            return provider._unassignPrivateIp4Addresses(ipv4Params, addresses)
+                .then((result) => {
+                    assert.ok(result);
+                });
+        });
+
+        it('should reject on AWS error', () => {
+            const ipv4Params = { NetworkInterfaceId: 'eni-123', PrivateIpAddresses: ['10.0.0.2'] };
+            const addresses = [{ address: '10.0.0.2', publicAddress: '1.2.3.4' }];
+
+            provider._reassociatePublicAddressToNic = sinon.stub().rejects(new Error('AWS error'));
+
+            return provider._unassignPrivateIp4Addresses(ipv4Params, addresses)
+                .catch((err) => {
+                    assert.ok(err);
+                });
+        });
+
+        it('should include Ipv4Prefix.* params when prefixes supplied', () => {
+            provider.ec2ApiRequest = sinon.stub().resolves({});
+            provider._reassociatePublicAddressToNic = sinon.stub().resolves();
+            const ipv4Params = {
+                NetworkInterfaceId: 'eni-1',
+                Ipv4Prefixes: ['10.0.0.0/28'],
+                PrivateIpAddresses: ['10.0.0.8']
+            };
+            const addresses = [
+                { address: '10.0.0.8', ipVersion: 4 },
+                { address: '10.0.0.0/28', ipVersion: 4, prefix: true }
+            ];
+            let captured;
+            provider.ec2ApiRequest = function (opts) {
+                captured = opts.queryParams;
+                return Promise.resolve({});
+            };
+            return provider._unassignPrivateIp4Addresses(ipv4Params, addresses)
+                .then(() => {
+                    assert.ok(captured['Ipv4Prefix.2']); // second param after PrivateIpAddress.1
+                });
+        });
+    });
+
+    describe('function _getPrefixedAddresses', () => {
+        it('should resolve with prefixed addresses from AWS', () => {
+            unitTestContext = unitTestContext || {};
+            unitTestContext.DescribeNetworkInterfaces = {
+                NetworkInterfaces: [
+                    {
+                        NetworkInterfaceId: 'eni-123',
+                        Ipv4Prefixes: [
+                            { Ipv4Prefix: '10.0.0.0/28' }
+                        ],
+                        PrivateIpAddresses: [
+                            { Primary: false, PrivateIpAddress: '10.0.0.2' }
+                        ]
+                    }
+                ]
+            };
+
+            return provider._getPrefixedAddresses()
+                .then((result) => {
+                    assert.ok(result['10.0.0.0/28']);
+                    assert.strictEqual(result['10.0.0.0/28'].NetworkInterfaceId, 'eni-123');
+                    assert.deepStrictEqual(result, { '10.0.0.0/28': { NetworkInterfaceId: 'eni-123' } });
+                });
+        });
+
+        it('should reject on AWS error', () => {
+            provider._describeNetworkInterfaces = sinon.stub().rejects(new Error('AWS error'));
+            return provider._getPrefixedAddresses()
+                .catch((err) => {
+                    assert.ok(err);
+                });
         });
     });
 });

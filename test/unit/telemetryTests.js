@@ -199,4 +199,58 @@ describe('Telemetry Client', () => {
             })
             .catch((err) => Promise.reject(err));
     });
+
+    it('should handle telemetry send failure gracefully', () => {
+        this.f5TeemReportMock.restore();
+        sinon.stub(f5Teem.prototype, 'reportRecord').rejects(new Error('Telemetry service unavailable'));
+
+        return this.telemetryClient.send(this.configuration)
+            .then((result) => {
+                assert.strictEqual(result.sent, false);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should process extra fields with environment key', () => {
+        const config = {};
+        config[constants.ENVIRONMENT_KEY_NAME] = 'azure';
+        config[constants.FEATURE_FLAG_KEY_NAMES.IP_FAILOVER] = { enabled: true };
+
+        const processed = this.telemetryClient._processExtraFields(config);
+
+        assert.strictEqual(processed.environment, 'azure');
+        assert.strictEqual(processed.featureFlags.ipFailover, true);
+        assert.strictEqual(processed.featureFlags.routeFailover, false);
+    });
+
+    it('should process extra fields without environment key', () => {
+        const config = {};
+        config[constants.FEATURE_FLAG_KEY_NAMES.ROUTE_FAILOVER] = { enabled: true };
+
+        const processed = this.telemetryClient._processExtraFields(config);
+
+        assert.strictEqual(processed.environment, 'none');
+        assert.strictEqual(processed.featureFlags.ipFailover, false);
+        assert.strictEqual(processed.featureFlags.routeFailover, true);
+    });
+
+    it('should process feature flags when both are enabled', () => {
+        const config = {};
+        config[constants.FEATURE_FLAG_KEY_NAMES.IP_FAILOVER] = { enabled: true };
+        config[constants.FEATURE_FLAG_KEY_NAMES.ROUTE_FAILOVER] = { enabled: true };
+
+        const featureFlags = this.telemetryClient._processFeatureFlags(config);
+
+        assert.strictEqual(featureFlags.ipFailover, true);
+        assert.strictEqual(featureFlags.routeFailover, true);
+    });
+
+    it('should process feature flags when both are disabled', () => {
+        const config = {};
+
+        const featureFlags = this.telemetryClient._processFeatureFlags(config);
+
+        assert.strictEqual(featureFlags.ipFailover, false);
+        assert.strictEqual(featureFlags.routeFailover, false);
+    });
 });

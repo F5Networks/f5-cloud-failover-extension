@@ -18,7 +18,7 @@
 
 const net = require('net');
 
-const f5CloudLibs = require('@f5devcentral/f5-cloud-libs');
+const f5CloudLibs = require('@automation-toolchain/f5-cloud-libs');
 
 const constants = require('./constants.js');
 const util = require('./util.js');

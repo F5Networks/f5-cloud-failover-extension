@@ -130,6 +130,95 @@ module.exports = {
     },
 
     /**
+     * Refresh auth token
+     *
+     * @param {String} host  - host
+     * @param {String} port  - port
+     * @param {String} token - token
+     *
+     * @returns {Promise} Returns promise resolved with refreshed auth token: { token: 'token' }
+     */
+    refreshAuthToken(host, port, token) {
+        const uri = `/mgmt/shared/authz/tokens/${token}`;
+        const body = { timeout: 36000 };
+        const patchOptions = {
+            port,
+            method: 'PATCH',
+            headers: { 'x-f5-auth-token': token },
+            body
+        };
+
+        return this.makeRequest(host, uri, patchOptions)
+            .then((data) => ({ token: data.token }))
+            .catch((err) => {
+                const msg = `refreshAuthToken: ${err}`;
+                throw new Error(msg);
+            });
+    },
+
+    /**
+     * Get and refresh auth token
+     *
+     * @param {String} host     - host
+     * @param {String} port     - port
+     * @param {String} username - username
+     * @param {String} password - password
+     *
+     * @returns {Promise} Returns promise resolved with refreshed auth token: { token: 'token' }
+     */
+    getAndRefreshAuthToken(host, port, username, password) {
+        return this.getAuthToken(host, port, username, password)
+            .then((data) => this.refreshAuthToken(host, port, data.token.token))
+            .then((refresh) => ({ token: refresh.token }))
+            .catch((err) => {
+                const msg = `getAndRefreshAuthToken: ${err}`;
+                throw new Error(msg);
+            });
+    },
+
+    /**
+     * Refresh auth token, or get/refresh a new one if expired
+     *
+     * @param {String} host     - host
+     * @param {String} port     - port
+     * @param {String} username - username
+     * @param {String} password - password
+     * @param {String} token    - token
+     *
+     * @returns {Promise} Returns promise resolved with auth token: { token: 'token' }
+     */
+    refreshOrGetAuthToken(host, port, username, password, token) {
+        return this.refreshAuthToken(host, port, token)
+            .then((refresh) => ({ token: refresh.token }))
+            .catch(() => this.getAndRefreshAuthToken(host, port, username, password));
+    },
+
+    /**
+     * Revoke auth token
+     *
+     * @param {String} host  - host
+     * @param {String} port  - port
+     * @param {String} token - token
+     *
+     * @returns {Promise} Returns promise resolved with revoked auth token: { token: 'token' }
+     */
+    revokeAuthToken(host, port, token) {
+        const uri = `/mgmt/shared/authz/tokens/${token}`;
+        const patchOptions = {
+            port,
+            method: 'DELETE',
+            headers: { 'x-f5-auth-token': token }
+        };
+
+        return this.makeRequest(host, uri, patchOptions)
+            .then((data) => ({ token: data.token }))
+            .catch((err) => {
+                const msg = `refreshAuthToken: ${err}`;
+                throw new Error(msg);
+            });
+    },
+
+    /**
      * Base64 encoder/decoder
      *
      * @param {String} action - decode|encode

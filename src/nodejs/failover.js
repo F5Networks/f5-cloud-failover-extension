@@ -427,8 +427,10 @@ class FailoverClient {
                     isAddressOperationsEnabled: this.isAddressOperationsEnabled
                 }
             ));
+            logger.debug(`Discovered addresses using addressGroupDefinitions: ${util.stringify(updateActions)}`);
         } else {
             updateActions = this._discoverAddresses(addresses);
+            logger.debug(`Discovered addresses without addressGroupDefinitions: ${util.stringify(updateActions)}`);
         }
         updateActions.push(this.isRouteOperationsEnabled ? this.cloudProvider.updateRoutes({
             localAddresses: addresses.localAddresses,

@@ -42,9 +42,31 @@ class Logger {
     constructor() {
         this.tag = 'f5-cloud-failover';
         currentLogLevel = LOG_LEVELS.info;
+        this._initializeLogger();
+    }
+
+    _initializeLogger() {
+        const options = {};
+        // Map our LOG_LEVELS to f5-logger levels
+        const levelMap = {
+            [LOG_LEVELS.silly]: 'finest',
+            [LOG_LEVELS.verbose]: 'finer',
+            [LOG_LEVELS.debug]: 'fine',
+            [LOG_LEVELS.info]: 'info',
+            [LOG_LEVELS.warning]: 'warning',
+            [LOG_LEVELS.error]: 'severe'
+        };
+        // Set the log level on the f5-logger instance if it exists
+        if (f5Logger) {
+            options.logLevel = levelMap[currentLogLevel] || levelMap[LOG_LEVELS.info];
+            options.fileLogLevel = levelMap[currentLogLevel] || levelMap[LOG_LEVELS.info];
+        } else {
+            options.fileLogLevel = levelMap[LOG_LEVELS.info];
+        }
+        options.fileLogPath = '/var/log/restnoded/restnoded.log';
         // If we weren't able to get the f5-logger, create a mock (so our unit tests run)
         this.logger = f5Logger
-            ? f5Logger.getInstance()
+            ? f5Logger.getInstance(options)
             : {
                 silly() {},
                 verbose() {},
@@ -110,6 +132,12 @@ class Logger {
         // allow user to see this log message to help us understand what happened with logLevel
         this.info(`Global logLevel set to '${levelName}'`);
         currentLogLevel = level;
+
+        // Reinitialize the logger with the new log level
+        // f5-logger doesn't support dynamic log level changes, so we need to recreate the instance
+        if (f5Logger) {
+            this._initializeLogger();
+        }
     }
 }
 

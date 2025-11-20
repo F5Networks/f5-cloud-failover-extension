@@ -68,8 +68,6 @@ module.exports = {
     ENVIRONMENT_KEY_NAME: 'environment',
     LOCAL_HOST: 'localhost',
     METADATA_HOST: '169.254.169.254',
-    API_HOST_EC2: 'ec2.amazonaws.com',
-    API_HOST_S3: 's3.amazonaws.com',
     API_VERSION_EC2: '2016-11-15',
     API_VERSION_S3: '2006-03-01',
     MASK_REGEX: new RegExp('pass(word|phrase)', 'i'),
@@ -181,8 +179,8 @@ module.exports = {
     TRIGGER_COMMAND: triggerScriptContents,
     LEGACY_TRIGGER_COMMENT: '# Disabled by F5 Failover Extension',
     LEGACY_TRIGGER_COMMANDS: [
-        '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@f5devcentral/f5-cloud-libs-azure/scripts/failoverProvider.js',
-        '/usr/bin/f5-rest-node /config/cloud/gce/node_modules/@f5devcentral/f5-cloud-libs-gce/scripts/failover.js'
+        '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@automation-toolchain/f5-cloud-libs-azure/scripts/failoverProvider.js',
+        '/usr/bin/f5-rest-node /config/cloud/gce/node_modules/@automation-toolchain/f5-cloud-libs-gce/scripts/failover.js'
     ],
     STATE_FILE_RESET_MESSAGE: 'Failover state file was reset',
     CONTROLS_LOG_LEVEL: 'Log level control config posted',
@@ -305,6 +303,9 @@ module.exports = {
                                     <ipv6Address>{{Ipv6Address}}</ipv6Address>
                                     <isPrimaryIpv6>{{IsPrimaryIpv6}}</isPrimaryIpv6>
                             </item></ipv6AddressesSet>
+                            <ipv4PrefixSet><item c-bind="Ipv4Prefixes|array">
+                                <ipv4Prefix>{{Ipv4Prefix}}</ipv4Prefix>
+                            </item></ipv4PrefixSet>
                             <interfaceType>{{InterfaceType}}</interfaceType>
                             <subnetId>{{SubnetId}}</subnetId>
                             <vpcId>{{VpcId}}</vpcId>
@@ -390,6 +391,9 @@ module.exports = {
                         <ipv6AddressesSet><item c-bind="Ipv6Addresses|array">
                             <ipv6Address>{{Ipv6Address}}</ipv6Address>
                         </item></ipv6AddressesSet>
+                        <ipv4PrefixSet><item c-bind="Ipv4Prefixes|array">
+                            <ipv4Prefix>{{Ipv4Prefix}}</ipv4Prefix>
+                        </item></ipv4PrefixSet>
                     </item></networkInterfaceSet>
                 </DescribeNetworkInterfacesResponse>`,
             DescribeRouteTables: `<DescribeRouteTablesResponse>
