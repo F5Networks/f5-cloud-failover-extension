@@ -91,6 +91,11 @@ module.exports = {
                 targetInstances.push(instance.hostname);
             }
         });
+        // Populate elastic IPs (AWS)
+        const scopingAddress = process.env.SCOPING_ADDRESS || false;
+        const elasticIps = deploymentInfo.elasticIps && deploymentInfo.elasticIps.length
+            ? deploymentInfo.elasticIps
+            : scopingAddress && [{ scopingAddress, vipAddresses: [scopingAddress.split('/')[0]] }];
         return {
             nextHopAddresses,
             virtualAddresses,
@@ -99,7 +104,7 @@ module.exports = {
             bucketName: deploymentInfo.bucketName,
             routeTables: deploymentInfo.routeTables,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
-            elasticIps: deploymentInfo.elasticIps || [], // optional: used by AWS
+            elasticIps: elasticIps || [], // optional: used by AWS
             networkTopology: deploymentInfo.networkTopology || null, // optional: used by AWS
             aliasAddresses: aliasAddresses || [], // optional: used by GCP
             forwardingRule: deploymentInfo.forwardingRule || null, // optional: used by GCP
@@ -154,6 +159,7 @@ module.exports = {
                 last: environmentInfo.targetInstances.length - 1 === idx
             }))
         };
+
         const renderedData = mustache.render(fs.readFileSync(declarationTemplate).toString(), declarationData);
         return JSON.parse(renderedData);
     },
@@ -276,7 +282,7 @@ module.exports = {
         const httpOptions = this.makeOptions({ authToken: options.authToken });
         httpOptions.method = 'GET';
         httpOptions.port = options.port;
-        return utils.makeRequest(host, uri, httpOptions);
+        return utils.makeRequest(host, uri, httpOptions).catch((err) => Promise.reject(err));
     },
 
     /**

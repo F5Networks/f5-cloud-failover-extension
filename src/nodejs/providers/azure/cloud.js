@@ -32,7 +32,7 @@ const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSE
 
 const storageContainerName = constants.STORAGE_FOLDER_NAME;
 
-const NETWORK_MAX_RETRIES = 60;
+const NETWORK_MAX_RETRIES = 300; // total of 5 minutes with 1 second interval
 const NETWORK_RETRY_INTERVAL = 1000;
 const METADATA_VERSION = '2021-02-01';
 const X_MS_VERSION = '2017-11-09';
@@ -1181,7 +1181,7 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Checking provisioning state of NIC: ${networkInterfaceName}`);
         return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this.primarySubscriptionId}/resourceGroups/${this.resourceGroup}/providers/Microsoft.Network/networkInterfaces/${networkInterfaceName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
-                this.logger.silly(`Provisioning state of NIC ${networkInterfaceName}: ${response.properties.provisioningState}`);
+                this.logger.info(`Provisioning state of NIC ${networkInterfaceName}: ${response.properties.provisioningState}`);
                 if (response.name.match(networkInterfaceName) && response.properties.provisioningState.match('Succeeded')) {
                     return Promise.resolve(response);
                 }
@@ -1205,7 +1205,7 @@ class Cloud extends AbstractCloud {
         this.logger.silly(`Checking provisioning state of route table: ${routeTableName}`);
         return this._makeRequest('GET', `${this.environment.resourceManagerEndpointUrl}subscriptions/${this._parseResourceId(routeTableId).subscriptionId}/resourceGroups/${routeTableGroup}/providers/Microsoft.Network/routeTables/${routeTableName}?api-version=${NETWORK_API_VERSION}`, {})
             .then((response) => {
-                this.logger.silly(`Provisioning state of route table ${routeTableName}: ${response.properties.provisioningState}`);
+                this.logger.info(`Provisioning state of route table ${routeTableName}: ${response.properties.provisioningState}`);
                 if (response.name.match(routeTableName) && response.properties.provisioningState.match('Succeeded')) {
                     return Promise.resolve(response);
                 }

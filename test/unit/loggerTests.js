@@ -152,4 +152,67 @@ describe('logger', () => {
         assert.strictEqual(loggedMessages.fine.length, 0);
         assert.notStrictEqual(loggedMessages.info[0].indexOf('Global logLevel set to \'info\''), -1);
     });
+
+    it('should mask passphrase in objects', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        const myPassphrase = 'secret123';
+        logger.info({ passphrase: myPassphrase });
+        const lastMsg = loggedMessages.info[loggedMessages.info.length - 1];
+        assert.strictEqual(lastMsg.indexOf(myPassphrase), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"passphrase":'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"********"'), -1);
+    });
+
+    it('should mask Password in objects (case insensitive)', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        const myPassword = 'mypassword123';
+        logger.info({ Password: myPassword });
+        const lastMsg = loggedMessages.info[loggedMessages.info.length - 1];
+        assert.strictEqual(lastMsg.indexOf(myPassword), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"Password":'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"********"'), -1);
+    });
+
+    it('should handle non-object messages in mask function', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        logger.info('simple string message');
+        const lastMsg = loggedMessages.info[loggedMessages.info.length - 1];
+        assert.notStrictEqual(lastMsg.indexOf('simple string message'), -1);
+    });
+
+    it('should handle object with multiple keys where one needs masking', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        const obj = { username: 'admin', password: 'secret', host: 'example.com' };
+        logger.info(obj);
+        const lastMsg = loggedMessages.info[loggedMessages.info.length - 1];
+        assert.strictEqual(lastMsg.indexOf('secret'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('admin'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('example.com'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"********"'), -1);
+    });
+
+    it('should log object as second parameter and mask sensitive data', () => {
+        logger.setLogLevel(LOG_LEVELS.info);
+        const sensitiveObj = { passPhrase: 'secret-passphrase', data: 'public' };
+        logger.info('API call result:', sensitiveObj);
+        const lastMsg = loggedMessages.info[loggedMessages.info.length - 1];
+        assert.strictEqual(lastMsg.indexOf('secret-passphrase'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('public'), -1);
+        assert.notStrictEqual(lastMsg.indexOf('"********"'), -1);
+    });
+
+    it('should handle invalid string log level and log error', () => {
+        const initialCount = loggedMessages.severe.length;
+        logger.setLogLevel('invalid');
+        // Should log error about unknown log level
+        assert.strictEqual(loggedMessages.severe.length, initialCount + 1);
+        assert.notStrictEqual(loggedMessages.severe[loggedMessages.severe.length - 1].indexOf('Unknown logLevel - invalid'), -1);
+    });
+
+    it('should stringify objects in log messages', () => {
+        const testObj = { key1: 'value1', key2: 'value2' };
+        logger.info(testObj);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('key1'), -1);
+        assert.notStrictEqual(loggedMessages.info[0].indexOf('value1'), -1);
+    });
 });

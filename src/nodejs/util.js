@@ -11,6 +11,7 @@
 const axios = require('axios').default;
 const https = require('https');
 const FormData = require('form-data');
+const CIDR = require('cidr-js');
 const Logger = require('./logger.js');
 
 const MAX_RETRIES = require('./constants').MAX_RETRIES;
@@ -181,7 +182,7 @@ module.exports = {
                 }
                 return response.data;
             })
-            .catch((err) => Promise.reject(new Error(typeof err === 'object') ? JSON.stringify(err.message) : err));
+            .catch((err) => Promise.reject(err));
     },
 
     /**
@@ -234,5 +235,42 @@ module.exports = {
     validateIpv6Address(data) {
         const re = '(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))';
         return !!data.match(re);
+    },
+
+    /**
+     * Cidr address validator
+     *
+     * @param {String} data - Cidr address
+     *
+     * @returns {Boolean} Returns processed data as a boolean
+     */
+    isCidr(data) {
+        const re = '^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9])|(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9]))$';
+        return !!data.match(re);
+    },
+
+    /**
+     * Cidr to IPs converter
+     *
+     * @param {String} cidrBlock - Cidr address
+     *
+     * @returns {Array} Returns array of IPs
+     *
+     * @returns {Promise} A promise which will be resolved once function resolves
+     */
+    getIPsFromCIDR(cidrBlock) {
+        return new Promise((resolve, reject) => {
+            if (!this.isCidr(cidrBlock)) {
+                reject(new Error(`Invalid CIDR block: ${cidrBlock}`));
+                return;
+            }
+            const cidr = new CIDR();
+            const ips = cidr.list(cidrBlock);
+            if (ips === null || ips.length === 0) {
+                reject(new Error(`Cannot parse CIDR block or no IPs found: ${cidrBlock}`));
+                return;
+            }
+            resolve(ips);
+        });
     }
 };

@@ -9,146 +9,214 @@
 'use strict';
 
 const assert = require('assert');
+const chai = require('chai');
 const sinon = require('sinon');
-const nock = require('nock');
+const axios = require('axios');
+const https = require('https');
+const FormData = require('form-data');
+const util = require('../../src/nodejs/util');
 
-/* eslint-disable global-require */
+const { expect } = chai;
+/* eslint-disable no-unused-expressions */
 
-describe('Util', () => {
-    let util;
+describe('util.makeRequest', () => {
+    let axiosRequestStub;
 
-    before(() => {
-        util = require('../../src/nodejs/util.js');
+    beforeEach(() => {
+        axiosRequestStub = sinon.stub(axios, 'request');
     });
-    after(() => {
-        Object.keys(require.cache).forEach((key) => {
-            delete require.cache[key];
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should make a GET request and return response data', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: { foo: 'bar' },
+            headers: { 'x-test': 'header' }
         });
+
+        return util.makeRequest('localhost', '/test', {})
+            .then((result) => {
+                expect(result).to.deep.equal({ foo: 'bar' });
+
+                expect(axiosRequestStub.calledOnce).to.be.true;
+                const callArgs = axiosRequestStub.firstCall.args[0];
+                expect(callArgs.method).to.equal('GET');
+                expect(callArgs.baseURL).to.equal('https://localhost:443');
+            });
     });
 
-    function MockRestOperation() {
-        this.method = null;
-        this.body = null;
-        this.statusCode = null;
-    }
-    MockRestOperation.prototype.setMethod = function (method) { this.method = method; };
-    MockRestOperation.prototype.setBody = function (body) { this.body = body; };
-    MockRestOperation.prototype.setStatusCode = function (code) { this.statusCode = code; };
-    MockRestOperation.prototype.complete = function () { };
+    it('should make a POST request with body', () => {
+        axiosRequestStub.resolves({
+            status: 201,
+            data: { created: true },
+            headers: {}
+        });
 
-    it('should stringify object', () => {
-        const obj = {
-            foo: 'bar'
+        const options = {
+            method: 'POST',
+            body: JSON.stringify({ name: 'test' })
         };
-        const newObj = util.stringify(obj);
-        assert.notStrictEqual(newObj.indexOf('{"foo":"bar"}'), -1);
+        return util.makeRequest('localhost', '/create', options)
+            .then((result) => {
+                expect(result).to.deep.equal({ created: true });
+                expect(axiosRequestStub.firstCall.args[0].method).to.equal('POST');
+                expect(axiosRequestStub.firstCall.args[0].data).to.equal(options.body);
+            });
     });
 
-    it('should leave string intact', () => {
-        const obj = 'foo';
-        const newObj = util.stringify(obj);
-        assert.strictEqual(obj, newObj);
-    });
-
-    it('should validate ipv6 address', () => {
-        const invalidAddress = '5.5.5.5';
-        const ipv6Address = '2600:1f13:fa5:c004:72ec:d73:3fda:3094';
-
-        assert.deepEqual(util.validateIpv6Address(invalidAddress), false);
-        assert.deepEqual(util.validateIpv6Address(ipv6Address), true);
-    });
-
-    it('should call rest operation responder', () => {
-        const mockRestOperation = new MockRestOperation();
-
-        const body = { foo: 'bar' };
-        const statusCode = 200;
-        util.restOperationResponder(mockRestOperation, statusCode, body);
-        assert.strictEqual(mockRestOperation.body, body);
-        assert.strictEqual(mockRestOperation.statusCode, statusCode);
-    });
-
-    describe('retrier', () => {
-        it('should validate resolve', () => {
-            const fakeFuncSpy = sinon.stub().resolves();
-
-            return util.retrier(fakeFuncSpy, [], { maxRetries: 10, retryInterval: 10 })
-                .then(() => {
-                    assert.strictEqual(fakeFuncSpy.callCount, 1);
-                })
-                .catch((err) => Promise.reject(err));
+    it('should handle formData and set headers', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: { ok: true },
+            headers: {}
         });
 
-        it('should validate reject', () => {
-            const fakeFuncSpy = sinon.stub().rejects();
-            const retryCount = 2;
+        const fakeFormData = [
+            {
+                name: 'file', data: 'abc', fileName: 'test.txt', contentType: 'text/plain'
+            }
+        ];
 
-            return util.retrier(fakeFuncSpy, [], { maxRetries: retryCount, retryInterval: 10 })
-                .catch(() => {
-                    assert.strictEqual(fakeFuncSpy.callCount, retryCount + 1);
+        // stub FormData.prototype.append and getHeaders
+        const appendStub = sinon.stub(FormData.prototype, 'append');
+        const getHeadersStub = sinon.stub(FormData.prototype, 'getHeaders').returns({ 'content-type': 'multipart/form-data' });
+
+        const options = { formData: fakeFormData, headers: {} };
+        return util.makeRequest('localhost', '/upload', options)
+            .then(() => {
+                expect(appendStub.calledOnce).to.be.true;
+                expect(getHeadersStub.calledOnce).to.be.true;
+                appendStub.restore();
+                getHeadersStub.restore();
+            });
+    });
+
+    it('should reject on HTTP error status', () => {
+        axiosRequestStub.resolves({
+            status: 404,
+            data: { error: 'not found' },
+            headers: {}
+        });
+
+        return util.makeRequest('localhost', '/notfound', {})
+            .then(() => {
+                throw new Error('Should have thrown');
+            })
+            .catch((err) => {
+                expect(err.message).to.include('HTTP request failed: 404');
+            });
+    });
+
+    it('should continue on error if continueOnError is true', () => {
+        axiosRequestStub.resolves({
+            status: 404,
+            data: { error: 'not found' },
+            headers: {}
+        });
+
+        return util.makeRequest('localhost', '/notfound', { continueOnError: true })
+            .then((result) => {
+                expect(result).to.deep.equal({ error: 'not found' });
+            });
+    });
+
+    it('should return advanced return if advancedReturn is true', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: { foo: 'bar' },
+            headers: { 'x-test': 'header' }
+        });
+
+        return util.makeRequest('localhost', '/test', { advancedReturn: true })
+            .then((result) => {
+                expect(result).to.deep.equal({
+                    code: 200,
+                    body: { foo: 'bar' },
+                    headers: { 'x-test': 'header' }
+                });
+            });
+    });
+
+    it('should reject with error message on axios error', () => {
+        axiosRequestStub.rejects(new Error('Network error'));
+
+        return util.makeRequest('localhost', '/fail', {})
+            .then(() => {
+                throw new Error('Should have thrown');
+            })
+            .catch((err) => {
+                expect(err.message).to.include('Network error');
+            });
+    });
+
+    it('should use custom httpsAgent if provided', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: {},
+            headers: {}
+        });
+
+        const customAgent = new https.Agent({ rejectUnauthorized: true });
+        return util.makeRequest('localhost', '/test', { httpsAgent: customAgent })
+            .then(() => {
+                expect(axiosRequestStub.firstCall.args[0].httpsAgent).to.equal(customAgent);
+            });
+    });
+
+    it('should use custom proxy if provided', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: {},
+            headers: {}
+        });
+
+        const proxy = { host: 'proxyhost', port: 8080 };
+        return util.makeRequest('localhost', '/test', { proxy })
+            .then(() => {
+                expect(axiosRequestStub.firstCall.args[0].proxy).to.deep.equal(proxy);
+            });
+    });
+
+    it('should use custom validateStatus if provided', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: {},
+            headers: {}
+        });
+
+        return util.makeRequest('localhost', '/test', { validateStatus: true })
+            .then(() => {
+                expect(axiosRequestStub.firstCall.args[0].validateStatus).to.equal(true);
+            });
+    });
+});
+
+describe('getIPsFromCIDR', () => {
+    it('should return all IPs for a valid CIDR', () => {
+        const testData = [
+            { cidr: '2001:db8::/126', expected: ['2001:db8::', '2001:db8::1', '2001:db8::2', '2001:db8::3'] },
+            { cidr: '2001:db8::1/128', expected: ['2001:db8::1'] },
+            { cidr: '192.168.1.0/30', expected: ['192.168.1.0', '192.168.1.1', '192.168.1.2', '192.168.1.3'] },
+            { cidr: '10.0.0.0/30', expected: ['10.0.0.0', '10.0.0.1', '10.0.0.2', '10.0.0.3'] },
+            { cidr: '255.255.255.2551/32', expected: ['255.255.255.255'] },
+            { cidr: null, expected: [] }
+        ];
+        testData.forEach((data) => {
+            util.getIPsFromCIDR(data.cidr)
+                .then((ips) => {
+                    assert.deepStrictEqual(ips, data.expected);
                 });
         });
     });
 
-    describe('makeRequest', () => {
-        after(() => {
-            nock.cleanAll();
-        });
-
-        it('should validate resolve with form data', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(200, {
-                    message: 'reponseData'
-                });
-
-            const options = {
-                formData: [
-                    {
-                        name: 'name',
-                        data: {
-                            type: 'form'
-                        },
-                        fileName: 'foo',
-                        contentType: 'bar'
-                    }
-                ]
-            };
-
-            return util.makeRequest('localhost', '/path/to/endpoint', options)
-                .then((response) => {
-                    assert.deepStrictEqual(response, { message: 'reponseData' });
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate resolve advanced return', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(200, {
-                    message: 'reponseData'
-                });
-
-            return util.makeRequest('localhost', '/path/to/endpoint', { advancedReturn: true })
-                .then((response) => {
-                    assert.deepStrictEqual(response, { body: { message: 'reponseData' }, code: 200, headers: { 'content-type': 'application/json' } });
-                })
-                .catch((err) => Promise.reject(err));
-        });
-
-        it('should validate reject', () => {
-            nock('https://localhost')
-                .get('/path/to/endpoint')
-                .reply(404, {
-                    message: 'File Not Found'
-                });
-
-            return util.makeRequest('localhost', '/path/to/endpoint', {})
-                .then(() => {
-                    assert.fail(); // should reject
-                })
-                .catch((e) => {
-                    assert.match(e.toString(), /^"HTTP request failed: 404 {\\"message\\":\\"File Not Found\\"}"/);
+    it('should handle invalid CIDR gracefully', () => {
+        ['badinput', '192.168.1.1/33', '192.168.1.1/-1', '192.168.1.1/abc', 123, {}, []].forEach((input) => {
+            util.getIPsFromCIDR(input)
+                .catch((err) => {
+                    assert.ok(err.message.includes('Error: Invalid CIDR block: badinput'));
                 });
         });
     });

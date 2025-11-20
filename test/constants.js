@@ -165,8 +165,8 @@ module.exports = {
     TRIGGER_COMMAND: constants.TRIGGER_COMMAND,
     LEGACY_TRIGGER_COMMENT: '# Disabled by F5 Failover Extension',
     LEGACY_TRIGGER_COMMAND: {
-        AZURE: '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@f5devcentral/f5-cloud-libs-azure/scripts/failoverProvider.js',
-        GCP: '/usr/bin/f5-rest-node /config/cloud/gce/node_modules/@f5devcentral/f5-cloud-libs-gce/scripts/failover.js'
+        AZURE: '/usr/bin/f5-rest-node /config/cloud/azure/node_modules/@automation-toolchain/f5-cloud-libs-azure/scripts/failoverProvider.js',
+        GCP: '/usr/bin/f5-rest-node /config/cloud/gce/node_modules/@automation-toolchain/f5-cloud-libs-gce/scripts/failover.js'
     },
     STATE_FILE_RESET_MESSAGE: 'Failover state file was reset',
     LOG_LEVELS: {

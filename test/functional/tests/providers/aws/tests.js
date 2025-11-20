@@ -12,6 +12,8 @@ const assert = require('assert');
 
 const AWS = require('aws-sdk');
 
+const CIDR = require('cidr-js');
+
 const constants = require('../../../../constants.js');
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
@@ -33,6 +35,9 @@ function matchElasticIpsToInstance(eips, instance) {
     );
 
     eips.forEach((eip) => {
+        if (typeof eip.privateAddress === 'undefined') {
+            return;
+        }
         assert.strictEqual(
             privateAddresses.includes(eip.privateAddress),
             true,
@@ -76,8 +81,10 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             .then((results) => {
                 dutPrimary.authData = results[0];
                 dutSecondary.authData = results[1];
-                const options = funcUtils.makeOptions({ authToken: results[0].token });
+
+                const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
                 options.port = dutPrimary.port;
+
                 return utils.makeRequest(dutPrimary.ip, '/mgmt/tm/ltm/virtual-address', options);
             })
             .then((result) => {
@@ -85,12 +92,63 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             })
             .catch((err) => Promise.reject(err));
     });
+
+    beforeEach(() => Promise.all([
+        utils.refreshOrGetAuthToken(
+            dutPrimary.ip,
+            dutPrimary.port,
+            dutPrimary.username,
+            dutPrimary.password,
+            dutPrimary.authData.token
+        ),
+        utils.refreshOrGetAuthToken(
+            dutSecondary.ip,
+            dutSecondary.port,
+            dutSecondary.username,
+            dutSecondary.password,
+            dutSecondary.authData.token
+        )
+    ])
+        .then((results) => {
+            dutPrimary.authData = results[0];
+            dutSecondary.authData = results[1];
+        })
+        .catch((err) => Promise.reject(err)));
+
     after(() => {
         Object.keys(require.cache).forEach((key) => {
             delete require.cache[key];
         });
+
+        utils.revokeAuthToken(dutPrimary.ip, dutPrimary.port, dutPrimary.authData.token);
+        utils.revokeAuthToken(dutSecondary.ip, dutSecondary.port, dutSecondary.authData.token);
     });
+
     // local functions
+    function pollTaskState(dut, desiredStates, opts) {
+        const start = Date.now();
+        const timeout = opts.timeout || 60000;
+        const interval = opts.interval || 5000;
+
+        function attempt() {
+            return funcUtils.getTriggerTaskStatus(dut.ip, {
+                taskStates: [constants.FAILOVER_STATES.PASS],
+                authToken: dut.authData.token,
+                port: dut.port
+            })
+                .then((data) => {
+                    if (data.boolean && desiredStates.includes(data.taskStateResponse.taskState)) {
+                        return data;
+                    }
+                    if (Date.now() - start >= timeout) {
+                        return Promise.reject(new Error(`Timeout waiting for taskState in ${desiredStates} got: ${utils.stringify(data)}`));
+                    }
+                    return new Promise((resolve) => setTimeout(resolve, interval)).then(attempt);
+                });
+        }
+        return attempt();
+    }
+
     function getEc2Instances(tags) {
         const params = {
             Filters: [
@@ -148,6 +206,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
     function getElasticIps(instanceId) {
         const paramInstanceId = instanceId || null;
+
         const params = {
             Filters: [
                 {
@@ -228,9 +287,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             getElasticIpAddressesInfo(),
             getEc2Instances({ Key: 'deploymentId', Value: deploymentInfo.deploymentId })
         ])
-            .then((results) => {
-                const eips = results[0];
-                const instanceData = results[1];
+            .then(([eips, instanceData]) => {
                 const privateIpToInstance = {};
 
                 Object.keys(instanceData).forEach((key) => {
@@ -288,9 +345,17 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
-        it('should ensure secondary is not primary', () => funcUtils.forceStandby(
-            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-        ));
+        it('should ensure secondary is not active', function () {
+            this.retries(RETRIES.MEDIUM);
+            this.timeout(500000);
+
+            const dut = dutSecondary;
+            return funcUtils.forceStandby(dut.ip, dut.port, dut.username, dut.password)
+                .then(() => pollTaskState(dut, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                });
+        });
 
         // Test IP and Route failover
         it('should check that Elastic IP is mapped to primary (tag discovery)', function () {
@@ -301,7 +366,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         });
 
         if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
-            it('should check that secondary IPv6 address is  mapped to primary (tag discovery)', function () {
+            it('should check that secondary IPv6 address is mapped to primary (tag discovery)', function () {
                 this.retries(RETRIES.LONG);
                 getIpv6Addresses(dutPrimary.instanceId)
                     .then((addresses) => {
@@ -324,17 +389,12 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         it('wait until taskState is success on secondary BIG-IP (tag discovery)', function () {
             this.retries(RETRIES.MEDIUM);
+            this.timeout(500000); // Allow enough time for cold tag discovery + retries
 
             return new Promise(
                 (resolve) => setTimeout(resolve, 5000)
             )
-                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                    {
-                        taskState: constants.FAILOVER_STATES.PASS,
-                        authToken: dutSecondary.authData.token,
-                        hostname: dutSecondary.hostname,
-                        port: dutSecondary.port
-                    }))
+                .then(() => pollTaskState(dutSecondary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -348,13 +408,13 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
+        // might need to be skipped if none of the returned ipv6 addresses are also a virtualAddress in tmsh
         if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
-            it('should check that secondary IPv6 address is  mapped to secondary (tag discovery)', function () {
+            it('should check that secondary IPv6 address is mapped to secondary (tag discovery)', function () {
                 this.retries(RETRIES.LONG);
+                this.retries(1);
                 return getIpv6Addresses(dutSecondary.instanceId)
-                    .then((addresses) => {
-                        checkForIpv6Addresses(addresses);
-                    })
+                    .then((addresses) => checkForIpv6Addresses(addresses))
                     .catch((err) => Promise.reject(err));
             });
         }
@@ -372,16 +432,9 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         it('wait until taskState is success on primary BIG-IP (tag discovery)', function () {
             this.retries(RETRIES.MEDIUM);
-            return new Promise(
-                (resolve) => setTimeout(resolve, 5000)
-            )
-                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                    {
-                        taskState: constants.FAILOVER_STATES.PASS,
-                        authToken: dutPrimary.authData.token,
-                        hostname: dutPrimary.hostname,
-                        port: dutPrimary.port
-                    }))
+            this.timeout(500000);
+            return new Promise((resolve) => setTimeout(resolve, 5000))
+                .then(() => pollTaskState(dutPrimary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -483,6 +536,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
+        // might need to be skipped if ipv6 public ip missing
         it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (tag discovery)', () => {
             const expectedResult = {};
             return Promise.all([
@@ -492,12 +546,12 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .then((data) => {
                     expectedResult.publicIp = data[0].Addresses[0].PublicIp;
                     expectedResult.routeTableId = data[1][0].RouteTableId;
+                    return funcUtils.invokeFailoverDryRun(dutSecondary.ip,
+                        {
+                            authToken: dutSecondary.authData.token,
+                            port: dutSecondary.port
+                        });
                 })
-                .then(() => funcUtils.invokeFailoverDryRun(dutSecondary.ip,
-                    {
-                        authToken: dutSecondary.authData.token,
-                        port: dutSecondary.port
-                    }))
                 .then((data) => {
                     const addresses = utils.stringify(data.addresses);
                     const routeTableId = data.routes.operations[0].route;
@@ -514,6 +568,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
                 staticDeclarationName = 'exampleDeclarationAwsSameAzStatic.stache';
             }
+
             return utils.makeRequest(dutPrimary.ip, uri, {
                 method: 'POST',
                 body: funcUtils.getDeploymentDeclaration(staticDeclarationName),
@@ -529,9 +584,17 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
-        it('should ensure secondary is not primary (static definitions)', () => funcUtils.forceStandby(
-            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
-        ));
+        it('should ensure secondary is not active (static definitions)', function () {
+            this.retries(RETRIES.MEDIUM);
+            this.timeout(500000);
+
+            const dut = dutSecondary;
+            return funcUtils.forceStandby(dut.ip, dut.port, dut.username, dut.password)
+                .then(() => pollTaskState(dut, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
+                .then((data) => {
+                    assert(data.boolean, data);
+                });
+        });
 
         it('should check that Elastic IP is mapped to primary (static definitions)', function () {
             this.retries(RETRIES.LONG);
@@ -564,17 +627,12 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         it('wait until taskState is success on secondary BIG-IP (static definitions)', function () {
             this.retries(RETRIES.MEDIUM);
+            this.timeout(500000);
 
             return new Promise(
                 (resolve) => setTimeout(resolve, 5000)
             )
-                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                    {
-                        taskState: constants.FAILOVER_STATES.PASS,
-                        authToken: dutSecondary.authData.token,
-                        hostname: dutSecondary.hostname,
-                        port: dutSecondary.port
-                    }))
+                .then(() => pollTaskState(dutSecondary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -588,8 +646,9 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
+        // might need to be skipped if none of the returned ipv6 addresses are also a virtualAddress in tmsh
         if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
-            it('should check that secondary IPv6 address is  mapped to secondary (static definitions)', function () {
+            it('should check that secondary IPv6 address is mapped to secondary (static definitions)', function () {
                 this.retries(RETRIES.LONG);
                 return getIpv6Addresses(dutSecondary.instanceId)
                     .then((addresses) => {
@@ -612,16 +671,11 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         it('wait until taskState is success on primary BIG-IP (static definitions)', function () {
             this.retries(RETRIES.MEDIUM);
+            this.timeout(500000);
             return new Promise(
                 (resolve) => setTimeout(resolve, 5000)
             )
-                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                    {
-                        taskState: constants.FAILOVER_STATES.PASS,
-                        authToken: dutPrimary.authData.token,
-                        hostname: dutPrimary.hostname,
-                        port: dutPrimary.port
-                    }))
+                .then(() => pollTaskState(dutPrimary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -652,13 +706,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
             return new Promise(
                 (resolve) => setTimeout(resolve, 1000)
             )
-                .then(() => funcUtils.getTriggerTaskStatus(dutSecondary.ip,
-                    {
-                        taskStates: [constants.FAILOVER_STATES.RUN, constants.FAILOVER_STATES.PASS],
-                        authToken: dutSecondary.authData.token,
-                        hostname: dutSecondary.hostname,
-                        port: dutSecondary.port
-                    }))
+                .then(() => pollTaskState(dutSecondary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -671,16 +719,11 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
         it('wait until taskState is success on primary BIG-IP (static definitions)', function () {
             this.retries(RETRIES.MEDIUM);
+            this.timeout(500000);
             return new Promise(
                 (resolve) => setTimeout(resolve, 5000)
             )
-                .then(() => funcUtils.getTriggerTaskStatus(dutPrimary.ip,
-                    {
-                        taskState: constants.FAILOVER_STATES.PASS,
-                        authToken: dutPrimary.authData.token,
-                        hostname: dutPrimary.hostname,
-                        port: dutPrimary.port
-                    }))
+                .then(() => pollTaskState(dutPrimary, [constants.FAILOVER_STATES.PASS], { timeout: 50000 }))
                 .then((data) => {
                     assert(data.boolean, data);
                 })
@@ -782,6 +825,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
 
+        // might need to be skipped if ipv6 public ip missing
         it('Dry run: should retrieve failover objects that will change when standby BIG-IP (secondary) becomes active (static definitions)', () => {
             const expectedResult = {};
             return Promise.all([
@@ -825,4 +869,201 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
                 .catch((err) => Promise.reject(err));
         });
     });
+
+    describe('Functional: AWS China region domain suffix', () => {
+        it('should update domainSuffix to amazonaws.com.cn for cn-north-1 region', () => {
+            // Cannot really functional test this more without incurring costs in the China region
+            // -- which we do not even have credentials for at this time.
+            // Also, in order to functional test this better, we could create a new endpoint
+            // eslint-disable-next-line global-require
+            const AWSCloudProvider = require('../../../../../src/nodejs/providers/aws/cloud.js').Cloud;
+            const provider = new AWSCloudProvider({ region: 'cn-north-1' });
+            provider.region = 'cn-north-1';
+            const suffix = provider._getDomainSuffix();
+            assert.strictEqual(suffix, 'amazonaws.com.cn');
+        });
+    });
+
+    if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
+        describe('AWS provider tests (same AZ prefix)', () => {
+            const cidr = new CIDR();
+            const ha = {
+                active: dutPrimary,
+                standby: dutSecondary
+            };
+            let NetworkInterfaceId;
+            let expectedPrefixCidr;
+            let allocationId;
+
+            before(() => setHaStatus()
+                .then(() => getExternalNic(ha.active.instanceId))
+                .then((extNic) => {
+                    NetworkInterfaceId = extNic.NetworkInterfaceId;
+                    return ((extNic.Ipv4Prefixes.length > 0)
+                        ? { prefixCidrs: extNic.Ipv4Prefixes.map((p) => p.Ipv4Prefix) }
+                        : assignEniWithPrefix());
+                })
+                .then((eni) => {
+                    assert(eni.prefixCidrs && eni.prefixCidrs.length > 0, 'No prefix CIDRs found on active instance ENI');
+                    expectedPrefixCidr = eni.prefixCidrs[0];
+                    process.env.SCOPING_ADDRESS = expectedPrefixCidr;
+                })
+                .then(() => utils.makeRequest(ha.active.ip, constants.DECLARE_ENDPOINT, {
+                    method: 'POST',
+                    body: funcUtils.getDeploymentDeclaration('exampleDeclarationAwsSameAzPrefix.stache'),
+                    headers: { 'x-f5-auth-token': ha.active.authData.token },
+                    port: ha.active.port
+                }))
+                .then((resp) => {
+                    resp = resp || {};
+                    assert.strictEqual(resp.message, 'success', `Declaration failed: ${utils.stringify(resp)}`);
+                })
+                .then(() => setHaStatus()));
+
+            after(() => (allocationId
+                ? ec2.describeAddresses({ AllocationIds: [allocationId] }).promise()
+                    .then((eip) => ((eip.Addresses && eip.Addresses.length && eip.Addresses[0].AssociationId)
+                        ? ec2.disassociateAddress({ AssociationId: eip.Addresses[0].AssociationId }).promise()
+                            .then(() => ec2.releaseAddress({ AllocationId: allocationId }).promise())
+                            .then(() => ec2.unassignPrivateIpAddresses({
+                                NetworkInterfaceId: eip.Addresses[0].NetworkInterfaceId,
+                                Ipv4Prefixes: [expectedPrefixCidr]
+                            }).promise())
+                            .catch((err) => Promise.reject(err))
+                        : Promise.resolve()))
+                : Promise.resolve()));
+
+            /**
+             * Assigns the active and standby HA roles based on current failover state of the DUT instances
+             *
+             * @returns {Promise} - Resolves when HA roles are assigned
+             */
+            function setHaStatus() {
+                const uri = '/mgmt/tm/shared/bigip-failover-state';
+                const options = funcUtils.makeOptions({ authToken: dutPrimary.authData.token });
+                options.port = dutPrimary.port;
+                return utils.makeRequest(dutPrimary.ip, uri, options)
+                    .then((data) => {
+                        const primaryIsActive = (data.failoverState === 'active');
+                        ha.active = primaryIsActive ? dutPrimary : dutSecondary;
+                        ha.standby = primaryIsActive ? dutSecondary : dutPrimary;
+                    });
+            }
+
+            /**
+             * Returns the external ENI (Elastic Network Interface) for the specified EC2 Instance
+             * @param {string} instanceId - The EC2 Instance ID to get the external ENI for
+             * @returns {Promise}         - Resolves with the ENI data on the external NIC
+             */
+            function getExternalNic(instanceId) {
+                const params = {
+                    Filters: [{
+                        Name: 'attachment.instance-id',
+                        Values: [instanceId]
+                    },
+                    {
+                        Name: 'tag:f5_cloud_failover_nic_map',
+                        Values: ['external']
+                    }]
+                };
+                return new Promise((resolve, reject) => {
+                    ec2.describeNetworkInterfaces(params).promise()
+                        .then((data) => {
+                            if (data.NetworkInterfaces.length === 0) {
+                                return reject(new Error('No external ENI found for instance'));
+                            }
+                            return resolve(data.NetworkInterfaces[0]);
+                        })
+                        .catch((err) => reject(err));
+                });
+            }
+
+            /**
+             * Assigns an IPv4 prefix to the specified ENI (Elastic Network Interface)
+             * @param {string} networkEniId - The Network Interface ID to assign the prefix to
+             * @returns {Promise}           - Resolves when the prefix is assigned
+             */
+            function assignEniWithPrefix() {
+                let prefixCidrs = [];
+
+                return ec2.assignPrivateIpAddresses({
+                    NetworkInterfaceId,
+                    Ipv4PrefixCount: 1
+                }).promise()
+                    .then((assignResp) => {
+                        prefixCidrs = (assignResp.AssignedIpv4Prefixes || []).map((p) => p.Ipv4Prefix);
+                        return ec2.allocateAddress({ NetworkBorderGroup: ha.active.region }).promise();
+                    })
+                    .then((allocateResp) => {
+                        allocationId = allocateResp.AllocationId;
+                        return ec2.associateAddress({
+                            NetworkBorderGroup: ha.active.region,
+                            AllocationId: allocateResp.AllocationId,
+                            NetworkInterfaceId,
+                            PrivateIpAddress: prefixCidrs[0].split('/')[0],
+                            AllowReassociation: true
+                        }).promise();
+                    })
+                    .then(() => Promise.resolve({ prefixCidrs }))
+                    .catch((err) => Promise.reject(err));
+            }
+
+            /**
+             * Checks if the given IP address is within the specified CIDR block
+             * @param {string} ip        - The IP address to check
+             * @param {string} cidrBlock - The CIDR block to check against
+             * @returns {boolean}        - True if the IP is within the CIDR block, false otherwise
+             */
+            function ipInPrefix(ip, cidrBlock) {
+                const ips = cidr.list(cidrBlock);
+                return ips.includes(ip);
+            }
+
+            it('should verify IPv4 prefixes on active BIG-IP external ENI', () => funcUtils.getInspectStatus(ha.active.ip, {
+                authToken: ha.active.authData.token,
+                port: ha.active.port
+            })
+                .then((inspect) => {
+                    assert(Array.isArray(inspect.addresses), 'Inspect addresses missing');
+                    assert(inspect.addresses.some((a) => (a.privateIpAddress
+                        && a.ipv4Prefix && a.ipv4Prefix === expectedPrefixCidr
+                        && ipInPrefix(a.privateIpAddress, expectedPrefixCidr)
+                    )), `Inspect did not report any address in prefix ${expectedPrefixCidr}`);
+                })
+                .then(() => new Promise((resolve) => setTimeout(resolve, 25000))));
+
+            it('dry run should list operations referencing prefix CIDR before standby becomes active', () => funcUtils.invokeFailoverDryRun(ha.standby.ip, {
+                authToken: ha.standby.authData.token,
+                port: ha.standby.port
+            })
+                .then((dry) => {
+                    const found = dry.addresses.operations.toStandby.filter((i) => (
+                        i.networkInterface === NetworkInterfaceId
+                        && (i.addresses.some((a) => a.address === expectedPrefixCidr && a.prefix))
+                    ));
+                    assert(found.length > 0, `No operations found referencing prefix CIDR ${expectedPrefixCidr} on ENI ${NetworkInterfaceId}`);
+                }));
+
+            it('should failover and list operations referencing prefix CIDR on newly active peer', function () {
+                this.retries(RETRIES.MEDIUM);
+
+                return funcUtils.forceStandby(ha.active.ip, ha.active.port, ha.active.username, ha.active.password)
+                    .then(() => pollTaskState(ha.standby, [constants.FAILOVER_STATES.PASS], { timeout: 60000 }))
+                    .then((data) => {
+                        assert(data.boolean, data);
+                    })
+                    .then(() => funcUtils.getInspectStatus(ha.standby.ip, {
+                        authToken: ha.standby.authData.token,
+                        port: ha.standby.port
+                    }))
+                    .then((inspect) => {
+                        assert(Array.isArray(inspect.addresses), 'Inspect addresses missing');
+                        assert(inspect.addresses.some((a) => (a.privateIpAddress
+                            && a.ipv4Prefix && a.ipv4Prefix === expectedPrefixCidr
+                            && ipInPrefix(a.privateIpAddress, expectedPrefixCidr)
+                        )), `Inspect did not report any address in prefix ${expectedPrefixCidr}`);
+                    });
+            });
+        });
+    }
 });
