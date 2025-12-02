@@ -68,7 +68,7 @@ source_encoding = 'utf-8-sig'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Cloud Failover'
+project = u'F5 BIG-IP Cloud Failover'
 copyright = u'2018 F5 Networks Inc'
 author = u'F5 Networks'
 
