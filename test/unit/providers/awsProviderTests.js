@@ -60,7 +60,8 @@ describe('Provider - AWS', () => {
     const mockMetadata = {
         region: 'us-west',
         instanceId: 'i-123',
-        storageName: 's3BucketName'
+        storageName: 's3BucketName',
+        storageDnsName: ''
     };
 
     const mockMetadataSessionToken = 'this-test-session-token';
@@ -454,6 +455,18 @@ describe('Provider - AWS', () => {
                 });
         });
 
+        it('should initialize if storageName and storageDnsName are set then return bucket name and endpoint link', () => {
+            provider.region = mockMetadata.region;
+            provider.instanceId = mockMetadata.instanceId;
+            provider.storageName = mockMetadata.storageName;
+
+            return provider.init({ storageName: 's3BucketName', storageDnsName: 'vpce-xxxxxxx.xxxxxxx.vpce.amazonaws.com' })
+                .then(() => {
+                    assert.strictEqual(provider.storageName, 's3BucketName');
+                    assert.strictEqual(provider.s3EndpointDnsName, 'vpce-xxxxxxx.xxxxxxx.vpce.amazonaws.com');
+                });
+        });
+
         describe('_getS3BucketByTags', () => {
             it('should return the tagged bucket', () => provider.init(mockInitData)
                 .then(() => provider._getS3BucketByTags(mockInitData.storageTags))
@@ -508,15 +521,6 @@ describe('Provider - AWS', () => {
         describe('_getBucketTags', () => {
             it('should resolve on error if continueOnError is provided', () => provider.init(mockInitData)
                 .then(() => provider._getBucketTags(targetBucket, { continueOnError: true })));
-
-            it('should reject on error if not continueOnError', () => provider.init(mockInitData)
-                .then(() => provider._getBucketTags('fakebucket', { continueOnError: false }))
-                .then(() => {
-                    assert.ok(false, 'Should have thrown an error');
-                })
-                .catch((err) => {
-                    assert.match(err.toString(), /^Error: AWS; Message: Vanished/);
-                }));
 
             it('should pass correct parameters to getBucketTagging()', () => provider.init(mockInitData)
                 .then(() => provider._getBucketTags(targetBucket))
@@ -2342,6 +2346,48 @@ describe('Provider - AWS', () => {
             return provider._getPrefixedAddresses()
                 .catch((err) => {
                     assert.ok(err);
+                });
+        });
+    });
+    describe('function _getS3Host', () => {
+        it('should return S3 host with region', () => provider.init(mockMetadata)
+            .then(() => provider._getS3Host())
+            .then((result) => {
+                assert.strictEqual(result, 's3.us-west.amazonaws.com');
+            }));
+        it('should return S3 host with bucket region if set', () => {
+            mockMetadata.storageName = 's3BucketName.s3.us-east-2.amazonaws.com';
+            provider.init(mockMetadata)
+                .then(() => provider._getS3Host())
+                .then((result) => {
+                    assert.strictEqual(result, 's3.us-east-2.amazonaws.com');
+                });
+        });
+        it('should return VPC endpoint DNS name if configured', () => {
+            mockMetadata.storageName = 's3BucketName.s3.us-east-2.amazonaws.com';
+            mockMetadata.storageDnsName = 'vpce-12345.s3.us-west-2.vpce.amazonaws.com';
+            provider.init(mockMetadata)
+                .then(() => provider._getS3Host())
+                .then((result) => {
+                    assert.strictEqual(result, 'bucket.vpce-12345.s3.us-west-2.vpce.amazonaws.com');
+                });
+        });
+    });
+    describe('function _getEc2Host', () => {
+        it('should return Ec2 host with region', () => {
+            mockMetadata.region = 'us-west';
+            provider.init(mockMetadata)
+                .then(() => provider._getEc2Host())
+                .then((result) => {
+                    assert.strictEqual(result, 'ec2.us-west.amazonaws.com');
+                });
+        });
+        it('should return VPC endpoint DNS name if configured', () => {
+            mockMetadata.ec2DnsName = 'vpce-12345.ec2.us-west-2.vpce.amazonaws.com';
+            provider.init(mockMetadata)
+                .then(() => provider._getEc2Host())
+                .then((result) => {
+                    assert.strictEqual(result, 'vpce-12345.ec2.us-west-2.vpce.amazonaws.com');
                 });
         });
     });

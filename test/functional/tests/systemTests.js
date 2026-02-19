@@ -15,6 +15,7 @@ const assert = require('assert');
 const constants = require('../../constants.js');
 const utils = require('../../shared/util.js');
 const funcUtils = require('./shared/util.js');
+const cloudStorageUtil = require('./shared/cloudStorageUtil.js');
 
 const version = constants.PKG_VERSION;
 
@@ -250,5 +251,292 @@ describe(`Cluster-wide system tests: ${utils.stringify(clusterMemberIps)}`, () =
                 })
                 .catch((err) => Promise.reject(err));
         });
+    });
+});
+
+describe('Custom state file name tests (all cloud providers)', () => {
+    const customStateFileName = 'my-custom-failover-state.json';
+    const deploymentInfo = funcUtils.getEnvironmentInfo();
+
+    before(() => {
+        const promises = [];
+        clusterMembers.forEach((member) => {
+            promises.push(utils.getAuthToken(member.ip, member.port, member.username, member.password)
+                .then((authToken) => {
+                    member.authToken = authToken.token;
+                })
+                .catch((err) => Promise.reject(err)));
+        });
+        return Promise.all(promises)
+            .catch((err) => Promise.reject(err));
+    });
+
+    beforeEach(() => {
+    });
+
+    after(() => {
+        Object.keys(require.cache).forEach((key) => {
+            delete require.cache[key];
+        });
+    });
+
+    after(function () {
+        this.retries(constants.RETRIES.SHORT);
+        this.timeout(500000);
+
+        const dut = dutSecondary;
+        return funcUtils.forceStandby(dut.ip, dut.port, dut.username, dut.password);
+    });
+
+    /**
+     * Helper function to poll task state
+     */
+    function pollTaskState(dut, desiredStates, opts) {
+        const start = Date.now();
+        const timeout = opts.timeout || 60000;
+        const interval = opts.interval || 5000;
+
+        function attempt() {
+            return funcUtils.getTriggerTaskStatus(dut.ip, {
+                taskStates: [constants.FAILOVER_STATES.PASS],
+                authToken: dut.authToken,
+                port: dut.port
+            })
+                .then((data) => {
+                    if (data.boolean && desiredStates.includes(data.taskStateResponse.taskState)) {
+                        return data;
+                    }
+                    if (Date.now() - start >= timeout) {
+                        return Promise.reject(new Error(`Timeout waiting for taskState in ${desiredStates} got: ${utils.stringify(data)}`));
+                    }
+                    return new Promise((resolve) => setTimeout(resolve, interval)).then(attempt);
+                });
+        }
+        return attempt();
+    }
+
+    // Setting new custom state file name
+    it('should post declaration with custom state file name to primary', () => {
+        const uri = constants.DECLARE_ENDPOINT;
+        const declaration = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
+
+        // Add custom stateFileName to the declaration
+        declaration.externalStorage = declaration.externalStorage || {};
+        declaration.externalStorage.stateFileName = customStateFileName;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: declaration,
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should ensure secondary is not active', function () {
+        this.retries(constants.RETRIES.SHORT);
+        this.timeout(500000);
+
+        const dut = dutSecondary;
+        return funcUtils.forceStandby(dut.ip, dut.port, dut.username, dut.password);
+    });
+
+    it('should verify dry run', () => {
+        const uri = constants.TRIGGER_ENDPOINT;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: { action: 'dry-run' },
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.ok('addresses' in data);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should trigger failover and update custom state file', function () {
+        this.retries(constants.RETRIES.MEDIUM);
+        this.timeout(500000);
+
+        return funcUtils.forceStandby(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password)
+            .then(() => pollTaskState(dutSecondary, [constants.FAILOVER_STATES.PASS], {}))
+            .then((data) => {
+                assert(data.boolean, 'Failover should complete successfully');
+            })
+            .then(() => cloudStorageUtil.getStateFileContent(
+                deploymentInfo.environment,
+                deploymentInfo.bucketName,
+                customStateFileName
+            ))
+            .then((stateData) => {
+                assert.strictEqual(stateData.taskState, constants.FAILOVER_STATES.PASS, 'Task state should be PASS');
+                assert.ok(stateData.failoverOperations, 'State file should contain failover operations');
+            })
+            .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.log(err);
+                return Promise.reject(err);
+            });
+    });
+
+    // Resetting new custom state file
+    it('should reset failover state file', () => {
+        const uri = constants.RESET_ENDPOINT;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: { resetStateFile: true },
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should post declaration to primary to switch back to default state file name', () => {
+        const uri = constants.DECLARE_ENDPOINT;
+        const declaration = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: declaration,
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should verify dry run', () => {
+        const uri = constants.TRIGGER_ENDPOINT;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: { action: 'dry-run' },
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.ok('addresses' in data);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should trigger failover after switching to default state file name', function () {
+        this.retries(constants.RETRIES.MEDIUM);
+        this.timeout(500000);
+
+        return funcUtils.forceStandby(
+            dutSecondary.ip, dutSecondary.port, dutSecondary.username, dutSecondary.password
+        )
+            .then(() => pollTaskState(dutPrimary, [constants.FAILOVER_STATES.PASS], {}))
+            .then((data) => {
+                assert(data.boolean, 'Failover should complete successfully');
+            })
+            .then(() => cloudStorageUtil.getStateFileContent(
+                deploymentInfo.environment,
+                deploymentInfo.bucketName,
+                'f5cloudfailoverstate.json'
+            ))
+            .then((stateData) => {
+                assert.strictEqual(stateData.taskState, constants.FAILOVER_STATES.PASS, 'Task state should be PASS');
+                assert.ok(stateData.failoverOperations, 'State file should contain failover operations');
+            })
+            .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.log(err);
+                return Promise.reject(err);
+            });
+    });
+
+    it('should reset failover state file', () => {
+        const uri = constants.RESET_ENDPOINT;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: { resetStateFile: true },
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, constants.STATE_FILE_RESET_MESSAGE);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    // Setting new custom state file name
+    it('should post declaration with second custom state file name to primary', () => {
+        const uri = constants.DECLARE_ENDPOINT;
+        const declaration = funcUtils.getDeploymentDeclaration('exampleDeclarationTags.stache');
+
+        // Add custom stateFileName to the declaration
+        declaration.externalStorage = declaration.externalStorage || {};
+        declaration.externalStorage.stateFileName = `second_${customStateFileName}`;
+
+        return utils.makeRequest(dutPrimary.ip, uri, {
+            method: 'POST',
+            body: declaration,
+            headers: {
+                'x-f5-auth-token': dutPrimary.authToken
+            },
+            port: dutPrimary.port
+        })
+            .then((data) => {
+                data = data || {};
+                assert.strictEqual(data.message, 'success');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should trigger failover and update custom state file', function () {
+        this.retries(constants.RETRIES.MEDIUM);
+        this.timeout(500000);
+
+        return funcUtils.forceStandby(dutPrimary.ip, dutPrimary.port, dutPrimary.username, dutPrimary.password)
+            .then(() => pollTaskState(dutSecondary, [constants.FAILOVER_STATES.PASS], {}))
+            .then((data) => {
+                assert(data.boolean, 'Failover should complete successfully');
+            })
+            .then(() => cloudStorageUtil.getStateFileContent(
+                deploymentInfo.environment,
+                deploymentInfo.bucketName,
+                `second_${customStateFileName}`
+            ))
+            .then((stateData) => {
+                assert.strictEqual(stateData.taskState, constants.FAILOVER_STATES.PASS, 'Task state should be PASS');
+                assert.ok(stateData.failoverOperations, 'State file should contain failover operations');
+            })
+            .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.log(err);
+                return Promise.reject(err);
+            });
     });
 });

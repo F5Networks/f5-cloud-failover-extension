@@ -1498,6 +1498,56 @@ describe('Provider - GCP', () => {
             });
     });
 
+    it('validate _getVmsByTags returns all instances across multiple zones', () => {
+        provider.projectId = 'project-id';
+
+        const sendReqStub = sinon.stub(provider, '_sendRequest').callsFake((method, url) => {
+            assert.strictEqual(method, 'GET');
+            assert.ok(url.startsWith('https://www.googleapis.com/compute/v1/projects/project-id/aggregated/instances?filter='));
+            return Promise.resolve({
+                items: {
+                    'zones/us-west1-a': {
+                        instances: [
+                            { name: 'vm-a-0', zone: 'projects/project-id/zones/us-west1-a' },
+                            { name: 'vm-a-1', zone: 'projects/project-id/zones/us-west1-a' }
+                        ]
+                    },
+                    'zones/us-west1-b': {
+                        instances: [
+                            { name: 'vm-b-0', zone: 'projects/project-id/zones/us-west1-b' },
+                            { name: 'vm-b-1', zone: 'projects/project-id/zones/us-west1-b' }
+                        ]
+                    },
+                    'zones/us-west1-c': {
+                        instances: [
+                            { name: 'vm-c-0', zone: 'projects/project-id/zones/us-west1-c' },
+                            { name: 'vm-c-1', zone: 'projects/project-id/zones/us-west1-c' }
+                        ]
+                    }
+                }
+            });
+        });
+
+        sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+        const getVmInfoStub = sinon.stub(provider, '_getVmInfo').callsFake((vmName, opts) => {
+            return Promise.resolve({
+                name: vmName,
+                zone: `projects/project-id/zones/${opts.zone}`,
+                networkInterfaces: []
+            });
+        });
+
+        return provider._getVmsByTags(provider.addressTags)
+            .then((vms) => {
+                assert.strictEqual(vms.length, 6);
+                const names = vms.map((v) => v.name).sort();
+                assert.deepStrictEqual(names, ['vm-a-0', 'vm-a-1', 'vm-b-0', 'vm-b-1', 'vm-c-0', 'vm-c-1'].sort());
+
+                sinon.assert.callCount(getVmInfoStub, 6);
+                sinon.assert.calledOnce(sendReqStub);
+            });
+    });
+
     it('validate _getCloudStorage', () => {
         const providerSendRequestMock = sinon.stub(provider, '_sendRequest');
         providerSendRequestMock.resolves({ items: [{ name: 'notOurBucket', labels: { some_key: 'some_value' } }, { name: 'ourBucket', labels: { foo: 'bar', foo1: 'bar1' } }] });

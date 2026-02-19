@@ -96,12 +96,32 @@ module.exports = {
         const elasticIps = deploymentInfo.elasticIps && deploymentInfo.elasticIps.length
             ? deploymentInfo.elasticIps
             : scopingAddress && [{ scopingAddress, vipAddresses: [scopingAddress.split('/')[0]] }];
+        // Populate PrivateLink VPC Interface Endpoints (AWS)
+        const storageDnsName = [];
+        const ec2DnsName = [];
+        const storagePrivateLinkId = [];
+        const ec2PrivateLinkId = [];
+        if (deploymentInfo.aws_private_link_endpoints && deploymentInfo.aws_private_link_endpoints.length > 0) {
+            deploymentInfo.aws_private_link_endpoints.forEach((endpoint) => {
+                if (endpoint.service_name.includes('s3')) {
+                    storageDnsName.push(endpoint.vpc_endpoint_dns[0].replace(/^\*\.vpce-/, 'vpce-'));
+                    storagePrivateLinkId.push(endpoint.vpc_endpoint_id);
+                } else if (endpoint.service_name.includes('ec2')) {
+                    ec2DnsName.push(endpoint.vpc_endpoint_dns[0].replace(/^\*\.vpce-/, 'vpce-'));
+                    ec2PrivateLinkId.push(endpoint.vpc_endpoint_id);
+                }
+            });
+        }
         return {
             nextHopAddresses,
             virtualAddresses,
             environment: deploymentInfo.environment,
             deploymentId: deploymentInfo.deploymentId,
             bucketName: deploymentInfo.bucketName,
+            storageDnsName, // optional: used by AWS
+            ec2DnsName, // optional: used by AWS
+            storagePrivateLinkId, // optional: used by AWS
+            ec2PrivateLinkId, // optional: used by aws
             routeTables: deploymentInfo.routeTables,
             region: deploymentInfo.region || null, // optional: used by AWS|GCP
             elasticIps: elasticIps || [], // optional: used by AWS
@@ -110,7 +130,7 @@ module.exports = {
             forwardingRule: deploymentInfo.forwardingRule || null, // optional: used by GCP
             forwardingRuleName: deploymentInfo.forwardingRuleName || '', // optional: used by GCP
             targetInstances: targetInstances || [], // optional: used by GCP
-            zones: deploymentInfo.instances.map((i) => i.zone) // optional: used by GCP
+            zones: deploymentInfo.instances.map((i) => i.zone).filter((zone) => zone !== 'notUsed') // optional: used by GCP
         };
     },
 
@@ -133,6 +153,8 @@ module.exports = {
             deploymentId: environmentInfo.deploymentId,
             environment: environmentInfo.environment,
             bucketName: environmentInfo.bucketName,
+            storageDnsName: environmentInfo.storageDnsName,
+            ec2DnsName: environmentInfo.ec2DnsName,
             forwardingRuleName: environmentInfo.forwardingRuleName,
             nextHopAddresses: environmentInfo.nextHopAddresses.map((nextHopAddress, idx) => ({
                 address: nextHopAddress,

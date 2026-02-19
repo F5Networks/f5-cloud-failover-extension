@@ -36,13 +36,15 @@ class Cloud extends AbstractCloud {
     constructor(options) {
         super(CLOUD_PROVIDERS.AWS, options);
 
-        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this._sessionToken = null;
         this._credentials = null;
         this._httpOptions = null;
         this.s3_host = null;
         this.s3BucketName = null;
         this.s3BucketRegion = null;
+        this.s3EndpointDnsName = null;
+        this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
+        this.ec2EndpointDnsName = null;
         this.ec2_host = null;
         this.proxyOptions = null;
         this.device = new Device();
@@ -65,9 +67,19 @@ class Cloud extends AbstractCloud {
                 .then((metadata) => {
                     this.region = metadata.region;
                     this.domainSuffix = this._getDomainSuffix();
-                    this.s3_host = `s3.${this.region}.${this.domainSuffix}`;
-                    this.ec2_host = `ec2.${this.region}.${this.domainSuffix}`;
+                    this.logger.silly(`Determined AWS domain suffix: ${this.domainSuffix} for region: ${this.region}`);
+                    if (options.storageDnsName && options.storageDnsName.length && options.storageDnsName.match(/vpce-/)) {
+                        this.s3EndpointDnsName = options.storageDnsName.replace(/^\*\.vpce-/, 'vpce-');
+                    }
+                    if (options.ec2DnsName && options.ec2DnsName.length && options.ec2DnsName.match(/vpce-/)) {
+                        this.ec2EndpointDnsName = options.ec2DnsName.replace(/^\*\.vpce-/, 'vpce-');
+                    }
+                    this.s3_host = this._getS3Host();
+                    this.logger.silly(`Determined S3 host: ${this.s3_host}`);
+                    this.ec2_host = this._getEc2Host();
+                    this.logger.silly(`Determined EC2 host: ${this.ec2_host}`);
                     this.instanceId = metadata.instanceId;
+                    this.logger.silly(`Determined instance ID: ${this.instanceId}`);
                     this.customerId = metadata.accountId;
 
                     if (this.proxySettings) {
@@ -93,7 +105,6 @@ class Cloud extends AbstractCloud {
                         }
                     }
                     this._httpOptions = new https.Agent(agentOpts);
-
                     if (this.storageName) {
                         return this._getBucketRegion(this.storageName);
                     }
@@ -101,7 +112,13 @@ class Cloud extends AbstractCloud {
                 })
                 .then((bucket) => {
                     this.s3BucketName = bucket.name;
+                    this.logger.silly(`Determined S3 bucket name: ${this.s3BucketName}`);
                     this.s3BucketRegion = bucket.region;
+                    if (this.s3BucketRegion !== this.region) {
+                        this.logger.silly(`S3 bucket region (${this.s3BucketRegion}) is different from instance region (${this.region}), updating S3 host accordingly`);
+                        this.s3_host = this._getS3Host();
+                        this.logger.silly(`Updated S3 host: ${this.s3_host}`);
+                    }
                     this.logger.silly('Cloud Provider initialization complete');
                 })
                 .catch((err) => Promise.reject(err)));
@@ -149,6 +166,33 @@ class Cloud extends AbstractCloud {
             return false;
         });
         return suffix;
+    }
+
+
+    /**
+     * Returns the AWS S3 host.
+     *
+     * @returns {string} The host to reach S3 services.
+     */
+    _getS3Host() {
+        const region = this.s3BucketRegion || this.region;
+        const host = this.s3EndpointDnsName && this.s3EndpointDnsName.length
+            ? `bucket.${this.s3EndpointDnsName}`
+            : `s3.${region}.${this.domainSuffix}`;
+        return host;
+    }
+
+        /**
+     * Returns the AWS S3 host.
+     *
+     * @returns {string} The host to reach S3 services.
+     */
+    _getEc2Host() {
+        const region = this.region;
+        const host = this.ec2EndpointDnsName && this.ec2EndpointDnsName.length
+            ? `${this.ec2EndpointDnsName}`
+            : `ec2.${region}.${this.domainSuffix}`;
+        return host;
     }
 
     /**
@@ -252,7 +296,7 @@ class Cloud extends AbstractCloud {
         const authArgs = {
             host,
             path,
-            service: host.match(/s3/) ? 's3' : 'ec2',
+            service: host.match(/(^bucket)|s3/) ? 's3' : 'ec2',
             region: options.region || this.region,
             method: options.method || 'GET',
             headers: options.headers || {},
@@ -263,6 +307,30 @@ class Cloud extends AbstractCloud {
             .then((headers) => {
                 options.headers = headers;
                 options.httpsAgent = this._httpOptions;
+
+                // Build a redacted view of options to avoid logging sensitive data
+                const redactedOptions = {
+                    method: options.method || 'GET',
+                    region: options.region || this.region,
+                    path,
+                    headers: {}
+                };
+                const sensitiveHeaders = [
+                    'authorization',
+                    'x-amz-security-token',
+                    'cookie',
+                    'proxy-authorization'
+                ];
+                Object.keys(options.headers || {}).forEach((headerName) => {
+                    const lowerName = headerName.toLowerCase();
+                    if (sensitiveHeaders.includes(lowerName) || lowerName.startsWith('x-amz-')) {
+                        redactedOptions.headers[headerName] = '***REDACTED***';
+                    } else {
+                        redactedOptions.headers[headerName] = options.headers[headerName];
+                    }
+                });
+
+                this.logger.silly(`Making request to AWS Host: ${host}, Path: ${path}, Options: ${util.stringify(redactedOptions)}, uri: ${uri}`);
                 return util.makeRequest(host, uri, options);
             })
             .catch((err) => Promise.reject(err));
@@ -325,14 +393,18 @@ class Cloud extends AbstractCloud {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Uploading data to ${this.s3BucketName}: ${s3Key}`);
 
-        const uploadObject = () => new Promise((resolve, reject) => {
-            const host = `${this.s3BucketName}.s3.${this.s3BucketRegion}.${this.domainSuffix}`;
+        const uploadObject = () => new Promise((resolve, reject) => {;
+            let host = `${this.s3BucketName}.${this.s3_host}`;
             const options = {
                 method: 'PUT',
                 headers: {},
                 body: util.stringify(data),
                 region: this.s3BucketRegion
             };
+            if (this.s3EndpointDnsName && this.s3EndpointDnsName.length) {
+                options.headers = { host };
+                host = `bucket.${this.s3EndpointDnsName}`;
+            }
             if (this.storageEncryption
                 && this.storageEncryption.serverSide
                 && this.storageEncryption.serverSide.enabled) {
@@ -359,24 +431,39 @@ class Cloud extends AbstractCloud {
     downloadDataFromStorage(fileName) {
         const s3Key = `${this.s3FilePrefix}/${fileName}`;
         this.logger.silly(`Downloading data from ${this.s3BucketName}: ${s3Key}`);
-        const host = `${this.s3BucketName}.s3.${this.s3BucketRegion}.${this.domainSuffix}`;
+        let host = `${this.s3BucketName}.${this.s3_host}`;
         const options = {
             queryParams: {
                 'list-type': 2,
                 Bucket: this.s3BucketName,
                 Prefix: s3Key
             },
+            headers: {},
             region: this.s3BucketRegion
         };
+        if (this.s3EndpointDnsName && this.s3EndpointDnsName.length) {
+            options.headers = { host };
+            host = `bucket.${this.s3EndpointDnsName}`;
+        }
         const downloadObject = () => new Promise((resolve, reject) => {
             // check if the object exists first, if not return an empty object
             this.makeRequest(host, '/', options)
                 .then((data) => {
-                    const template = parse('<ListBucketResult><Contents><Key>{{Key}}</Key></Contents></ListBucketResult>');
-                    const Key = template.fromXML(data).Key || null;
-                    if (Key && Key.match(s3Key)) {
-                        return this.makeRequest(host, `/${s3Key}`, { region: this.s3BucketRegion });
+                    // Use regex to extract all Key values from the XML response
+                    const keyMatches = data.match(/<Key>([^<]+)<\/Key>/g);
+                    let keyFound = false;
+                    if (keyMatches && keyMatches.length > 0) {
+                        keyFound = keyMatches.some(keyMatch => {
+                            const extractedKey = keyMatch.replace(/<Key>|<\/Key>/g, '');
+                            return extractedKey === s3Key;
+                        });
                     }
+                    
+                    if (keyFound) {
+                        this.logger.silly(`downloadDataFromStorage: key found, downloading object`);
+                        return this.makeRequest(host, `/${s3Key}`, { region: this.s3BucketRegion, headers: options.headers });
+                    }
+                    this.logger.silly(`downloadDataFromStorage: key not found, returning empty object`);
                     return Promise.resolve({});
                 })
                 .then((response) => resolve(response))
@@ -1993,6 +2080,7 @@ class Cloud extends AbstractCloud {
         // need to document that the instance region is used when finding buckets by tag
         return this._getAllS3Buckets()
             .then((data) => {
+                this.logger.debug('All Buckets with Regions:', data);
                 data.forEach((bucket) => {
                     const args = [bucket, { continueOnError: true }];
                     getBucketTagsPromises.push(this._retrier(this._getBucketTags, args));
@@ -2066,13 +2154,19 @@ class Cloud extends AbstractCloud {
             region: this.region
         };
         if (bucketName.includes('.s3.')) {
-            const bucketParts = bucketName.split('.');
-            bucketObject.name = bucketParts[0];
-            bucketObject.region = bucketParts[2] || this.region;
+            if (this.s3EndpointDnsName && this.s3EndpointDnsName.length) {
+                const bucketParts = bucketName.split('.');
+                bucketObject.name = bucketParts[0];
+                bucketObject.region = bucketParts[4] || this.region;
+            } else {
+                const bucketParts = bucketName.split('.');
+                bucketObject.name = bucketParts[0];
+                bucketObject.region = bucketParts[2] || this.region;
+            }
             return Promise.resolve(bucketObject);
         }
         const options = { method: 'HEAD', advancedReturn: true, continueOnError: true };
-        return this.makeRequest(`${bucketName}.s3.${this.domainSuffix}`, '/', options)
+        return this.makeRequest(`${bucketName}.${this.s3_host}`, '/', options)
             .then((response) => {
                 bucketObject.region = response.headers['x-amz-bucket-region'] || this.region;
                 return Promise.resolve(bucketObject);
@@ -2094,13 +2188,17 @@ class Cloud extends AbstractCloud {
         options = options || {};
         options.queryParams = { tagging: '' };
         options.region = bucket.region;
-        const host = `${bucket.name}.s3.${bucket.region}.${this.domainSuffix}`;
-
+        let host = `${bucket.name}.s3.${bucket.region}.${this.domainSuffix}`;
+        if (this.s3EndpointDnsName && this.s3EndpointDnsName.length) {
+            host = `${bucket.name}.${this.s3_host}`;
+        }
         return this.makeRequest(host, '/', options)
             .then((data) => {
+                this.logger.silly(`Got bucket tags for bucket ${bucket.name}: ${data}`);
                 if (data.match(/<Error><Code>/)) {
                     const error = parse('<Error><Code>{{code}}</Code><Message>{{message}}</Message></Error>');
                     const err = error.fromXML(data);
+                    this.logger.warning(`Error fetching tags for bucket ${bucket.name}: ${err.code} - ${err.message}`);
                     throw new Error(`${err.code}; Message: ${err.message}`);
                 }
                 const template = parse(`<Tagging><TagSet><Tag c-bind="TagSet|array">
@@ -2108,12 +2206,16 @@ class Cloud extends AbstractCloud {
                     </Tag></TagSet></Tagging>`);
                 const TagSet = template.fromXML(data).TagSet;
                 if (TagSet && TagSet[0].Key) {
+                    this.logger.silly(`Successfully got tags for bucket ${bucket.name}: ${util.stringify(TagSet)}`);
                     return Promise.resolve({ bucket, TagSet });
                 }
 
                 throw new Error(`Error: No tags found for Bucket: ${bucket}`);
             })
-            .catch((err) => (options.continueOnError ? Promise.resolve() : Promise.reject(err)));
+            .catch((err) => {
+                this.logger.warning(`Error fetching tags for bucket ${bucket.name}: ${err.message}`);
+                (options.continueOnError ? Promise.resolve() : Promise.reject(err))
+            });
     }
 
     /**

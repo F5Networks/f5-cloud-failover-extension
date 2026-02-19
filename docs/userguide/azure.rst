@@ -188,7 +188,8 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+   - Beginning v2.4.0, CFE supports providing stateFileName property to customize the name of the failover state file stored in Azure Storage. If not provided, the default file name is ``f5cloudfailoverstate.json``.
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 2. Update/modify the Cloud Failover ``scopingName`` value with name of your Storage Account:
 
@@ -206,6 +207,25 @@ Add a storage account in Azure to your resource group for Cloud Failover to use.
    .. code-block:: json
 
       "externalStorage":{
+         "scopingTags":{
+            "f5_cloud_failover_label":"mydeployment"
+         }
+      },
+
+
+   .. NOTE:: If you use our declaration example, the key-value tag would be: ``"f5_cloud_failover_label":"mydeployment"``
+
+   .. image:: ../images/azure/AzureStorageTags.png
+
+|
+
+
+   Alternatively, if you are using a custom state file name with the Discovery via Tag option, tag the Azure Storage Account with your custom key:values in the `externalStorage.scopingTags` section of the CFE declaration.
+
+   .. code-block:: json
+
+      "externalStorage":{
+         "stateFileName": "customStateFileName.json",
          "scopingTags":{
             "f5_cloud_failover_label":"mydeployment"
          }

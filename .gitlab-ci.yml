@@ -29,6 +29,11 @@ variables:
   F5_DISABLE_CERT_VERIFY: "true"
   PYTHONWARNINGS: "ignore:Unverified HTTPS request"
   SEC_TOML_BRANCH: main
+  BIGIP_VERSION: "21.0.0"
+  AWS_REGION: "us-west-2"
+  AWS_AMI_LOOKUP: "aws ec2 describe-images --owners ${F5_AWS_OWNERS_ID} --filters \"Name=name,Values=*PAYG-Best Plus 25Mbps*\" --query \"Images[*].{Name: Name, ImageId: ImageId, Description: Description}\" --include-deprecated --region \"${AWS_REGION}\" --output json | jq -r 'map(select(.Name | contains(\"${BIGIP_VERSION}\")))'"
+  GCP_BIGIP_VERSION: "f5-bigip-21-0-0-0-0-10-payg-best-plus-25mbps-251104081529"
+  AZURE_BIGIP_VERSION: "21.0.000001"
 
 stages:
   - check_content
@@ -170,6 +175,18 @@ build_package:
   tags:
     - tmm-azure-autoscale-runner-2
   script:
+    - |
+      if [[ $PLAN == *"aws"* ]] && [[ -z "$AMI" ]]; then
+        export AMI_LOOKUP_RESPONSE=$(eval ${AWS_AMI_LOOKUP})
+        echo "Response from ami lookup: $AMI_LOOKUP_RESPONSE"
+        export AMI=$(echo $AMI_LOOKUP_RESPONSE | jq -r '.[0].ImageId')
+        echo "Using AMI ${AMI} in Region ${AWS_REGION}"
+        PARAMETERS="$PARAMETERS --param aws_bigip_ami_id=${AMI}"
+      elif [[ $PLAN == *"aws"* ]] && [[ -n "$AMI" ]]; then
+        echo "Using pre-set AMI ${AMI} in Region ${AWS_REGION}"
+        PARAMETERS="$PARAMETERS --param aws_bigip_ami_id=${AMI}"
+      fi
+    - echo "*** Setting up deployment for functional tests using plan $PLAN with parameters $PARAMETERS ***"
     - deployment-tool create ci-$CI_JOB_ID --plan $PLAN $PARAMETERS
     - deployment-tool database export --uri "mongodb://root:root@mongo:27017/porter?authSource=admin" --destination ./deployment/
     - deployment-tool describe ci-$CI_JOB_ID
@@ -199,7 +216,7 @@ test_functional_init_azure:
   extends: .test-install
   variables:
     PLAN: "azure_bigip_classic_ha"
-    PARAMETERS: "--param location=westus2 --param bigip_version=17.1.103000"
+    PARAMETERS: "--param location=westus2 --param bigip_version=${AZURE_BIGIP_VERSION}"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -212,7 +229,7 @@ test_functional_init_azure_1nic:
   extends: .test-install
   variables:
     PLAN: "azure_bigip_classic_ha"
-    PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=16.1.401053"
+    PARAMETERS: "--param nic_count=1 --param location=westus2 --param bigip_version=${AZURE_BIGIP_VERSION}"
   when: manual
   except:
     variables:
@@ -227,7 +244,7 @@ test_functional_init_aws_across_net:
   extends: .test-install
   variables:
     PLAN: "aws_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west-2"
+    PARAMETERS: "--param region=${AWS_REGION}"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -240,7 +257,7 @@ test_functional_init_aws_across_net_1nic:
   extends: .test-install
   variables:
     PLAN: "aws_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west-2 --param nic_count=1"
+    PARAMETERS: "--param region=${AWS_REGION} --param nic_count=1"
   when: manual
   except:
     variables:
@@ -255,7 +272,7 @@ test_functional_init_aws:
   extends: .test-install
   variables:
     PLAN: "aws_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false"
+    PARAMETERS: "--param region=${AWS_REGION} --param use_availability_zones=false"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -269,7 +286,7 @@ test_functional_init_aws_1nic:
   extends: .test-install
   variables:
     PLAN: "aws_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west-2 --param use_availability_zones=false --param nic_count=1"
+    PARAMETERS: "--param region=${AWS_REGION} --param use_availability_zones=false --param nic_count=1"
   when: manual
   except:
     variables:
@@ -284,7 +301,7 @@ test_functional_init_gcp:
   extends: .test-install
   variables:
     PLAN: "gcp_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west1 --param bigip_version=f5-bigip-17-1-1-0-2-6-payg-best-plus-25mbps-231101130547"
+    PARAMETERS: "--param region=us-west1 --param bigip_version=${GCP_BIGIP_VERSION}"
   except:
     variables:
       - $TESTS_TIER == "2"
@@ -297,7 +314,7 @@ test_functional_init_gcp_no_forwarding:
   extends: .test-install
   variables:
     PLAN: "gcp_bigip_classic_ha"
-    PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=f5-bigip-17-1-1-0-2-6-payg-best-plus-25mbps-231101130547"
+    PARAMETERS: "--param region=us-west1 --param use_forwarding_rule=false --param bigip_version=${GCP_BIGIP_VERSION}"
   except:
     variables:
       - $TESTS_TIER == "1"

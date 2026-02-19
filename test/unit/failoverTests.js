@@ -803,7 +803,7 @@ describe('Failover', () => {
                 // verify that the uploaded task state is running and then eventually succeeded
                 assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[1].taskState, constants.FAILOVER_STATES.RUN);
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.args[1].taskState, constants.FAILOVER_STATES.PASS);
-                assert.strictEqual(setConfigSpy.getCall(0).lastArg.environment, 'azure');
+                assert.strictEqual(setConfigSpy.getCall(0).firstArg.environment, 'azure');
                 assert.strictEqual(uploadDataToStorageSpy.lastCall.lastArg.message, 'Failover Complete');
             })
             .catch((err) => Promise.reject(err));
@@ -1204,5 +1204,113 @@ describe('Failover', () => {
                 validateFailover({ failoverAddresses: ['2.2.2.2'], localAddresses: ['1.1.1.1'] });
             })
             .catch((err) => Promise.reject(err));
+    });
+
+    describe('setStateFileName', () => {
+        it('should set state file name successfully', () => {
+            const customFileName = 'custom-state-file.json';
+            failover.setStateFileName(customFileName);
+            assert.strictEqual(failover.stateFileName, customFileName);
+        });
+
+        it('should throw error when state file name is empty string', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName('');
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should throw error when state file name is null', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName(null);
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should throw error when state file name is undefined', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName(undefined);
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should throw error when state file name is not a string', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName(12345);
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should throw error when state file name is an object', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName({ name: 'file.json' });
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should throw error when state file name is an array', () => {
+            assert.throws(
+                () => {
+                    failover.setStateFileName(['file.json']);
+                },
+                {
+                    name: 'Error',
+                    message: 'State file name must be a non-empty string'
+                }
+            );
+        });
+
+        it('should accept state file name with extension', () => {
+            const fileNameWithExtension = 'my-custom-state.json';
+            failover.setStateFileName(fileNameWithExtension);
+            assert.strictEqual(failover.stateFileName, fileNameWithExtension);
+        });
+
+        it('should accept state file name without extension', () => {
+            const fileNameWithoutExtension = 'my-custom-state';
+            failover.setStateFileName(fileNameWithoutExtension);
+            assert.strictEqual(failover.stateFileName, fileNameWithoutExtension);
+        });
+
+        it('should use custom state file name in failover execution', () => {
+            const customFileName = 'custom-failover-state.json';
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    failover.setStateFileName(customFileName);
+                    return failover.execute();
+                })
+                .then(() => {
+                    // Verify uploadDataToStorage was called with custom file name
+                    assert.strictEqual(uploadDataToStorageSpy.getCall(0).args[0], customFileName);
+                })
+                .catch((err) => Promise.reject(err));
+        });
     });
 });

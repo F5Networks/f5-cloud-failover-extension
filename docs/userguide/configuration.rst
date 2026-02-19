@@ -146,6 +146,8 @@ First, you define the environment in which Cloud Failover will be running.
 
 |
 
+.. table::
+
 +--------------------+--------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Property           | Options                        | Description/Notes                                                                                                                                                            |
 +====================+================================+==============================================================================================================================================================================+
@@ -184,19 +186,50 @@ Next, you define the external storage Cloud Failover will use for its state file
 
 |
 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
+   The property ``endpointDnsName`` is available for AWS in Cloud Failover Extension v2.4.0 and later.
+
+- Explicit Configuration example:
+
+  .. code-block:: json
+
+     "externalStorage":{
+        "endpointDnsName": "vpce-xxxxxxxxxxxxxx-xxxxxxxx.s3.us-west-2.vpce.amazonaws.com"
+     },
 
 |
 
-+--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Property           | Options                        | Description/Notes                                                                                                                                                                               |
-+====================+================================+=================================================================================================================================================================================================+
-| externalStorage    | -                              | Provide scopingTags or scopingName object to define Cloud Failover's storage. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of what storage objects are used.      |
-+--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| scopingTags        | -                              | Provide the key/value pair that match the cloud tags you assigned to the external storage in your cloud environment.                                                                            |
-+--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| scopingName        | -                              | Provide the name of external storage in your cloud environment.                                                                                                                                 |
-+--------------------+--------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``stateFileName`` is available in Cloud Failover Extension v2.4.0 and later.
+   
+- Explicit Configuration example:
+
+  .. code-block:: json
+
+     "externalStorage":{
+        "stateFileName": "custom-failover-state.json"
+     },
+
+|
+
+.. table::
+
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Property                          | Options         | Description/Notes                                                                                                                                                                                                                      |
++===================================+=================+========================================================================================================================================================================================================================================+
+| externalStorage                   | -               | Provide scopingTags or scopingName object, with an optional AWS endpoint PrivateLink, to define Cloud Failover's storage. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of what storage objects are used. |
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| scopingTags                       | -               | Provide the key/value pair that match the cloud tags you assigned to the external storage in your cloud environment.                                                                                                                   |
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| scopingName                       | -               | Provide the name of external storage in your cloud environment.                                                                                                                                                                        |
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| endpointDnsName                   | -               | Provide the DNS name of an AWS VPC Endpoint configured for accessing S3 with a PrivateLink in your cloud environment.                                                                                                                  |
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| stateFileName                     | -               | Provide the name of the failover state file stored in S3. If not provided, the default file name is ``f5cloudfailoverstate.json``.                                                                                                     |
++-----------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. Note:: When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.
 
@@ -220,6 +253,8 @@ Cloud Failover Extension logs to **/var/log/restnoded/restnoded.log**. The loggi
    }
 
 |
+
+.. table::
 
 +--------------------+----------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Property           | Options                                      | Description/Notes                                                                                                                                              |
@@ -257,6 +292,8 @@ This feature is **optional** and, as part of floating object mapping validation,
 
 |
 
+.. table::
+
 +--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Property           | Options                        | Description/Notes                                                                                                                                              |
 +====================+================================+================================================================================================================================================================+
@@ -277,20 +314,38 @@ The next lines of the declaration set the address failover functionality.
 
 .. code-block:: json
 
-        "failoverAddresses": {
-            "enabled": true,
+   "failoverAddresses": {
+      "enabled": true
+   }
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   The property ``failoverAddresses.endpointDnsName`` is available for AWS in Cloud Failover Extension v2.4.0 and later.
+|
+
+- Explicit Configuration example:
+
+  .. code-block:: json
+
+   "failoverAddresses":{
+      "endpointDnsName": "vpce-xxxxxxxxxxxxxx-xxxxxxxx.ec2.us-west-2.vpce.amazonaws.com"
+   }
 
 |
 
 .. table::
 
-   ======================== ======================= ===================================================================
-   Property                 Options                 Description/Notes
-   ======================== ======================= ===================================================================
-   failoverAddresses        -                       Provide **address** failover configurations.
-   ------------------------ ----------------------- -------------------------------------------------------------------
-   enabled                  true, false             Enables or disables the address failover functionality. 
-   ======================== ======================= ===================================================================
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Property           | Options                        | Description/Notes                                                                                                                                              |
++====================+================================+================================================================================================================================================================+
+| failoverAddresses  | -                              |  Provide **address** failover configurations.                                                                                                                  |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| enabled            | true, false                    | Enables or disables the address failover functionality.                                                                                                        |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| endpointDnsName    | -                              | Provide the DNS name of an AWS VPC Endpoint configured for accessing EC2 API with a PrivateLink in your cloud environment.                                     |
++--------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 |
 
@@ -299,16 +354,45 @@ The next lines of the declaration set the address failover functionality.
 
   .. code-block:: json
 
-     "failoverAddresses": {
-        "enabled": true,
-        "scopingTags": {
-           "f5_cloud_failover_label": "mydeployment"
-        }
-     },
+   "failoverAddresses": {
+      "scopingTags": {
+         "f5_cloud_failover_label": "mydeployment"
+      }
+   }
 
 |
 
 - Explicit Configuration example:
+
+  .. code-block:: json
+
+   "failoverAddresses":{
+      "enabled":true,
+      "scopingTags": {
+         "f5_cloud_failover_label": "mydeployment"
+      }
+      "addressGroupDefinitions": [
+         {
+            "type": "networkInterfaceAddress",
+            "scopingAddress": "10.0.1.100"
+         },
+         {
+            "type": "networkInterfaceAddress",
+            "scopingAddress": "10.0.1.101"
+         }
+      ]
+   },
+
+|
+
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+
+   - Beginning v2.2.0, CFE supports AWS ipv4 prefix migration during a failover event when providing ``scopingAddress`` property under ``addressGroupDefinitions`` with an ipv4 address and prefix. Example: 10.0.1.48/28.  Click `here <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-prefix-eni.html>`_ for more information on Prefix delegation for Amazon EC2 network interfaces. CFE will update the prefix association during failover to move the entire prefix to the active instance's NIC. This allows for up to 16 IP addresses to be moved with a single API call, which can improve failover time for large deployments. CFE also locates EIPs associated with any of the IPs in the prefix and moves those EIPs during failover as well. This feature is only available for AWS in same network topologies and is not supported when using across AZ topologies. 
+   - Beginning v1.7.0, the property ``addressGroupDefinitions`` is available in Cloud Failover Extension.
+
+|
+
+- AWS Prefix Configuration example:
 
   .. code-block:: json
 
@@ -320,23 +404,12 @@ The next lines of the declaration set the address failover functionality.
         "addressGroupDefinitions": [
            {
               "type": "networkInterfaceAddress",
-              "scopingAddress": "10.0.1.100"
-           },
-           {
-              "type": "networkInterfaceAddress",
-              "scopingAddress": "10.0.1.101"
+              "scopingAddress": "10.0.1.48/28"
            }
         ]
      },
 
 |
-
-.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
-
-   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
-
-|
-
 
 .. table::
 
@@ -345,12 +418,12 @@ The next lines of the declaration set the address failover functionality.
    ======================== ======================= ===================================================================
    scopingTags              -                       Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general "deployment" scoping tag. This property is required for AWS configurations. See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details on required additional tags.
    ------------------------ ----------------------- -------------------------------------------------------------------
-   addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of address types. 
+   addressGroupDefinitions  -                       Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the :ref:`aws`, :ref:`azure`, and :ref:`gcp` sections for more details of address types.
    ======================== ======================= ===================================================================
-
 |
 
 .. Important:: In AWS, the ``scopingTags`` property is required in all configurations (for example, even when failoverAddresses is disabled and only failing over routes) as it is leveraged internally to map the peer BIG-IP's NICs.
+|
 
 .. code-block:: json
 
@@ -360,9 +433,6 @@ The next lines of the declaration set the address failover functionality.
             }
 
 |
-
- 
-
 
 
 .. _failover-routes:
