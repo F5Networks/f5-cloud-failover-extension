@@ -425,8 +425,10 @@ Define Remote Storage for State File in AWS
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
   
-   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the ``scopingName`` property for external storage instead of ``scopingTags``.
+   - Beginning v2.4.0, CFE supports providing stateFileName property to customize the name of the failover state file stored in S3. If not provided, the default file name is ``f5cloudfailoverstate.json``.
+   - Beginning v2.4.0, CFE supports providing a PrivateLink for accessing an S3 bucket through a direct connection on a private network with the ``endpointDnsName`` property under ``externalStorage`` which also requires ``scopingName`` or ``scopingTags`` be present. Click `here <https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html>`_ for more information on PrivateLink Interface Endpoints.
    - Beginning v2.1.0, CFE supports providing a fully-qualified "virtual host" style bucket name for ``scopingName``. When using this feature, the bucket name must be provided in the following format: ``bucket-name.s3.region-code.amazonaws.com``. Click `here <https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html>`_ for more information on S3 bucket naming conventions.
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the ``scopingName`` property for external storage instead of ``scopingTags``.
    - Using the fully-qualified "virtual host" style ``scopingName`` property to specify external storage is **required** when the EC2 instances are deployed in a non-commercial AWS environment. 
    - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
 
@@ -506,21 +508,25 @@ Define the Failover Addresses in AWS
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``addressGroupDefinitions`` is available in Cloud Failover Extension v1.7.0 and later.
+   - Beginning v2.4.0, CFE supports providing a PrivateLink for accessing EC2 API through a direct connection on a private network with the ``endpointDnsName`` property under ``failoverAddresses``. Click `here <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/interface-vpc-endpoints.html>`_ for more information on PrivateLink Interface Endpoints.
+   - Beginning v2.2.0, CFE supports AWS ipv4 prefix migration during a failover event when providing ``scopingAddress`` property under ``addressGroupDefinitions`` with an ipv4 address and prefix. Example: 10.0.1.48/28.  Click `here <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-prefix-eni.html>`_ for more information on Prefix delegation for Amazon EC2 network interfaces. CFE will update the prefix association during failover to move the entire prefix to the active instance's NIC. This allows for up to 16 IP addresses to be moved with a single API call, which can improve failover time for large deployments. CFE also locates EIPs associated with any of the IPs in the prefix and moves those EIPs during failover as well.
+   - Beginning v1.7.0, the property ``addressGroupDefinitions`` is available in Cloud Failover Extension.
 
-Update/modify the ``addressGroupDefinitions`` list to match the addresses in your deployment. In the Same AZ example below, there are two services defined:
+Update/modify the ``addressGroupDefinitions`` list to match the addresses in your deployment. In the Same AZ example below, there are three services defined:
 
 - Virtual Service 1 (10.0.12.101): Mapped to an AWS secondary IP (10.0.12.101)
 - Virtual Service 2 (10.0.12.102): Mapped to an AWS secondary IP (10.0.12.102) 
+- Virtual Service 3 (10.0.12.48): Mapped to Network Interface property ipv4Prefix (10.0.12.48/28) and EIP addresses associated with any of the IPs in that prefix will also be moved during failover.
 
 .. code-block:: json
 
    "failoverAddresses":{
       "enabled":true,
-      "scopingTags": {
-         "f5_cloud_failover_label": "mydeployment"
-      },
        "addressGroupDefinitions": [
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.48/28"
+         },
          {
            "type": "networkInterfaceAddress",
            "scopingAddress": "10.0.12.101"
@@ -537,7 +543,39 @@ Update/modify the ``addressGroupDefinitions`` list to match the addresses in you
 
 
 
-Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the `failoverAddresses.scopingTags` section of the CFE declaration.
+Alternatively, if you are using AWS PrivateLink to access EC2 services, provide the private endpoint DNS name in the `failoverAddresses.endpointDnsName` section of the CFE declaration.
+
+.. code-block:: json
+
+   "failoverAddresses":{
+      "enabled":true,
+      "endpointDnsName": "vpce-xxxxxxx.xxxxxxx.ec2.us-east-1.vpce.amazonaws.com",
+       "addressGroupDefinitions": [
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.48/28"
+         },
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.101"
+         },
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.102"
+         }
+       ]
+   },
+
+|
+
+This will force CFE to use the provided PrivateLink endpoint to access EC2 API for failover operations instead of going through the public AWS API endpoints.
+
+|
+
+
+
+
+Alternatively, if you are using the Discovery via Tag option, tag the the network interfaces with your custom key:values in the `failoverAddresses.scopingTags` section of the CFE declaration.
 
 .. code-block:: json
 
@@ -546,6 +584,20 @@ Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket 
       "scopingTags":{
          "f5_cloud_failover_label":"mydeployment"
       }
+       "addressGroupDefinitions": [
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.48/28"
+         },
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.101"
+         },
+         {
+           "type": "networkInterfaceAddress",
+           "scopingAddress": "10.0.12.102"
+         }
+       ]
    },
 
 |

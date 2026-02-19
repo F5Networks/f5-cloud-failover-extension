@@ -114,6 +114,40 @@ const EXAMPLE_DECLARATIONS = {
             enabled: true,
             interval: 60000
         }
+    },
+    basicWithStateFileName: {
+        class: 'Cloud_Failover',
+        environment: 'azure',
+        externalStorage: {
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            stateFileName: 'custom-state-file.json'
+        },
+        failoverAddresses: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            }
+        },
+        failoverRoutes: {
+            enabled: true,
+            scopingTags: {
+                f5_cloud_failover_label: 'test'
+            },
+            scopingAddressRanges: [
+                {
+                    range: '192.0.2.0/24',
+                    nextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '1.1.1.1',
+                            '2.2.2.2'
+                        ]
+                    }
+                }
+            ]
+        }
     }
 };
 

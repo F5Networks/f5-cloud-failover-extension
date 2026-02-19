@@ -46,12 +46,23 @@ class TelemetryClient {
             .then(() => teemClient.reportRecord(record))
             .then(() => {
                 logger.silly('Telemetry submitted successfully');
-                logger.silly(`Telemetry payload: ${JSON.stringify(configuration)}`);
+                let serializedConfig;
+                try {
+                    serializedConfig = JSON.stringify(configuration);
+                } catch (e) {
+                    logger.silly(`Unable to stringify telemetry configuration: ${e.message}`);
+                    logger.error(`Sending telemetry failed: ${e && (e.stack || e.message)}`);
+                }
+                logger.silly(`Telemetry payload: ${serializedConfig}`);
                 return Promise.resolve({ sent: true });
             })
             .catch((err) => {
                 // never reject when sending telemetry, just log any errors
-                logger.error(`Sending telemetry failed: ${err.message}`);
+                const message = (err && typeof err.message === 'string') ? err.message : String(err);
+                logger.error(`Sending telemetry failed: ${message}`);
+                if ((err && err.code === 'ETIMEDOUT') || (typeof message === 'string' && message.includes('timeout'))) {
+                    logger.error('This error may indicate that the telemetry service is unavailable, which could be due to network connectivity issues or the telemetry service being down. Please check your network connection and try again later.');
+                }
                 return Promise.resolve({ sent: false });
             });
     }

@@ -380,6 +380,9 @@ Tag the Network Interfaces in AWS
 
 .. Important:: Tagging the NICs is required for all deployments regardless of which configuration option (`Explicit` or `Discovery via Tag`) you choose to define your failover objects.
 
+.. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
+   - Beginning v2.4.0, CFE supports providing a PrivateLink for accessing EC2 API through a direct connection on a private network with the ``endpointDnsName`` property under ``failoverAddresses``. Click `here https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/interface-vpc-endpoints.html`_ for more information on PrivateLink Interface Endpoints.
+
 
 1. Create two sets of tags for Network Interfaces. 
 
@@ -400,6 +403,19 @@ Tag the Network Interfaces in AWS
 
      .. image:: ../images/aws/AWS-NetworkInterface-Tags.png
 
+
+
+   - **PrivateLink endpointDnsName property**: used to define Private Link dns address used to perform EC2 API calls. A key-value pair that will correspond to the key-value pair in the `failoverAddresses.endpointDnsName` section of the CFE declaration. For example, if the endpoint DNS name is "vpce-0123456789abcdef0-01234567.ec2.us-east-1.vpce.amazonaws.com", the declaration would look like this:
+
+     .. code-block:: json
+
+        "failoverAddresses":{
+            "scopingTags": {
+                "f5_cloud_failover_label": "mydeployment"
+            },
+            "endpointDnsName": "vpce-xxxxxxx.xxxxxxx.ec2.us-east-1.vpce.amazonaws.com"
+        }
+
 |
 
 
@@ -409,8 +425,10 @@ Define Remote Storage for State File in AWS
 ```````````````````````````````````````````
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the ``scopingName`` property for external storage instead of ``scopingTags``.
+   - Beginning v2.4.0, CFE supports providing stateFileName property to customize the name of the failover state file stored in S3. If not provided, the default file name is ``f5cloudfailoverstate.json``.
+   - Beginning v2.4.0, CFE supports providing a PrivateLink for accessing an S3 bucket through a direct connection on a private network with the ``endpointDnsName`` property under ``externalStorage`` which also requires ``scopingName`` or ``scopingTags`` be present. Click `here <https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html>`_ for more information on PrivateLink Interface Endpoints.
    - Beginning v2.1.0, CFE supports providing a fully-qualified "virtual host" style bucket name for ``scopingName``. When using this feature, the bucket name must be provided in the following format: ``bucket-name.s3.region-code.amazonaws.com``. Click `here <https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html>`_ for more information on S3 bucket naming conventions.
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the ``scopingName`` property for external storage instead of ``scopingTags``.
    - Using the fully-qualified "virtual host" style ``scopingName`` property to specify external storage is **required** when the EC2 instances are deployed in a non-commercial AWS environment. 
    - Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See `AWS Documentation <https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html>`_ for more details on how to enable server-side encryption on the S3 bucket.
    

@@ -71,14 +71,26 @@ class ConfigWorker {
     }
 
     /**
+     * Get State File Name
+     *
+     * @returns {Promise} The configuration
+     */
+    getStateFileName() {
+        return this._loadStateFromStore()
+            .then((state) => Promise.resolve(state.stateFileName))
+            .catch((err) => Promise.reject(err));
+    }
+
+    /**
      * Set Configuration
      *
      * @param {Object} config
      *
      * @returns {Promise} A promise which is resolved when the configuration has been set
      */
-    setConfig(config) {
+    setConfig(config, stateFileName) {
         this.state.config = config || {};
+        this.state.stateFileName = stateFileName || constants.STATE_FILE_NAME;
 
         return this._saveStateToStore(this.state)
             .catch((err) => {
@@ -232,8 +244,11 @@ class ConfigWorker {
         if (declaration.controls && declaration.controls.logLevel) {
             logger.setLogLevel(declaration.controls.logLevel);
         }
-
-        return this.setConfig(declaration)
+        let stateFileName = constants.STATE_FILE_NAME;
+        if (declaration.externalStorage && declaration.externalStorage.stateFileName) {
+            stateFileName = declaration.externalStorage.stateFileName;
+        }
+        return this.setConfig(declaration, stateFileName)
             .then(() => this._updateTriggerScripts())
             .then(() => Promise.resolve(this.state.config))
             .catch((err) => {

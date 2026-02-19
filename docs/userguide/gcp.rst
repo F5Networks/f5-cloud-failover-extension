@@ -173,7 +173,8 @@ Define Remote Storage for State File in GCP
 
 .. sidebar:: :fonticon:`fa fa-info-circle fa-lg` Version Notice:
 
-   The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
+   - Beginning v2.2.1, CFE supports providing stateFileName property to customize the name of the failover state file stored in Cloud Storage. If not provided, the default file name is ``f5cloudfailoverstate.json``.
+   - The property ``scopingName`` is available in Cloud Failover Extension v1.7.0 and later.
 
 2. Update/modify the Cloud Failover ``scopingName`` value with name of your storage bucket:
 

@@ -18,6 +18,12 @@
             "type": "object",
             "additionalProperties": true
         },
+        "endpointDnsName": {
+            "type": "string"
+        },
+        "stateFileName": {
+            "type": "string"
+        },
         "type": {
             "$comment": "Determine the type of IP failover objects to perform failover",
             "type": "string"
@@ -117,6 +123,7 @@
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
             "enum": [
+                "2.4.0",
                 "2.2.0",
                 "2.1.3",
                 "2.1.2",
@@ -145,7 +152,7 @@
                 "1.0.0",
                 "0.9.1"
             ],
-            "default": "2.2.0"
+            "default": "2.4.0"
         },
         "$schema": {
             "title": "Schema",
@@ -183,6 +190,7 @@
                     "type": "boolean",
                     "default": false
                 },
+                "endpointDnsName": { "$ref": "#/definitions/endpointDnsName" },
                 "addressGroupDefinitions": {
                     "type": "array",
                     "items": {
@@ -292,6 +300,8 @@
             "description": "External storage this deployment will manage.",
             "type": "object",
             "properties": {
+                "stateFileName": { "$ref": "#/definitions/stateFileName" },
+                "endpointDnsName": { "$ref": "#/definitions/endpointDnsName" },
                 "encryption": {
                     "description": "Settings related to encrypted storage.",
                     "type": "object",

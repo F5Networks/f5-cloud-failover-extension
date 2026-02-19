@@ -11,6 +11,10 @@ Document Revision History
         - Description
         - Date
 
+      * - 2.4.0
+        - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated documentation in :ref:`configuration`, :ref:`aws`, :ref:`aws-same-az`, :ref:`gcp`, and :ref:`azure`.
+        - 02-18-26
+
       * - 2.3.0
         - Updated the documentation for Cloud Failover Extension with the following changes: |br| • Updated documentation in :ref:`troubleshooting`and :ref:`azure`.
         - 12-13-23

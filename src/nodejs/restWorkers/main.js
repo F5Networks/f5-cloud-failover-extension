@@ -28,6 +28,7 @@ const schemaUtils = require('../schema/schemaUtils.js');
 const telemetry = new TelemetryClient();
 const device = new Device();
 const failoverStates = constants.FAILOVER_STATES;
+let failoverStateFileName = constants.STATE_FILE_NAME;
 const errorMessageDetail = 'Also see cloud docs link for more help: '
     + 'https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/troubleshooting.html';
 
@@ -182,7 +183,6 @@ Worker.prototype.processRequest = function (restOperation) {
     }
 
     const failover = new FailoverClient(); // failover class should be instantiated on every request
-
     logger.debug(`HTTP Request - ${method} /${pathName}`);
     switch (pathName) {
     case 'declare':
@@ -194,26 +194,43 @@ Worker.prototype.processRequest = function (restOperation) {
                     this.cloudProvider = CloudFactory.getCloudProvider(config.environment, { logger });
                     const tags = {
                         storageTags: util.getDataByKey(config, 'externalStorage.scopingTags'),
-                        storageName: util.getDataByKey(config, 'externalStorage.scopingName')
+                        storageName: util.getDataByKey(config, 'externalStorage.scopingName'),
+                        storageDnsName: util.getDataByKey(config, 'externalStorage.endpointDnsName'),
+                        ec2DnsName: util.getDataByKey(config, 'failoverAddresses.endpointDnsName')
                     };
+                    // Set default state file name first (init would do this but may be stubbed in tests)
+                    failover.setStateFileName(constants.STATE_FILE_NAME);
+                    // If stateFileName is provided in the config, override with custom name
+                    const tempStateFileName = util.getDataByKey(config, 'externalStorage.stateFileName');
+                    if (tempStateFileName) {
+                        logger.silly(`Setting state file name: POST: declare ${tempStateFileName}`);
+                        failoverStateFileName = tempStateFileName;
+                        config.stateFileName = failoverStateFileName;
+                        failover.setStateFileName(failoverStateFileName);
+                    }
                     return this.cloudProvider.init(tags)
                         .then(() => Promise.all([
                             config,
                             failover.init(),
-                            telemetry.send(telemetry.createTelemetryData({
-                                failover: {
-                                    event: false,
-                                    success: true
-                                },
-                                customerId: this.cloudProvider.customerId,
-                                startTime: startTimestamp,
-                                region: this.cloudProvider.getRegion(),
-                                result: 'SUCCESS',
-                                resultSummary: 'Configuration Successful',
-                                environment: config.environment,
-                                ipFailover: config.ipFailover,
-                                routeFailover: config.routeFailover
-                            }))
+                            !tags.storageDnsName || !tags.ec2DnsName
+                                ? telemetry.send(telemetry.createTelemetryData({
+                                    failover: {
+                                        event: false,
+                                        success: true
+                                    },
+                                    customerId: this.cloudProvider.customerId,
+                                    startTime: startTimestamp,
+                                    region: this.cloudProvider.getRegion(),
+                                    result: 'SUCCESS',
+                                    resultSummary: 'Configuration Successful',
+                                    environment: config.environment,
+                                    ipFailover: config.ipFailover,
+                                    routeFailover: config.routeFailover
+                                })).catch((err) => {
+                                    logger.error(`Telemetry send failed during configuration: ${err && err.message ? err.message : err}`);
+                                    Promise.resolve();
+                                })
+                                : Promise.resolve()
                         ]));
                 })
                 .then((data) => {

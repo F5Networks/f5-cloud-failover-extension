@@ -465,23 +465,17 @@ class Cloud extends AbstractCloud {
         const uri = `${this.BASE_URL}/compute/v1/projects/${this.projectId}/aggregated/instances?filter=${options.filter}`;
         return this._sendRequest('GET', uri, {})
             .then((vmsData) => {
-                const arrayItems = vmsData.items;
-                const instance = [];
-                let i = 0;
-                Object.entries(arrayItems).forEach((entry) => {
+                const instances = [];
+                Object.entries(vmsData.items).forEach((entry) => {
                     const [key, value] = entry;
-                    if (value.instances !== undefined && i === 0) {
-                        this.logger.silly('Found instance in', key);
-                        instance.push(value.instances);
-                        i = 1;
-                    } else if (value.instances !== undefined && i === 1) {
-                        this.logger.silly('Found instance in', key);
-                        instance[0].push(value.instances[0]);
+                    if (value.instances !== undefined) {
+                        this.logger.silly('Found instances in', key);
+                        instances.push(...value.instances);
                     }
                 });
-                const computeVms = (instance !== undefined && Object.keys(instance).length > 0) ? instance : [[]];
+                const computeVms = (instances !== undefined && Object.keys(instances).length > 0) ? instances : [];
                 const promises = [];
-                computeVms[0].forEach((vm) => {
+                computeVms.forEach((vm) => {
                     promises.push(this._retrier(
                         this._getVmInfo,
                         [vm.name, { zone: this._parseZone(vm.zone), failOnStatusCodes: ['STOPPING'] }]

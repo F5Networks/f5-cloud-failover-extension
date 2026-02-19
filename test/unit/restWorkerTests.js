@@ -20,6 +20,7 @@ const assert = require('assert');
 const sinon = require('sinon');
 
 const constants = require('../constants.js');
+const srcConstants = require('../../src/nodejs/constants.js');
 
 const ROOT_PATH = 'mgmt/shared/cloud-failover';
 
@@ -46,6 +47,8 @@ describe('Rest Operations', () => {
     });
     afterEach(() => {
         sinon.restore();
+        // Delete the main.js module from cache to reset module-level variables
+        delete require.cache[require.resolve('../../src/nodejs/restWorkers/main.js')];
     });
 
     function createRestOperation(options) {
@@ -301,5 +304,60 @@ describe('Rest Operations', () => {
                 assert.strictEqual(response.status, 500);
                 assert(response.body.message.indexOf('max tries reached') !== -1);
             });
+    });
+
+    it('should set custom state file name when provided in configuration', () => {
+        const worker = new WorkerClient();
+
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({
+            exists: true,
+            data: constants.DATA_GROUP_OBJECT
+        });
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
+        sinon.stub(Cloud.prototype, 'init').resolves();
+        sinon.stub(TelemetryClient.prototype, 'send').resolves();
+        const setStateFileNameSpy = sinon.spy(FailoverClient.prototype, 'setStateFileName');
+
+        return worker.onPost(createRestOperation({
+            method: 'POST',
+            endpoint: 'declare',
+            body: constants.declarations.basicWithStateFileName
+        }))
+            .then((data) => {
+                assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+                // First call uses the default state file name
+                assert.strictEqual(setStateFileNameSpy.getCall(0).args[0], srcConstants.STATE_FILE_NAME);
+                // Second call uses the custom state file name from config
+                assert.strictEqual(setStateFileNameSpy.getCall(1).args[0], 'custom-state-file.json');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should not call setStateFileName with custom name when stateFileName is not provided in configuration', () => {
+        const worker = new WorkerClient();
+
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({
+            exists: true,
+            data: constants.DATA_GROUP_OBJECT
+        });
+        sinon.stub(Device.prototype, 'createDataGroup').resolves(constants.DATA_GROUP_OBJECT);
+        sinon.stub(Device.prototype, 'executeBigIpBashCmd').resolves('');
+        sinon.stub(Cloud.prototype, 'init').resolves();
+        sinon.stub(TelemetryClient.prototype, 'send').resolves();
+        const setStateFileNameSpy = sinon.spy(FailoverClient.prototype, 'setStateFileName');
+
+        return worker.onPost(createRestOperation({
+            method: 'POST',
+            endpoint: 'declare',
+            body: constants.declarations.basic
+        }))
+            .then((data) => {
+                assert.strictEqual(data.status, 200, JSON.stringify(data.body));
+                // setStateFileName is called once with the default state file name
+                assert.strictEqual(setStateFileNameSpy.callCount, 1);
+                assert.strictEqual(setStateFileNameSpy.getCall(0).args[0], srcConstants.STATE_FILE_NAME);
+            })
+            .catch((err) => Promise.reject(err));
     });
 });

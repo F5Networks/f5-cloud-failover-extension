@@ -26,7 +26,6 @@ const TelemetryClient = require('./telemetry.js').TelemetryClient;
 
 const failoverStates = constants.FAILOVER_STATES;
 const deviceStatus = constants.BIGIP_STATUS;
-const stateFileName = constants.STATE_FILE_NAME;
 const stateFileContents = {
     taskState: failoverStates.PASS,
     message: '',
@@ -52,6 +51,7 @@ class FailoverClient {
         this.hasActiveTrafficGroups = null;
         this.isAddressOperationsEnabled = null;
         this.isRouteOperationsEnabled = null;
+        this.stateFileName = constants.STATE_FILE_NAME;
     }
 
     /**
@@ -63,22 +63,23 @@ class FailoverClient {
         return this.device.init()
             .then(() => Promise.all([
                 configWorker.getConfig(),
-                this.device.getProxySettings()
+                this.device.getProxySettings(),
+                configWorker.getStateFileName()
             ]))
             .then((data) => {
                 this.config = data[0];
                 this.proxySettings = data[1];
-
+                this.setStateFileName(data[2] || constants.STATE_FILE_NAME);
                 logger.debug('config: ');
                 logger.debug(this.config);
                 logger.silly('proxySettings: ');
                 logger.silly(this.proxySettings);
-
+                logger.debug('State file name: ');
+                logger.debug(this.stateFileName);
                 if (!this.config || !this.config.environment) {
                     const errorMessage = 'Environment information has not been provided';
                     return Promise.reject(new Error(errorMessage));
                 }
-
                 this.cloudProvider = CloudFactory.getCloudProvider(this.config.environment, { logger });
                 return this.cloudProvider.init(this._parseConfig());
             })
@@ -90,6 +91,21 @@ class FailoverClient {
                 logger.error(`${errorMessage} ${util.stringify(err.stack)}`);
                 return Promise.reject(new Error(errorMessage));
             });
+    }
+
+    /**
+     * Set state file name
+     *
+     * @param {String} fileName - The name of the state file
+     *
+     * @returns {void}
+     */
+    setStateFileName(fileName) {
+        if (!fileName || typeof fileName !== 'string') {
+            throw new Error('State file name must be a non-empty string');
+        }
+        this.stateFileName = fileName;
+        logger.debug(`State file name set to: ${this.stateFileName}`);
     }
 
     /**
@@ -319,6 +335,8 @@ class FailoverClient {
             storageEncryption,
             storageTags: util.getDataByKey(this.config, 'externalStorage.scopingTags'),
             storageName: util.getDataByKey(this.config, 'externalStorage.scopingName'),
+            storageDnsName: util.getDataByKey(this.config, 'externalStorage.endpointDnsName'),
+            ec2DnsName: util.getDataByKey(this.config, 'failoverAddresses.endpointDnsName'),
             subscriptions: (util.getDataByKey(
                 this.config, 'failoverRoutes.defaultResourceLocations'
             ) || []).map((location) => location.subscriptionId),
@@ -712,8 +730,7 @@ class FailoverClient {
         const failoverOperations = options.failoverOperations || {};
         const message = options.message || '';
         const stateObject = this._createStateObject({ taskState, failoverOperations, message });
-
-        return this.cloudProvider.uploadDataToStorage(stateFileName, stateObject)
+        return this.cloudProvider.uploadDataToStorage(this.stateFileName, stateObject)
             .then(() => Promise.resolve(stateObject))
             .catch((err) => {
                 logger.error(`uploadDataToStorage status: ${util.stringify(err.message)}`);
@@ -727,7 +744,7 @@ class FailoverClient {
      * @returns {Promise}
      */
     getTaskStateFile() {
-        return this.cloudProvider.downloadDataFromStorage(stateFileName)
+        return this.cloudProvider.downloadDataFromStorage(this.stateFileName)
             .then((data) => {
                 logger.silly(`Download stateFile: ${util.stringify(data)}`);
 
@@ -752,7 +769,7 @@ class FailoverClient {
      * @returns {Promise}
      */
     _checkTaskState() {
-        return this.cloudProvider.downloadDataFromStorage(stateFileName)
+        return this.cloudProvider.downloadDataFromStorage(this.stateFileName)
             .then((data) => {
                 logger.silly('State file data: ', data);
 
