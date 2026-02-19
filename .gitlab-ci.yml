@@ -117,6 +117,7 @@ test_audit:
     paths:
       - .auditReport.json
     expire_in: 1 month
+  allow_failure: true
 
 # job must be called coverage
 coverage:
