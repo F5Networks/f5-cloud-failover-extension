@@ -215,4 +215,185 @@ describe('logger', () => {
         assert.notStrictEqual(loggedMessages.info[0].indexOf('key1'), -1);
         assert.notStrictEqual(loggedMessages.info[0].indexOf('value1'), -1);
     });
+
+    it('should suppress warning logs when log level is set to error', () => {
+        logger.setLogLevel(LOG_LEVELS.error);
+        // clear any messages produced by setLogLevel before asserting on the filtering
+        Object.keys(loggedMessages).forEach((level) => {
+            loggedMessages[level].length = 0;
+        });
+        logger.warning('This warning should be suppressed');
+        logger.info('This info should be suppressed');
+        logger.error('This error should be logged');
+        // warning(4) and info(3) are below error(5), so they are filtered out
+        assert.strictEqual(loggedMessages.warning.length, 0);
+        assert.strictEqual(loggedMessages.info.length, 0);
+        assert.strictEqual(loggedMessages.severe.length, 1);
+        // restore default level for subsequent tests
+        logger.setLogLevel(LOG_LEVELS.info);
+    });
+
+    it('should treat a non-string, non-number log level as unknown', () => {
+        const initialCount = loggedMessages.severe.length;
+        // object is neither string nor number, so level stays undefined
+        logger.setLogLevel({ level: 'info' });
+        assert.strictEqual(loggedMessages.severe.length, initialCount + 1);
+        assert.notStrictEqual(
+            loggedMessages.severe[loggedMessages.severe.length - 1].indexOf('Unknown logLevel - [object Object]'),
+            -1
+        );
+        // restore default level for subsequent tests
+        logger.setLogLevel(LOG_LEVELS.info);
+    });
+
+    it('should treat a null log level as unknown', () => {
+        const initialCount = loggedMessages.severe.length;
+        // null is neither string nor number, so level stays undefined
+        logger.setLogLevel(null);
+        assert.strictEqual(loggedMessages.severe.length, initialCount + 1);
+        assert.notStrictEqual(
+            loggedMessages.severe[loggedMessages.severe.length - 1].indexOf('Unknown logLevel - null'),
+            -1
+        );
+        logger.setLogLevel(LOG_LEVELS.info);
+    });
+
+    it('should return the same cached instance on repeated require', () => {
+        /* eslint-disable global-require */
+        const LoggerModule = require('../../src/nodejs/logger');
+        const secondReference = require('../../src/nodejs/logger');
+        // repeated requires of the same resolved path return the identical cached export
+        assert.strictEqual(LoggerModule, secondReference);
+    });
+
+    it('should use the built-in mock logger when f5-logger is not available', () => {
+        const loggerPath = require.resolve('../../src/nodejs/logger');
+        // Capture the original cached module so it can be restored exactly. Re-requiring
+        // after a cache delete would create a divergent singleton (logger.js exports
+        // new LoggerInstance().getInstance()), which would break other test files that
+        // hold a reference to the original singleton.
+        const originalCacheEntry = require.cache[loggerPath];
+        // load a fresh logger without overriding its internal logger, so the
+        // built-in mock (empty no-op level methods) is exercised
+        delete require.cache[loggerPath];
+        const freshLogger = require('../../src/nodejs/logger');
+        try {
+            // The built-in mock defines info() and warning() with names matching the
+            // f5-logger level names used by log(), so those route through cleanly.
+            freshLogger.setLogLevel(LOG_LEVELS.info);
+            assert.doesNotThrow(() => {
+                freshLogger.info('info message via built-in mock');
+                freshLogger.warning('warning message via built-in mock');
+            });
+        } finally {
+            // restore the original singleton instance for other test files
+            require.cache[loggerPath] = originalCacheEntry;
+        }
+    });
+});
+
+describe('logger with f5-logger present', () => {
+    const Module = require('module');
+    const loggerPath = require.resolve('../../src/nodejs/logger');
+
+    let originalRequire;
+    let originalCacheEntry;
+    let getInstanceCalls;
+    let f5LoggerMock;
+    let f5Logger;
+
+    beforeEach(() => {
+        // Capture the original cached singleton so it can be restored exactly in
+        // afterEach. Re-requiring after a cache delete would create a divergent
+        // singleton instance and break other test files holding the original.
+        originalCacheEntry = require.cache[loggerPath];
+        getInstanceCalls = [];
+        f5LoggerMock = {
+            finest() {},
+            finer() {},
+            fine() {},
+            info() {},
+            warning() {},
+            severe() {}
+        };
+        // fake f5-logger module that records the options passed to getInstance
+        const fakeF5Logger = {
+            getInstance(options) {
+                getInstanceCalls.push(options);
+                return f5LoggerMock;
+            }
+        };
+
+        // intercept require('f5-logger') so logger.js resolves a truthy f5Logger
+        originalRequire = Module.prototype.require;
+        Module.prototype.require = function patchedRequire(request) {
+            if (request === 'f5-logger') {
+                return fakeF5Logger;
+            }
+            return originalRequire.apply(this, arguments);
+        };
+
+        // load a fresh copy of logger.js so its top-level require('f5-logger') succeeds
+        delete require.cache[loggerPath];
+        f5Logger = require('../../src/nodejs/logger');
+    });
+
+    afterEach(() => {
+        // restore require and the original singleton instance for other test files
+        Module.prototype.require = originalRequire;
+        require.cache[loggerPath] = originalCacheEntry;
+    });
+
+    it('should initialize f5-logger with mapped log level options on construction', () => {
+        // constructor runs _initializeLogger with f5Logger present (default info level)
+        assert.strictEqual(getInstanceCalls.length, 1);
+        const options = getInstanceCalls[0];
+        assert.strictEqual(options.logLevel, 'info');
+        assert.strictEqual(options.fileLogLevel, 'info');
+        assert.strictEqual(options.fileLogPath, '/var/log/restnoded/restnoded.log');
+    });
+
+    it('should reinitialize f5-logger when the log level changes', () => {
+        f5Logger.setLogLevel(LOG_LEVELS.debug);
+        // a second getInstance call indicates the logger was recreated for the new level
+        assert.strictEqual(getInstanceCalls.length, 2);
+        const options = getInstanceCalls[getInstanceCalls.length - 1];
+        assert.strictEqual(options.logLevel, 'fine');
+        assert.strictEqual(options.fileLogLevel, 'fine');
+    });
+
+    it('should map each log level to the corresponding f5-logger level', () => {
+        const expected = {
+            [LOG_LEVELS.silly]: 'finest',
+            [LOG_LEVELS.verbose]: 'finer',
+            [LOG_LEVELS.debug]: 'fine',
+            [LOG_LEVELS.info]: 'info',
+            [LOG_LEVELS.warning]: 'warning',
+            [LOG_LEVELS.error]: 'severe'
+        };
+        Object.keys(expected).forEach((level) => {
+            f5Logger.setLogLevel(Number(level));
+            const options = getInstanceCalls[getInstanceCalls.length - 1];
+            assert.strictEqual(options.logLevel, expected[level]);
+            assert.strictEqual(options.fileLogLevel, expected[level]);
+        });
+    });
+
+    it('should route log output through the f5-logger instance', () => {
+        const severeMessages = [];
+        f5LoggerMock.severe = (message) => { severeMessages.push(message); };
+        f5Logger.setLogLevel(LOG_LEVELS.info);
+        f5Logger.error('an error via f5-logger');
+        assert.strictEqual(severeMessages.length, 1);
+        assert.notStrictEqual(severeMessages[0].indexOf('an error via f5-logger'), -1);
+    });
+
+    it('should fall back to the info f5-logger level when the level has no mapping', () => {
+        // an out-of-range numeric level passes setLogLevel validation but is absent
+        // from levelMap, so _initializeLogger falls back to the info mapping
+        f5Logger.setLogLevel(100);
+        const options = getInstanceCalls[getInstanceCalls.length - 1];
+        assert.strictEqual(options.logLevel, 'info');
+        assert.strictEqual(options.fileLogLevel, 'info');
+    });
 });

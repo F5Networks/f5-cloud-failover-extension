@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "node": ">=8.11.1",
@@ -10,8 +10,8 @@
     },
     "scripts": {
         "audit": "npm audit --production --json > .auditReport.json; node scripts/auditProcessor.js",
-        "install-production": "npm install --production --no-optional --unsafe-perm && node scripts/remove_resolved.js",
-        "install-all": "npm install --unsafe-perm && node scripts/remove_resolved.js",
+        "install-production": "npm install --production --no-optional --unsafe-perm && node scripts/remove_vulnerable_xmldom.js --lockfile && node scripts/remove_resolved.js",
+        "install-all": "npm install --unsafe-perm && node scripts/remove_vulnerable_xmldom.js --lockfile && node scripts/remove_resolved.js",
         "lint": "eslint src test specs scripts",
         "test-only": "mocha --recursive \"./test/unit/**/*.js\"",
         "test-only-node-4": "mocha --recursive \"./test/unit/**/*.js\" --exclude ./test/unit/providers/gcpProviderTests.js --exclude ./test/unit/providers/cloudFactoryTests.js --timeout 300000",
@@ -19,6 +19,8 @@
         "check": "nyc check-coverage",
         "report": "nyc report --reporter=html",
         "functional-test": "mocha --recursive --full-trace \"./test/functional/tests/testRunner.js\"",
+        "functional-test-coverage": "nyc --use-spawn-wrap --check-coverage=false --temp-dir ./.nyc_output_functional --reporter=text --reporter=lcov --report-dir=./coverage-functional npm run functional-test",
+        "coverage-merge": "node scripts/merge_coverage.js && nyc report --temp-dir ./.nyc_output_combined --reporter=text --reporter=html --reporter=lcov --report-dir=./coverage-combined",
         "deployment-create": "deployment-tool create ${NAMESPACE} --plan ${CF_ENV_CLOUD}",
         "deployment-delete": "deployment-tool delete ${NAMESPACE}",
         "deployment-info": "deployment-tool plans describe ${CF_ENV_CLOUD}",
@@ -28,16 +30,17 @@
         "make-docs": "make html",
         "make-api-docs": "redoc-cli bundle specs/openapi.yaml",
         "preinstall": "npx npm-force-resolutions",
+        "postinstall": "patch-package --error-on-fail && node scripts/remove_vulnerable_xmldom.js",
         "validate-api": "export CF_ENV_HOST=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_address' -r); export CF_ENV_PORT=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .mgmt_port' -r); export CF_ENV_USER=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_username' -r); export CF_ENV_PWD=$(cat deployment_info.json | jq '.instances[] | select(.primary == true) | .admin_password' -r); export NODE_TLS_REJECT_UNAUTHORIZED=0; dredd specs/openapi.yaml https://${CF_ENV_HOST}:${CF_ENV_PORT}/mgmt/shared/cloud-failover --user ${CF_ENV_USER}:${CF_ENV_PWD} --sorted --hookfiles=specs/hooks.js --logLevel debug --method GET",
         "make-postman-collection": "openapi2postmanv2 -s specs/openapi.yaml -o examples/postmanCollection.json -p; npm run postprocess-postman-collection",
         "postprocess-postman-collection": "node scripts/postmanCollectionParser.js"
     },
     "nyc": {
         "check-coverage": true,
-        "lines": 80,
-        "functions": 80,
-        "branches": 80,
-        "statements": 80,
+        "lines": 90,
+        "functions": 90,
+        "branches": 90,
+        "statements": 90,
         "reporter": [
             "html",
             "text",
@@ -64,15 +67,29 @@
         "fresh": "^0.5.2",
         "send": "^0.19.0",
         "brace-expansion": "^2.0.1",
-        "growl": "^1.10.5"
+        "growl": "^1.10.5",
+        "braces": "^3.0.3",
+        "picomatch": "^2.3.2",
+        "qs": "~6.5.3",
+        "js-yaml": "~3.14.2",
+        "@babel/traverse": "^7.23.2",
+        "@babel/core": "^7.29.6",
+        "@babel/helpers": "^7.26.10",
+        "@tootallnate/once": "^2.0.1",
+        "fast-xml-parser": "^5.7.0",
+        "flatted": "^3.4.2",
+        "json5": "^2.2.3",
+        "jws": "^4.0.1",
+        "serialize-javascript": "^7.0.6",
+        "xml2js": "^0.6.2"
     },
     "dependencies": {
         "@automation-toolchain/f5-cloud-libs": "4.29.0-2037287d",
         "@f5devcentral/f5-teem": "1.5.0",
-        "ajv": "^6.10.0",
+        "@xmldom/xmldom": "^0.8.13",
+        "ajv": "^6.14.0",
         "aws4": "^1.12.0",
-        "axios": "^0.30.3",
-        "cidr-js": "^2.3.1",
+        "axios": "^0.32.0",
         "commander": "^2.19.0",
         "cruftless": "^1.2.1",
         "form-data": "^4.0.0",
@@ -82,6 +99,8 @@
         "ip-address": "^6.2.0",
         "ipaddr.js": "^1.7.0",
         "jsonschema": "^1.2.5",
+        "lodash": "4.18.1",
+        "patch-package": "^8.0.1",
         "uuid": "^3.3.2"
     },
     "devDependencies": {
@@ -100,12 +119,11 @@
         "icrdk": "https://github.com/f5devcentral/f5-icontrollx-dev-kit#master",
         "mocha": "^10.8.2",
         "mustache": "^3.0.1",
-        "nock": "^9.6.1",
         "npm-force-resolutions": "0.0.10",
         "nyc": "^15.1.0",
         "request": "^2.83.0",
         "sinon": "21.0.0",
-        "ssh2": "^0.8.2",
+        "ssh2": "^1.17.0",
         "yargs": "^15.4.0"
     },
     "optionalDependencies": {
@@ -135,11 +153,8 @@
     },
     "auditProcessor": {
         "allowlist": [
-            "1091573",
-            "1096547",
-            "1089823",
-            "1113214",
-            "1113296"
+            "1118827",
+            "1119441"
         ]
     }
 }

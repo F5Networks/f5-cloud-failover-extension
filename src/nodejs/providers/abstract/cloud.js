@@ -224,7 +224,7 @@ class AbstractCloud {
      */
     _filterRouteTables(routeTables, options) {
         options = options || {};
-        if (options.tags && Object.keys(options.tags)) {
+        if (options.tags && Object.keys(options.tags).length) {
             return routeTables.filter((item) => {
                 let matchedTags = 0;
                 Object.keys(options.tags).forEach((key) => {

@@ -18,6 +18,7 @@ const utils = require('../shared/util.js');
 
 const declaration = constants.declarations.basic;
 const declarationWithControls = constants.declarations.basicWithLogging;
+const declarationWithStateFileName = constants.declarations.basicWithStateFileName;
 
 describe('Config Worker', () => {
     let config;
@@ -69,6 +70,22 @@ describe('Config Worker', () => {
             assert.ok(true);
         }));
 
+    it('should reject and log when init cannot load state', () => {
+        const srcUtil = require('../../src/nodejs/util.js');
+        // run the retried function once (no real retries) so the failure surfaces quickly
+        sinon.stub(srcUtil, 'retrier').callsFake((fn, args, options) => fn.apply(options.thisArg, args));
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').rejects(new Error('init load failure'));
+
+        return config.init()
+            .then(() => {
+                assert.fail('Expected init to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'init load failure');
+            });
+    });
+
     it('validate error case for setConfig method', () => {
         Device.prototype.getDataGroups.restore();
         sinon.stub(Device.prototype, 'getDataGroups').rejects();
@@ -102,6 +119,127 @@ describe('Config Worker', () => {
             assert.strictEqual(response.class, declaration.class);
         })
         .catch((err) => Promise.reject(err)));
+
+    it('should process request with a custom external storage state file name', () => config.init()
+        .then(() => config.processConfigRequest(declarationWithStateFileName))
+        .then((response) => {
+            // externalStorage.stateFileName branch sets the state file name
+            assert.strictEqual(response.class, declaration.class);
+            assert.strictEqual(config.state.stateFileName, 'custom-state-file.json');
+        })
+        .catch((err) => Promise.reject(err)));
+
+    it('should get state file name', () => {
+        const storedState = {
+            config: { class: 'Cloud_Failover' },
+            stateFileName: 'custom-state-file.json'
+        };
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({
+            exists: true,
+            data: { records: [{ data: utils.base64('encode', JSON.stringify(storedState)) }] }
+        });
+
+        return config.getStateFileName()
+            .then((stateFileName) => {
+                assert.strictEqual(stateFileName, 'custom-state-file.json');
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should reject from getStateFileName when state load fails', () => {
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').rejects(new Error('load failure'));
+
+        return config.getStateFileName()
+            .then(() => {
+                assert.fail('Expected getStateFileName to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'load failure');
+            });
+    });
+
+    it('should reject from getConfig when state load fails', () => {
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').rejects(new Error('getConfig load failure'));
+
+        return config.getConfig()
+            .then(() => {
+                assert.fail('Expected getConfig to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'getConfig load failure');
+            });
+    });
+
+    it('should reject from setConfig when saving state fails', () => {
+        Device.prototype.createDataGroup.restore();
+        sinon.stub(Device.prototype, 'createDataGroup').rejects(new Error('save failure'));
+
+        return config.setConfig({ class: 'Cloud_Failover' })
+            .then(() => {
+                assert.fail('Expected setConfig to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'save failure');
+            });
+    });
+
+    it('should default state file name in setConfig when not provided', () => config.setConfig({ class: 'Cloud_Failover' })
+        .then(() => {
+            // stateFileName defaults to the built-in default when omitted
+            assert.strictEqual(config.state.stateFileName, 'f5cloudfailoverstate.json');
+        })
+        .catch((err) => Promise.reject(err)));
+
+    it('should default to an empty config object in setConfig when config is falsy', () => config.setConfig()
+        .then(() => {
+            assert.deepStrictEqual(config.state.config, {});
+        })
+        .catch((err) => Promise.reject(err)));
+
+    it('should resolve default state when the data group does not exist', () => {
+        Device.prototype.getDataGroups.restore();
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({ exists: false });
+
+        return config.getConfig()
+            .then((conf) => {
+                // _loadStateFromStore returns the default object when the group is absent
+                assert.deepStrictEqual(conf, {});
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should resolve default state when data group exists but has no data', () => {
+        Device.prototype.getDataGroups.restore();
+        // exists is true but data is falsy, so _parseStateFromDataGroup returns the default
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({ exists: true, data: null });
+
+        return config.getConfig()
+            .then((conf) => {
+                assert.deepStrictEqual(conf, {});
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should default state and warn when data group records are malformed', () => {
+        sinon.spy(logger, 'warning');
+        Device.prototype.getDataGroups.restore();
+        // data group exists but records cannot be JSON-parsed
+        sinon.stub(Device.prototype, 'getDataGroups').resolves({
+            exists: true,
+            data: { records: [{ data: 'not-valid-base64-json' }] }
+        });
+
+        return config.getConfig()
+            .then((conf) => {
+                // parse failure is caught and the default config object is returned
+                assert.deepStrictEqual(conf, {});
+                assert.strictEqual(logger.warning.called, true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
 
     it('should reject if poorly formatted', () => {
         const errMsg = 'no bigip here';

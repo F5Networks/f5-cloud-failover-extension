@@ -9,6 +9,12 @@ MAINDIR=$(git rev-parse --show-toplevel)
 rm -rf ${MAINDIR}/node_modules
 npm run install-production --prefix ${MAINDIR}
 
+# remove optional build/doc/test tooling (redoc, dredd, etc.) from node_modules
+# so it is NOT packaged into the RPM. This tooling is only used at build time and
+# never runs in the extension, but the spec copies node_modules wholesale and
+# npm 6 --no-optional does not prune lockfile-pinned optional deps. Pruning here
+# keeps the shipped artifact free of those (vulnerability-flagged) trees.
+node ${MAINDIR}/scripts/prune_packaged_modules.js
 
 FINALBUILDDIR=${MAINDIR}/dist/new_build
 mkdir -p ${FINALBUILDDIR}
@@ -32,5 +38,6 @@ cd ${MAINDIR}
 rm -rf rpmbuild/
 echo "RPM FILE ${FINALBUILDDIR}/${FN}"
 
-# reinstall all dependencies
-npm install --unsafe-perm
+# reinstall all dependencies (install-all also strips the dead xmldom@0.6.0
+# from the lockfile and removes resolved fields, keeping the tree consistent)
+npm run install-all --prefix ${MAINDIR}

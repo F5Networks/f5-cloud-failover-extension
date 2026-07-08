@@ -33,6 +33,10 @@ try {
 const PACKAGE_NAME = packageInfo.name;
 const PACKAGE_VERSION = packageInfo.version;
 
+// Path is fully static (this module's __dirname + the bundled trigger.sh
+// filename); no user input is involved, so the detect-non-literal-fs-filename
+// finding is a false positive (CWE-22 path traversal is not reachable here).
+// nosemgrep: eslint.detect-non-literal-fs-filename -- static path relative to __dirname
 const triggerScriptContents = fs.readFileSync(path.resolve(__dirname, './trigger.sh'), 'utf-8');
 
 /**
@@ -75,6 +79,9 @@ module.exports = {
         tgactive: '/config/failover/tgactive',
         tgrefresh: '/config/failover/tgrefresh'
     },
+    // base directory that a user-supplied trustedCertBundle path must resolve
+    // within; prevents path traversal outside of the BIG-IP /config tree
+    TRUSTED_CERT_BUNDLE_BASE_DIR: '/config/',
     STATUS: {
         STATUS_OK: 'OK',
         STATUS_ERROR: 'ERROR',

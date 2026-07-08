@@ -1559,6 +1559,1058 @@ describe('Provider - GCP', () => {
             .catch((err) => Promise.reject(err));
     });
 
+    it('validate getRegion returns region', () => {
+        provider.region = 'us-west1';
+        assert.strictEqual(provider.getRegion(), 'us-west1');
+    });
+
+    it('validate downloadDataFromStorage resolves with body when response code is not 404', () => {
+        const fileName = 'test.json';
+        const payload = {
+            code: 200,
+            body: { key: 'value' }
+        };
+        sinon.stub(provider, '_sendRequest').resolves(payload);
+
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.deepStrictEqual(data, { key: 'value' });
+            });
+    });
+
+    it('validate downloadDataFromStorage resolves empty object when code is 404', () => {
+        const fileName = 'test.json';
+        const payload = {
+            code: 404,
+            body: 'Not Found'
+        };
+        sinon.stub(provider, '_sendRequest').resolves(payload);
+
+        return provider.downloadDataFromStorage(fileName)
+            .then((data) => {
+                assert.deepStrictEqual(data, {});
+            });
+    });
+
+    it('validate downloadDataFromStorage rejects on _sendRequest error', () => {
+        const fileName = 'test.json';
+        sinon.stub(provider, '_sendRequest').rejects(new Error('network failure'));
+
+        return provider.downloadDataFromStorage(fileName)
+            .then(() => {
+                assert.ok(false, 'Should have rejected');
+            })
+            .catch((error) => {
+                assert.ok(error.message.includes('Error in downloadDataFromStorage'));
+            });
+    });
+
+    it('validate uploadDataToStorage rejects on _sendRequest error', () => {
+        const fileName = 'test.json';
+        sinon.stub(provider, '_sendRequest').rejects(new Error('upload failure'));
+
+        return provider.uploadDataToStorage(fileName, { data: 'value' })
+            .then(() => {
+                assert.ok(false, 'Should have rejected');
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, 'upload failure');
+            });
+    });
+
+    describe('init with proxy settings', () => {
+        it('validate init sets proxy options when proxy host is present', () => {
+            const Device = require('../../../src/nodejs/device.js');
+            sinon.restore();
+            sinon.stub(Device.prototype, 'init').resolves();
+            sinon.stub(Device.prototype, 'getProxySettings').resolves({
+                host: 'proxy.example.com',
+                port: 8080,
+                protocol: 'http'
+            });
+
+            provider = new GoogleCloudProvider(mockMetadata);
+            provider.logger = sinon.stub();
+            provider.logger.error = sinon.stub();
+            provider.logger.warning = sinon.stub();
+            provider.logger.info = sinon.stub();
+            provider.logger.debug = sinon.stub();
+            provider.logger.verbose = sinon.stub();
+            provider.logger.silly = sinon.stub();
+            provider.maxRetries = 0;
+            provider.retryInterval = 100;
+
+            sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
+            sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketResponse'));
+
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.ok(provider.proxyOptions);
+                    assert.strictEqual(provider.proxyOptions.host, 'proxy.example.com');
+                    assert.strictEqual(provider.proxyOptions.port, '8080');
+                    assert.strictEqual(provider.proxyOptions.protocol, 'http:');
+                });
+        });
+
+        it('validate init does not set proxy options when proxy host is empty', () => {
+            const Device = require('../../../src/nodejs/device.js');
+            sinon.restore();
+            sinon.stub(Device.prototype, 'init').resolves();
+            sinon.stub(Device.prototype, 'getProxySettings').resolves({
+                host: '',
+                port: 8080,
+                protocol: 'http'
+            });
+
+            provider = new GoogleCloudProvider(mockMetadata);
+            provider.logger = sinon.stub();
+            provider.logger.error = sinon.stub();
+            provider.logger.warning = sinon.stub();
+            provider.logger.info = sinon.stub();
+            provider.logger.debug = sinon.stub();
+            provider.logger.verbose = sinon.stub();
+            provider.logger.silly = sinon.stub();
+            provider.maxRetries = 0;
+            provider.retryInterval = 100;
+
+            sinon.replace(provider, '_getLocalMetadata', sinon.fake.resolves('GoogleInstanceName'));
+            sinon.replace(provider, '_getTargetInstances', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getFwdRules', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getVmsByTags', sinon.fake.resolves([]));
+            sinon.replace(provider, '_getCloudStorage', sinon.fake.resolves('bucketResponse'));
+
+            return provider.init(mockInitData)
+                .then(() => {
+                    assert.strictEqual(provider.proxyOptions, null);
+                });
+        });
+    });
+
+    describe('discoverAddresses should', () => {
+        it('discover addresses with failover addresses and forwarding rules', () => {
+            const failoverAddresses = ['10.0.2.1'];
+            sinon.stub(provider, '_getVmsByTags').resolves([
+                {
+                    name: 'testInstanceName01',
+                    zone: 'projects/1111/zones/us-west1-a',
+                    networkInterfaces: [{ name: 'testNic', aliasIpRanges: [] }]
+                }
+            ]);
+            sinon.stub(provider, '_discoverAddressOperations').resolves({
+                publicAddresses: {},
+                interfaces: { disassociate: [], associate: [] },
+                loadBalancerAddresses: { operations: [] }
+            });
+            provider.instanceName = 'testInstanceName01';
+
+            return provider.discoverAddresses({ failoverAddresses, forwardingRules: [] })
+                .then((result) => {
+                    assert.ok(result);
+                    assert.ok(result.interfaces);
+                    assert.ok(result.loadBalancerAddresses);
+                });
+        });
+
+        it('discover addresses rejects on error', () => {
+            sinon.stub(provider, '_getVmsByTags').rejects(new Error('discover-error'));
+
+            return provider.discoverAddresses({ failoverAddresses: ['10.0.2.1'] })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'discover-error');
+                });
+        });
+
+        it('discover addresses with empty options', () => {
+            sinon.stub(provider, '_getVmsByTags').resolves([]);
+            sinon.stub(provider, '_discoverAddressOperations').resolves({
+                publicAddresses: {},
+                interfaces: { disassociate: [], associate: [] },
+                loadBalancerAddresses: { operations: [] }
+            });
+
+            return provider.discoverAddresses()
+                .then((result) => {
+                    assert.ok(result);
+                });
+        });
+    });
+
+    describe('_discoverAddressOperations should', () => {
+        it('resolve with empty operations when no failover addresses are provided', () => {
+            return provider._discoverAddressOperations([], [])
+                .then((result) => {
+                    assert.deepStrictEqual(result.publicAddresses, []);
+                    assert.deepStrictEqual(result.interfaces.disassociate, []);
+                    assert.deepStrictEqual(result.interfaces.associate, []);
+                    assert.deepStrictEqual(result.loadBalancerAddresses, []);
+                });
+        });
+
+        it('resolve with empty operations when failover addresses is null', () => {
+            return provider._discoverAddressOperations(null, [])
+                .then((result) => {
+                    assert.deepStrictEqual(result.publicAddresses, []);
+                });
+        });
+    });
+
+    describe('_discoverNicOperations should', () => {
+        it('reject when our VM is not found in the deployment', () => {
+            provider.instanceName = 'nonexistent-vm';
+            provider.vms = [
+                {
+                    name: 'someOtherVm',
+                    zone: 'projects/1111/zones/us-west1-a',
+                    networkInterfaces: [{ name: 'testNic', aliasIpRanges: [] }]
+                }
+            ];
+
+            return provider._discoverNicOperations(['10.0.2.1'])
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('Unable to locate our VM in the deployment'));
+                });
+        });
+
+        it('resolve with empty operations when no failover addresses provided', () => {
+            return provider._discoverNicOperations([])
+                .then((result) => {
+                    assert.deepStrictEqual(result.disassociate, []);
+                    assert.deepStrictEqual(result.associate, []);
+                });
+        });
+
+        it('resolve with empty operations when failover addresses is null', () => {
+            return provider._discoverNicOperations(null)
+                .then((result) => {
+                    assert.deepStrictEqual(result.disassociate, []);
+                    assert.deepStrictEqual(result.associate, []);
+                });
+        });
+    });
+
+    describe('_getVmMetadata should', () => {
+        it('call _sendRequest with provided zone option', () => {
+            provider.projectId = 'my-project';
+            provider.zone = 'us-west1-a';
+            const sendReqStub = sinon.stub(provider, '_sendRequest').resolves({ name: 'test-vm', status: 'RUNNING' });
+
+            return provider._getVmMetadata('test-vm', { zone: 'us-east1-b' })
+                .then((data) => {
+                    assert.strictEqual(data.name, 'test-vm');
+                    assert.ok(sendReqStub.args[0][1].includes('us-east1-b'));
+                });
+        });
+
+        it('call _sendRequest with default zone when no zone option is provided', () => {
+            provider.projectId = 'my-project';
+            provider.zone = 'us-west1-a';
+            const sendReqStub = sinon.stub(provider, '_sendRequest').resolves({ name: 'test-vm', status: 'RUNNING' });
+
+            return provider._getVmMetadata('test-vm')
+                .then((data) => {
+                    assert.strictEqual(data.name, 'test-vm');
+                    assert.ok(sendReqStub.args[0][1].includes('us-west1-a'));
+                });
+        });
+
+        it('reject when _sendRequest fails', () => {
+            provider.projectId = 'my-project';
+            provider.zone = 'us-west1-a';
+            sinon.stub(provider, '_sendRequest').rejects(new Error('metadata-error'));
+
+            return provider._getVmMetadata('test-vm')
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'metadata-error');
+                });
+        });
+    });
+
+    describe('_updateFwdRules should', () => {
+        beforeEach(() => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+        });
+
+        it('resolve empty array when operations is undefined', () => {
+            return provider._updateFwdRules(undefined)
+                .then((result) => {
+                    assert.deepStrictEqual(result, []);
+                });
+        });
+
+        it('resolve empty array when operations is empty array', () => {
+            return provider._updateFwdRules([])
+                .then((result) => {
+                    assert.deepStrictEqual(result, []);
+                });
+        });
+
+        it('update forwarding rules and check operation status for each', () => {
+            const updateFwdRuleStub = sinon.stub(provider, '_updateFwdRule').resolves('http://operation-link/op1');
+            const checkOpStub = sinon.stub(provider, '_checkOperationStatus').resolves();
+
+            const operations = [
+                ['testFwdRule1', 'selfLink/target1'],
+                ['testFwdRule2', 'selfLink/target2']
+            ];
+
+            return provider._updateFwdRules(operations)
+                .then(() => {
+                    assert.strictEqual(updateFwdRuleStub.callCount, 2);
+                    assert.strictEqual(checkOpStub.callCount, 2);
+                    assert.ok(provider.logger.info.calledWith('Updated forwarding rules successfully'));
+                });
+        });
+
+        it('reject when _updateFwdRule fails', () => {
+            sinon.stub(provider, '_updateFwdRule').rejects(new Error('fwd-rule-update-error'));
+
+            const operations = [['testFwdRule1', 'selfLink/target1']];
+
+            return provider._updateFwdRules(operations)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'fwd-rule-update-error');
+                });
+        });
+
+        it('reject when _checkOperationStatus fails for forwarding rules', () => {
+            sinon.stub(provider, '_updateFwdRule').resolves('http://operation-link/op1');
+            sinon.stub(provider, '_checkOperationStatus').rejects(new Error('op-not-done'));
+
+            const operations = [['testFwdRule1', 'selfLink/target1']];
+
+            return provider._updateFwdRules(operations)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'op-not-done');
+                });
+        });
+    });
+
+    describe('_updateRoutes should', () => {
+        beforeEach(() => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+        });
+
+        it('resolve when no operations provided', () => {
+            return provider._updateRoutes([])
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('resolve when operations is null', () => {
+            return provider._updateRoutes(null)
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('delete and recreate routes successfully', () => {
+            const deleteStub = sinon.stub(provider, '_deleteRoute').resolves('http://delete-op-link');
+            const createStub = sinon.stub(provider, '_createRoute').resolves('http://create-op-link');
+            sinon.stub(provider, '_checkOperationStatus').resolves();
+
+            const operations = [
+                {
+                    id: 'route-1',
+                    name: 'test-route-1',
+                    nextHopIp: '1.1.1.1',
+                    destRange: '192.0.0.0/24'
+                }
+            ];
+
+            return provider._updateRoutes(operations)
+                .then(() => {
+                    assert.strictEqual(deleteStub.callCount, 1);
+                    assert.strictEqual(createStub.callCount, 1);
+                    assert.ok(provider.logger.info.calledWith('Updated routes successfully'));
+                });
+        });
+
+        it('delete and recreate multiple routes successfully', () => {
+            sinon.stub(provider, '_deleteRoute').resolves('http://delete-op-link');
+            sinon.stub(provider, '_createRoute').resolves('http://create-op-link');
+            sinon.stub(provider, '_checkOperationStatus').resolves();
+
+            const operations = [
+                {
+                    id: 'route-1', name: 'test-route-1', nextHopIp: '1.1.1.1', destRange: '192.0.0.0/24'
+                },
+                {
+                    id: 'route-2', name: 'test-route-2', nextHopIp: '2.2.2.2', destRange: '192.0.1.0/24'
+                }
+            ];
+
+            return provider._updateRoutes(operations)
+                .then(() => {
+                    assert.ok(provider.logger.info.calledWith('Updated routes successfully'));
+                });
+        });
+
+        it('reject when _deleteRoute fails', () => {
+            sinon.stub(provider, '_deleteRoute').rejects(new Error('delete-failed'));
+
+            const operations = [
+                {
+                    id: 'route-1', name: 'test-route-1', nextHopIp: '1.1.1.1', destRange: '192.0.0.0/24'
+                }
+            ];
+
+            return provider._updateRoutes(operations)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'delete-failed');
+                });
+        });
+
+        it('reject when _checkOperationStatus fails after delete', () => {
+            sinon.stub(provider, '_deleteRoute').resolves('http://delete-op-link');
+            sinon.stub(provider, '_checkOperationStatus').rejects(new Error('delete-op-not-done'));
+
+            const operations = [
+                {
+                    id: 'route-1', name: 'test-route-1', nextHopIp: '1.1.1.1', destRange: '192.0.0.0/24'
+                }
+            ];
+
+            return provider._updateRoutes(operations)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'delete-op-not-done');
+                });
+        });
+
+        it('reject when _createRoute fails', () => {
+            sinon.stub(provider, '_deleteRoute').resolves('http://delete-op-link');
+            const checkOpStub = sinon.stub(provider, '_checkOperationStatus');
+            checkOpStub.onCall(0).resolves();
+            checkOpStub.onCall(1).resolves();
+            sinon.stub(provider, '_createRoute').rejects(new Error('create-failed'));
+
+            const operations = [
+                {
+                    id: 'route-1', name: 'test-route-1', nextHopIp: '1.1.1.1', destRange: '192.0.0.0/24'
+                }
+            ];
+
+            return provider._updateRoutes(operations)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'create-failed');
+                });
+        });
+    });
+
+    describe('_updateNic error handling', () => {
+        it('resolve when _sendRequest rejects with conditionNotMet error', () => {
+            provider.zone = 'us-west1-a';
+            sinon.stub(provider, '_sendRequest').rejects(new Error('conditionNotMet: The resource already exists'));
+
+            return provider._updateNic('vm-1', 'nic0', { aliasIpRanges: [] })
+                .then((result) => {
+                    assert.strictEqual(result, undefined);
+                });
+        });
+
+        it('reject when _sendRequest rejects with non-conditionNotMet error', () => {
+            provider.zone = 'us-west1-a';
+            sinon.stub(provider, '_sendRequest').rejects(new Error('some other error'));
+
+            return provider._updateNic('vm-1', 'nic0', { aliasIpRanges: [] })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'some other error');
+                });
+        });
+
+        it('use zone from options when provided', () => {
+            provider.zone = 'us-west1-a';
+            const sendReqStub = sinon.stub(provider, '_sendRequest').resolves({ selfLink: 'foo' });
+
+            return provider._updateNic('vm-1', 'nic0', { aliasIpRanges: [] }, { zone: 'us-east1-b' })
+                .then((result) => {
+                    assert.strictEqual(result, 'foo');
+                    assert.ok(sendReqStub.args[0][1].includes('us-east1-b'));
+                });
+        });
+    });
+
+    describe('_deleteRoute error handling', () => {
+        it('resolve when _sendRequest rejects with notFound error', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('notFound: Resource not found'));
+
+            return provider._deleteRoute({ id: 'route-1' })
+                .then((result) => {
+                    assert.strictEqual(result, undefined);
+                });
+        });
+
+        it('reject when _sendRequest rejects with non-notFound error', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('permission denied'));
+
+            return provider._deleteRoute({ id: 'route-1' })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'permission denied');
+                });
+        });
+    });
+
+    describe('_createRoute error handling', () => {
+        it('resolve when _sendRequest rejects with alreadyExists error', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('alreadyExists: Route already exists'));
+
+            return provider._createRoute({
+                id: 'route-1', creationTimestamp: '123', kind: 'test', selfLink: 'foo'
+            })
+                .then((result) => {
+                    assert.strictEqual(result, undefined);
+                });
+        });
+
+        it('reject when _sendRequest rejects with non-alreadyExists error', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('quota exceeded'));
+
+            return provider._createRoute({
+                id: 'route-1', creationTimestamp: '123', kind: 'test', selfLink: 'foo'
+            })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'quota exceeded');
+                });
+        });
+    });
+
+    describe('_updateNics should', () => {
+        beforeEach(() => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+        });
+
+        it('resolve empty array when disassociate or associate are null', () => {
+            return provider._updateNics(null, null)
+                .then((result) => {
+                    assert.deepStrictEqual(result, []);
+                });
+        });
+
+        it('complete full disassociate and associate flow', () => {
+            const updateNicStub = sinon.stub(provider, '_updateNic');
+            updateNicStub.resolves('http://operation-link');
+            sinon.stub(provider, '_checkOperationStatus').resolves();
+
+            const disassociate = [
+                ['vm2', 'nic0', { aliasIpRanges: [], fingerprint: 'abc' }, { zone: 'us-west1-a' }]
+            ];
+            const associate = [
+                ['vm1', 'nic0', { aliasIpRanges: ['10.0.2.1/24'], fingerprint: 'def' }, { zone: 'us-west1-a' }]
+            ];
+
+            return provider._updateNics(disassociate, associate)
+                .then(() => {
+                    assert.strictEqual(updateNicStub.callCount, 2);
+                    assert.ok(provider.logger.info.calledWith('Disassociate NIC tasks successful.'));
+                    assert.ok(provider.logger.info.calledWith('Associate NICs successful.'));
+                });
+        });
+
+        it('reject when disassociate NIC update fails', () => {
+            sinon.stub(provider, '_updateNic').rejects(new Error('nic-update-failed'));
+
+            const disassociate = [
+                ['vm2', 'nic0', { aliasIpRanges: [], fingerprint: 'abc' }, { zone: 'us-west1-a' }]
+            ];
+            const associate = [
+                ['vm1', 'nic0', { aliasIpRanges: ['10.0.2.1/24'], fingerprint: 'def' }, { zone: 'us-west1-a' }]
+            ];
+
+            return provider._updateNics(disassociate, associate)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-update-failed');
+                });
+        });
+
+        it('reject when checkOperationStatus fails after disassociate', () => {
+            sinon.stub(provider, '_updateNic').resolves('http://operation-link');
+            sinon.stub(provider, '_checkOperationStatus').rejects(new Error('op-timeout'));
+
+            const disassociate = [
+                ['vm2', 'nic0', { aliasIpRanges: [], fingerprint: 'abc' }, { zone: 'us-west1-a' }]
+            ];
+            const associate = [
+                ['vm1', 'nic0', { aliasIpRanges: ['10.0.2.1/24'], fingerprint: 'def' }, { zone: 'us-west1-a' }]
+            ];
+
+            return provider._updateNics(disassociate, associate)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'op-timeout');
+                });
+        });
+    });
+
+    describe('_updateAddresses should', () => {
+        it('resolve when options is empty object', () => {
+            return provider._updateAddresses({})
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('resolve when options is null', () => {
+            return provider._updateAddresses(null)
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('resolve when options is undefined', () => {
+            return provider._updateAddresses()
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('call _updateNics and _updateFwdRules with correct parameters', () => {
+            const updateNicsStub = sinon.stub(provider, '_updateNics').resolves();
+            const updateFwdRulesStub = sinon.stub(provider, '_updateFwdRules').resolves();
+
+            const options = {
+                interfaces: {
+                    disassociate: [['vm2', 'nic0', {}, {}]],
+                    associate: [['vm1', 'nic0', {}, {}]]
+                },
+                loadBalancerAddresses: {
+                    operations: [['rule1', 'target1']]
+                }
+            };
+
+            return provider._updateAddresses(options)
+                .then(() => {
+                    assert.ok(updateNicsStub.calledOnce);
+                    assert.ok(updateFwdRulesStub.calledOnce);
+                });
+        });
+
+        it('reject when _updateNics or _updateFwdRules fails', () => {
+            sinon.stub(provider, '_updateNics').rejects(new Error('nic-error'));
+            sinon.stub(provider, '_updateFwdRules').resolves();
+
+            const options = {
+                interfaces: {
+                    disassociate: [['vm2', 'nic0', {}, {}]],
+                    associate: [['vm1', 'nic0', {}, {}]]
+                },
+                loadBalancerAddresses: {
+                    operations: []
+                }
+            };
+
+            return provider._updateAddresses(options)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-error');
+                });
+        });
+    });
+
+    describe('_getVmsByTags should', () => {
+        it('reject when no tags provided', () => {
+            return provider._getVmsByTags(null)
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('getVmsByTags: no tag'));
+                });
+        });
+
+        it('reject when _sendRequest fails', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('api-error'));
+
+            return provider._getVmsByTags({ key: 'value' })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'api-error');
+                });
+        });
+    });
+
+    describe('_getCloudStorage should', () => {
+        it('return storageName directly when storageName is set', () => {
+            provider.storageName = 'my-bucket';
+            return provider._getCloudStorage({ foo: 'bar' })
+                .then((result) => {
+                    assert.strictEqual(result, 'my-bucket');
+                });
+        });
+
+        it('reject when no matching bucket found', () => {
+            sinon.stub(provider, '_sendRequest').resolves({ items: [{ name: 'wrongBucket', labels: { wrong: 'label' } }] });
+            return provider._getCloudStorage({ foo: 'bar' })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('Filtered bucket does not exist'));
+                });
+        });
+    });
+
+    describe('_discoverFwdRuleOperations should', () => {
+        it('discover forwarding rules by address', () => {
+            provider.instanceName = 'testInstanceName01';
+            provider.addressTagsRequired = true;
+            sinon.stub(provider, '_getFwdRules').resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+            sinon.stub(provider, '_getTargetInstances').resolves([
+                {
+                    name: 'testInstanceName01',
+                    instance: 'compute/testInstanceName01',
+                    selfLink: 'selfLink/testInstanceName01'
+                }
+            ]);
+
+            return provider._discoverFwdRuleOperations({
+                type: 'address',
+                ipAddresses: [{ address: '2.2.2.2' }]
+            })
+                .then((result) => {
+                    assert.ok(result.operations);
+                    assert.strictEqual(result.operations.length, 1);
+                    assert.strictEqual(result.operations[0][0], 'testFwdRule');
+                });
+        });
+
+        it('skip forwarding rules that do not match', () => {
+            provider.instanceName = 'testInstanceName01';
+            provider.addressTagsRequired = true;
+            sinon.stub(provider, '_getFwdRules').resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '3.3.3.3',
+                    target: 'compute/testInstanceName02'
+                }
+            ]);
+            sinon.stub(provider, '_getTargetInstances').resolves([
+                {
+                    name: 'testInstanceName01',
+                    instance: 'compute/testInstanceName01',
+                    selfLink: 'selfLink/testInstanceName01'
+                }
+            ]);
+
+            return provider._discoverFwdRuleOperations({
+                type: 'address',
+                ipAddresses: [{ address: '2.2.2.2' }]
+            })
+                .then((result) => {
+                    assert.strictEqual(result.operations.length, 0);
+                });
+        });
+
+        it('not add fwd rule to update list when target already matches', () => {
+            provider.instanceName = 'testInstanceName01';
+            provider.addressTagsRequired = true;
+            sinon.stub(provider, '_getFwdRules').resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName01'
+                }
+            ]);
+            sinon.stub(provider, '_getTargetInstances').resolves([
+                {
+                    name: 'testInstanceName01',
+                    instance: 'compute/testInstanceName01',
+                    selfLink: 'selfLink/testInstanceName01'
+                }
+            ]);
+
+            return provider._discoverFwdRuleOperations({
+                type: 'name',
+                fwdRuleNames: ['testFwdRule']
+            })
+                .then((result) => {
+                    assert.strictEqual(result.operations.length, 0);
+                });
+        });
+
+        it('reject when target instance from label is not found', () => {
+            provider.instanceName = 'testInstanceName01';
+            provider.addressTagsRequired = false;
+            sinon.stub(provider, '_getFwdRules').resolves([
+                {
+                    name: 'testFwdRule',
+                    IPAddress: '2.2.2.2',
+                    target: 'compute/testInstanceName02',
+                    description: 'f5_cloud_failover_labels={"f5_target_instance_pair":"nonexistent1,nonexistent2"}'
+                }
+            ]);
+            sinon.stub(provider, '_getTargetInstances').resolves([
+                {
+                    name: 'testInstanceName01',
+                    instance: 'compute/testInstanceName01',
+                    selfLink: 'selfLink/testInstanceName01'
+                }
+            ]);
+
+            return provider._discoverFwdRuleOperations({
+                type: 'name',
+                fwdRuleNames: ['testFwdRule']
+            })
+                .then(() => {
+                    assert.ok(false, 'Should have thrown');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('Unable to locate our target instance'));
+                });
+        });
+
+        it('reject when _getFwdRules fails', () => {
+            sinon.stub(provider, '_getFwdRules').rejects(new Error('fwd-rules-error'));
+            sinon.stub(provider, '_getTargetInstances').resolves([]);
+
+            return provider._discoverFwdRuleOperations({ type: 'name', fwdRuleNames: [] })
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'fwd-rules-error');
+                });
+        });
+    });
+
+    describe('_getFwdRulesTargetInstancesFromLabel should', () => {
+        it('return null when no target pair label exists', () => {
+            provider.targetInstances = [];
+            const result = provider._getFwdRulesTargetInstancesFromLabel({
+                name: 'testRule',
+                description: 'some random description'
+            });
+            assert.strictEqual(result, null);
+        });
+
+        it('return matching target instances from label', () => {
+            provider.targetInstances = [
+                { name: 'testInstanceName01', instance: 'compute/testInstanceName01', selfLink: 'selfLink/01' },
+                { name: 'testInstanceName02', instance: 'compute/testInstanceName02', selfLink: 'selfLink/02' },
+                { name: 'unrelatedInstance', instance: 'compute/unrelatedInstance', selfLink: 'selfLink/03' }
+            ];
+            const result = provider._getFwdRulesTargetInstancesFromLabel({
+                name: 'testRule',
+                description: fwdRuleDescription
+            });
+            assert.strictEqual(result.length, 2);
+            assert.strictEqual(result[0].name, 'testInstanceName01');
+            assert.strictEqual(result[1].name, 'testInstanceName02');
+        });
+    });
+
+    describe('_getItemsUsingNextPageToken should', () => {
+        it('reject when _sendRequest fails', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('page-token-error'));
+
+            return provider._getItemsUsingNextPageToken('some/path', [], '')
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'page-token-error');
+                });
+        });
+
+        it('strip trailing slash from path when using page token', () => {
+            const sendReqStub = sinon.stub(provider, '_sendRequest').resolves({
+                items: [{ name: 'item1' }]
+            });
+
+            return provider._getItemsUsingNextPageToken('some/path/', [], 'myToken')
+                .then((result) => {
+                    assert.ok(sendReqStub.args[0][1].includes('some/path?pageToken=myToken'));
+                    assert.strictEqual(result.length, 1);
+                });
+        });
+
+        it('strip existing pageToken query from path when using new page token', () => {
+            const sendReqStub = sinon.stub(provider, '_sendRequest').resolves({
+                items: [{ name: 'item1' }]
+            });
+
+            return provider._getItemsUsingNextPageToken('some/path?pageToken=oldToken', [], 'newToken')
+                .then((result) => {
+                    assert.ok(sendReqStub.args[0][1].includes('some/path?pageToken=newToken'));
+                    assert.ok(!sendReqStub.args[0][1].includes('oldToken'));
+                    assert.strictEqual(result.length, 1);
+                });
+        });
+    });
+
+    describe('_sendRequest should', () => {
+        it('pass query parameters from URL', () => {
+            srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+            provider.accessToken = 'foo';
+
+            return provider._sendRequest('GET', 'https://example.com/path?key=value&other=param', {})
+                .then((data) => {
+                    assert.deepStrictEqual(data, { result: 'ok' });
+                    const callOptions = srcUtil.makeRequest.args[0][2];
+                    assert.strictEqual(callOptions.queryParams.key, 'value');
+                    assert.strictEqual(callOptions.queryParams.other, 'param');
+                });
+        });
+
+        it('handle URL without query string', () => {
+            srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+            provider.accessToken = 'foo';
+
+            return provider._sendRequest('POST', 'https://example.com/path', { body: { data: 'test' } })
+                .then(() => {
+                    const callOptions = srcUtil.makeRequest.args[0][2];
+                    assert.deepStrictEqual(callOptions.queryParams, {});
+                    assert.strictEqual(callOptions.method, 'POST');
+                });
+        });
+
+        it('reject when _retrier fails', () => {
+            srcUtil.makeRequest = sinon.stub().rejects(new Error('request-failed'));
+
+            provider.accessToken = 'foo';
+            provider.maxRetries = 0;
+            provider.retryInterval = 100;
+
+            return provider._sendRequest('GET', 'https://example.com/path', {})
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'request-failed');
+                });
+        });
+
+        it('set proxy options on request', () => {
+            srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+            provider.accessToken = 'foo';
+            provider.proxyOptions = {
+                protocol: 'http:',
+                host: 'proxy.example.com',
+                port: '8080'
+            };
+
+            return provider._sendRequest('GET', 'https://example.com/path', {})
+                .then(() => {
+                    const callOptions = srcUtil.makeRequest.args[0][2];
+                    assert.deepStrictEqual(callOptions.proxy, provider.proxyOptions);
+                });
+        });
+    });
+
+    describe('_checkOperationStatus should', () => {
+        it('reject when _sendRequest fails', () => {
+            sinon.stub(provider, '_sendRequest').rejects(new Error('check-op-error'));
+
+            return provider._checkOperationStatus('http://op-link')
+                .then(() => {
+                    assert.ok(false, 'Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'check-op-error');
+                });
+        });
+    });
+
+    describe('_parseZone should', () => {
+        it('parse full URL zone format', () => {
+            const result = provider._parseZone('https://www.googleapis.com/compute/v1/projects/1111/zones/us-west1-a');
+            assert.strictEqual(result, 'us-west1-a');
+        });
+
+        it('parse short zone format', () => {
+            const result = provider._parseZone('projects/1111/zones/us-east1-b');
+            assert.strictEqual(result, 'us-east1-b');
+        });
+    });
+
+    it('getAssociatedAddressAndRouteInfo should reject when _getVmsByTags fails', () => {
+        provider.instanceName = 'i-123';
+        provider.routeGroupDefinitions = [];
+        sinon.stub(provider, '_getVmsByTags').rejects(new Error('vm-tags-error'));
+
+        return provider.getAssociatedAddressAndRouteInfo(true, true)
+            .then(() => {
+                assert.ok(false, 'Should have rejected');
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, 'vm-tags-error');
+            });
+    });
+
+    it('getAssociatedAddressAndRouteInfo should handle VMs without accessConfigs', () => {
+        provider.instanceName = 'i-123';
+        provider.routeGroupDefinitions = [{ routeTags: { mylabel: 'mydeployment' } }];
+        sinon.stub(provider, '_getVmsByTags').resolves([{
+            name: 'i-123',
+            networkInterfaces: [
+                {
+                    networkIP: '1.1.1.1',
+                    name: 'nic0'
+                }
+            ]
+        }]);
+
+        return provider.getAssociatedAddressAndRouteInfo(true, false)
+            .then((data) => {
+                assert.strictEqual(data.addresses.length, 1);
+                assert.strictEqual(data.addresses[0].publicIpAddress, null);
+                assert.strictEqual(data.addresses[0].privateIpAddress, '1.1.1.1');
+            });
+    });
+
     describe('function getAssociatedAddressAndRouteInfo', () => {
         let expectedData;
 

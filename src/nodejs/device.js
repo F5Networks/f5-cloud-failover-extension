@@ -120,6 +120,11 @@ class Device {
      * @returns {Promise} { 'connected': true, 'port': 443 }
      */
     _connectAddress(host, port) {
+        // SSRF false positive: host is always the BIG-IP's own management
+        // address ('localhost' by default; Device is never constructed with a
+        // user-supplied hostname) and port is always one of the hardcoded
+        // constants.MGMT_PORTS values. No external/user input reaches here.
+        // nosemgrep: nodejs_scan.javascript-ssrf-rule-node_ssrf -- host is localhost, port from MGMT_PORTS constant
         const socket = net.createConnection({ host, port });
 
         return new Promise((resolve) => {

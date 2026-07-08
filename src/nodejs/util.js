@@ -11,7 +11,7 @@
 const axios = require('axios').default;
 const https = require('https');
 const FormData = require('form-data');
-const CIDR = require('cidr-js');
+const { Address4, Address6 } = require('ip-address');
 const Logger = require('./logger.js');
 
 const MAX_RETRIES = require('./constants').MAX_RETRIES;
@@ -245,6 +245,9 @@ module.exports = {
      * @returns {Boolean} Returns processed data as a boolean
      */
     isCidr(data) {
+        if (typeof data !== 'string') {
+            return false;
+        }
         const re = '^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9])|(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/(?:12[0-8]|1[01][0-9]|[1-9]?[0-9]))$';
         return !!data.match(re);
     },
@@ -264,13 +267,44 @@ module.exports = {
                 reject(new Error(`Invalid CIDR block: ${cidrBlock}`));
                 return;
             }
-            const cidr = new CIDR();
-            const ips = cidr.list(cidrBlock);
-            if (ips === null || ips.length === 0) {
+            try {
+                resolve(this._expandCIDR(cidrBlock));
+            } catch (err) {
                 reject(new Error(`Cannot parse CIDR block or no IPs found: ${cidrBlock}`));
-                return;
             }
-            resolve(ips);
         });
+    },
+
+    /**
+     * Expand a CIDR block into the list of contained IP addresses (inclusive of
+     * the network and broadcast addresses). Supports both IPv4 and IPv6.
+     *
+     * @param {String} cidrBlock - CIDR address (e.g. 192.0.2.0/30 or 2001:db8::/126)
+     *
+     * @returns {Array} Array of IP address strings
+     */
+    _expandCIDR(cidrBlock) {
+        const isV6 = cidrBlock.indexOf(':') !== -1;
+        const AddressType = isV6 ? Address6 : Address4;
+        const address = new AddressType(cidrBlock);
+
+        // ip-address does not throw on malformed input; it flags the instance
+        // as invalid. Make the contract explicit so callers always get a clean
+        // error instead of a downstream TypeError on a null bigInteger().
+        if (!address.isValid()) {
+            throw new Error(`Invalid CIDR block: ${cidrBlock}`);
+        }
+
+        let current = address.startAddress().bigInteger();
+        const end = address.endAddress().bigInteger();
+        const one = new current.constructor('1');
+
+        const ips = [];
+        while (current.compareTo(end) <= 0) {
+            const next = AddressType.fromBigInteger(current);
+            ips.push(isV6 ? next.correctForm() : next.address);
+            current = current.add(one);
+        }
+        return ips;
     }
 };

@@ -2403,5 +2403,894 @@ describe('Provider - Azure', () => {
                 })
                 .catch((err) => Promise.reject(err));
         });
+
+        it('should reject when _listRouteTablesBySubscription fails', () => {
+            provider._makeRequest = sinon.stub().rejects(new Error('route-tables-error'));
+            provider.subscriptions = ['xxxx'];
+            return provider._getRouteTables()
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('route-tables-error'));
+                });
+        });
+    });
+
+    it('validate getRegion returns region', () => {
+        provider.region = 'westus';
+        assert.strictEqual(provider.getRegion(), 'westus');
+    });
+
+    it('validate _makeRequest uses storage token for storage requestScope', () => {
+        provider.resourceToken = 'resource-token';
+        provider.storageToken = 'storage-token';
+        srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+        return provider._makeRequest('GET', 'https://mystorage.blob.core.windows.net/container/file', { requestScope: 'storage' })
+            .then(() => {
+                const callOpts = srcUtil.makeRequest.args[0][2];
+                assert.ok(callOpts.headers.Authorization.includes('storage-token'));
+            });
+    });
+
+    it('validate _makeRequest rejects when retrier fails', () => {
+        provider.resourceToken = 'resource-token';
+        provider.storageToken = 'storage-token';
+        sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+        srcUtil.makeRequest = sinon.stub().rejects(new Error('request-failed'));
+
+        return provider._makeRequest('GET', 'https://example.com/path', {})
+            .then(() => {
+                assert.fail('Should have rejected');
+            })
+            .catch((error) => {
+                assert.strictEqual(error.message, 'request-failed');
+            });
+    });
+
+    it('validate _makeRequest parses query string from URL', () => {
+        provider.resourceToken = 'resource-token';
+        provider.storageToken = 'storage-token';
+        srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+        return provider._makeRequest('GET', 'https://example.com/path?key=value&other=param', {})
+            .then(() => {
+                const callOpts = srcUtil.makeRequest.args[0][2];
+                assert.strictEqual(callOpts.queryParams.key, 'value');
+                assert.strictEqual(callOpts.queryParams.other, 'param');
+            });
+    });
+
+    it('validate _makeRequest sets default options', () => {
+        provider.resourceToken = 'resource-token';
+        provider.storageToken = 'storage-token';
+        srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+        return provider._makeRequest('PUT', 'https://example.com/path', {})
+            .then(() => {
+                const callOpts = srcUtil.makeRequest.args[0][2];
+                assert.strictEqual(callOpts.method, 'PUT');
+                assert.strictEqual(callOpts.body, '');
+                assert.strictEqual(callOpts.advancedReturn, false);
+                assert.strictEqual(callOpts.continueOnError, false);
+                assert.strictEqual(callOpts.validateStatus, false);
+                assert.strictEqual(callOpts.proxy, false);
+                assert.strictEqual(callOpts.httpsAgent, null);
+            });
+    });
+
+    describe('updateAddresses should', () => {
+        it('use updateOperations when provided', () => {
+            const updateStub = sinon.stub(provider, '_updateAddresses').resolves();
+            const operations = {
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                }
+            };
+            return provider.updateAddresses({ updateOperations: operations })
+                .then(() => {
+                    assert.ok(updateStub.calledOnce);
+                    assert.deepStrictEqual(updateStub.args[0][0], operations);
+                });
+        });
+
+        it('discover and update when no updateOperations', () => {
+            const discoverStub = sinon.stub(provider, '_discoverAddressOperations').resolves({
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                }
+            });
+            const updateStub = sinon.stub(provider, '_updateAddresses').resolves();
+
+            return provider.updateAddresses({
+                localAddresses: ['1.1.1.1'],
+                failoverAddresses: ['2.2.2.2']
+            })
+                .then(() => {
+                    assert.ok(discoverStub.calledOnce);
+                    assert.ok(updateStub.calledOnce);
+                });
+        });
+
+        it('reject when updateOperations update fails', () => {
+            sinon.stub(provider, '_updateAddresses').rejects(new Error('update-error'));
+
+            return provider.updateAddresses({ updateOperations: { interfaces: {} } })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'update-error');
+                });
+        });
+
+        it('reject when discover and update fails', () => {
+            sinon.stub(provider, '_discoverAddressOperations').rejects(new Error('discover-error'));
+
+            return provider.updateAddresses({
+                localAddresses: ['1.1.1.1'],
+                failoverAddresses: ['2.2.2.2']
+            })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'discover-error');
+                });
+        });
+    });
+
+    describe('discoverAddresses should', () => {
+        it('discover addresses with valid options', () => {
+            sinon.stub(provider, '_discoverAddressOperations').resolves({
+                publicAddresses: [],
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                },
+                loadBalancerAddresses: {}
+            });
+
+            return provider.discoverAddresses({
+                localAddresses: ['1.1.1.1'],
+                failoverAddresses: ['2.2.2.2']
+            })
+                .then((result) => {
+                    assert.ok(result.interfaces);
+                });
+        });
+
+        it('discover addresses with empty options', () => {
+            sinon.stub(provider, '_discoverAddressOperations').resolves({
+                publicAddresses: [],
+                interfaces: {
+                    disassociate: [],
+                    associate: []
+                },
+                loadBalancerAddresses: {}
+            });
+
+            return provider.discoverAddresses()
+                .then((result) => {
+                    assert.ok(result);
+                });
+        });
+
+        it('reject when discovery fails', () => {
+            sinon.stub(provider, '_discoverAddressOperations').rejects(new Error('discover-error'));
+
+            return provider.discoverAddresses({ localAddresses: ['1.1.1.1'] })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'discover-error');
+                });
+        });
+    });
+
+    describe('uploadDataToStorage should', () => {
+        it('reject when _makeRequest fails', () => {
+            provider._makeRequest = sinon.stub().rejects(new Error('upload-failure'));
+            provider.storageName = 'mysa';
+            provider.environment = { storageEndpointSuffix: '.core.windows.net' };
+
+            return provider.uploadDataToStorage('test.json', { data: 'value' })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('Error in uploadDataToStorage'));
+                });
+        });
+    });
+
+    describe('downloadDataFromStorage should', () => {
+        it('reject when _makeRequest fails', () => {
+            provider._makeRequest = sinon.stub().rejects(new Error('download-failure'));
+            provider.storageName = 'mysa';
+            provider.environment = { storageEndpointSuffix: '.core.windows.net' };
+
+            return provider.downloadDataFromStorage('test.json')
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.ok(error.message.includes('Error in downloadDataFromStorage'));
+                });
+        });
+    });
+
+    describe('discoverAddressOperationsUsingDefinitions should', () => {
+        it('resolve when no networkInterfaceAddress definitions', () => {
+            const addresses = { localAddresses: ['10.0.0.1'] };
+            const definitions = [{ type: 'otherType', scopingAddress: '10.0.0.2' }];
+            provider._listNics = sinon.stub().resolves([]);
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, definitions, {})
+                .then((result) => {
+                    assert.ok(result.interfaces);
+                    assert.deepStrictEqual(result.interfaces.disassociate, []);
+                    assert.deepStrictEqual(result.interfaces.associate, []);
+                });
+        });
+
+        it('reject when _discoverNetworkInterfaceAddress fails', () => {
+            const addresses = { localAddresses: ['10.0.0.1'] };
+            const definitions = [{ type: 'networkInterfaceAddress', scopingAddress: '10.0.0.2' }];
+            provider._listNics = sinon.stub().rejects(new Error('nic-list-error'));
+
+            return provider.discoverAddressOperationsUsingDefinitions(addresses, definitions, {})
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-list-error');
+                });
+        });
+    });
+
+    describe('_discoverAddressOperations should', () => {
+        it('return empty operations when no local addresses', () => provider._discoverAddressOperations([], ['10.0.0.1'])
+            .then((result) => {
+                assert.deepStrictEqual(result.publicAddresses, []);
+                assert.deepStrictEqual(result.interfaces.disassociate, []);
+            }));
+
+        it('return empty operations when no failover addresses', () => provider._discoverAddressOperations(['10.0.0.1'], [])
+            .then((result) => {
+                assert.deepStrictEqual(result.publicAddresses, []);
+            }));
+
+        it('return empty operations when both are null', () => provider._discoverAddressOperations(null, null)
+            .then((result) => {
+                assert.deepStrictEqual(result.publicAddresses, []);
+            }));
+
+        it('reject when _listNics fails', () => {
+            provider._listNics = sinon.stub().rejects(new Error('list-nics-error'));
+
+            return provider._discoverAddressOperations(['1.1.1.1'], ['2.2.2.2'])
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'list-nics-error');
+                });
+        });
+    });
+
+    describe('_updateAddresses should', () => {
+        it('log info and resolve when operations have interfaces', () => {
+            sinon.stub(provider, '_reassociateAddresses').resolves();
+
+            return provider._updateAddresses({
+                interfaces: {
+                    disassociate: [['rg', 'nic1', {}, 'Disassociate']],
+                    associate: [['rg', 'nic2', {}, 'Associate']]
+                }
+            })
+                .then(() => {
+                    assert.ok(provider.logger.info.calledWith('Addresses reassociated successfully'));
+                });
+        });
+
+        it('reject when _reassociateAddresses fails', () => {
+            sinon.stub(provider, '_reassociateAddresses').rejects(new Error('reassociate-error'));
+
+            return provider._updateAddresses({
+                interfaces: {
+                    disassociate: [['rg', 'nic1', {}, 'Disassociate']],
+                    associate: [['rg', 'nic2', {}, 'Associate']]
+                }
+            })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'reassociate-error');
+                });
+        });
+    });
+
+    describe('_reassociateAddresses should', () => {
+        it('resolve when no operations provided', () => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+            return provider._reassociateAddresses({})
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('resolve when disassociate is empty', () => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+            return provider._reassociateAddresses({ disassociate: [], associate: [] })
+                .then(() => {
+                    assert.ok(true);
+                });
+        });
+
+        it('reject when _updateNic fails during disassociate', () => {
+            sinon.stub(provider, '_retrier').callsFake((fn, args) => fn.apply(provider, args));
+            sinon.stub(provider, '_updateNic').rejects(new Error('nic-update-failed'));
+
+            return provider._reassociateAddresses({
+                disassociate: [['rg', 'nic1', {}, 'Disassociate']],
+                associate: [['rg', 'nic2', {}, 'Associate']]
+            })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-update-failed');
+                });
+        });
+    });
+
+    describe('_parseNics should', () => {
+        it('log error when nic provisioningState is not Succeeded', () => {
+            const nics = [
+                {
+                    id: 'nic01',
+                    properties: {
+                        provisioningState: 'Failed',
+                        ipConfigurations: [
+                            { properties: { privateIPAddress: '1.1.1.1' } }
+                        ]
+                    }
+                }
+            ];
+            const result = provider._parseNics(nics, ['1.1.1.1'], []);
+            assert.ok(provider.logger.error.calledWith('Unexpected provisioning state: Failed'));
+            assert.strictEqual(result.mine.length, 1);
+        });
+
+        it('not add duplicate nics to mine or theirs arrays', () => {
+            const nics = [
+                {
+                    id: 'nic01',
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        ipConfigurations: [
+                            { properties: { privateIPAddress: '1.1.1.1' } },
+                            { properties: { privateIPAddress: '1.1.1.2' } }
+                        ]
+                    }
+                }
+            ];
+            const result = provider._parseNics(nics, ['1.1.1.1', '1.1.1.2'], []);
+            assert.strictEqual(result.mine.length, 1);
+        });
+
+        it('remove nics from theirs if also in mine', () => {
+            const nics = [
+                {
+                    id: 'nic01',
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        ipConfigurations: [
+                            { properties: { privateIPAddress: '1.1.1.1' } },
+                            { properties: { privateIPAddress: '2.2.2.2' } }
+                        ]
+                    }
+                }
+            ];
+            const result = provider._parseNics(nics, ['1.1.1.1'], ['2.2.2.2']);
+            assert.strictEqual(result.mine.length, 1);
+            assert.strictEqual(result.theirs.length, 0);
+        });
+    });
+
+    describe('_initStorageAccountContainer should', () => {
+        it('resolve when containers list is empty (null)', () => {
+            const xmlResponse = `<?xml version="1.0" encoding="utf-8"?>
+            <EnumerationResults ServiceEndpoint="https://mysa.blob.core.windows.net">
+              <Containers>
+              </Containers>
+            </EnumerationResults>`;
+
+            provider._makeRequest = sinon.stub()
+                .onFirstCall().resolves(xmlResponse)
+                .onSecondCall()
+                .resolves();
+
+            return provider._initStorageAccountContainer()
+                .then(() => {
+                    assert.strictEqual(provider._makeRequest.callCount, 2);
+                });
+        });
+    });
+
+    describe('_generateNetworkInterfaceOperations should', () => {
+        it('warn and return empty when parsedNics mine is empty', () => {
+            provider._listNics = sinon.stub().resolves([
+                {
+                    id: 'nic01',
+                    name: 'nic01',
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '3.3.3.3',
+                                    subnet: { id: 'subnet-1' }
+                                }
+                            }
+                        ]
+                    },
+                    tags: { f5_cloud_failover_label: 'test', f5_cloud_failover_nic_map: 'ext' }
+                }
+            ]);
+
+            const addresses = { localAddresses: ['9.9.9.9'] };
+            const definitions = [{ scopingAddress: '10.0.0.1' }];
+
+            return provider._generateNetworkInterfaceOperations(addresses, definitions)
+                .then((result) => {
+                    assert.ok(provider.logger.warning.calledWith('Problem with discovering network interfaces parsedNics'));
+                    assert.deepStrictEqual(result.interfaces.disassociate, []);
+                    assert.deepStrictEqual(result.interfaces.associate, []);
+                });
+        });
+
+        it('warn when subnet ID is undefined for a NIC pair', () => {
+            provider._listNics = sinon.stub().resolves([
+                {
+                    id: 'nic01',
+                    name: 'nic01',
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '10.0.0.2',
+                                    subnet: { id: undefined }
+                                }
+                            }
+                        ]
+                    },
+                    tags: { f5_cloud_failover_label: 'test', f5_cloud_failover_nic_map: 'ext' }
+                },
+                {
+                    id: 'nic02',
+                    name: 'nic02',
+                    properties: {
+                        provisioningState: 'Succeeded',
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '10.0.0.1',
+                                    subnet: { id: 'subnet-1' }
+                                }
+                            }
+                        ]
+                    },
+                    tags: { f5_cloud_failover_label: 'test', f5_cloud_failover_nic_map: 'ext' }
+                }
+            ]);
+
+            const addresses = { localAddresses: ['10.0.0.1'] };
+            const definitions = [{ scopingAddress: '10.0.0.2' }];
+
+            return provider._generateNetworkInterfaceOperations(addresses, definitions)
+                .then(() => {
+                    assert.ok(provider.logger.warning.calledWith('Subnet ID values do not match or do not exist for a interface'));
+                });
+        });
+
+        it('reject when _listNics fails', () => {
+            provider._listNics = sinon.stub().rejects(new Error('nic-error'));
+
+            const addresses = { localAddresses: ['10.0.0.1'] };
+            const definitions = [{ scopingAddress: '10.0.0.2' }];
+
+            return provider._generateNetworkInterfaceOperations(addresses, definitions)
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-error');
+                });
+        });
+    });
+
+    describe('_getPublicIpAddress error path', () => {
+        it('should reject when _makeRequest fails', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider.resourceToken = 'foo';
+            provider.storageToken = 'bar';
+            provider._makeRequest = sinon.stub().rejects(new Error('pip-api-error'));
+
+            return provider._getPublicIpAddress({ publicIpAddress: 'test-pip' })
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'pip-api-error');
+                });
+        });
+    });
+
+    describe('_getRouteTableConfig error path', () => {
+        it('should reject when _makeRequest fails', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider._makeRequest = sinon.stub().rejects(new Error('config-error'));
+
+            return provider._getRouteTableConfig('rg01', 'rt01', `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'config-error');
+                });
+        });
+    });
+
+    describe('_updateRouteTable should', () => {
+        it('update route table and return response', () => {
+            const routeConfig = {
+                name: 'rt01',
+                properties: { routes: [] }
+            };
+            provider._makeRequest = sinon.stub().resolves(routeConfig);
+
+            return provider._updateRouteTable('rg01', 'rt01', routeConfig, `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
+                .then((response) => {
+                    assert.strictEqual(response.name, 'rt01');
+                    assert.ok(provider.logger.info.calledWith('_updateRouteTable successful.'));
+                });
+        });
+
+        it('reject when _makeRequest fails', () => {
+            provider._makeRequest = sinon.stub().rejects(new Error('update-rt-error'));
+
+            return provider._updateRouteTable('rg01', 'rt01', {}, `/subscriptions/${mockSubscriptionId}/resourceGroups/rg01/id_rt01`)
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'update-rt-error');
+                });
+        });
+    });
+
+    describe('_parseResourceId should', () => {
+        it('extract subscriptionId from resource string', () => {
+            const result = provider._parseResourceId('/subscriptions/my-sub-id/resourceGroups/rg01/providers/Microsoft.Network/routeTables/rt01');
+            assert.strictEqual(result.subscriptionId, 'my-sub-id');
+        });
+    });
+
+    describe('_createResourceID should', () => {
+        it('return name directly when name contains /subscriptions/', () => {
+            provider.primarySubscriptionId = 'sub-id';
+            provider.resourceGroup = 'rg01';
+            const result = provider._createResourceID({
+                provider: 'Microsoft.Network',
+                name: '/subscriptions/other-sub/resourceGroups/rg02/providers/Microsoft.Network/nic01'
+            });
+            assert.ok(result.startsWith('/subscriptions/other-sub'));
+        });
+
+        it('return name when no provider specified', () => {
+            const result = provider._createResourceID({ name: 'some-name' });
+            assert.strictEqual(result, 'some-name');
+        });
+
+        it('return name when options is empty', () => {
+            const result = provider._createResourceID({});
+            assert.strictEqual(result, undefined);
+        });
+    });
+
+    describe('_discoverRoutesUsingNextHopAddress should', () => {
+        it('return inspection data with networkId when subnets exist', () => {
+            const routeTables = [
+                {
+                    id: '/foo/foo/foo/rg01/id_rt01',
+                    name: 'rt01',
+                    tags: { F5_SELF_IPS: '1.1.1.1,2.2.2.2' },
+                    properties: {
+                        routes: [
+                            {
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.0.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '1.1.1.1'
+                                }
+                            }
+                        ],
+                        subnets: [{ id: '/foo/subnets/internal' }]
+                    }
+                }
+            ];
+            const routeGroup = {
+                routeAddressRanges: [
+                    {
+                        routeAddresses: ['192.0.0.0/24'],
+                        routeNextHopAddresses: { type: 'routeTag', tag: 'F5_SELF_IPS' }
+                    }
+                ]
+            };
+
+            const result = provider._discoverRoutesUsingNextHopAddress(
+                routeTables, routeGroup, ['1.1.1.1'], true
+            );
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0].networkId, '/foo/subnets/internal');
+        });
+
+        it('return inspection data with empty networkId when no subnets', () => {
+            const routeTables = [
+                {
+                    id: '/foo/foo/foo/rg01/id_rt01',
+                    name: 'rt01',
+                    tags: { F5_SELF_IPS: '1.1.1.1,2.2.2.2' },
+                    properties: {
+                        routes: [
+                            {
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.0.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '1.1.1.1'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ];
+            const routeGroup = {
+                routeAddressRanges: [
+                    {
+                        routeAddresses: ['192.0.0.0/24'],
+                        routeNextHopAddresses: { type: 'routeTag', tag: 'F5_SELF_IPS' }
+                    }
+                ]
+            };
+
+            const result = provider._discoverRoutesUsingNextHopAddress(
+                routeTables, routeGroup, ['1.1.1.1'], true
+            );
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0].networkId, '');
+        });
+
+        it('not return data when getLocalRoutes is false and next hop matches', () => {
+            const routeTables = [
+                {
+                    id: '/foo/foo/foo/rg01/id_rt01',
+                    name: 'rt01',
+                    tags: { F5_SELF_IPS: '1.1.1.1,2.2.2.2' },
+                    properties: {
+                        routes: [
+                            {
+                                name: 'route01',
+                                properties: {
+                                    addressPrefix: '192.0.0.0/24',
+                                    nextHopType: 'VirtualAppliance',
+                                    nextHopIpAddress: '1.1.1.1'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ];
+            const routeGroup = {
+                routeAddressRanges: [
+                    {
+                        routeAddresses: ['192.0.0.0/24'],
+                        routeNextHopAddresses: { type: 'routeTag', tag: 'F5_SELF_IPS' }
+                    }
+                ]
+            };
+
+            const result = provider._discoverRoutesUsingNextHopAddress(
+                routeTables, routeGroup, ['1.1.1.1'], false
+            );
+            assert.strictEqual(result.length, 0);
+        });
+    });
+
+    describe('_discoverStorageAccount should', () => {
+        it('return storageName directly when already set', () => {
+            provider.storageName = 'existing-sa';
+            provider._listStorageAccounts = sinon.stub().rejects(new Error('should not be called'));
+            return provider._discoverStorageAccount()
+                .then((result) => {
+                    assert.strictEqual(result, 'existing-sa');
+                    assert.strictEqual(provider._listStorageAccounts.called, false);
+                });
+        });
+
+        it('reject when _listStorageAccounts fails', () => {
+            provider.storageName = null;
+            provider._listStorageAccounts = sinon.stub().rejects(new Error('sa-error'));
+
+            return provider._discoverStorageAccount()
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'sa-error');
+                });
+        });
+    });
+
+    describe('_listStorageAccounts should', () => {
+        it('return all accounts when tags filter has zero keys', () => {
+            const listResponse = {
+                value: [
+                    { name: 'sa01', tags: { foo: 'bar' } },
+                    { name: 'sa02', tags: {} }
+                ]
+            };
+            provider._makeRequest = sinon.stub().resolves(listResponse);
+
+            return provider._listStorageAccounts({ tags: null })
+                .then((result) => {
+                    assert.deepStrictEqual(result, listResponse.value);
+                });
+        });
+
+        it('reject when _makeRequest fails', () => {
+            provider._makeRequest = sinon.stub().rejects(new Error('storage-error'));
+
+            return provider._listStorageAccounts()
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'storage-error');
+                });
+        });
+    });
+
+    describe('_listNics should', () => {
+        it('return all NICs when no tags filter', () => {
+            const nicResponse = {
+                value: [
+                    { id: 'nic01', name: 'nic01' },
+                    { id: 'nic02', name: 'nic02' }
+                ]
+            };
+            provider._makeRequest = sinon.stub().resolves(nicResponse);
+
+            return provider._listNics({ tags: null })
+                .then((result) => {
+                    assert.deepStrictEqual(result, nicResponse.value);
+                });
+        });
+    });
+
+    describe('getAssociatedAddressAndRouteInfo should', () => {
+        it('handle NIC with no publicIPAddress', () => {
+            const mockInstanceMetadata = {
+                compute: { vmId: 'vm-1', name: 'test-vm' }
+            };
+            const mockNicData = [
+                {
+                    id: '/some-path/nic/id',
+                    properties: {
+                        virtualMachine: { id: 'test-vm' },
+                        ipConfigurations: [
+                            {
+                                properties: {
+                                    privateIPAddress: '1.1.1.1'
+                                }
+                            }
+                        ]
+                    }
+                }
+            ];
+            provider._getInstanceMetadata = sinon.stub().resolves(mockInstanceMetadata);
+            provider._listNics = sinon.stub().resolves(mockNicData);
+            provider.routeGroupDefinitions = [];
+
+            return provider.getAssociatedAddressAndRouteInfo(true, false)
+                .then((data) => {
+                    assert.strictEqual(data.addresses.length, 1);
+                    assert.strictEqual(data.addresses[0].publicIpAddress, '');
+                    assert.strictEqual(data.addresses[0].privateIpAddress, '1.1.1.1');
+                });
+        });
+
+        it('reject when _getInstanceMetadata fails', () => {
+            provider._getInstanceMetadata = sinon.stub().rejects(new Error('metadata-error'));
+
+            return provider.getAssociatedAddressAndRouteInfo(true, true)
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'metadata-error');
+                });
+        });
+    });
+
+    describe('_filterLocalAddresses should', () => {
+        it('filter IPv4 addresses for IPv4 route prefix', () => {
+            const result = provider._filterLocalAddresses('192.0.0.0/24', ['10.0.1.1', 'not-an-ip']);
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0], '10.0.1.1');
+        });
+
+        it('filter IPv6 addresses for IPv6 route prefix', () => {
+            const result = provider._filterLocalAddresses('ace:cab:deca:defe::/64', ['ace:cab:deca:deee::5', '10.0.1.1']);
+            assert.strictEqual(result.length, 1);
+            assert.strictEqual(result[0], 'ace:cab:deca:deee::5');
+        });
+    });
+
+    describe('_getNetworkInterfaceByName error path', () => {
+        it('should reject when _makeRequest fails', () => {
+            provider.primarySubscriptionId = mockSubscriptionId;
+            provider._makeRequest = sinon.stub().rejects(new Error('nic-api-error'));
+
+            return provider._getNetworkInterfaceByName('nic01')
+                .then(() => {
+                    assert.fail('Should have rejected');
+                })
+                .catch((error) => {
+                    assert.strictEqual(error.message, 'nic-api-error');
+                });
+        });
+    });
+
+    describe('init with proxy settings', () => {
+        it('should set proxyAgent when proxy host is present', () => {
+            const Device = require('../../../src/nodejs/device.js');
+            sinon.restore();
+            sinon.stub(Device.prototype, 'init').resolves();
+            sinon.stub(Device.prototype, 'getProxySettings').resolves({
+                host: 'proxy.example.com',
+                port: 8080,
+                protocol: 'http'
+            });
+
+            provider = new AzureCloudProvider(mockMetadata);
+            provider.logger = sinon.stub();
+            provider.logger.error = sinon.stub();
+            provider.logger.warning = sinon.stub();
+            provider.logger.info = sinon.stub();
+            provider.logger.debug = sinon.stub();
+            provider.logger.verbose = sinon.stub();
+            provider.logger.silly = sinon.stub();
+            provider.maxRetries = 0;
+            provider.retryInterval = 100;
+
+            srcUtil.makeRequest = sinon.stub().resolves(mockMetadata);
+            provider._listStorageAccounts = sinon.stub().resolves([{ name: 'foo', tags: { foo: 'bar' } }]);
+            provider._initStorageAccountContainer = sinon.stub().resolves();
+
+            return provider.init()
+                .then(() => {
+                    assert.ok(provider.proxyAgent);
+                });
+        });
     });
 });

@@ -201,23 +201,54 @@ describe('getIPsFromCIDR', () => {
             { cidr: '2001:db8::1/128', expected: ['2001:db8::1'] },
             { cidr: '192.168.1.0/30', expected: ['192.168.1.0', '192.168.1.1', '192.168.1.2', '192.168.1.3'] },
             { cidr: '10.0.0.0/30', expected: ['10.0.0.0', '10.0.0.1', '10.0.0.2', '10.0.0.3'] },
-            { cidr: '255.255.255.2551/32', expected: ['255.255.255.255'] },
-            { cidr: null, expected: [] }
+            { cidr: '255.255.255.255/32', expected: ['255.255.255.255'] }
         ];
-        testData.forEach((data) => {
-            util.getIPsFromCIDR(data.cidr)
-                .then((ips) => {
-                    assert.deepStrictEqual(ips, data.expected);
-                });
-        });
+        return Promise.all(testData.map((data) => util.getIPsFromCIDR(data.cidr)
+            .then((ips) => {
+                assert.deepStrictEqual(ips, data.expected);
+            })));
     });
 
-    it('should handle invalid CIDR gracefully', () => {
-        ['badinput', '192.168.1.1/33', '192.168.1.1/-1', '192.168.1.1/abc', 123, {}, []].forEach((input) => {
-            util.getIPsFromCIDR(input)
-                .catch((err) => {
-                    assert.ok(err.message.includes('Error: Invalid CIDR block: badinput'));
-                });
-        });
+    it('should reject invalid CIDR blocks', () => {
+        const invalidInputs = ['badinput', '192.168.1.1/33', '192.168.1.1/-1', '192.168.1.1/abc', 123, {}, [], null];
+        return Promise.all(invalidInputs.map((input) => util.getIPsFromCIDR(input)
+            .then(() => {
+                assert.fail(`Expected rejection for invalid CIDR: ${JSON.stringify(input)}`);
+            })
+            .catch((err) => {
+                assert.ok(/Invalid CIDR block/.test(err.message), `unexpected error: ${err.message}`);
+            })));
+    });
+});
+
+describe('_expandCIDR', () => {
+    it('should expand valid IPv4 and IPv6 CIDR blocks', () => {
+        assert.deepStrictEqual(util._expandCIDR('192.0.2.0/30'), ['192.0.2.0', '192.0.2.1', '192.0.2.2', '192.0.2.3']);
+        assert.deepStrictEqual(util._expandCIDR('2001:db8::/126'), ['2001:db8::', '2001:db8::1', '2001:db8::2', '2001:db8::3']);
+    });
+
+    it('should throw for invalid input even when called directly', () => {
+        // _expandCIDR must not rely on the isCidr guard in getIPsFromCIDR;
+        // ip-address flags malformed input as invalid rather than throwing
+        assert.throws(() => util._expandCIDR('not-a-cidr'), /Invalid CIDR block/);
+        assert.throws(() => util._expandCIDR('192.0.2.0/99'), /Invalid CIDR block/);
+    });
+});
+
+describe('base64', () => {
+    it('should encode data', () => {
+        assert.strictEqual(util.base64('encode', 'hello'), 'aGVsbG8=');
+    });
+
+    it('should decode data', () => {
+        assert.strictEqual(util.base64('decode', 'aGVsbG8='), 'hello');
+    });
+
+    it('should throw for an unsupported action', () => {
+        // any action other than encode|decode reaches the throw branch
+        assert.throws(
+            () => util.base64('unsupported', 'data'),
+            /Unsupported action, try one of these: decode, encode/
+        );
     });
 });
