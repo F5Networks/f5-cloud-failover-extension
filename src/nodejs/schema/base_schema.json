@@ -123,6 +123,7 @@
             "type": "string",
             "$comment": "IMPORTANT: In enum array, please put current schema version first, oldest-supported version last.  Keep enum array sorted most-recent-first.",
             "enum": [
+                "2.5.0",
                 "2.4.0",
                 "2.2.0",
                 "2.1.3",

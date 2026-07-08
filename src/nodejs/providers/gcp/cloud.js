@@ -29,6 +29,11 @@ const util = require('../../util.js');
 const AbstractCloud = require('../abstract/cloud.js').AbstractCloud;
 const Device = require('../../device.js');
 
+// The only interpolated value (GCP_LABEL_NAME) is a hardcoded constant, so this
+// pattern is effectively a literal built once at module load - no user-supplied
+// regex is involved, making the detect-non-literal-regexp ReDoS finding a false
+// positive.
+// nosemgrep: eslint.detect-non-literal-regexp -- GCP_LABEL_NAME is a hardcoded constant, not user input
 const gcpLabelRegex = new RegExp(`${GCP_LABEL_NAME}=.*\\{.*\\}`, 'g');
 const gcpLabelParse = (data) => {
     let ret = {};

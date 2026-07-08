@@ -1313,4 +1313,735 @@ describe('Failover', () => {
                 .catch((err) => Promise.reject(err));
         });
     });
+
+    describe('task state handling', () => {
+        it('should reject from getTaskStateFile when download fails', () => {
+            downloadDataFromStorageMock.onCall(0).rejects(new Error('download boom'));
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => failover.getTaskStateFile())
+                .then(() => {
+                    assert.fail('Expected getTaskStateFile to reject');
+                })
+                .catch((err) => {
+                    assert.strictEqual(err.message, 'download boom');
+                });
+        });
+
+        it('should not recover when _checkTaskState receives empty state', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves({});
+                return failover._checkTaskState();
+            })
+            .then((result) => {
+                assert.strictEqual(result.recoverPreviousTask, false);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should not recover when _checkTaskState receives undefined state', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves(undefined);
+                return failover._checkTaskState();
+            })
+            .then((result) => {
+                assert.strictEqual(result.recoverPreviousTask, false);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should not recover when _checkTaskState state is NEVER_RUN', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.NEVER_RUN });
+                return failover._checkTaskState();
+            })
+            .then((result) => {
+                assert.strictEqual(result.recoverPreviousTask, false);
+                assert.strictEqual(result.state.taskState, constants.FAILOVER_STATES.NEVER_RUN);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should recover when _checkTaskState state is FAIL', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves({ taskState: constants.FAILOVER_STATES.FAIL });
+                return failover._checkTaskState();
+            })
+            .then((result) => {
+                assert.strictEqual(result.recoverPreviousTask, true);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should reject and retry when _checkTaskState is RUNNING within time limit', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves({
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    timeStamp: new Date().toJSON()
+                });
+                return failover._checkTaskState();
+            })
+            .then(() => {
+                assert.fail('Expected _checkTaskState to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'retry');
+            }));
+
+        it('should recover when _checkTaskState exceeds the running task time limit', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                downloadDataFromStorageMock.reset();
+                downloadDataFromStorageMock.resolves({
+                    taskState: constants.FAILOVER_STATES.RUN,
+                    timeStamp: new Date(Date.parse('2000-01-01T00:00:00.000Z')).toJSON()
+                });
+                return failover._checkTaskState();
+            })
+            .then((result) => {
+                assert.strictEqual(result.recoverPreviousTask, true);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should reject from _waitForTask when _checkTaskState rejects', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                const srcUtil = require('../../src/nodejs/util.js');
+                // invoke the supplied function once and reject without retrying to avoid the 20 minute retrier
+                sinon.stub(srcUtil, 'retrier').callsFake((fn, args, options) => fn.apply(options.thisArg, args));
+                sinon.stub(failover, '_checkTaskState').rejects(new Error('checkTaskState boom'));
+                return failover._waitForTask();
+            })
+            .then(() => {
+                assert.fail('Expected _waitForTask to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'checkTaskState boom');
+            }));
+    });
+
+    describe('state object and telemetry', () => {
+        it('should reject from _createAndUpdateStateObject when upload fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                uploadDataToStorageSpy.restore();
+                sinon.stub(cloudProviderMock, 'uploadDataToStorage').rejects(new Error('upload boom'));
+                return failover._createAndUpdateStateObject({
+                    taskState: constants.FAILOVER_STATES.PASS,
+                    message: 'test'
+                });
+            })
+            .then(() => {
+                assert.fail('Expected _createAndUpdateStateObject to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'upload boom');
+            }));
+
+        it('should reject from _sendTelemetry when telemetry send fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                telemetryClientSpy.restore();
+                sinon.stub(TelemetryClient.prototype, 'send').rejects(new Error('telemetry boom'));
+                failover.callerAttributes = { httpMethod: 'POST', endpoint: '/declare' };
+                failover.startTimestamp = new Date().toJSON();
+                return failover._sendTelemetry({
+                    failover: { event: true, success: true },
+                    result: constants.FAILOVER_STATES.PASS,
+                    resultSummary: 'ok'
+                });
+            })
+            .then(() => {
+                assert.fail('Expected _sendTelemetry to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'telemetry boom');
+            }));
+    });
+
+    describe('reset and status error paths', () => {
+        it('should log and resolve undefined when resetFailoverState upload fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                uploadDataToStorageSpy.restore();
+                sinon.stub(cloudProviderMock, 'uploadDataToStorage').rejects(new Error('reset upload boom'));
+                return failover.resetFailoverState({ resetStateFile: true });
+            })
+            .then((result) => {
+                // catch handler swallows the error and resolves with undefined
+                assert.strictEqual(result, undefined);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should report standby device status when no active traffic groups', () => {
+            deviceGetTrafficGroupsMock.returns({
+                entries: {
+                    key01: {
+                        nestedStats: {
+                            entries: {
+                                deviceName: { description: 'some_device_name' },
+                                failoverState: { description: 'standby' },
+                                trafficGroup: { description: 'traffic-group-1' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => failover.getFailoverStatusAndObjects())
+                .then((data) => {
+                    assert.strictEqual(data.deviceStatus, 'standby');
+                    assert.deepStrictEqual(data.trafficGroup, [{ name: 'traffic-group-1' }]);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should log and resolve undefined when getFailoverStatusAndObjects fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                sinon.stub(cloudProviderMock, 'getAssociatedAddressAndRouteInfo')
+                    .rejects(new Error('status boom'));
+                return failover.getFailoverStatusAndObjects();
+            })
+            .then((result) => {
+                // catch handler logs and resolves with undefined
+                assert.strictEqual(result, undefined);
+            })
+            .catch((err) => Promise.reject(err)));
+    });
+
+    describe('discovery and recovery error paths', () => {
+        it('should parse subscriptions from defaultResourceLocations', () => {
+            const localDeclaration = {
+                class: 'Cloud_Failover',
+                environment: 'azure',
+                failoverRoutes: {
+                    enabled: true,
+                    scopingTags: {
+                        f5_cloud_failover_label: 'mydeployment'
+                    },
+                    scopingAddressRanges: [
+                        {
+                            range: '192.168.1.0/24'
+                        }
+                    ],
+                    defaultNextHopAddresses: {
+                        discoveryType: 'static',
+                        items: [
+                            '192.0.2.10',
+                            '192.0.2.11'
+                        ]
+                    },
+                    defaultResourceLocations: [
+                        { subscriptionId: 'sub-1' },
+                        { subscriptionId: 'sub-2' }
+                    ]
+                }
+            };
+            const spyOnCloudProviderInit = sinon.spy(cloudProviderMock, 'init');
+
+            return config.init()
+                .then(() => config.processConfigRequest(localDeclaration))
+                .then(() => failover.init())
+                .then(() => {
+                    const callArg = spyOnCloudProviderInit.lastCall.lastArg;
+                    assert.deepStrictEqual(callArg.subscriptions, ['sub-1', 'sub-2']);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should resolve empty discovery when no active traffic groups exist', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.selfAddresses = [];
+                failover.virtualAddresses = [];
+                failover.snatAddresses = [];
+                failover.natAddresses = [];
+                failover.hasActiveTrafficGroups = false;
+                // no traffic groups match the active device
+                return failover._getFailoverDiscovery({ entries: {} }, cmDeviceInfoMockResponse);
+            })
+            .then((result) => {
+                assert.deepStrictEqual(result, [{}, {}]);
+                assert.strictEqual(failover.hasActiveTrafficGroups, false);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should discover addresses using addressGroupDefinitions when provided', () => {
+            const localDeclaration = util.deepCopy(declaration);
+            localDeclaration.failoverAddresses.addressGroupDefinitions = [
+                {
+                    type: 'networkInterfaceAddress',
+                    scopingAddress: '2.2.2.2'
+                }
+            ];
+            cloudProviderMock.discoverAddressOperationsUsingDefinitions = () => Promise.resolve({});
+            const spyOnDiscoverDefs = sinon.spy(cloudProviderMock, 'discoverAddressOperationsUsingDefinitions');
+
+            return config.init()
+                .then(() => config.processConfigRequest(localDeclaration))
+                .then(() => failover.init())
+                .then(() => failover.execute())
+                .then(() => {
+                    assert.strictEqual(spyOnDiscoverDefs.called, true);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should reject from _getFailoverDiscovery when an update action fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.isAddressOperationsEnabled = true;
+                failover.isRouteOperationsEnabled = true;
+                failover.selfAddresses = [];
+                failover.virtualAddresses = [];
+                failover.snatAddresses = [];
+                failover.natAddresses = [];
+                spyOnUpdateRoutes.restore();
+                sinon.stub(cloudProviderMock, 'updateRoutes').rejects(new Error('discovery boom'));
+                return failover._getFailoverDiscovery(trafficGroupStatsMockResponse, cmDeviceInfoMockResponse);
+            })
+            .then(() => {
+                assert.fail('Expected _getFailoverDiscovery to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'discovery boom');
+            }));
+
+        it('should reject from dryRun when discovery fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                sinon.stub(failover, '_getFailoverDiscovery').rejects(new Error('dryRun boom'));
+                return failover.dryRun();
+            })
+            .then(() => {
+                assert.fail('Expected dryRun to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'dryRun boom');
+            }));
+
+        it('should reject from _getRecoveryOperations when state upload fails', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                uploadDataToStorageSpy.restore();
+                sinon.stub(cloudProviderMock, 'uploadDataToStorage').rejects(new Error('recovery upload boom'));
+                return failover._getRecoveryOperations({
+                    state: {
+                        failoverOperations: {
+                            addresses: { operation: 'addresses' },
+                            routes: { operation: 'routes' }
+                        }
+                    }
+                });
+            })
+            .then(() => {
+                assert.fail('Expected _getRecoveryOperations to reject');
+            })
+            .catch((err) => {
+                assert.strictEqual(err.message, 'recovery upload boom');
+            }));
+
+        it('should warn when recovering but device has no active traffic groups', () => {
+            downloadDataFromStorageMock.onCall(0).resolves({
+                taskState: constants.FAILOVER_STATES.FAIL,
+                failoverOperations: {
+                    addresses: { operation: 'addresses' },
+                    routes: { operation: 'routes' }
+                },
+                message: 'Failover failed because of x'
+            });
+            // device is not active for any traffic groups
+            deviceGetTrafficGroupsMock.returns({
+                entries: {
+                    key01: {
+                        nestedStats: {
+                            entries: {
+                                deviceName: { description: 'some_device_name' },
+                                failoverState: { description: 'standby' },
+                                trafficGroup: { description: 'traffic-group-1' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => failover.execute())
+                .then(() => {
+                    // recoverPreviousTask is true so update operations still run
+                    assert.strictEqual(failover.recoverPreviousTask, true);
+                    assert.strictEqual(
+                        uploadDataToStorageSpy.lastCall.args[1].taskState,
+                        constants.FAILOVER_STATES.PASS
+                    );
+                })
+                .catch((err) => Promise.reject(err));
+        });
+    });
+
+    describe('_getOperationEnabledState', () => {
+        it('should return false when parent config key is missing', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.config = {};
+                assert.strictEqual(failover._getOperationEnabledState('failoverAddresses'), false);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should return true for backwards compatibility when enabled key is missing', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.config = { failoverAddresses: { scopingTags: {} } };
+                assert.strictEqual(failover._getOperationEnabledState('failoverAddresses'), true);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should return the explicit enabled value when present', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.config = { failoverAddresses: { enabled: false } };
+                assert.strictEqual(failover._getOperationEnabledState('failoverAddresses'), false);
+            })
+            .catch((err) => Promise.reject(err)));
+    });
+
+    describe('additional branch coverage', () => {
+        it('should warn and skip updates when device is not active for any traffic group', () => {
+            // device is standby for its traffic group, so no active traffic groups are discovered
+            deviceGetTrafficGroupsMock.returns({
+                entries: {
+                    key01: {
+                        nestedStats: {
+                            entries: {
+                                deviceName: { description: 'some_device_name' },
+                                failoverState: { description: 'standby' },
+                                trafficGroup: { description: 'traffic-group-1' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => failover.execute())
+                .then(() => {
+                    // neither recovering nor active -> warning path, no update calls
+                    assert.strictEqual(failover.hasActiveTrafficGroups, false);
+                    assert.strictEqual(failover.recoverPreviousTask, false);
+                    assert.strictEqual(spyOnUpdateAddresses.notCalled, true);
+                    assert.strictEqual(
+                        uploadDataToStorageSpy.lastCall.args[1].taskState,
+                        constants.FAILOVER_STATES.PASS
+                    );
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should fall back to default state file name when getStateFileName resolves empty', () => {
+            sinon.stub(Object.getPrototypeOf(config), 'getStateFileName').resolves(undefined);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    assert.strictEqual(failover.stateFileName, 'f5cloudfailoverstate.json');
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should default address and route discovery to empty objects when discovery resolves falsy', () => {
+            sinon.stub(FailoverClient.prototype, '_getFailoverDiscovery').resolves([null, null]);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => failover.execute())
+                .then(() => {
+                    assert.deepStrictEqual(failover.addressDiscovery, {});
+                    assert.deepStrictEqual(failover.routeDiscovery, {});
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should build proxy settings using provided defaults', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.proxySettings = { host: '10.0.0.1' };
+                const parsed = failover._parseConfig();
+                assert.strictEqual(parsed.proxySettings.protocol, 'https');
+                assert.strictEqual(parsed.proxySettings.host, '10.0.0.1');
+                assert.strictEqual(parsed.proxySettings.port, 3128);
+                assert.strictEqual(parsed.proxySettings.username, undefined);
+                assert.strictEqual(parsed.proxySettings.password, undefined);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should build proxy settings using explicit values', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.proxySettings = {
+                    host: '10.0.0.1',
+                    protocol: 'http',
+                    port: 8080,
+                    username: 'user',
+                    password: 'pass'
+                };
+                const parsed = failover._parseConfig();
+                assert.strictEqual(parsed.proxySettings.protocol, 'http');
+                assert.strictEqual(parsed.proxySettings.port, 8080);
+                assert.strictEqual(parsed.proxySettings.username, 'user');
+                assert.strictEqual(parsed.proxySettings.password, 'pass');
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should resolve next hop address defaults when range nextHopAddresses lacks fields', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                // range provides nextHopAddresses but without discoveryType/items -> defaults applied
+                const resolved = failover._nextHopAddressResolver({ nextHopAddresses: {} }, {});
+                assert.strictEqual(resolved.type, 'routeTag');
+                assert.deepStrictEqual(resolved.items, []);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should resolve next hop address defaults from defaultNextHopAddresses when range has none', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                // range has no nextHopAddresses -> falls back to defaultNextHopAddresses
+                const resolved = failover._nextHopAddressResolver({}, {});
+                assert.strictEqual(resolved.type, 'routeTag');
+                assert.strictEqual(resolved.items, undefined);
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should normalize AWS operations with default public addresses', () => {
+            sinon.stub(failover, '_getFailoverDiscovery').resolves([
+                {
+                    interfaces: { disassociate: [], associate: [] }
+                },
+                { operations: [] }
+            ]);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    failover.config.environment = 'aws';
+                })
+                .then(() => failover.dryRun())
+                .then((output) => {
+                    assert.deepStrictEqual(output[0].publicAddresses, {});
+                    assert.deepStrictEqual(output[0].loadBalancerAddresses, {});
+                    assert.deepStrictEqual(output[1].operations, []);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should normalize Azure operations when publicIPAddress is missing', () => {
+            sinon.stub(failover, '_getFailoverDiscovery').resolves([
+                {
+                    interfaces: {
+                        disassociate: [
+                            [null, null, {
+                                name: 'nic0',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    ipConfigurations: [
+                                        {
+                                            properties: {
+                                                privateIPAddress: '10.0.0.4',
+                                                publicIPAddress: null,
+                                                subnet: { id: 'subnet-id' },
+                                                primary: true
+                                            }
+                                        }
+                                    ]
+                                }
+                            }]
+                        ],
+                        associate: [
+                            [null, null, {
+                                name: 'nic1',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    ipConfigurations: [
+                                        {
+                                            properties: {
+                                                privateIPAddress: '10.0.0.5',
+                                                publicIPAddress: {},
+                                                subnet: { id: 'subnet-id' },
+                                                primary: false
+                                            }
+                                        }
+                                    ]
+                                }
+                            }]
+                        ]
+                    }
+                },
+                { operations: [] }
+            ]);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    failover.config.environment = 'azure';
+                })
+                .then(() => failover.dryRun())
+                .then((output) => {
+                    assert.strictEqual(output[0].operations.toStandby[0].publicIPAddress, null);
+                    assert.strictEqual(output[0].operations.toActive[0].publicIPAddress, null);
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should normalize Azure operations when publicIPAddress id is present', () => {
+            sinon.stub(failover, '_getFailoverDiscovery').resolves([
+                {
+                    interfaces: {
+                        disassociate: [
+                            [null, null, {
+                                name: 'nic0',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    ipConfigurations: [
+                                        {
+                                            properties: {
+                                                privateIPAddress: '10.0.0.4',
+                                                publicIPAddress: { id: '/subscriptions/x/publicIp/standby' },
+                                                subnet: { id: 'subnet-id' },
+                                                primary: true
+                                            }
+                                        }
+                                    ]
+                                }
+                            }]
+                        ],
+                        associate: [
+                            [null, null, {
+                                name: 'nic1',
+                                properties: {
+                                    provisioningState: 'Succeeded',
+                                    ipConfigurations: [
+                                        {
+                                            properties: {
+                                                privateIPAddress: '10.0.0.5',
+                                                publicIPAddress: { id: '/subscriptions/x/publicIp/active' },
+                                                subnet: { id: 'subnet-id' },
+                                                primary: false
+                                            }
+                                        }
+                                    ]
+                                }
+                            }]
+                        ]
+                    }
+                },
+                { operations: [] }
+            ]);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    failover.config.environment = 'azure';
+                })
+                .then(() => failover.dryRun())
+                .then((output) => {
+                    assert.strictEqual(
+                        output[0].operations.toStandby[0].publicIPAddress,
+                        '/subscriptions/x/publicIp/standby'
+                    );
+                    assert.strictEqual(
+                        output[0].operations.toActive[0].publicIPAddress,
+                        '/subscriptions/x/publicIp/active'
+                    );
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should normalize GCP operations when loadBalancerAddresses has no operations', () => {
+            sinon.stub(failover, '_getFailoverDiscovery').resolves([
+                {
+                    interfaces: { disassociate: [], associate: [] },
+                    loadBalancerAddresses: {}
+                },
+                { operations: [] }
+            ]);
+
+            return config.init()
+                .then(() => config.processConfigRequest(declaration))
+                .then(() => failover.init())
+                .then(() => {
+                    failover.config.environment = 'gcp';
+                })
+                .then(() => failover.dryRun())
+                .then((output) => {
+                    assert.deepStrictEqual(output[0].loadBalancerAddresses, {});
+                })
+                .catch((err) => Promise.reject(err));
+        });
+
+        it('should create a state object with default values when options are empty', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => {
+                failover.hostname = null;
+                const state = failover._createStateObject({});
+                assert.strictEqual(state.taskState, constants.FAILOVER_STATES.PASS);
+                assert.strictEqual(state.instance, 'none');
+                assert.strictEqual(state.message, '');
+            })
+            .catch((err) => Promise.reject(err)));
+
+        it('should create and update a state object with default values when options are empty', () => config.init()
+            .then(() => config.processConfigRequest(declaration))
+            .then(() => failover.init())
+            .then(() => failover._createAndUpdateStateObject({}))
+            .then((state) => {
+                assert.strictEqual(state.taskState, constants.FAILOVER_STATES.PASS);
+                assert.deepStrictEqual(state.failoverOperations, {});
+                assert.strictEqual(state.message, '');
+            })
+            .catch((err) => Promise.reject(err)));
+    });
 });

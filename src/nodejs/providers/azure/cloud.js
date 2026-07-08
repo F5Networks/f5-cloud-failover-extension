@@ -1081,7 +1081,7 @@ class Cloud extends AbstractCloud {
      * @param {String} options.name
      * @param {String} options.resourceId
      *
-     * @returns {Promise} - Returns resource id
+     * @returns {String} - Returns resource id
      */
     _createResourceID(options) {
         options = options || {};

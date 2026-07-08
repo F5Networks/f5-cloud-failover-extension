@@ -90,7 +90,7 @@ test_package:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     - echo "deb http://archive.debian.org/debian stretch main contrib non-free" > /etc/apt/sources.list
-    - apt-get update && apt-get install -y jq && npm install
+    - apt-get update && apt-get install -y jq && npm install --unsafe-perm
     # linter
     - npm run lint
     # unit tests
@@ -108,7 +108,10 @@ test_audit:
       - $CI_COMMIT_REF_NAME == "docs_staging"
   script:
     # npm audit - uses custom audit processor wrapper
-    - npm install --unsafe-perm
+    # install-all also strips the dead xmldom@0.6.0 from the lockfile (cruftless
+    # is patched to use @xmldom/xmldom) so the audit does not flag the unused
+    # transitive dependency
+    - npm run install-all
     - npm run audit
   tags:
     - cm-official-docker-executor
@@ -122,9 +125,10 @@ test_audit:
 # job must be called coverage
 coverage:
   stage: test
+  image: ${DOCKER_URL}/node:14
   script:
     - echo "deb http://archive.debian.org/debian stretch main contrib non-free" > /etc/apt/sources.list
-    - apt-get update && apt-get install -y jq && npm install
+    - apt-get update && apt-get install -y jq && npm install --unsafe-perm
     # unit tests + coverage report
     - npm run test && npm run check && npm run report
   tags:
@@ -133,6 +137,8 @@ coverage:
     name: ${CI_COMMIT_REF_NAME}_unittests_coverage
     paths:
       - coverage
+      # raw coverage data so it can be merged with functional coverage
+      - .nyc_output
     expire_in: 1 month
   only:
     - develop
@@ -355,8 +361,11 @@ test_functional_init_gcp_no_forwarding:
     - sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$MGMT_IP_1 "bigstart restart restnoded restjavad"
     - sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$MGMT_IP_2 "bigstart restart restnoded restjavad"
     - sleep 30
-    # executing fuctional test
-    - validate npm run functional-test
+    # executing functional test under nyc so the test harness (and any in-process
+    # src requires) are instrumented for coverage. NOTE: the CF extension itself
+    # runs remotely inside restnoded on the BIG-IP, so src/ executed on-device is
+    # not captured here -- see AGENTS.md "Functional test coverage".
+    - validate npm run functional-test-coverage
   tags:
     - cm-official-docker-executor
   only:
@@ -372,8 +381,11 @@ test_functional_init_gcp_no_forwarding:
     variables:
       - $RUN_FUNCTIONAL_TESTS == "false"
   artifacts:
+    name: ${CI_JOB_NAME}_coverage
     paths:
       - logs
+      - coverage-functional
+      - .nyc_output_functional
     when: always
     expire_in: 1 month
 
@@ -676,12 +688,57 @@ test_functional_cleanup_gcp_no_forwarding:
       - $CF_ENV_CLOUD == "azure"
       - $CF_ENV_CLOUD == "aws"
 
+# Merge unit + functional coverage into a single report. Pulls the raw coverage
+# artifacts (.nyc_output from the unit `coverage` job, .nyc_output_functional
+# from the functional execute jobs) and produces a combined report under
+# coverage-combined/. The merge is tolerant of missing inputs (e.g. when
+# functional tests did not run in a pipeline).
+merged_coverage:
+  stage: test_functional_cleanup
+  image: ${DOCKER_URL}/node:14
+  script:
+    - echo "deb http://archive.debian.org/debian stretch main contrib non-free" > /etc/apt/sources.list
+    - apt-get update && apt-get install -y jq && npm install --unsafe-perm
+    - npm run coverage-merge
+  dependencies:
+    - coverage
+    - test_functional_execute_azure
+    - test_functional_execute_azure_1nic
+    - test_functional_execute_aws_across_net
+    - test_functional_execute_aws_across_net_1nic
+    - test_functional_execute_aws
+    - test_functional_execute_aws_1nic
+    - test_functional_execute_gcp
+    - test_functional_execute_gcp_no_forwarding
+  tags:
+    - cm-official-docker-executor
+  artifacts:
+    name: ${CI_COMMIT_REF_NAME}_combined_coverage
+    paths:
+      - coverage-combined
+    when: always
+    expire_in: 1 month
+  allow_failure: true
+  only:
+    variables:
+      - $CI_COMMIT_REF_NAME == "master"
+      - $CI_COMMIT_REF_NAME == "develop"
+      - $RUN_FUNCTIONAL_TESTS == "true"
+      - $TESTS_TIER == "1"
+      - $TESTS_TIER == "2"
+      - $TESTS_TIER == "all"
+      - $CI_COMMIT_MESSAGE =~ /smart:run_functional_tests/
+  except:
+    variables:
+      - $RUN_FUNCTIONAL_TESTS == "false"
+
 ###  End of Functional Tests
 build_api_docs:
   stage: build_api_docs_and_postman_collection
+  image: ${DOCKER_URL}/node:14
   script:
     # install packages
-    - npm install
+    - npm install --unsafe-perm
     # generate docs
     - npm run make-api-docs
     - mkdir apidocs && mv redoc-static.html apidocs/index.html
@@ -698,9 +755,10 @@ build_api_docs:
 
 build_postman_collection:
   stage: build_api_docs_and_postman_collection
+  image: ${DOCKER_URL}/node:14
   script:
     # install packages
-    - npm install
+    - npm install --unsafe-perm
     # generate postman-collection
     - npm run make-postman-collection
   tags:

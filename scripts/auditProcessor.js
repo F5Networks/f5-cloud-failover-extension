@@ -14,6 +14,10 @@ const fs = require('fs');
 const path = require('path');
 const yargs = require('yargs');
 
+// These paths are build-time constants resolved from the current working
+// directory; no value originates from user input or any external source. The
+// detect-non-literal-fs-filename findings on the fs.* calls that use them are
+// therefore false positives (CWE-22 path traversal is not reachable here).
 const PACKAGE_JSON = path.join(process.cwd(), 'package.json');
 const AUDIT_REPORT = path.join(process.cwd(), '.auditReport.json');
 const DEFAULT_EXIT_CODE = 0;
@@ -35,9 +39,11 @@ class AuditProcessor {
     * @returns {Void}
     */
     loadReport() {
+        // nosemgrep: eslint.detect-non-literal-fs-filename -- AUDIT_REPORT is a build-time constant
         if (!fs.existsSync(AUDIT_REPORT)) {
             throw new Error('Please run "npm audit" first.');
         }
+        // nosemgrep: eslint.detect-non-literal-fs-filename -- AUDIT_REPORT is a build-time constant
         this.report = JSON.parse(fs.readFileSync(AUDIT_REPORT, 'utf-8'));
     }
 
@@ -129,6 +135,7 @@ function main() {
         .help('help')
         .argv;
 
+    // nosemgrep: eslint.detect-non-literal-fs-filename -- PACKAGE_JSON is a build-time constant
     const optionsFromConfig = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf-8')).auditProcessor;
     const parsedArgs = {
         allowlist: argv.allowlist || optionsFromConfig.allowlist || ''

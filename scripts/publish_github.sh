@@ -16,8 +16,15 @@ git config user.email $GITLAB_USER_EMAIL
 RELEASE_VERSION=$(echo $CI_COMMIT_REF_NAME | awk -F"-" '{ print $2 }')
 RELEASE_VERSION_SHORT=$(echo $RELEASE_VERSION | awk -F"v" '{ print $2 }')
 RELEASE_BUILD=$(echo $CI_COMMIT_REF_NAME | awk -F"-" '{ print $3 }')
-ALLOWED_DIRS=(.github contributing diagrams docs examples sdk specs src test)
-ALLOWED_FILES=(.gitallowed .gitattributes .gitignore Dockerfile f5-cloud-failover.spec files_blacklist.yml LICENSE make.bat Makefile package-lock.json package.json README.md requirements.txt SUPPORT.md)
+# NOTE: source code is intentionally NOT published to the public GitHub repo.
+# The following are deliberately excluded from ALLOWED_DIRS/ALLOWED_FILES:
+#   - src   : extension source code
+#   - test  : test suite (depends on src)
+#   - f5-cloud-failover.spec, Dockerfile, Makefile, make.bat : source-build files
+# Only docs, examples, specs, and release metadata are published. Release
+# artifacts (RPM, hash, Postman collection) are attached to the GitHub Release.
+ALLOWED_DIRS=(.github contributing diagrams docs examples sdk specs)
+ALLOWED_FILES=(.gitallowed .gitattributes .gitignore files_blacklist.yml LICENSE package-lock.json package.json README.md requirements.txt SUPPORT.md)
 
 echo "*** Setting git origin"
 git remote rm origin && git remote add origin git@github.com:f5networks/f5-cloud-failover-extension.git
@@ -36,7 +43,7 @@ for file in "${ALLOWED_FILES[@]}"; do
     git add ${file}
 done
 
-echo "*** Committing source code"
+echo "*** Committing release contents (docs/examples/specs/metadata; source code excluded)"
 git status
 git commit -m "Release commited to $RELEASE_VERSION tag" || echo "No changes, nothing to commit!"
 git push -u origin HEAD:master -f

@@ -11,7 +11,11 @@ redoc-static.html
 
 # coverage
 coverage/
+coverage-functional/
+coverage-combined/
 .nyc_output/
+.nyc_output_functional/
+.nyc_output_combined/
 
 # audit report
 .auditReport.json

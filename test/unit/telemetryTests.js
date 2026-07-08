@@ -20,6 +20,7 @@ const assert = require('assert');
 const sinon = require('sinon');
 const f5Teem = require('@f5devcentral/f5-teem').Device;
 const constants = require('../constants.js');
+const logger = require('../../src/nodejs/logger.js');
 const TelemetryClient = require('../../src/nodejs/telemetry.js').TelemetryClient;
 
 /* eslint-disable global-require */
@@ -207,6 +208,66 @@ describe('Telemetry Client', () => {
         return this.telemetryClient.send(this.configuration)
             .then((result) => {
                 assert.strictEqual(result.sent, false);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should resolve sent true when configuration cannot be stringified', () => {
+        // create a configuration with a circular reference so JSON.stringify throws,
+        // exercising the catch (e) handler in the success path
+        const sillyStub = sinon.stub(logger, 'silly');
+        const circularConfig = {};
+        circularConfig.self = circularConfig;
+
+        return this.telemetryClient.send(circularConfig)
+            .then((result) => {
+                assert.strictEqual(result.sent, true);
+                // confirm the inner catch (e) handler logged the stringify failure
+                assert.strictEqual(sillyStub.calledWithMatch(/Unable to stringify telemetry configuration/), true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should log timeout guidance when send fails with ETIMEDOUT code', () => {
+        const errorStub = sinon.stub(logger, 'error');
+        this.f5TeemReportMock.restore();
+        const timeoutError = new Error('connection problem');
+        timeoutError.code = 'ETIMEDOUT';
+        sinon.stub(f5Teem.prototype, 'reportRecord').rejects(timeoutError);
+
+        return this.telemetryClient.send(this.configuration)
+            .then((result) => {
+                // the ETIMEDOUT branch logs additional guidance but never rejects
+                assert.strictEqual(result.sent, false);
+                assert.strictEqual(errorStub.calledWithMatch(/telemetry service is unavailable/), true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should log timeout guidance when send fails with a timeout message', () => {
+        const errorStub = sinon.stub(logger, 'error');
+        this.f5TeemReportMock.restore();
+        sinon.stub(f5Teem.prototype, 'reportRecord').rejects(new Error('request timeout exceeded'));
+
+        return this.telemetryClient.send(this.configuration)
+            .then((result) => {
+                // the message.includes('timeout') branch logs additional guidance but never rejects
+                assert.strictEqual(result.sent, false);
+                assert.strictEqual(errorStub.calledWithMatch(/telemetry service is unavailable/), true);
+            })
+            .catch((err) => Promise.reject(err));
+    });
+
+    it('should not log timeout guidance when send fails with a non-timeout error', () => {
+        const errorStub = sinon.stub(logger, 'error');
+        this.f5TeemReportMock.restore();
+        sinon.stub(f5Teem.prototype, 'reportRecord').rejects(new Error('generic failure'));
+
+        return this.telemetryClient.send(this.configuration)
+            .then((result) => {
+                // the guidance branch must not fire for unrelated errors
+                assert.strictEqual(result.sent, false);
+                assert.strictEqual(errorStub.calledWithMatch(/telemetry service is unavailable/), false);
             })
             .catch((err) => Promise.reject(err));
     });

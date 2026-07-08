@@ -12,11 +12,10 @@ const assert = require('assert');
 
 const AWS = require('aws-sdk');
 
-const CIDR = require('cidr-js');
-
 const constants = require('../../../../constants.js');
 const utils = require('../../../../shared/util.js');
 const funcUtils = require('../../shared/util.js');
+const srcUtil = require('../../../../../src/nodejs/util.js');
 
 const RETRIES = constants.RETRIES;
 
@@ -938,7 +937,6 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
 
     if (dutPrimary.port !== 8443 && deploymentInfo.networkTopology === 'sameNetwork') {
         describe('AWS provider tests (same AZ prefix)', () => {
-            const cidr = new CIDR();
             let NetworkInterfaceId;
             let expectedPrefixCidr;
             let allocationId;
@@ -1046,7 +1044,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
              * @returns {boolean}        - True if the IP is within the CIDR block, false otherwise
              */
             function ipInPrefix(ip, cidrBlock) {
-                const ips = cidr.list(cidrBlock);
+                const ips = srcUtil._expandCIDR(cidrBlock);
                 return ips.includes(ip);
             }
 
@@ -1098,7 +1096,6 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
         });
 
         describe('AWS provider tests (PrivateLink to S3 and EC2)', () => {
-            const cidr = new CIDR();
             let NetworkInterfaceId;
             let expectedPrefixCidr;
             let allocationId;
@@ -1336,7 +1333,7 @@ describe(`Provider: AWS ${deploymentInfo.networkTopology}`, () => {
              * @returns {boolean}        - True if the IP is within the CIDR block, false otherwise
              */
             function ipInPrefix(ip, cidrBlock) {
-                const ips = cidr.list(cidrBlock);
+                const ips = srcUtil._expandCIDR(cidrBlock);
                 return ips.includes(ip);
             }
 

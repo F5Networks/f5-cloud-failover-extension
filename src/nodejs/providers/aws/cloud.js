@@ -21,6 +21,7 @@ const { parse } = require('cruftless')();
 const IPAddressLib = require('ip-address');
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 const url = require('url');
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud').AbstractCloud;
@@ -98,8 +99,18 @@ class Cloud extends AbstractCloud {
 
                     const agentOpts = {};
                     if (this.trustedCertBundle) {
-                        if (fs.existsSync(this.trustedCertBundle)) {
-                            const certs = fs.readFileSync(this.trustedCertBundle);
+                        // normalize and constrain the user-supplied path to the
+                        // allowed base directory to prevent path traversal
+                        const baseDir = constants.TRUSTED_CERT_BUNDLE_BASE_DIR;
+                        const certBundlePath = path.normalize(this.trustedCertBundle);
+                        if (!certBundlePath.startsWith(baseDir)) {
+                            this.logger.warning(`Ignoring trustedCertBundle '${this.trustedCertBundle}': path must reside within ${baseDir}`);
+                        // certBundlePath is normalized (path.normalize) and confirmed to reside
+                        // within the allowed base dir above, so path traversal is mitigated here.
+                        // nosemgrep: eslint.detect-non-literal-fs-filename -- normalized + base-dir containment checked above
+                        } else if (fs.existsSync(certBundlePath)) {
+                            // nosemgrep: eslint.detect-non-literal-fs-filename -- normalized + base-dir containment checked above
+                            const certs = fs.readFileSync(certBundlePath);
                             agentOpts.rejectUnauthorized = true;
                             agentOpts.ca = certs;
                         }
@@ -2214,7 +2225,7 @@ class Cloud extends AbstractCloud {
             })
             .catch((err) => {
                 this.logger.warning(`Error fetching tags for bucket ${bucket.name}: ${err.message}`);
-                (options.continueOnError ? Promise.resolve() : Promise.reject(err))
+                return options.continueOnError ? Promise.resolve() : Promise.reject(err);
             });
     }
 
