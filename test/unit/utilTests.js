@@ -180,6 +180,35 @@ describe('util.makeRequest', () => {
             });
     });
 
+    it('should preserve an explicit proxy: false to disable axios proxy auto-detection', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: {},
+            headers: {}
+        });
+
+        return util.makeRequest('localhost', '/test', { proxy: false })
+            .then(() => {
+                // options.proxy || null would coerce false into null, which axios treats
+                // as "unset" and falls back to HTTP_PROXY/HTTPS_PROXY auto-detection.
+                // false must be preserved as-is to actually disable that auto-detection.
+                expect(axiosRequestStub.firstCall.args[0].proxy).to.equal(false);
+            });
+    });
+
+    it('should default proxy to null when not provided', () => {
+        axiosRequestStub.resolves({
+            status: 200,
+            data: {},
+            headers: {}
+        });
+
+        return util.makeRequest('localhost', '/test', {})
+            .then(() => {
+                expect(axiosRequestStub.firstCall.args[0].proxy).to.equal(null);
+            });
+    });
+
     it('should use custom validateStatus if provided', () => {
         axiosRequestStub.resolves({
             status: 200,

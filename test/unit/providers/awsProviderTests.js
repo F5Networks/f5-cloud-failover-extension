@@ -12,6 +12,7 @@
 
 const assert = require('assert');
 const sinon = require('sinon');
+const fs = require('fs');
 const { parse } = require('cruftless')();
 const constants = require('../../../src/nodejs/constants');
 
@@ -2734,7 +2735,7 @@ describe('Provider - AWS', () => {
     });
 
     describe('function init proxy branches', () => {
-        it('should set proxyOptions when proxy host is configured', () => {
+        it('should set proxyAgent when proxy host is configured', () => {
             sinon.restore();
             const Device = require('../../../src/nodejs/device.js');
             sinon.stub(Device.prototype, 'init').resolves();
@@ -2785,9 +2786,110 @@ describe('Provider - AWS', () => {
             return p.init(mockMetadata)
                 .then(() => {
                     assert.ok(p.proxySettings);
-                    assert.ok(p.proxyOptions);
-                    assert.strictEqual(p.proxyOptions.host, 'proxy.example.com');
-                    assert.strictEqual(p.proxyOptions.port, '3128');
+                    assert.ok(p.proxyAgent);
+                    assert.strictEqual(p.proxyAgent.proxy.host, 'proxy.example.com');
+                    assert.strictEqual(p.proxyAgent.proxy.port, 3128);
+                    assert.strictEqual(p._httpOptions, null);
+                });
+        });
+
+        it('should merge trustedCertBundle options into the proxyAgent when both are configured', () => {
+            sinon.restore();
+            const Device = require('../../../src/nodejs/device.js');
+            sinon.stub(Device.prototype, 'init').resolves();
+            sinon.stub(Device.prototype, 'getProxySettings').resolves({
+                host: 'proxy.example.com',
+                port: 3128,
+                protocol: 'http',
+                username: '',
+                password: ''
+            });
+            const certBundlePath = '/config/ssl/ssl.crt/ca-bundle.crt';
+            const fakeCert = Buffer.from('fake-ca-cert');
+            sinon.stub(fs, 'existsSync').callsFake((checkedPath) => checkedPath === certBundlePath);
+            sinon.stub(fs, 'readFileSync').callsFake((checkedPath) => {
+                assert.strictEqual(checkedPath, certBundlePath);
+                return fakeCert;
+            });
+
+            const initData = Object.assign({}, mockMetadata, { trustedCertBundle: certBundlePath });
+            const p = new AWSCloudProvider(initData);
+            p.logger = sinon.stub();
+            p.logger.info = sinon.stub();
+            p.logger.debug = sinon.stub();
+            p.logger.error = sinon.stub();
+            p.logger.silly = sinon.stub();
+            p.logger.warning = sinon.stub();
+            p.maxRetries = 0;
+            p.retryInterval = 100;
+
+            util.makeRequest = sinon.stub()
+                .callsFake((host, uri) => {
+                    if (uri === '/latest/api/token') return Promise.resolve('token');
+                    if (uri === '/latest/dynamic/instance-identity/document') {
+                        return Promise.resolve(JSON.stringify(mockMetadata));
+                    }
+                    if (uri === '/latest/meta-data/iam/security-credentials/') {
+                        return Promise.resolve('role');
+                    }
+                    if (uri === '/latest/meta-data/iam/security-credentials/role') {
+                        return Promise.resolve(mockCredentials);
+                    }
+                    // S3 bucket discovery
+                    if (host === 's3.us-west.amazonaws.com') {
+                        return Promise.resolve(`<ListAllMyBucketsResult><Buckets>
+                            <Bucket><Name>bucket2</Name><CreationDate>2021-01-01</CreationDate></Bucket>
+                        </Buckets></ListAllMyBucketsResult>`);
+                    }
+                    if (uri === '/' && host.includes('bucket2')) {
+                        return Promise.resolve(`<Tagging><TagSet><Tag>
+                            <Key>sKey1</Key><Value>storageKey1</Value>
+                        </Tag></TagSet></Tagging>`);
+                    }
+                    return Promise.resolve('{}');
+                });
+
+            return p.init(initData)
+                .then(() => {
+                    assert.ok(p.proxyAgent);
+                    assert.strictEqual(p.proxyAgent.proxy.host, 'proxy.example.com');
+                    assert.strictEqual(p.proxyAgent.proxy.port, 3128);
+                    // trustedCertBundle-derived TLS options must be merged into the
+                    // proxyAgent so they apply to the tunneled connection to the origin
+                    // server, not just to a standalone https.Agent (which is unused
+                    // when a proxy is configured).
+                    assert.strictEqual(p.proxyAgent.proxy.rejectUnauthorized, true);
+                    assert.strictEqual(p.proxyAgent.proxy.ca, fakeCert);
+                    assert.strictEqual(p._httpOptions, null);
+                });
+        });
+    });
+
+    describe('function makeRequest proxy handling', () => {
+        it('should disable axios proxy handling and use proxyAgent as httpsAgent when configured', () => {
+            provider.proxyAgent = { fakeProxyAgent: true };
+            provider._getAuthHeaders = sinon.stub().resolves({});
+            util.makeRequest = sinon.stub().resolves({});
+
+            return provider.makeRequest('host', '/path', {})
+                .then(() => {
+                    const callOptions = util.makeRequest.args[0][2];
+                    assert.strictEqual(callOptions.proxy, false);
+                    assert.strictEqual(callOptions.httpsAgent, provider.proxyAgent);
+                });
+        });
+
+        it('should fall back to _httpOptions as httpsAgent when no proxyAgent is configured', () => {
+            provider.proxyAgent = null;
+            provider._httpOptions = { fakeHttpsAgent: true };
+            provider._getAuthHeaders = sinon.stub().resolves({});
+            util.makeRequest = sinon.stub().resolves({});
+
+            return provider.makeRequest('host', '/path', {})
+                .then(() => {
+                    const callOptions = util.makeRequest.args[0][2];
+                    assert.strictEqual(callOptions.proxy, false);
+                    assert.strictEqual(callOptions.httpsAgent, provider._httpOptions);
                 });
         });
     });

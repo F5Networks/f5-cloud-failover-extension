@@ -12,6 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 const yargs = require('yargs');
 
 // These paths are build-time constants resolved from the current working
@@ -62,16 +63,30 @@ class AuditProcessor {
         // parse out vulnerabilities
         if (this.report.auditReportVersion === 2) {
             Object.keys(this.report.vulnerabilities).forEach((key) => {
-                this.report.vulnerabilities = this._resolveVia(this.report.vulnerabilities, key);
-                this.vulnerabilities.push({
-                    module: key,
-                    path: this.report.vulnerabilities[key].nodes[0],
-                    vulnerability: {
-                        id: this.report.vulnerabilities[key].via[0].source,
-                        url: this.report.vulnerabilities[key].via[0].url,
-                        advisory: this.report.vulnerabilities[key].via[0].url.split('/').slice(-1)[0],
-                        recommendation: null
+                // A module's `via` array can contain a mix of concrete advisory
+                // objects (its own CVEs) and plain strings (names of other modules
+                // it depends on, whose own `via` must be resolved in turn). Resolve
+                // *every* entry - not just via[0] - so every advisory affecting this
+                // module is checked against the allowlist individually. Checking only
+                // via[0] would silently drop any additional advisories on a module
+                // whenever via[0] happened to be allowlisted (or already a string).
+                const advisories = this._resolveViaAdvisories(this.report.vulnerabilities, key);
+                const seenIds = new Set();
+                advisories.forEach((advisory) => {
+                    if (seenIds.has(advisory.source)) {
+                        return;
                     }
+                    seenIds.add(advisory.source);
+                    this.vulnerabilities.push({
+                        module: key,
+                        path: this.report.vulnerabilities[key].nodes[0],
+                        vulnerability: {
+                            id: advisory.source,
+                            url: advisory.url,
+                            advisory: advisory.url.split('/').slice(-1)[0],
+                            recommendation: null
+                        }
+                    });
                 });
             });
         } else {
@@ -106,7 +121,11 @@ class AuditProcessor {
     notify() {
         // check for vulnerabilities and act accordingly
         if (this.vulnerabilities.length) {
-            this.log(this.vulnerabilities);
+            // console.log() truncates arrays over 100 items (Node's default
+            // util.inspect array limit), which would silently hide vulnerabilities
+            // from CI logs/artifacts once a single module surfaces more than 100
+            // advisories. Log the full list explicitly instead.
+            this.log(util.inspect(this.vulnerabilities, { maxArrayLength: null, depth: null }));
             this.log(`IMPORTANT: ${this.vulnerabilities.length} vulnerabilities exist, please resolve them!`);
             process.exit(1);
         }
@@ -115,15 +134,38 @@ class AuditProcessor {
         process.exit(this.exitCode);
     }
 
-    _resolveVia(vulnerabilities, key) {
-        while (typeof vulnerabilities[key].via[0] === 'string') {
-            let count = 0;
-            if (vulnerabilities[key].via[0] === vulnerabilities[vulnerabilities[key].via[0]].via[0]) {
-                count += 1;
-            }
-            vulnerabilities[key].via[0] = vulnerabilities[vulnerabilities[key].via[0]].via[count];
+    /**
+    * Resolve every advisory object reachable from a module's `via` array.
+    *
+    * Each entry in `vulnerabilities[key].via` is either a concrete advisory object
+    * (has its own `source`/`url`) or a string naming another vulnerable module this
+    * one depends on (whose own `via` must be walked in turn to find the concrete
+    * advisories). Walks all entries - not just the first - and recurses through
+    * string references, guarding against cycles, so every advisory affecting a
+    * module (directly or transitively via a dependency name) is returned.
+    *
+    * @param {Object} vulnerabilities - the full `npm audit` vulnerabilities map
+    * @param {String} key             - module name to resolve advisories for
+    * @param {Set}    [visited]       - module names already visited (cycle guard)
+    *
+    * @returns {Array} Flat array of concrete advisory objects
+    */
+    _resolveViaAdvisories(vulnerabilities, key, visited) {
+        visited = visited || new Set();
+        if (visited.has(key) || !vulnerabilities[key]) {
+            return [];
         }
-        return vulnerabilities;
+        visited.add(key);
+
+        const advisories = [];
+        vulnerabilities[key].via.forEach((entry) => {
+            if (typeof entry === 'string') {
+                advisories.push(...this._resolveViaAdvisories(vulnerabilities, entry, visited));
+            } else {
+                advisories.push(entry);
+            }
+        });
+        return advisories;
     }
 }
 

@@ -23,6 +23,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const ProxyAgent = require('https-proxy-agent');
 const util = require('../../util');
 const AbstractCloud = require('../abstract/cloud').AbstractCloud;
 const Device = require('../../device.js');
@@ -47,7 +48,7 @@ class Cloud extends AbstractCloud {
         this.s3FilePrefix = constants.STORAGE_FOLDER_NAME;
         this.ec2EndpointDnsName = null;
         this.ec2_host = null;
-        this.proxyOptions = null;
+        this.proxyAgent = null;
         this.device = new Device();
     }
 
@@ -83,20 +84,6 @@ class Cloud extends AbstractCloud {
                     this.logger.silly(`Determined instance ID: ${this.instanceId}`);
                     this.customerId = metadata.accountId;
 
-                    if (this.proxySettings) {
-                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                        this.proxyOptions = {
-                            protocol: opts.protocol,
-                            host: opts.hostname,
-                            port: opts.port
-                        };
-                        if (opts.username && opts.password) {
-                            this.proxyOptions.auth = {};
-                            this.proxyOptions.auth.username = opts.username;
-                            this.proxyOptions.auth.password = opts.password;
-                        }
-                    }
-
                     const agentOpts = {};
                     if (this.trustedCertBundle) {
                         // normalize and constrain the user-supplied path to the
@@ -115,7 +102,25 @@ class Cloud extends AbstractCloud {
                             agentOpts.ca = certs;
                         }
                     }
-                    this._httpOptions = new https.Agent(agentOpts);
+
+                    if (this.proxySettings) {
+                        // Build an HTTP(S) CONNECT-tunneling agent from the proxy URL. axios's
+                        // built-in `proxy` option does not send a CONNECT for HTTPS-through-proxy
+                        // requests, so the proxy must be applied via httpsAgent (with
+                        // options.proxy = false) instead - see makeRequest() below. The
+                        // trustedCertBundle options (rejectUnauthorized/ca) apply to the TLS
+                        // connection to the origin server (tunneled through the proxy), and
+                        // https-proxy-agent forwards them to that tunneled socket.
+                        const opts = url.parse(this._formatProxyUrl(this.proxySettings));
+                        this.proxyAgent = ProxyAgent(Object.assign(
+                            {},
+                            agentOpts,
+                            { protocol: opts.protocol, host: opts.hostname, port: opts.port, auth: opts.auth }
+                        ));
+                        this.logger.silly(`Configured proxy agent for ${opts.protocol}//${opts.hostname}:${opts.port}`);
+                    } else {
+                        this._httpOptions = new https.Agent(agentOpts);
+                    }
                     if (this.storageName) {
                         return this._getBucketRegion(this.storageName);
                     }
@@ -297,7 +302,10 @@ class Cloud extends AbstractCloud {
         options = options || {};
         options.headers = options.headers || {};
         options.queryParams = options.queryParams || {};
-        options.proxy = this.proxyOptions;
+        // Disable axios's built-in proxy handling: for HTTPS-through-HTTP(S)-proxy
+        // requests it does not perform a CONNECT tunnel. Instead, the proxy (if any)
+        // is applied below via options.httpsAgent (see this.proxyAgent, built in init()).
+        options.proxy = false;
         let path = '';
         Object.keys(options.queryParams).forEach((key) => {
             path += path === '' ? '' : '&';
@@ -317,7 +325,7 @@ class Cloud extends AbstractCloud {
         return this._getAuthHeaders(authArgs)
             .then((headers) => {
                 options.headers = headers;
-                options.httpsAgent = this._httpOptions;
+                options.httpsAgent = this.proxyAgent || this._httpOptions;
 
                 // Build a redacted view of options to avoid logging sensitive data
                 const redactedOptions = {

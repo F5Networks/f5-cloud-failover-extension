@@ -255,6 +255,30 @@ accepted advisory here:
   Node 14 without an import/interop rewrite. Not justified for an unreachable
   issue. Re-evaluate if the project starts using `v3()`/`v5()`/`v6()` with a
   buffer or migrates to ESM.
+
+- **1130722** -- `ip-address` `Address4` leading-zero octet SSRF/trust-boundary
+  bypass (CVE-2026-69192 / GHSA-mwp4-54f8-5fhr, High). `Address4` decodes a
+  leading-zero octet (e.g. `012.0.0.1`) as decimal while `getaddrinfo`/
+  `inet_aton`/URL host parsers decode it as octal, so a guard built on
+  `isPrivate()`/`isInSubnet()` against RFC 1918 ranges can misclassify an
+  address the network stack actually resolves internally. This project never
+  calls `isPrivate()`, `isLoopback()`, `isLinkLocal()`, or `isCGNAT()` -- the
+  documented SSRF-classification methods the advisory addresses -- and its
+  only `isInSubnet()` call (`aws/cloud.js` `_checkForNicOperations`) compares
+  two subnet CIDRs read from AWS `DescribeSubnets`/`DescribeNetworkInterfaces`
+  API responses to each other, not an admin- or attacker-supplied address
+  against a trust boundary. The other reachable inputs (`util.isCidr()` /
+  `util.getIPsFromCIDR()`, gating `Address4`/`Address6` construction for
+  `addressGroupDefinitions[].scopingAddress` and route CIDRs) come from the
+  BIG-IP operator's own failover declaration, not an untrusted network peer.
+  The fix requires `ip-address` >=10.3.1, which bumps the package's minimum
+  Node engine to >=12 (from `6.x`'s `>=0.10`) and is a semver-major jump (the
+  10.x line already changed APIs relative to 6.x); not justified given the
+  advisory's scenario isn't reachable here. Re-evaluate if the project starts
+  calling `isPrivate()`/`isLoopback()`/`isLinkLocal()`/`isCGNAT()` to gate
+  requests against attacker- or admin-supplied addresses, or upgrades
+  `ip-address` for another reason.
+
 ### Functional test coverage
 
 Functional/acceptance tests (`npm run functional-test`) are **black-box** tests:

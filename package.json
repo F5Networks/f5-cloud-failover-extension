@@ -1,6 +1,6 @@
 {
     "name": "f5-cloud-failover",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "author": "F5 Networks",
     "license": "Apache-2.0",
     "node": ">=8.11.1",
@@ -89,7 +89,7 @@
         "@xmldom/xmldom": "^0.8.13",
         "ajv": "^6.14.0",
         "aws4": "^1.12.0",
-        "axios": "^0.32.0",
+        "axios": "^0.33.0",
         "commander": "^2.19.0",
         "cruftless": "^1.2.1",
         "form-data": "^4.0.0",
@@ -154,7 +154,8 @@
     "auditProcessor": {
         "allowlist": [
             "1118827",
-            "1119441"
+            "1119441",
+            "1130722"
         ]
     }
 }

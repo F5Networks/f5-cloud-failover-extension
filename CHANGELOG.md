@@ -3,6 +3,12 @@
 All notable changes to the F5 BIG-IP Cloud Failover Extension (CFE) are
 documented in this file, newest version first.
 
+## 2.5.1
+
+BUG FIXES:
+* AWS/GCP: Use HTTP CONNECT tunneling for proxy support, so HTTPS requests are
+  properly tunneled through a configured proxy instead of being sent directly.
+
 ## 2.5.0
 
 BUG FIXES:
