@@ -118,6 +118,11 @@ module.exports = {
     * @param {Object}  [options.formData]        - HTTP form data
     * @param {Object}  [options.headers]         - HTTP headers
     * @param {Object}  [options.httpsAgent]      - HTTPS Client or Proxy object
+    * @param {Object|Boolean} [options.proxy]    - axios proxy config, or `false` to disable axios's
+    *                                              built-in proxy handling (including its HTTP_PROXY/
+    *                                              HTTPS_PROXY environment variable auto-detection).
+    *                                              Omit (leave `undefined`) to fall back to axios's
+    *                                              default auto-detection behavior.
     * @param {Boolean} [options.continueOnError] - continue on error (return info even if response contains error code)
     * @param {Boolean} [options.advancedReturn]  - advanced return (return status code AND response body)
     * @param {Boolean} [options.responseType]    - expected type of the response
@@ -162,7 +167,13 @@ module.exports = {
                     : new https.Agent({
                         rejectUnauthorized: false
                     }),
-                proxy: options.proxy || null,
+                // `options.proxy || null` would coerce an explicit `false` (used by cloud
+                // providers to disable axios's built-in proxy handling in favor of an
+                // httpsAgent-based proxy tunnel) into `null`, which axios treats the same
+                // as "not configured" and falls back to auto-detecting HTTP_PROXY/
+                // HTTPS_PROXY environment variables. Preserve `false` explicitly so proxy
+                // auto-detection is actually disabled when requested.
+                proxy: options.proxy === false ? false : (options.proxy || null),
                 validateStatus: options.validateStatus || false
             }))
             .then((response) => {

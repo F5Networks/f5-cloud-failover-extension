@@ -19,6 +19,7 @@
 const ipaddr = require('ipaddr.js');
 const url = require('url');
 const querystring = require('querystring');
+const ProxyAgent = require('https-proxy-agent');
 const CLOUD_PROVIDERS = require('../../constants').CLOUD_PROVIDERS;
 const INSPECT_ADDRESSES_AND_ROUTES = require('../../constants').INSPECT_ADDRESSES_AND_ROUTES;
 const GCP_FWD_RULE_PAIR_LABEL = require('../../constants').GCP_FWD_RULE_PAIR_LABEL;
@@ -54,7 +55,7 @@ class Cloud extends AbstractCloud {
         this.BASE_URL = 'https://www.googleapis.com';
         this.STORAGE_URL = 'https://storage.googleapis.com';
         this.bucket = null;
-        this.proxyOptions = null;
+        this.proxyAgent = null;
         this.device = new Device();
     }
 
@@ -82,17 +83,15 @@ class Cloud extends AbstractCloud {
                     this.instanceName = data[2];
                     this.instanceZone = data[3];
                     if (this.proxySettings) {
+                        // Build an HTTP(S) CONNECT-tunneling agent from the proxy URL. axios's
+                        // built-in `proxy` option does not send a CONNECT for HTTPS-through-proxy
+                        // requests, so the proxy must be applied via httpsAgent (with
+                        // options.proxy = false) instead - see _sendRequest() below.
                         const opts = url.parse(this._formatProxyUrl(this.proxySettings));
-                        this.proxyOptions = {
-                            protocol: opts.protocol,
-                            host: opts.hostname,
-                            port: opts.port
-                        };
-                        if (opts.username && opts.password) {
-                            this.proxyOptions.auth = {};
-                            this.proxyOptions.auth.username = opts.username;
-                            this.proxyOptions.auth.password = opts.password;
-                        }
+                        this.proxyAgent = ProxyAgent({
+                            protocol: opts.protocol, host: opts.hostname, port: opts.port, auth: opts.auth
+                        });
+                        this.logger.silly(`Configured proxy agent for ${opts.protocol}//${opts.hostname}:${opts.port}`);
                     }
                     return this._getCloudStorage(this.storageTags);
                 })
@@ -302,7 +301,14 @@ class Cloud extends AbstractCloud {
         options.advancedReturn = options.advancedReturn || false;
         options.continueOnError = options.continueOnError || false;
         options.validateStatus = options.validateStatus || false;
-        options.proxy = this.proxyOptions;
+        // Disable axios's built-in proxy handling: for HTTPS-through-HTTP(S)-proxy
+        // requests it does not perform a CONNECT tunnel. Instead, the proxy (if any)
+        // is applied via options.httpsAgent (see this.proxyAgent, built in init()).
+        // A caller-supplied httpsAgent (if ever passed in options) takes precedence
+        // over the provider's proxyAgent, since an explicit request-level agent should
+        // not be silently overridden by the provider-level proxy configuration.
+        options.proxy = false;
+        options.httpsAgent = options.httpsAgent || this.proxyAgent;
 
         return this._retrier(util.makeRequest, [host, uri, options])
             .then((data) => Promise.resolve(data))

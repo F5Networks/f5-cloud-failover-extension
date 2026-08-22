@@ -1648,10 +1648,9 @@ describe('Provider - GCP', () => {
 
             return provider.init(mockInitData)
                 .then(() => {
-                    assert.ok(provider.proxyOptions);
-                    assert.strictEqual(provider.proxyOptions.host, 'proxy.example.com');
-                    assert.strictEqual(provider.proxyOptions.port, '8080');
-                    assert.strictEqual(provider.proxyOptions.protocol, 'http:');
+                    assert.ok(provider.proxyAgent);
+                    assert.strictEqual(provider.proxyAgent.proxy.host, 'proxy.example.com');
+                    assert.strictEqual(provider.proxyAgent.proxy.port, 8080);
                 });
         });
 
@@ -1684,7 +1683,7 @@ describe('Provider - GCP', () => {
 
             return provider.init(mockInitData)
                 .then(() => {
-                    assert.strictEqual(provider.proxyOptions, null);
+                    assert.strictEqual(provider.proxyAgent, null);
                 });
         });
     });
@@ -2532,20 +2531,32 @@ describe('Provider - GCP', () => {
                 });
         });
 
-        it('set proxy options on request', () => {
+        it('disable axios proxy handling and use proxyAgent as httpsAgent on request', () => {
             srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
 
             provider.accessToken = 'foo';
-            provider.proxyOptions = {
-                protocol: 'http:',
-                host: 'proxy.example.com',
-                port: '8080'
-            };
+            provider.proxyAgent = { fakeAgent: true };
 
             return provider._sendRequest('GET', 'https://example.com/path', {})
                 .then(() => {
                     const callOptions = srcUtil.makeRequest.args[0][2];
-                    assert.deepStrictEqual(callOptions.proxy, provider.proxyOptions);
+                    assert.strictEqual(callOptions.proxy, false);
+                    assert.strictEqual(callOptions.httpsAgent, provider.proxyAgent);
+                });
+        });
+
+        it('should prefer a caller-supplied httpsAgent over proxyAgent', () => {
+            srcUtil.makeRequest = sinon.stub().resolves({ result: 'ok' });
+
+            provider.accessToken = 'foo';
+            provider.proxyAgent = { fakeProxyAgent: true };
+            const callerAgent = { fakeCallerAgent: true };
+
+            return provider._sendRequest('GET', 'https://example.com/path', { httpsAgent: callerAgent })
+                .then(() => {
+                    const callOptions = srcUtil.makeRequest.args[0][2];
+                    assert.strictEqual(callOptions.proxy, false);
+                    assert.strictEqual(callOptions.httpsAgent, callerAgent);
                 });
         });
     });

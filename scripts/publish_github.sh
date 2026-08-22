@@ -23,7 +23,7 @@ RELEASE_BUILD=$(echo $CI_COMMIT_REF_NAME | awk -F"-" '{ print $3 }')
 #   - f5-cloud-failover.spec, Dockerfile, Makefile, make.bat : source-build files
 # Only docs, examples, specs, and release metadata are published. Release
 # artifacts (RPM, hash, Postman collection) are attached to the GitHub Release.
-ALLOWED_DIRS=(.github contributing diagrams docs examples sdk specs)
+ALLOWED_DIRS=(.github diagrams docs examples sdk specs)
 ALLOWED_FILES=(.gitallowed .gitattributes .gitignore files_blacklist.yml LICENSE package-lock.json package.json README.md requirements.txt SUPPORT.md)
 
 echo "*** Setting git origin"
