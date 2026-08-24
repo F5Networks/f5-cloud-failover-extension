@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Cloud Failover Extension Overview</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Cloud Failover Extension Overview"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Cloud Failover Extension Overview &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Prerequisites and Requirements" href="prereqs.html" />
+    <link rel="prev" title="F5 BIG-IP Cloud Failover" href="../index.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Cloud Failover Extension Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-does-it-work">How does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-use-cloud-failover-extension">Why use Cloud Failover Extension?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Cloud Failover Extension Overview</a><ul>
+<li><a class="reference internal" href="#how-does-it-work">How does it work?</a></li>
+<li><a class="reference internal" href="#why-use-cloud-failover-extension">Why use Cloud Failover Extension?</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Cloud Failover Extension Overview</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="cloud-failover-extension-overview">
+<span id="overview"></span><h1>Cloud Failover Extension Overview<a class="headerlink" href="#cloud-failover-extension-overview" title="Permalink to this headline">¶</a></h1>
+<p>The F5 BIG-IP Cloud Failover Extension (CFE) is an iControl LX extension that provides L3 failover functionality in cloud environments, effectively replacing Gratuitous ARP (GARP). CFE uses a declarative model, meaning you provide a JSON declaration using a single REST API call rather than a set of imperative commands. The declaration then configures the BIG-IP system with all the required settings for cloud failover. At a high level, to use CFE, you will <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension">download the RPM from GitHub</a>, upload the RPM to BIG-IP, tag or label your cloud resources, and then Post your declaration.</p>
+<a class="reference internal image-reference" href="../_images/extension-steps.png"><img alt="../_images/extension-steps.png" src="../_images/extension-steps.png" style="width: 800px;" /></a>
+<div class="section" id="how-does-it-work">
+<h2>How does it work?<a class="headerlink" href="#how-does-it-work" title="Permalink to this headline">¶</a></h2>
+<p>In the event of a failover between BIG-IP systems, BIG-IP fails a traffic group over, which runs the <cite>/config/failover/tgactive</cite> script. CFE updates that file during any configuration request to ensure it triggers failover by calling the Cloud Failover /trigger API. During a failover event, CFE then moves or updates cloud resources as described below:</p>
+<ul class="simple">
+<li><strong>Failover IP(s)</strong>: The extension updates IP configurations between NICs, updates EIP/private IP associations, and updates forwarding rule target instances.</li>
+<li><strong>Failover Routes</strong>: The extension updates Azure User-Defined Routes (UDR), AWS route tables, and GCP forwarding rule targets to point to a self IP address of the active BIG-IP device.</li>
+<li><strong>Failback</strong>: The extension reverts to using the designated primary BIG-IP when it becomes active again.</li>
+</ul>
+<p>The diagram below shows a typical failover scenario for an active/standby pair of BIG-IPs in a cloud environment. To see how Cloud Failover Extension works in specific cloud environments, see the sections for <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a>.</p>
+<a class="reference internal image-reference" href="../_images/cfe-diagram.gif"><img alt="../_images/cfe-diagram.gif" src="../_images/cfe-diagram.gif" style="width: 800px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="why-use-cloud-failover-extension">
+<h2>Why use Cloud Failover Extension?<a class="headerlink" href="#why-use-cloud-failover-extension" title="Permalink to this headline">¶</a></h2>
+<p>Using Cloud Failover Extension has three main benefits:</p>
+<ul class="simple">
+<li>Standardization: Failover patterns will look similar across all clouds.</li>
+<li>Portability: You can leverage a variety of methods, including cloud-native templates, Terraform, and Ansible, to install and run CFE.</li>
+<li>Lifecycle and Supportability: You can upgrade BIG-IP without having to call F5 support to fix failover.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="../index.html" title="F5 BIG-IP Cloud Failover" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="prereqs.html" title="Prerequisites and Requirements" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

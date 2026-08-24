@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>F5 BIG-IP Cloud Failover</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>F5 BIG-IP Cloud Failover &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Cloud Failover Extension Overview" href="userguide/overview.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="userguide/overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">F5 BIG-IP Cloud Failover</a><ul>
+<li><a class="reference internal" href="#user-guide-index">User Guide Index</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="#">F5 BIG-IP Cloud Failover </a> &gt; F5 BIG-IP Cloud Failover</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="f5-big-ip-cloud-failover">
+<h1>F5 BIG-IP Cloud Failover<a class="headerlink" href="#f5-big-ip-cloud-failover" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the F5 BIG-IP Cloud Failover Extension User Guide.</p>
+<p>Use the following links, the navigation on the left, and/or the Next and Previous buttons to explore the documentation.</p>
+<p><strong>Please Note:</strong>  F5 BIG-IP Cloud Failover Extension is entering a phase of ongoing maintenance and support.
+A product in maintenance mode continues to receive support and ensures its stability with regular critical fixes and security updates.
+This maintenance approach helps maintain the longevity and reliability of the product for the long term.
+Enhancement requests for this product will be evaluated on an individual basis, taking into consideration their overall impact and alignment with our business objectives.
+Only those with a strong case for improvement will be considered for implementation. <strong>There is no plan to deprecate this product.</strong></p>
+<div class="section" id="user-guide-index">
+<h2>User Guide Index<a class="headerlink" href="#user-guide-index" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="userguide/overview.html">Cloud Failover Extension Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/overview.html#how-does-it-work">How does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/overview.html#why-use-cloud-failover-extension">Why use Cloud Failover Extension?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/faq.html">Frequently Asked Questions (FAQ)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/faq.html#index">Index</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/quickstart.html#quick-start-example">Quick Start Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/installation.html">Download and Install Cloud Failover Extension</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/installation.html#download-the-rpm-file">Download the RPM file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/installation.html#upload-and-install-the-cloud-failover-extension-cfe-file">Upload and install the Cloud Failover Extension (CFE) file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/installation.html#update-cloud-failover-extension">Update Cloud Failover Extension</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/configuration.html">Configure Cloud Failover Extension</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/configuration.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/configuration.html#components-of-the-declaration">Components of the Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/configuration.html#endpoints">Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/configuration.html#using-a-proxy">Using a Proxy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/configuration.html#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/example-declarations.html">Example Declarations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#advanced-routing-multiple-route-tables-routes-nexthops-and-subscriptions">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#route-failover-using-route-tags">Route Failover Using Route Tags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#multiple-next-hop-addresses">Multiple Next Hop addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#aws-ipv6-route-failover">AWS IPv6 Route Failover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#azure-route-tables-in-multiple-subscriptions">Azure Route Tables in Multiple Subscriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Default AWS Managed Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Customer Managed Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/example-declarations.html#setting-the-log-level">Setting the Log Level</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/logging.html">Logging</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/logging.html#example-log-entries-for-different-levels">Example log entries for different levels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/update-revert.html">Update or Revert Cloud Failover Extension</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/update-revert.html#update-cloud-failover-extension">Update Cloud Failover Extension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/update-revert.html#revert-to-a-previous-version-of-cloud-failover-extension">Revert to a previous version of Cloud Failover Extension</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/performance-sizing.html">Performance and Sizing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/performance-sizing.html#aws">AWS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/performance-sizing.html#gcp">GCP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/performance-sizing.html#azure">Azure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/isolated-env.html">CFE in Isolated Environments</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/isolated-env.html#gcp">GCP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/isolated-env.html#azure">Azure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="userguide/troubleshooting.html">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="userguide/troubleshooting.html#confirm-cfe-installation">Confirm CFE Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/troubleshooting.html#id2">Confirm Network Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/troubleshooting.html#confirm-cfe-configuration">Confirm CFE Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/troubleshooting.html#troubleshooting-and-debugging-unexpected-behavior">Troubleshooting and Debugging Unexpected Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="userguide/troubleshooting.html#troubleshooting-index">Troubleshooting Index</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="revision-history.html">Document Revision History</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+       
+          <a href="userguide/overview.html" title="Cloud Failover Extension Overview" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="_static/js/index.js"></script>
+  <script src="_static/js/jquery.appear.js"></script>
+  <script src="_static/js/printThis.js"></script>
+  <script src="_static/js/bootstrap.min.js"></script>
+  <script src="_static/js/clouddocs.js"></script>
+  <script src="_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

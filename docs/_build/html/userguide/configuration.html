@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Configure Cloud Failover Extension</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Configure Cloud Failover Extension"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Configure Cloud Failover Extension &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="AWS" href="aws.html" />
+    <link rel="prev" title="Download and Install Cloud Failover Extension" href="installation.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configure Cloud Failover Extension</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#components-of-the-declaration">Components of the Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#endpoints">Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-a-proxy">Using a Proxy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Configure Cloud Failover Extension</a><ul>
+<li><a class="reference internal" href="#validation">Validation</a></li>
+<li><a class="reference internal" href="#components-of-the-declaration">Components of the Declaration</a><ul>
+<li><a class="reference internal" href="#base-components">Base components</a></li>
+<li><a class="reference internal" href="#logging">Logging</a></li>
+<li><a class="reference internal" href="#retry-failover-interval">Retry Failover Interval</a></li>
+<li><a class="reference internal" href="#failover-addresses">Failover Addresses</a></li>
+<li><a class="reference internal" href="#failover-routes">Failover Routes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#endpoints">Endpoints</a></li>
+<li><a class="reference internal" href="#using-a-proxy">Using a Proxy</a></li>
+<li><a class="reference internal" href="#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Configure Cloud Failover Extension</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="configure-cloud-failover-extension">
+<span id="configure"></span><h1>Configure Cloud Failover Extension<a class="headerlink" href="#configure-cloud-failover-extension" title="Permalink to this headline">¶</a></h1>
+<p>Once the Package is installed, you will use the REST endpoints to configure the Cloud Failover Extension.</p>
+<ol class="arabic">
+<li><p class="first">Using a RESTful API client, send a GET request to the URI <code class="docutils literal notranslate"><span class="pre">https://{{host}}/mgmt/shared/cloud-failover/info</span></code> to ensure Cloud Failover Extension is installed and running.</p>
+<p>For illustration purposes, the examples below use <cite>curl</cite> on the BIG-IP itself and the utililty <cite>jq</cite> to pretty print the JSON output:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .</span>
+<span class="o">{</span>
+   <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>,
+   <span class="s2">&quot;release&quot;</span>: <span class="s2">&quot;0&quot;</span>,
+   <span class="s2">&quot;schemaCurrent&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>,
+   <span class="s2">&quot;schemaMinimum&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Copy one of the example declarations from the individual cloud provider sections or one of the <a class="reference internal" href="example-declarations.html#example-declarations"><span class="std std-ref">Example Declarations</span></a> which best matches the desired configuration. See each provider section for additional details and requirements.</p>
+<ul class="simple">
+<li><a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a></li>
+<li><a class="reference internal" href="aws-same-az.html#aws-same-az"><span class="std std-ref">AWS (Same Availability Zone)</span></a></li>
+<li><a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a></li>
+<li><a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a></li>
+</ul>
+</li>
+<li><p class="first">Paste or copy the declaration into your API client, and modify any names, addresses, routes, or properties as applicable. If the configuration requires tags, the key and value pair in the configuration can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;i_am_an_arbitrary_key&quot;</span><span class="p">:</span> <span class="s2">&quot;i_am_an_arbitrary_value&quot;</span>
+   <span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">POST to the URI <code class="docutils literal notranslate"><span class="pre">https://&lt;BIG-IP&gt;/mgmt/shared/cloud-failover/declare</span></code>.</p>
+<p>Below is an example where <cite>cfe.json</cite> is the name of the file that has been uploaded or edited locally to contain the contents of your CFE declaration.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># vim cfe.json</span>
+<span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .</span>
+<span class="o">[</span>admin@bigip-B:Standby:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>You should receive an expected response of <cite>success</cite> after you have posted this declaration. For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+  <span class="s2">&quot;message&quot;</span>: <span class="s2">&quot;success&quot;</span>,
+      <span class="s2">&quot;declaration&quot;</span>: <span class="o">{</span>
+          <span class="s2">&quot;class&quot;</span>: <span class="s2">&quot;Cloud_Failover&quot;</span>,
+  ...
+  &lt;output shortened <span class="k">for</span> illustration purposes&gt;
+  ...
+<span class="o">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.</p>
+</div>
+</li>
+<li><p class="first">Validate.</p>
+<ul class="simple">
+<li>See the <a class="reference internal" href="#config-validation"><span class="std std-ref">Validation</span></a> section below.</li>
+<li>Review the logs: <code class="docutils literal notranslate"><span class="pre">tail</span> <span class="pre">–f</span> <span class="pre">/var/log/restnoded/restnoded.log</span></code>.</li>
+</ul>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="validation">
+<span id="config-validation"></span><h2>Validation<a class="headerlink" href="#validation" title="Permalink to this headline">¶</a></h2>
+<p>On any initial configuration or re-configuration, F5 recommends that you validate Cloud Failover Extension’s configuration to confirm it can properly communicate with the cloud environment and what actions will be performed.</p>
+<p>On the <strong>Standby</strong> instance:</p>
+<ol class="arabic">
+<li><p class="first">Inspect the configuration to confirm all the BIG-IPs interfaces have been identified.</p>
+<p>Use the <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get">/inspect</a>  endpoint to list associated cloud objects.</p>
+<p>For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect <span class="p">|</span> jq .
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Peform a Dry-Run of the Failover to confirm what addresses or routes have been identified and will be remapped.</p>
+<p>Use the <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger">/trigger</a> endpoint with <code class="docutils literal notranslate"><span class="pre">'{&quot;action&quot;:&quot;dry-run&quot;}'</span></code> payload.</p>
+<p>For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X POST -d <span class="s1">&#39;{&quot;action&quot;:&quot;dry-run&quot;}&#39;</span> http://localhost:8100/mgmt/shared/cloud-failover/trigger <span class="p">|</span> jq .
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+</ol>
+<p>If you run into any issues or errors, see the <a class="reference internal" href="troubleshooting.html#troubleshooting"><span class="std std-ref">Troubleshooting</span></a> section for more details.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="components-of-the-declaration">
+<span id="declaration-components"></span><h2>Components of the Declaration<a class="headerlink" href="#components-of-the-declaration" title="Permalink to this headline">¶</a></h2>
+<p>This section provides more information about the options in a Cloud Failover configuration, and breaks down the example declaration into each class so you can understand the options when composing your declaration. The tables below the code snippets contain descriptions and options for the properties. If there is a default value, it is shown in <strong>bold</strong> in the Options column.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<ul class="last simple">
+<li>Beginning with version v1.7.0, there are two options for configuring CFE. At a high level, they include:<ul>
+<li>Discovery via Tags: This involves discovering external cloud resources to manage by a set of tags (a deployment scoping tag and/or a configuration related tag) on the resources. This requires minimal configuration on the BIG-IP side and dynamically discovers external resources to manage.</li>
+<li>Explicit Configuration: This involves defining external resources to manage by name, address, etc. in the CFE configuration itself. This requires additional configuration on the BIG-IP side but facilitates advanced configurations and some automation workflows. Although Cloud Failover no longer requires tags on <em>external</em> resources, it may still require them on its own NICs or instance in some environments. See the <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> sections for more details.</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="base-components">
+<span id="base-comps"></span><h3>Base components<a class="headerlink" href="#base-components" title="Permalink to this headline">¶</a></h3>
+<p>The first few lines of your declaration are a part of the base components and are <strong>required</strong>.</p>
+<p>First, you define the environment in which Cloud Failover will be running.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="14%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Options</th>
+<th class="head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>class</td>
+<td>Cloud_Failover</td>
+<td>Top-level Cloud Failover class. Do not change this value.</td>
+</tr>
+<tr class="row-odd"><td>environment</td>
+<td>aws, azure, gcp</td>
+<td>Provide the cloud environment you are using. See the <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> sections for more details.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Next, you define the external storage Cloud Failover will use for its state file.</p>
+<ul>
+<li><p class="first">Discovery via Tag example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> is available in Cloud Failover Extension v1.7.0 and later.</p>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;CloudFailoverBucket&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">endpointDnsName</span></code> is available for AWS in Cloud Failover Extension v2.4.0 and later.</p>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;endpointDnsName&quot;</span><span class="p">:</span> <span class="s2">&quot;vpce-xxxxxxxxxxxxxx-xxxxxxxx.s3.us-west-2.vpce.amazonaws.com&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">stateFileName</span></code> is available in Cloud Failover Extension v2.4.0 and later.</p>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;stateFileName&quot;</span><span class="p">:</span> <span class="s2">&quot;custom-failover-state.json&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="12%" />
+<col width="6%" />
+<col width="82%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Options</th>
+<th class="head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>externalStorage</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide scopingTags or scopingName object, with an optional AWS endpoint PrivateLink, to define Cloud Failover’s storage. See the <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> sections for more details of what storage objects are used.</td>
+</tr>
+<tr class="row-odd"><td>scopingTags</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the key/value pair that match the cloud tags you assigned to the external storage in your cloud environment.</td>
+</tr>
+<tr class="row-even"><td>scopingName</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the name of external storage in your cloud environment.</td>
+</tr>
+<tr class="row-odd"><td>endpointDnsName</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the DNS name of an AWS VPC Endpoint configured for accessing S3 with a PrivateLink in your cloud environment.</td>
+</tr>
+<tr class="row-even"><td>stateFileName</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the name of the failover state file stored in S3. If not provided, the default file name is <code class="docutils literal notranslate"><span class="pre">f5cloudfailoverstate.json</span></code>.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When you POST a declaration, depending on the complexity of your declaration and the modules you are provisioning, it may take some time before the system returns a success message.</p>
+</div>
+<p>The following base components are <strong>optional</strong>.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="logging">
+<span id="base-comps-logging"></span><h3>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h3>
+<p>Cloud Failover Extension logs to <strong>/var/log/restnoded/restnoded.log</strong>. The logging level is set in the <code class="docutils literal notranslate"><span class="pre">controls</span></code> class with possible values of <code class="docutils literal notranslate"><span class="pre">silly</span></code>, <code class="docutils literal notranslate"><span class="pre">verbose</span></code>, <code class="docutils literal notranslate"><span class="pre">debug</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code>, and <code class="docutils literal notranslate"><span class="pre">error</span></code>.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;controls&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+   <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;info&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="20%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Options</th>
+<th class="head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>controls</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide various controls options.</td>
+</tr>
+<tr class="row-odd"><td>class</td>
+<td>Controls</td>
+<td>Controls class. Do not change this value.</td>
+</tr>
+<tr class="row-even"><td>logLevel</td>
+<td>silly, verbose, debug, info, warning, error</td>
+<td>Provide the logging level to use. The default value is <strong>info</strong> although “silly” is highly recommended for first use, troubleshooting, and debugging.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a class="reference internal" href="logging.html#logging-ref"><span class="std std-ref">Logging</span></a> for more details and example output levels.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="retry-failover-interval">
+<span id="base-comps-retry"></span><h3>Retry Failover Interval<a class="headerlink" href="#retry-failover-interval" title="Permalink to this headline">¶</a></h3>
+<p>This feature is <strong>optional</strong> and, as part of floating object mapping validation, allows you to trigger failover periodically at an interval of your choosing.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;retryFailover&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;interval&quot;</span><span class="p">:</span> <span class="mi">2</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">retryFailover</span></code> is available in Cloud Failover Extension v1.6.0 and later.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="15%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Options</th>
+<th class="head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>retryFailover</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide retry options.</td>
+</tr>
+<tr class="row-odd"><td>enabled</td>
+<td>true, false</td>
+<td>Specify if retrying failover is enabled. The default value is <strong>false</strong></td>
+</tr>
+<tr class="row-even"><td>interval</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the failover retry interval. The interval unit is in minutes.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="failover-addresses">
+<span id="id1"></span><h3>Failover Addresses<a class="headerlink" href="#failover-addresses" title="Permalink to this headline">¶</a></h3>
+<p>The next lines of the declaration set the address failover functionality.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">failoverAddresses.endpointDnsName</span></code> is available for AWS in Cloud Failover Extension v2.4.0 and later.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;endpointDnsName&quot;</span><span class="p">:</span> <span class="s2">&quot;vpce-xxxxxxxxxxxxxx-xxxxxxxx.ec2.us-west-2.vpce.amazonaws.com&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="15%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Options</th>
+<th class="head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>failoverAddresses</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide <strong>address</strong> failover configurations.</td>
+</tr>
+<tr class="row-odd"><td>enabled</td>
+<td>true, false</td>
+<td>Enables or disables the address failover functionality.</td>
+</tr>
+<tr class="row-even"><td>endpointDnsName</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Provide the DNS name of an AWS VPC Endpoint configured for accessing EC2 API with a PrivateLink in your cloud environment.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">Discovery via Tag example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+   <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+         <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.1.100&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+         <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.1.101&quot;</span>
+      <span class="p">}</span>
+   <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>Beginning v2.2.0, CFE supports AWS ipv4 prefix migration during a failover event when providing <code class="docutils literal notranslate"><span class="pre">scopingAddress</span></code> property under <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> with an ipv4 address and prefix. Example: 10.0.1.48/28.  Click <a class="reference external" href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-prefix-eni.html">here</a> for more information on Prefix delegation for Amazon EC2 network interfaces. CFE will update the prefix association during failover to move the entire prefix to the active instance’s NIC. This allows for up to 16 IP addresses to be moved with a single API call, which can improve failover time for large deployments. CFE also locates EIPs associated with any of the IPs in the prefix and moves those EIPs during failover as well. This feature is only available for AWS in same network topologies and is not supported when using across AZ topologies.</li>
+<li>Beginning v1.7.0, the property <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> is available in Cloud Failover Extension.</li>
+</ul>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">AWS Prefix Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+   <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+         <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.1.48/28&quot;</span>
+      <span class="p">}</span>
+   <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="styled-table docutils">
+<colgroup>
+<col width="7%" />
+<col width="7%" />
+<col width="86%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Property</th>
+<th class="left-align head">Options</th>
+<th class="left-align head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align">scopingTags</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">Provide a key/value pair that you have assigned to the resources in your cloud environment. This serves as the general “deployment” scoping tag. This property is required for AWS configurations. See the <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> sections for more details on required additional tags.</td>
+</tr>
+<tr class="row-odd"><td class="left-align">addressGroupDefinitions</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">Provide address objects to failover. If you use this, you do not need to tag external address resources.  See the <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> sections for more details of address types.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">In AWS, the <code class="docutils literal notranslate"><span class="pre">scopingTags</span></code> property is required in all configurations (for example, even when failoverAddresses is disabled and only failing over routes) as it is leveraged internally to map the peer BIG-IP’s NICs.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="failover-routes">
+<span id="id2"></span><h3>Failover Routes<a class="headerlink" href="#failover-routes" title="Permalink to this headline">¶</a></h3>
+<p>The next lines of the declaration set the route failover functionality.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="styled-table docutils">
+<colgroup>
+<col width="14%" />
+<col width="13%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Property</th>
+<th class="left-align head">Options</th>
+<th class="left-align head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align">failoverRoutes</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">Provide <strong>route</strong> failover configurations.</td>
+</tr>
+<tr class="row-odd"><td class="left-align">enabled</td>
+<td class="left-align">true, false</td>
+<td class="left-align">Enables or disables the route failover functionality. If the failoverAddresses section is provided, the default is <strong>true</strong>.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">Discovery via Tag example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">},</span>
+     <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;192.168.1.0/24&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;192.168.1.1/24&quot;</span>
+        <span class="p">}</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;routetag&quot;</span>
+     <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul>
+<li><p class="first">Explicit Configuration example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+         <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+               <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;192.168.1.0/24&quot;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+               <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;192.168.1.1/24&quot;</span>
+            <span class="p">}</span>
+         <span class="p">],</span>
+         <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+               <span class="s2">&quot;192.0.2.10&quot;</span><span class="p">,</span>
+               <span class="s2">&quot;192.0.2.11&quot;</span>
+            <span class="p">]</span>
+         <span class="p">}</span>
+      <span class="p">}</span>
+   <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The property <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> provides more granular per-route table operations (F5 recommends using this option going forward). In the example above, <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> is used to specify the exact route table to operate on and <code class="docutils literal notranslate"><span class="pre">static</span></code> in defaultNextHopAddresses to specify the nexthop Self-IP mappings.</p>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> is available in Cloud Failover Extension v1.5.0 and later.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<table border="1" class="styled-table docutils">
+<colgroup>
+<col width="3%" />
+<col width="3%" />
+<col width="94%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Property</th>
+<th class="left-align head">Options</th>
+<th class="left-align head">Description/Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align">scopingTags</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">Provide a key/value pair used to discover route tables to perform updates on. The route table(s) are required to have this tag regardless of the <code class="docutils literal notranslate"><span class="pre">discoveryType</span></code> method used for the <code class="docutils literal notranslate"><span class="pre">nextHopAddresses</span></code> (or self IP mappings). NOTE: Although it can be used for simple deployments, the scope of this tag in the first example is global to the cluster/deployment and may discover multiple route tables. If you have routes that you specificially want to update in one table vs. another table (ex. 0.0.0.0 for an internal routing table and not on an external routing table), use the <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> option.</td>
+</tr>
+<tr class="row-odd"><td class="left-align">scopingAddressRanges</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">A list of destination routes (prefixes) to update in the event of failover.</td>
+</tr>
+<tr class="row-even"><td class="left-align">defaultNextHopAddresses</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">This is the default list of BIG-IP’s Self IPs to point the routes (prefixes) to for any routes listed in <code class="docutils literal notranslate"><span class="pre">scopingAddressRanges</span></code> that do not have a more specific set of <code class="docutils literal notranslate"><span class="pre">nextHopAddresses</span></code> defined. See <a class="reference internal" href="example-declarations.html#example-multiple-next-hop"><span class="std std-ref">Multiple Next Hop addresses</span></a> for an example declaration for multiple routing tables pointing to different nexthops.</td>
+</tr>
+<tr class="row-odd"><td class="left-align">discoveryType</td>
+<td class="left-align">static, <strong>routeTag</strong></td>
+<td class="left-align"><p class="first">In cases where BIG-IP has multiple NICs, CFE needs to know which interfaces it needs to re-map the routes to. It does this by using the Self IPs associated with those NICs. You can either define the Self IPs statically in the configuration <cite>OR</cite> in an additional cloud tag on the route table and have CFE discover them via tag.</p>
+<ul class="last simple">
+<li>If you use <code class="docutils literal notranslate"><span class="pre">static</span></code>, you will need to provide the Self-IPs in the <code class="docutils literal notranslate"><span class="pre">items</span></code> area of the CFE configuration.</li>
+<li>If you use <code class="docutils literal notranslate"><span class="pre">routeTag</span></code>, you will need to add another tag to the route table in your cloud environment with the reserved key <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">f5_self_ips:192.0.2.10,192.0.2.11</span></code>. See <a class="reference internal" href="example-declarations.html#example-route-tag"><span class="std std-ref">Route Failover Using Route Tags</span></a> for an example configuration.</li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align">items</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">List the Self IP address of each instance to route traffic to. This is only required when discoveryType is <code class="docutils literal notranslate"><span class="pre">static</span></code>.</td>
+</tr>
+<tr class="row-odd"><td class="left-align">routeGroupDefinitions</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">List of route tables or route groups to update in the event of failover. This feature is available in CFE v1.5.0+ to support advanced routing scenarios. In AWS and Azure, <code class="docutils literal notranslate"><span class="pre">routeGroupDefintions</span></code> translates to route tables. GCP does not have route tables so it translates to groups or collections of routes. This option is intended for use in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) and require per-route table granularity. For example, if you have routes that you specificially want update in one table vs. another (ex. 0.0.0.0 for only the internal routing table and not on the external routing table). See <a class="reference internal" href="example-declarations.html#advanced-routing-examples"><span class="std std-ref">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</span></a> for example declarations.</td>
+</tr>
+<tr class="row-even"><td class="left-align">scopingName</td>
+<td class="left-align"><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td class="left-align">String containing the name or ID of routing table to update. If you use this, you do not need to tag the route tables. See <a class="reference internal" href="example-declarations.html#advanced-routing-examples"><span class="std std-ref">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</span></a> for example declarations.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="endpoints">
+<h2>Endpoints<a class="headerlink" href="#endpoints" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Configuration">declare</a>: user this endpoint to configure CFE</li>
+<li><a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information">info</a>: use this endpoint to get information on CFE, such as the version number.</li>
+<li><a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get">inspect</a>: use this endpoint to list associated cloud objects.</li>
+<li><a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Reset">reset</a>: use this endpoint to reset the failover state file.</li>
+<li><a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger">trigger</a>: use this endpoint to trigger failover.</li>
+</ul>
+<p>For more information see the <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html">API Reference</a>.</p>
+</div>
+<div class="section" id="using-a-proxy">
+<h2>Using a Proxy<a class="headerlink" href="#using-a-proxy" title="Permalink to this headline">¶</a></h2>
+<p>This extension supports making API calls through a proxy server for most cloud providers. It looks at the BIG-IP proxy configuration defined in system db variables. These can be viewed by running <code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">list</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">proxy</span></code>.</p>
+<ul class="simple">
+<li>AWS: All API calls will use the proxy.</li>
+<li>Azure: All control plane API calls will use the proxy. Storage upload/download (data-plane) calls will not use the proxy.</li>
+<li>GCP:  No API calls will use the proxy.  Please open an <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">issue</a> if this is required in your environment.</li>
+</ul>
+<p>Configuring BIG-IP proxy configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>modify sys db proxy.host value <span class="m">192</span>.0.2.10
+modify sys db proxy.port value <span class="m">3128</span>
+modify sys db proxy.username value proxyuser
+modify sys db proxy.password value apassword
+modify sys db proxy.protocol value https
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="cloud-environments">
+<h2>Cloud Environments<a class="headerlink" href="#cloud-environments" title="Permalink to this headline">¶</a></h2>
+<p>Choose the cloud environment you are working in to continue implementing CFE:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="aws.html">AWS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#aws-cfe-prerequisites">AWS CFE Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#aws-failover-event-diagram">AWS Failover Event Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#example-aws-declaration">Example AWS Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#create-and-assign-an-iam-role">Create and assign an IAM Role</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#define-aws-infrastructure-objects">Define AWS Infrastructure Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws.html#specify-a-custom-trusted-certificate-bundle-for-api-calls">Specify a custom trusted certificate bundle for API Calls</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aws-same-az.html">AWS (Same Availability Zone)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#aws-cfe-prerequisites">AWS CFE Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#aws-failover-event-diagram">AWS Failover Event Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#example-aws-declaration">Example AWS Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#create-and-assign-an-iam-role">Create and assign an IAM Role</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#define-aws-infrastructure-objects">Define AWS Infrastructure Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aws-same-az.html#specify-a-custom-trusted-certificate-bundle-for-api-calls">Specify a custom trusted certificate bundle for API Calls</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="azure.html">Azure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#azure-cfe-prerequisites">Azure CFE Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#azure-failover-event-diagram">Azure Failover Event Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#example-azure-declaration">Example Azure Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#create-and-assign-a-managed-service-identity-msi">Create and assign a Managed Service Identity (MSI)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#define-your-azure-infrastructure-objects">Define your Azure Infrastructure Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#set-up-access-to-azure-s-instance-metadata-service">Set up access to Azure’s Instance Metadata Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="azure.html#azure-private-endpoints">Azure Private Endpoints</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gcp.html">Google Cloud</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#google-cfe-prerequisites">Google CFE Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#gcp-failover-event-diagram">GCP Failover Event Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#example-gcp-declaration">Example GCP Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#create-and-assign-an-iam-role">Create and assign an IAM Role</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#define-your-google-cloud-infrastructure-objects">Define your Google Cloud Infrastructure Objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#shared-vpc-configuration">Shared VPC Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gcp.html#gcp-private-endpoints">GCP Private Endpoints</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="installation.html" title="Download and Install Cloud Failover Extension" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="aws.html" title="AWS" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Google Cloud</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Google Cloud"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Google Cloud &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Reference" href="apidocs.html" />
+    <link rel="prev" title="Azure" href="azure.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#components-of-the-declaration">Components of the Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#endpoints">Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#using-a-proxy">Using a Proxy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="configuration.html#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Google Cloud</a><ul>
+<li><a class="reference internal" href="#google-cfe-prerequisites">Google CFE Prerequisites</a></li>
+<li><a class="reference internal" href="#gcp-failover-event-diagram">GCP Failover Event Diagram</a></li>
+<li><a class="reference internal" href="#example-gcp-declaration">Example GCP Declaration</a></li>
+<li><a class="reference internal" href="#create-and-assign-an-iam-role">Create and assign an IAM Role</a></li>
+<li><a class="reference internal" href="#define-your-google-cloud-infrastructure-objects">Define your Google Cloud Infrastructure Objects</a><ul>
+<li><a class="reference internal" href="#define-remote-storage-for-state-file-in-gcp">Define Remote Storage for State File in GCP</a></li>
+<li><a class="reference internal" href="#define-the-failover-addresses-in-gcp">Define the Failover Addresses in GCP</a></li>
+<li><a class="reference internal" href="#define-the-routes-in-gcp">Define the Routes in GCP</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li><a class="reference internal" href="#shared-vpc-configuration">Shared VPC Configuration</a></li>
+<li><a class="reference internal" href="#gcp-private-endpoints">GCP Private Endpoints</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Google Cloud</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="google-cloud">
+<span id="gcp"></span><h1>Google Cloud<a class="headerlink" href="#google-cloud" title="Permalink to this headline">¶</a></h1>
+<p>In this section, you can see the complete steps for implementing Cloud Failover Extension in Google Cloud. You can also go straight to the <a class="reference internal" href="#gcp-example"><span class="std std-ref">Example GCP Declaration</span></a>.</p>
+<div class="section" id="google-cfe-prerequisites">
+<span id="gcp-prereqs"></span><h2>Google CFE Prerequisites<a class="headerlink" href="#google-cfe-prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>These are the basic prerequisites for setting up CFE in Google Cloud Platform:</p>
+<ul class="simple">
+<li><strong>2 BIG-IP systems in Active/Standby configuration</strong>. You can find an example <a class="reference external" href="https://github.com/F5Networks/f5-google-gdm-templates-v2/tree/main/examples/failover">GDM Template</a>. Any configuration tool can be used to provision the resources.</li>
+<li><strong>Virtual addresses</strong> or <strong>Self IPs</strong> created in a floating traffic group on the instances serving application traffic which will match either an Alias IP  or Forwarding Rule.</li>
+<li><strong>Target Instance Pair</strong> created where each target instance is pointing at a BIG-IP instance.  Note that this is only required if failover of any forwarding rules is desired.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Complete these tasks to deploy Cloud Failover Extension in GCP. Before getting started, we recommend you review the <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">Known Issues</a> and <a class="reference internal" href="faq.html#faq"><span class="std std-ref">Frequently Asked Questions (FAQ)</span></a>. To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see <a class="reference internal" href="isolated-env.html#isolated-env"><span class="std std-ref">CFE in Isolated Environments</span></a>.</p>
+<div class="sidebar admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.</p>
+</div>
+<table border="1" class="styled-table docutils" id="id1">
+<caption><span class="caption-text">Task Summary</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Step</th>
+<th class="left-align head">Task</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#download-rpm"><span class="std std-ref">Download the RPM file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#verify-rpm"><span class="std std-ref">Verify the integrity of the Cloud Failover Extension RPM package</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="2">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#upload-install"><span class="std std-ref">Upload and install the Cloud Failover Extension (CFE) file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#installgui-ref"><span class="std std-ref">Install CFE using the BIG-IP Configuration utility</span></a> (or)</li>
+<li><a class="reference internal" href="installation.html#installcurl-ref"><span class="std std-ref">Install CFE using cURL from the Linux shell</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="3">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="#gcp-iam"><span class="std std-ref">Create and assign an IAM Role</span></a></td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="4">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="#gcp-define-objects"><span class="std std-ref">Define your Google Cloud Infrastructure Objects</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="#gcp-define-storage"><span class="std std-ref">Define Remote Storage for State File in GCP</span></a></li>
+<li><a class="reference internal" href="#gcp-define-addresses"><span class="std std-ref">Define the Failover Addresses in GCP</span></a></li>
+<li><a class="reference internal" href="#gcp-define-routes"><span class="std std-ref">Define the Routes in GCP</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="5">
+<li></li>
+</ol>
+</td>
+<td class="left-align">Modify and POST the <a class="reference internal" href="#gcp-example"><span class="std std-ref">Example GCP Declaration</span></a></td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="6">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="update-revert.html#update-revert"><span class="std std-ref">Update or Revert Cloud Failover Extension</span></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="gcp-failover-event-diagram">
+<span id="gcp-diagram"></span><h2>GCP Failover Event Diagram<a class="headerlink" href="#gcp-failover-event-diagram" title="Permalink to this headline">¶</a></h2>
+<p>This diagram shows a failover event with Cloud Failover implemented in Google Cloud. In the event of a failover, alias IPs are updated to point to the network interface of the active BIG-IP device. The forwarding rule targets matching a self IP address of the active BIG-IP device are associated with the network interface of the active BIG-IP device. Management NICs/VPC are not shown in this diagram.</p>
+<img alt="../_images/gcp-failover-3nic-multiple-vs-animated.gif" src="../_images/gcp-failover-3nic-multiple-vs-animated.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="example-gcp-declaration">
+<span id="gcp-example"></span><h2>Example GCP Declaration<a class="headerlink" href="#example-gcp-declaration" title="Permalink to this headline">¶</a></h2>
+<p>This example declaration shows the minimum information needed to update the cloud resources in Google Cloud. See the <a class="reference internal" href="quickstart.html#quickstart"><span class="std std-ref">Quickstart</span></a> section for steps on how to post this declaration. See the <a class="reference internal" href="example-declarations.html#example-declarations"><span class="std std-ref">Example Declarations</span></a> section for more examples.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Example GCP Declaration</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;gcp&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;myCloudFailoverBucket&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;forwardingRule&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;forwarding-rule-1-1-1-1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;targetInstances&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="s2">&quot;ti-cluster-1-a&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;ti-cluster-1-b&quot;</span>
+        <span class="p">]</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;aliasAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101/28&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;example-route-1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10.0.13.12&quot;</span>
+          <span class="p">]</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/4bf2897ce3e90038c13cb579e34b4835/gcp-1.7.0.json"><code class="xref download docutils literal notranslate"><span class="pre">gcp.json</span></code></a></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="create-and-assign-an-iam-role">
+<span id="gcp-iam"></span><h2>Create and assign an IAM Role<a class="headerlink" href="#create-and-assign-an-iam-role" title="Permalink to this headline">¶</a></h2>
+<p>In order to successfully implement CFE in GCP, you need to have a GCP Identity and Access Management (IAM) service account with sufficient access. To create and assign an IAM role you must have a user role of <cite>Editor</cite>.</p>
+<ol class="arabic">
+<li><p class="first">In GCP, go to <strong>IAM &gt; Roles</strong>.</p>
+</li>
+<li><p class="first">Select <span class="guilabel">Create Role</span> and fill in the required fields.</p>
+</li>
+<li><p class="first">Ensure that Role launch stage is set to <span class="guilabel">General Availability</span>.</p>
+</li>
+<li><p class="first">Select <span class="guilabel">Add Permissions</span> and select the required permissions.</p>
+<blockquote>
+<div><table border="1" class="docutils">
+<colgroup>
+<col width="29%" />
+<col width="19%" />
+<col width="12%" />
+<col width="40%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Scope</th>
+<th class="head">CFE Component</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>compute.forwardingRules.get</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To get information about a forwarding rule.</td>
+</tr>
+<tr class="row-odd"><td>compute.forwardingRules.list</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To list the forwarding rules in a project.</td>
+</tr>
+<tr class="row-even"><td>compute.forwardingRules.setTarget</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To update the forwarding rule to use the active BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>compute.instances.get</td>
+<td>Project</td>
+<td>All</td>
+<td>To get information about the BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>compute.instances.list</td>
+<td>Project</td>
+<td>All</td>
+<td>To list the instances in a project.</td>
+</tr>
+<tr class="row-odd"><td>compute.instances.updateNetworkInterface</td>
+<td>Project</td>
+<td>All</td>
+<td>To update the instance network interface.</td>
+</tr>
+<tr class="row-even"><td>compute.networks.updatePolicy</td>
+<td>Project</td>
+<td>All</td>
+<td>To update the network policy.</td>
+</tr>
+<tr class="row-odd"><td>compute.routes.create</td>
+<td>Project</td>
+<td>failoverRoutes</td>
+<td>To update the route to use the active BIG-IP instance as next hop.</td>
+</tr>
+<tr class="row-even"><td>compute.routes.delete</td>
+<td>Project</td>
+<td>failoverRoutes</td>
+<td>To delete a route.</td>
+</tr>
+<tr class="row-odd"><td>compute.routes.get</td>
+<td>Project</td>
+<td>failoverRoutes</td>
+<td>To get information about a route.</td>
+</tr>
+<tr class="row-even"><td>compute.routes.list</td>
+<td>Project</td>
+<td>failoverRoutes</td>
+<td>To list the routes in a project.</td>
+</tr>
+<tr class="row-odd"><td>compute.targetInstances.get</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To get information about a target instance.</td>
+</tr>
+<tr class="row-even"><td>compute.targetInstances.list</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To list the target instances in a project.</td>
+</tr>
+<tr class="row-odd"><td>compute.targetInstances.use</td>
+<td>Project</td>
+<td>failoverAddresses</td>
+<td>To update the target instance to use the active BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>storage.buckets.get</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To get information about a storage bucket for the failover state file.</td>
+</tr>
+<tr class="row-odd"><td>storage.buckets.list</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To list the storage buckets in a project.</td>
+</tr>
+<tr class="row-even"><td>storage.buckets.update</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To update the storage bucket for the failover state file.</td>
+</tr>
+<tr class="row-odd"><td>storage.objects.create</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To create the failover state file.</td>
+</tr>
+<tr class="row-even"><td>storage.objects.delete</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To delete the failover state file.</td>
+</tr>
+<tr class="row-odd"><td>storage.objects.get</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To get information about the failover state file.</td>
+</tr>
+<tr class="row-even"><td>storage.objects.list</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To list files in a storage bucket.</td>
+</tr>
+<tr class="row-odd"><td>storage.objects.update</td>
+<td>Project</td>
+<td>externalStorage</td>
+<td>To update the failover state file.</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Select <span class="guilabel">Create</span> to finish creating the custom role.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">These permissions are also included, by default, in GCP pre-defined roles (Compute Admin and Storage Admin). As long as the service account has a role to bind to it with all the necessary permissions, then it should be sufficient. Please see your <a class="reference external" href="https://cloud.google.com/iam/docs/overview">cloud provider</a> for the latest best practices.</p>
+</div>
+<a class="reference internal image-reference" href="../_images/GCPIAMRoleSummary.png"><img alt="../_images/GCPIAMRoleSummary.png" src="../_images/GCPIAMRoleSummary.png" style="width: 833.0px; height: 796.0px;" /></a>
+</li>
+<li><p class="first">Bind the custom role in the step above to a service account by navigating to <strong>IAM &amp; admin &gt; IAM</strong>.</p>
+</li>
+<li><p class="first">Select the edit icon next to the service account for binding.</p>
+</li>
+<li><p class="first">Select <span class="guilabel">Add Another Role</span> and choose the custom role to add.</p>
+</li>
+<li><p class="first">Select <span class="guilabel">Save</span> to update the service account.</p>
+</li>
+<li><p class="first">Assign an IAM member to each instance by navigating to <strong>Compute Engine &gt; VM Instances &gt; Instance</strong>, select <span class="guilabel">Edit</span>, and then update the Service Account.</p>
+</li>
+</ol>
+<blockquote>
+<div><p>For example:</p>
+<img alt="../_images/GCPIamRoleAssignedToInstance.png" src="../_images/GCPIamRoleAssignedToInstance.png" />
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-your-google-cloud-infrastructure-objects">
+<span id="gcp-define-objects"></span><h2>Define your Google Cloud Infrastructure Objects<a class="headerlink" href="#define-your-google-cloud-infrastructure-objects" title="Permalink to this headline">¶</a></h2>
+<p>Define your infrastructure with the the keys and values that you will send in your CFE declaration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>GCP uses the term <cite>labels</cite> rather than the term <cite>tags</cite>, which is used by other cloud providers.</li>
+<li>In cases where cloud objects do not have labels (for example, Forwarding Rules and Routes), Cloud Failover will leverage the <code class="docutils literal notranslate"><span class="pre">Description</span></code> field instead. Cloud Failover Extension will search the <code class="docutils literal notranslate"><span class="pre">Description</span></code> field/string for tags contained in the reserved string <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_labels={}</span></code>. See examples below.</li>
+<li>To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see <a class="reference internal" href="isolated-env.html#isolated-env"><span class="std std-ref">CFE in Isolated Environments</span></a>.</li>
+</ul>
+</div>
+<div class="section" id="define-remote-storage-for-state-file-in-gcp">
+<span id="gcp-define-storage"></span><h3>Define Remote Storage for State File in GCP<a class="headerlink" href="#define-remote-storage-for-state-file-in-gcp" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic">
+<li><p class="first">Create a <a class="reference external" href="https://cloud.google.com/storage/docs/creating-buckets">storage bucket in GCP</a> for Cloud Failover Extension cluster-wide file(s).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">To avoid a potential data breach, ensure the required storage buckets are properly secured and do not have public access. See your cloud provider for best practices.</p>
+</div>
+</li>
+</ol>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>Beginning v2.2.1, CFE supports providing stateFileName property to customize the name of the failover state file stored in Cloud Storage. If not provided, the default file name is <code class="docutils literal notranslate"><span class="pre">f5cloudfailoverstate.json</span></code>.</li>
+<li>The property <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> is available in Cloud Failover Extension v1.7.0 and later.</li>
+</ul>
+</div>
+<ol class="arabic" start="2">
+<li><p class="first">Update/modify the Cloud Failover <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> value with name of your storage bucket:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+  <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;yourBucketforCloudFailover&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, label the bucket with your custom key:values in the <cite>externalStorage.scopingTags</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<ol class="loweralpha simple">
+<li>Open the Cloud Storage browser in the Google Cloud Console.</li>
+<li>In the bucket list, find the bucket you want to apply a label to, and click its <span class="guilabel">Bucket overflow menu (…)</span>.</li>
+<li>Click <span class="guilabel">Edit labels</span>.</li>
+<li>In the side panel that appears, click the <span class="guilabel">+ Add label</span> button.</li>
+<li>Specify a <code class="docutils literal notranslate"><span class="pre">key</span></code> and <code class="docutils literal notranslate"><span class="pre">value</span></code> for your label.</li>
+</ol>
+<ol class="loweralpha simple" start="4">
+<li>Click <span class="guilabel">Save</span>.</li>
+</ol>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-failover-addresses-in-gcp">
+<span id="gcp-define-addresses"></span><h3>Define the Failover Addresses in GCP<a class="headerlink" href="#define-the-failover-addresses-in-gcp" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> is available in Cloud Failover Extension v1.7.0 and later.</p>
+</div>
+<ol class="arabic">
+<li><p class="first">Update/modify the <code class="docutils literal notranslate"><span class="pre">addressGroupDefiniitions</span></code> list to match the addresses in your deployment. In the example below, there are two virtual services defined:</p>
+<ul class="simple">
+<li>Virtual Service 1 (1.1.1.1): On a Forwarding Rule</li>
+<li>Virtual Service 2 (10.0.12.101): On an alias range</li>
+</ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;forwardingRule&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;forwarding-rule-1-1-1-1&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;targetInstances&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;ti-cluster-1-a&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ti-cluster-1-b&quot;</span>
+      <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;aliasAddress&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101/28&quot;</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+ <span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Label the virtual machine instances with a key and value. This key/value will correspond to the key/value you use in the <cite>failoverAddresses.scopingTags</cite> section of the CFE configuration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">GCP does not have NICs as independent objects of the instance, so you only need to label the instance.</p>
+</div>
+<ol class="loweralpha simple">
+<li>Go to the VM instances page.</li>
+<li>Select an instance.</li>
+<li>On the <cite>VM instance details</cite> page, click <span class="guilabel">Edit</span>.</li>
+<li>In the <span class="guilabel">Labels</span> section, specify a name and a value</li>
+<li>Click <span class="guilabel">Save</span>.</li>
+</ol>
+<img alt="../_images/gcp-network-tags.png" src="../_images/gcp-network-tags.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>By default, you do not need to tag forwarding rules. You only need to create a <a class="reference external" href="https://cloud.google.com/sdk/gcloud/reference/compute/target-instances">target instance</a> object for each BIG-IP. CFE will match Virtual Addresses configured on the BIG-IP to any forwarding rules with same IPs pointed at a BIG-IP target instance.</p>
+<p><strong>Performance Note:</strong></p>
+<p>CFE provides additional control and performance optimizations by leveraging tags on forwarding rules.</p>
+<p>CFE sends update requests asynchronously. For instance, if CFE updates 10 forwarding rules, Cloud Failover sends the 10 update requests all at once (instead of serially waiting for a response from the first request). By creating multiple target-instance objects for each BIG-IP and spreading requests to those, GCP backend will process the updates quicker.</p>
+<p>To leverage this optimization, for every Forwarding Rule:</p>
+<ol class="arabic">
+<li><p class="first">Create another target instance object for each BIG-IP instance in the cluster. For example, for Forwarding Rule 1:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gcloud</span> <span class="n">compute</span> <span class="n">target</span><span class="o">-</span><span class="n">instances</span> <span class="n">create</span> <span class="n">ti</span><span class="o">-</span><span class="n">cluster1</span><span class="o">-</span><span class="n">a</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">instance</span><span class="o">=</span><span class="n">cluster1</span><span class="o">-</span><span class="n">a</span> <span class="o">--</span><span class="n">instance</span><span class="o">-</span><span class="n">zone</span><span class="o">=</span><span class="n">us</span><span class="o">-</span><span class="n">west1</span><span class="o">-</span><span class="n">a</span> <span class="o">--</span><span class="n">zone</span><span class="o">=</span><span class="n">us</span><span class="o">-</span><span class="n">west1</span><span class="o">-</span><span class="n">a</span>
+<span class="n">gcloud</span> <span class="n">compute</span> <span class="n">target</span><span class="o">-</span><span class="n">instances</span> <span class="n">create</span> <span class="n">ti</span><span class="o">-</span><span class="n">cluster1</span><span class="o">-</span><span class="n">b</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">instance</span><span class="o">=</span><span class="n">cluster1</span><span class="o">-</span><span class="n">b</span> <span class="o">--</span><span class="n">instance</span><span class="o">-</span><span class="n">zone</span><span class="o">=</span><span class="n">us</span><span class="o">-</span><span class="n">west1</span><span class="o">-</span><span class="n">b</span> <span class="o">--</span><span class="n">zone</span><span class="o">=</span><span class="n">us</span><span class="o">-</span><span class="n">west1</span><span class="o">-</span><span class="n">b</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Tag the Fowarding Rule (using <cite>Description</cite> field) with the following two tags:</p>
+<ul>
+<li><p class="first"><strong>Deployment scoping tag</strong>: an arbitrary key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+</li>
+<li><p class="first"><strong>Target Instance mapping tag</strong>: a key-value pair with the reserved key named <code class="docutils literal notranslate"><span class="pre">f5_target_instance_pair</span></code> and a user-provided value containting the two BIG-IP target instance objects.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;f5_target_instance_pair&quot;:&quot;&lt;target-instance-1-name&gt;,&lt;target-instance-2-name&gt;&quot;</span></code></p>
+</li>
+</ul>
+<p>For example, if you have a failoverAddresses declaration with arbitrary <code class="docutils literal notranslate"><span class="pre">scopingTags</span></code> of <code class="docutils literal notranslate"><span class="pre">&quot;my_deployment_scoping_label&quot;:&quot;cluster1&quot;</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+  <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;my_deployment_scoping_label&quot;</span><span class="p">:</span><span class="s2">&quot;cluster1&quot;</span>
+  <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>and 4 forwarding rules (one IP 1.1.1.1 for four different protocols, tcp,udp,icmp,esp):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span># Create unique Target Instances for each Forwarding Rule
+# where the BIG-IP&#39;s instance names are cluster1-a and cluster1-b
+
+# 1.1.1.1:TCP
+gcloud compute target-instances create ti-cluster1-a-1 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+gcloud compute target-instances create ti-cluster1-b-1 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+
+# 1.1.1.1:UDP
+gcloud compute target-instances create ti-cluster1-a-2 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+gcloud compute target-instances create ti-cluster1-b-2 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+
+# 1.1.1.1:ICMP
+gcloud compute target-instances create ti-cluster1-a-3 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+gcloud compute target-instances create ti-cluster1-b-3 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+
+# 1.1.1.1:ESP
+gcloud compute target-instances create ti-cluster1-a-4 --instance=cluster1-a --instance-zone=us-west1-a --zone=us-west1-a
+gcloud compute target-instances create ti-cluster1-b-4 --instance=cluster1-b --instance-zone=us-west1-b --zone=us-west1-b
+
+$ gcloud compute target-instances list
+NAME                               ZONE        INSTANCE            NAT_POLICY
+ti-cluster1-a-1                    us-west1-a  cluster1-a          NO_NAT
+ti-cluster1-a-2                    us-west1-a  cluster1-a          NO_NAT
+ti-cluster1-a-3                    us-west1-a  cluster1-a          NO_NAT
+ti-cluster1-a-4                    us-west1-a  cluster1-a          NO_NAT
+ti-cluster1-b-1                    us-west1-a  cluster1-b          NO_NAT
+ti-cluster1-b-2                    us-west1-a  cluster1-b          NO_NAT
+ti-cluster1-b-3                    us-west1-a  cluster1-b          NO_NAT
+ti-cluster1-b-4                    us-west1-a  cluster1-b          NO_NAT
+
+# Create Forwarding Rules with a Description containing Deployment Scoping Tag and Target Instance Pair mappings, pointed first at target-instance objects associated with cluster-1a.
+
+$ gcloud compute forwarding-rules create forwrule-1 --address 1.1.1.1 --target-instance=&#39;ti-cluster1-a-1&#39; --ip-protocol=TCP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description &quot;f5_cloud_failover_labels={\&quot;my_deployment_scoping_label\&quot;:\&quot;cluster1\&quot;,\&quot;f5_target_instance_pair\&quot;:\&quot;ti-cluster1-a-1,ti-cluster1-b-1\&quot;}&quot;
+$ gcloud compute forwarding-rules create forwrule-2 --address 1.1.1.1 --target-instance=&#39;ti-cluster1-a-2&#39; --ip-protocol=UDP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description &quot;f5_cloud_failover_labels={\&quot;my_deployment_scoping_label\&quot;:\&quot;cluster1\&quot;,\&quot;f5_target_instance_pair\&quot;:\&quot;ti-cluster1-a-2,ti-cluster1-b-2\&quot;}&quot;
+$ gcloud compute forwarding-rules create forwrule-3 --address 1.1.1.1 --target-instance=&#39;ti-cluster1-a-3&#39; --ip-protocol=ICMP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description &quot;f5_cloud_failover_labels={\&quot;my_deployment_scoping_label\&quot;:\&quot;cluster1\&quot;,\&quot;f5_target_instance_pair\&quot;:\&quot;ti-cluster1-a-3,ti-cluster1-b-3\&quot;}&quot;
+$ gcloud compute forwarding-rules create forwrule-4 --address 1.1.1.1 --target-instance=&#39;ti-cluster1-a-4&#39; --ip-protocol=ESP --load-balancing-scheme=EXTERNAL --region us-west1 --target-instance-zone us-west1-a --description &quot;f5_cloud_failover_labels={\&quot;my_deployment_scoping_label\&quot;:\&quot;cluster1\&quot;,\&quot;f5_target_instance_pair\&quot;:\&quot;ti-cluster1-a-4,ti-cluster1-b-4\&quot;}&quot;
+
+
+# Before Failover (pointed at BIG-IP cluster-1a target-instances):
+
+$ gcloud compute forwarding-rules list
+NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
+forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-a-1
+forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-a-2
+forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-a-3
+forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-a-4
+
+# After Failover (pointed at BIG-IP cluster-1b target-instances):
+
+$ gcloud compute forwarding-rules list
+NAME                    REGION    IP_ADDRESS      IP_PROTOCOL  TARGET
+forwrule-1                us-west1  1.1.1.1         TCP          us-west1-a/targetInstances/ti-cluster1-b-1
+forwrule-2                us-west1  1.1.1.1         UDP          us-west1-a/targetInstances/ti-cluster1-b-2
+forwrule-3                us-west1  1.1.1.1         ICMP         us-west1-a/targetInstances/ti-cluster1-b-3
+forwrule-4                us-west1  1.1.1.1         ESP          us-west1-a/targetInstances/ti-cluster1-b-4
+</pre></div>
+</div>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>Introduced in 1.6.0</strong></p>
+<p>In some cases you may have forwarding rules that match an IP address configured on BIG-IP, but you do not want BIG-IP to own that address. To manage only Forwarding Rules that are explicitly tagged, set <code class="docutils literal notranslate"><span class="pre">requireTags</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> in the CFE configuration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;requireTags&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-routes-in-gcp">
+<span id="gcp-define-routes"></span><h3>Define the Routes in GCP<a class="headerlink" href="#define-the-routes-in-gcp" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> is available in Cloud Failover Extension v1.5.0 and later.</p>
+</div>
+<p>Update/modify the <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> list to the desired route tables and prefixes to manage. The <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> property allows more granular route-table operations. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information. See <a class="reference internal" href="example-declarations.html#advanced-routing-examples-gcp"><span class="std std-ref">GCP Advanced Routing</span></a> for additional examples of more advanced configurations.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;route-table-1&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;10.0.23.11&quot;</span>
+              <span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, tag your NICs (see <a class="reference internal" href="#gcp-define-addresses"><span class="std std-ref">Define the Failover Addresses in GCP</span></a>) and the route tables containing the routes you want to manage.</p>
+<ol class="arabic">
+<li><p class="first">Create a key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+</li>
+<li><p class="first">In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the <code class="docutils literal notranslate"><span class="pre">nextHopAddresses</span></code> using an additional tag on the route or provide them statically in the Cloud Failover configuration.</p>
+<ul class="simple">
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">routeTag</span></code>, you will need to add another tag to the route in your cloud environment with the reserved key <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">&quot;f5_self_ips&quot;:&quot;10.0.13.11,10.0.23.11&quot;</span></code>.</li>
+</ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">},</span>
+   <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+     <span class="p">{</span>
+       <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;nextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+           <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;routeTag&quot;</span>
+       <span class="p">}</span>
+     <span class="p">}</span>
+   <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">static</span></code>, you can provide the Self-IPs in the items area of the CFE configuration. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information.</li>
+</ul>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>Adding a Description with key:pair</strong></p>
+<ol class="loweralpha">
+<li><p class="first">Go to the Routes page in the Google Cloud Console.</p>
+</li>
+<li><p class="first">Click <span class="guilabel">Create route</span>.</p>
+</li>
+<li><p class="first">Specify a <span class="guilabel">Name</span> and a <span class="guilabel">Description</span> for the route.</p>
+</li>
+<li><p class="first">Select an existing <span class="guilabel">Network</span> where the route will apply.</p>
+</li>
+<li><p class="first">Specify a <span class="guilabel">Destination IP range</span> to define the destination of the route.</p>
+</li>
+<li><p class="first">Select a <span class="guilabel">Priority</span> for the route.</p>
+</li>
+<li><p class="first">Go to the <span class="guilabel">Instance tags</span> field to create a tag. For example <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_labels={&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;}</span></code>.</p>
+</li>
+<li><p class="first">Select a <span class="guilabel">Next hop</span> for the route and <span class="guilabel">Specify a forwarding rule of internal TCP/UDP load balancer</span> to specify the BIG-IP as a next hop.</p>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">Make sure the route targets a <code class="docutils literal notranslate"><span class="pre">next-hop-address</span></code> instead of a <code class="docutils literal notranslate"><span class="pre">next-hop-instance</span></code>.</p>
+</div>
+</li>
+<li><p class="first">Click <span class="guilabel">Create</span>.</p>
+</li>
+<li><p class="first">In your CFE declaration, enter the key/value in the <cite>failoverRoutes.scopingTags</cite> section that matches the tag that you attached to the routing table in GCP. Then update the list of destination routes in the <cite>failoverRoutes.scopingAddressRanges</cite> section.</p>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>Adding a Description with gcloud CLI</strong></p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Example of a gcloud compute command to create a route</span><a class="headerlink" href="#id3" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> <span class="n">gcloud</span> <span class="n">compute</span> <span class="n">routes</span> <span class="n">create</span> <span class="n">example</span><span class="o">-</span><span class="n">route</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">destination</span><span class="o">-</span><span class="nb">range</span><span class="o">=</span><span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="o">/</span><span class="mi">0</span> <span class="o">--</span><span class="n">network</span><span class="o">=</span><span class="n">example</span><span class="o">-</span><span class="n">network</span> <span class="o">--</span><span class="nb">next</span><span class="o">-</span><span class="n">hop</span><span class="o">-</span><span class="n">address</span><span class="o">=</span><span class="mf">10.0</span><span class="o">.</span><span class="mf">13.11</span> <span class="o">--</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;f5_cloud_failover_labels={&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;}&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="example-virtual-service-declaration">
+<span id="gcp-as3-example"></span><h2>Example Virtual Service Declaration<a class="headerlink" href="#example-virtual-service-declaration" title="Permalink to this headline">¶</a></h2>
+<p>See below for example Virtual Services created with <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/">AS3</a> in <a class="reference internal" href="#gcp-diagram"><span class="std std-ref">GCP Failover Event Diagram</span></a> above:</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Example AS3 Declaration</span><a class="headerlink" href="#id4" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">  1</span>
+<span class="normal">  2</span>
+<span class="normal">  3</span>
+<span class="normal">  4</span>
+<span class="normal">  5</span>
+<span class="normal">  6</span>
+<span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_GCP&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;schemaVersion&quot;</span><span class="p">:</span><span class="s2">&quot;3.0.0&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_GCP&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;ADC&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Tenant_Shared_Services&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Shared_Services&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;generic&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;vs_wildcard_forwarding&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_Forwarding&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Outbound Wildcard Forwarding Virtual Server&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="p">[</span>
+                   <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;0.0.0.0/0&quot;</span>
+                <span class="p">]</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;virtualPort&quot;</span><span class="p">:</span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;forwardingType&quot;</span><span class="p">:</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;layer4&quot;</span><span class="p">:</span><span class="s2">&quot;any&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;allowVlans&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/internal&quot;</span>
+                <span class="p">}</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_1&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_1&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 1 mapped to GCP Forwarding Rule&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;1.1.1.1&quot;</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+             <span class="p">},</span>
+             <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+             <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_1_Pool&quot;</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;Service_1_Pool&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Pool for Service 1 mapped to GCP Forwarding Rule&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                   <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                      <span class="s2">&quot;10.0.14.101&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.102&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.103&quot;</span>
+                   <span class="p">]</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;http&quot;</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_2&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_2&quot;</span><span class="p">:{</span>
+         <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+         <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+            <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 2 mapped to AliasIP&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+               <span class="s2">&quot;10.0.12.101&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+               <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+            <span class="p">},</span>
+            <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+            <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_2_Pool&quot;</span>
+         <span class="p">},</span>
+         <span class="nt">&quot;Service_2_Pool&quot;</span><span class="p">:{</span>
+            <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Pool for Service 2 mapped to Alias IP&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+               <span class="p">{</span>
+                  <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                  <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                     <span class="s2">&quot;10.0.14.104&quot;</span><span class="p">,</span>
+                     <span class="s2">&quot;10.0.14.105&quot;</span><span class="p">,</span>
+                     <span class="s2">&quot;10.0.14.106&quot;</span>
+                  <span class="p">]</span>
+               <span class="p">}</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+               <span class="s2">&quot;http&quot;</span>
+            <span class="p">]</span>
+         <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/0ad28024ccad6c5b1354a6b6bc5af92d/gcp-as3.json"><code class="xref download docutils literal notranslate"><span class="pre">gcp-as3.json</span></code></a></p>
+</div>
+<div class="section" id="shared-vpc-configuration">
+<span id="gcp-shared-vpc"></span><h2>Shared VPC Configuration<a class="headerlink" href="#shared-vpc-configuration" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference external" href="https://cloud.google.com/vpc/docs/shared-vpc">Shared VPC</a> allows an organization to connect resources from multipleProjects to a common VPC. CFE works with Shared VPC in the following topologies:</p>
+<ul class="simple">
+<li>BIG-IP cluster deployed in the Shard VPC HostProject: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the hostProject will continue to failover per normal conditions.</li>
+<li>BIG-IP cluster deployed in a Shared VPC ServiceProject where NIC 0 is attached to a Shared VPC in the HostProject: In this scenario all objects such as Alias IPs, Forwarding Rules and Routes in the serviceProject will continue to failover per normal conditions. However, any objects in the Shared VPC HostProject will not be discovered/updated during a failover event.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="gcp-private-endpoints">
+<h2>GCP Private Endpoints<a class="headerlink" href="#gcp-private-endpoints" title="Permalink to this headline">¶</a></h2>
+<p>To see how to run CFE on GCP when BIG-IP instances have no route to public internet, see <a class="reference internal" href="isolated-env.html#isolated-env"><span class="std std-ref">CFE in Isolated Environments</span></a>.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="azure.html" title="Azure" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="apidocs.html" title="API Reference" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

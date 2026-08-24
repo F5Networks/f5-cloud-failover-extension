@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Example Declarations</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Example Declarations"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Example Declarations &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Postman Collection" href="postman-collection.html" />
+    <link rel="prev" title="API Reference" href="apidocs.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example Declarations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-routing-multiple-route-tables-routes-nexthops-and-subscriptions">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#route-failover-using-route-tags">Route Failover Using Route Tags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multiple-next-hop-addresses">Multiple Next Hop addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-ipv6-route-failover">AWS IPv6 Route Failover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#azure-route-tables-in-multiple-subscriptions">Azure Route Tables in Multiple Subscriptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Default AWS Managed Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Customer Managed Key</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-the-log-level">Setting the Log Level</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Example Declarations</a><ul>
+<li><a class="reference internal" href="#advanced-routing-multiple-route-tables-routes-nexthops-and-subscriptions">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</a><ul>
+<li><a class="reference internal" href="#aws-advanced-routing">AWS Advanced Routing</a></li>
+<li><a class="reference internal" href="#azure-advanced-routing">Azure Advanced Routing</a></li>
+<li><a class="reference internal" href="#gcp-advanced-routing">GCP Advanced Routing</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#route-failover-using-route-tags">Route Failover Using Route Tags</a></li>
+<li><a class="reference internal" href="#multiple-next-hop-addresses">Multiple Next Hop addresses</a></li>
+<li><a class="reference internal" href="#aws-ipv6-route-failover">AWS IPv6 Route Failover</a></li>
+<li><a class="reference internal" href="#azure-route-tables-in-multiple-subscriptions">Azure Route Tables in Multiple Subscriptions</a></li>
+<li><a class="reference internal" href="#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Default AWS Managed Key</a></li>
+<li><a class="reference internal" href="#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key">AWS KMS Server-side encryption (SSE-KMS) Using Customer Managed Key</a></li>
+<li><a class="reference internal" href="#setting-the-log-level">Setting the Log Level</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Example Declarations</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="example-declarations">
+<span id="id1"></span><h1>Example Declarations<a class="headerlink" href="#example-declarations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="advanced-routing-multiple-route-tables-routes-nexthops-and-subscriptions">
+<span id="advanced-routing-examples"></span><h2>Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions<a class="headerlink" href="#advanced-routing-multiple-route-tables-routes-nexthops-and-subscriptions" title="Permalink to this headline">¶</a></h2>
+<p>The following examples leverage the object called “routeGroupDefintions” (released in v1.5.0) to support advanced routing scenarios. <em>NOTE</em>: In AWS and Azure, <code class="docutils literal notranslate"><span class="pre">routeGroupDefintions</span></code> translates to route tables. GCP does not have the concept of route tables so it translates to groups or collections of routes. Advanced routing examples include operating in shared services and/or sandwich architectures with multiple BIG-IP clusters (which may share networks) that require per-route table granularity.</p>
+<div class="section" id="aws-advanced-routing">
+<span id="advanced-routing-examples-aws"></span><h3>AWS Advanced Routing<a class="headerlink" href="#aws-advanced-routing" title="Permalink to this headline">¶</a></h3>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">AWS Advanced Routing</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;100.100.101.0/29&quot;</span>
+              <span class="p">},</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;100.100.102.0/29&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                 <span class="s2">&quot;10.0.12.11&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;10.0.22.11&quot;</span>
+              <span class="p">]</span>
+           <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;rtb-22222222222222222&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                 <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;10.0.23.11&quot;</span>
+              <span class="p">]</span>
+           <span class="p">}</span>
+        <span class="p">}</span>
+     <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/c9eee014b5638137b8684f83eb4a66ef/awsMultipleRoutingTables.json"><code class="xref download docutils literal notranslate"><span class="pre">awsMultipleRoutingTables.json</span></code></a></p>
+</div>
+<div class="section" id="azure-advanced-routing">
+<span id="advanced-routing-examples-azure"></span><h3>Azure Advanced Routing<a class="headerlink" href="#azure-advanced-routing" title="Permalink to this headline">¶</a></h3>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Azure Advanced Routing</span><a class="headerlink" href="#id3" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;azure&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;defaultResourceLocations&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;subscriptionId&quot;</span><span class="p">:</span><span class="s2">&quot;1111&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;subscriptionId&quot;</span><span class="p">:</span><span class="s2">&quot;2222&quot;</span>
+        <span class="p">}</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;myroutetable-1&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;100.100.101.0/29&quot;</span>
+              <span class="p">},</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;100.100.102.0/29&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                 <span class="s2">&quot;10.0.12.11&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;10.0.12.12&quot;</span>
+              <span class="p">]</span>
+           <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;myroutetable-2&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                 <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;10.0.13.12&quot;</span>
+              <span class="p">]</span>
+           <span class="p">}</span>
+        <span class="p">}</span>
+     <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/84087b683e71c93e774bd67ac5a20480/azureMultipleRoutingTables.json"><code class="xref download docutils literal notranslate"><span class="pre">azureMultipleRoutingTables.json</span></code></a></p>
+</div>
+<div class="section" id="gcp-advanced-routing">
+<span id="advanced-routing-examples-gcp"></span><h3>GCP Advanced Routing<a class="headerlink" href="#gcp-advanced-routing" title="Permalink to this headline">¶</a></h3>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">GCP Advanced Routing</span><a class="headerlink" href="#id4" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;gcp&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+          <span class="p">{</span>
+             <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;default-route-for-applications&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                   <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;10.0.13.12&quot;</span>
+                <span class="p">]</span>
+             <span class="p">}</span>
+          <span class="p">},</span>
+          <span class="p">{</span>
+             <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;route-name-2&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                   <span class="s2">&quot;10.0.14.11&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;10.0.14.12&quot;</span>
+                <span class="p">]</span>
+             <span class="p">}</span>
+          <span class="p">}</span>
+       <span class="p">]</span>
+    <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/ea4608ed78a575a2d41633a9d5557dc4/gcpMultipleRoutingGroupDefinitons.json"><code class="xref download docutils literal notranslate"><span class="pre">gcpMultipleRoutingTables.json</span></code></a></p>
+</div>
+</div>
+<div class="section" id="route-failover-using-route-tags">
+<span id="example-route-tag"></span><h2>Route Failover Using Route Tags<a class="headerlink" href="#route-failover-using-route-tags" title="Permalink to this headline">¶</a></h2>
+<p>For backwards compatability, you can use tags on the route tables to discover them and provide nexthop Self-IP address mappings. For example, the route table will need two tags, one with the scoping tag (arbitrary key/value) and one with the special key <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code> and value value that contains a comma-separated list of addresses mapping to a Self-IP address on each instance in the cluster.</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:</span> <span class="pre">&quot;route-table-1&quot;</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">&quot;f5_self_ips&quot;:</span> <span class="pre">&quot;10.0.0.10,10.0.0.11&quot;</span></code></li>
+</ul>
+<p>Once the route table is tagged with above, the below declaration shows how to configure the solution to look for those tags and nexthop Self-IP address mappings.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You do not need to add the additional tag with the nexthop Self-IP address mapping if you use the <code class="docutils literal notranslate"><span class="pre">static</span></code> option for <code class="docutils literal notranslate"><span class="pre">discoveryType</span></code> in the CFE declaration. Instead, you will list the nexthop addresses within the declaration. See the <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> section for more information.</p>
+</div>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Route Failover using Route Tags</span><a class="headerlink" href="#id5" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+<span class="hll">           <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+</span><span class="hll">              <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;DMZ-RouteTable&quot;</span>
+</span><span class="hll">           <span class="p">},</span>
+</span>           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;192.168.1.0/24&quot;</span>
+              <span class="p">},</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;192.168.1.1/24&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;routeTag&quot;</span>
+           <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+<span class="hll">           <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+</span><span class="hll">              <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;Internal-RouteTable&quot;</span>
+</span><span class="hll">           <span class="p">},</span>
+</span>           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;routeTag&quot;</span>
+           <span class="p">}</span>
+        <span class="p">}</span>
+     <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/f316e13672510d53d305342048ddadb2/advancedRouteDefinitionsTags.json"><code class="xref download docutils literal notranslate"><span class="pre">advancedRouteDefinitionsTags.json</span></code></a></p>
+</div>
+<div class="section" id="multiple-next-hop-addresses">
+<span id="example-multiple-next-hop"></span><h2>Multiple Next Hop addresses<a class="headerlink" href="#multiple-next-hop-addresses" title="Permalink to this headline">¶</a></h2>
+<p>This example shows a declaration for Route Failover for Multiple Route Tables and routes pointing at different BIG-IP interfaces/Self-IP nexthops. In the example below, two route tables are tagged with the same tag (<code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_label&quot;:&quot;mydeployment</span></code>) to provide scoping for the deployment (BIG-IP instance or cluster) but the different Self-IP nexthop mappings are provided explicitly in the declaration (vs. with a <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code> tag).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">F5 Recommends using the newer <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> object instead. See <a class="reference internal" href="#advanced-routing-examples"><span class="std std-ref">Advanced Routing: Multiple Route Tables, Routes, Nexthops and Subscriptions</span></a>.</p>
+</div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">Multiple Next Hop Addresses</span><a class="headerlink" href="#id6" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">},</span>
+     <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;192.168.11.0/24&quot;</span><span class="p">,</span>
+<span class="hll">           <span class="nt">&quot;nextHopAddresses&quot;</span><span class="p">:{</span>
+</span><span class="hll">              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+</span><span class="hll">              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+</span><span class="hll">                 <span class="s2">&quot;192.0.1.12&quot;</span><span class="p">,</span>
+</span><span class="hll">                 <span class="s2">&quot;192.0.1.13&quot;</span>
+</span><span class="hll">              <span class="p">]</span>
+</span><span class="hll">           <span class="p">}</span>
+</span>        <span class="p">},</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;192.168.12.0/24&quot;</span><span class="p">,</span>
+<span class="hll">           <span class="nt">&quot;nextHopAddresses&quot;</span><span class="p">:{</span>
+</span><span class="hll">              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+</span><span class="hll">              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+</span><span class="hll">                 <span class="s2">&quot;192.0.2.12&quot;</span><span class="p">,</span>
+</span><span class="hll">                 <span class="s2">&quot;192.0.2.13&quot;</span>
+</span><span class="hll">              <span class="p">]</span>
+</span><span class="hll">           <span class="p">}</span>
+</span>        <span class="p">}</span>
+     <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/b593c2c217cd23da69d8f7f36591d82c/multipleRoutingTables.json"><code class="xref download docutils literal notranslate"><span class="pre">multipleNextHopAddresses.json</span></code></a></p>
+</div>
+<div class="section" id="aws-ipv6-route-failover">
+<h2>AWS IPv6 Route Failover<a class="headerlink" href="#aws-ipv6-route-failover" title="Permalink to this headline">¶</a></h2>
+<p>This example shows a declaration for IPv6 routes.</p>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">AWS IPv6 Route Failover</span><a class="headerlink" href="#id7" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+           <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;myroutetable-1&quot;</span><span class="p">,</span>
+           <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">},</span>
+<span class="hll">              <span class="p">{</span>
+</span><span class="hll">                 <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;2001:db8:2:2::/64&quot;</span>
+</span><span class="hll">              <span class="p">}</span>
+</span>           <span class="p">],</span>
+           <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                 <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                 <span class="s2">&quot;10.0.23.11&quot;</span><span class="p">,</span>
+<span class="hll">                 <span class="s2">&quot;2600:1f13:12f:a803:5d15:e0e:1af9:8221&quot;</span><span class="p">,</span>
+</span><span class="hll">                 <span class="s2">&quot;2600:1f13:12f:a804:5d15:e0e:1af9:8222&quot;</span>
+</span>              <span class="p">]</span>
+           <span class="p">}</span>
+        <span class="p">}</span>
+     <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/1564c7b6b80c8aa4276c5cbcd0c50d0c/ipv6RouteFailover.json"><code class="xref download docutils literal notranslate"><span class="pre">ipv6RouteFailover.json</span></code></a></p>
+</div>
+<div class="section" id="azure-route-tables-in-multiple-subscriptions">
+<span id="azure-multiple-subscriptions"></span><h2>Azure Route Tables in Multiple Subscriptions<a class="headerlink" href="#azure-route-tables-in-multiple-subscriptions" title="Permalink to this headline">¶</a></h2>
+<p>This example shows a BIG-IP cluster managing route tables in multiple subscriptions. The identity (MSI) assigned to each BIG-IP instance must have appropriate access to the additional subscriptions, see <a class="reference internal" href="azure.html#azure-msi"><span class="std std-ref">Create and assign a Managed Service Identity (MSI)</span></a> for more details.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>By default, the cloud failover extension looks in the subscription in which the instances are deployed. The example below looks in three different subscriptions, the one the instances are deployed in as well as 1111 and 2222.</li>
+<li>Beginning with v1.14, the Route Table <strong>not</strong> the routes are updated.</li>
+</ul>
+</div>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">Azure Route Tables in Multiple Subscriptions</span><a class="headerlink" href="#id8" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;azure&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">},</span>
+       <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+          <span class="p">{</span>
+             <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;192.168.1.0/24&quot;</span>
+          <span class="p">}</span>
+       <span class="p">],</span>
+       <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+             <span class="s2">&quot;192.0.2.10&quot;</span><span class="p">,</span>
+             <span class="s2">&quot;192.0.2.11&quot;</span>
+          <span class="p">]</span>
+       <span class="p">},</span>
+<span class="hll">       <span class="nt">&quot;defaultResourceLocations&quot;</span><span class="p">:[</span>
+</span><span class="hll">          <span class="p">{</span>
+</span><span class="hll">             <span class="nt">&quot;subscriptionId&quot;</span><span class="p">:</span><span class="s2">&quot;1111&quot;</span>
+</span><span class="hll">          <span class="p">},</span>
+</span><span class="hll">          <span class="p">{</span>
+</span><span class="hll">             <span class="nt">&quot;subscriptionId&quot;</span><span class="p">:</span><span class="s2">&quot;2222&quot;</span>
+</span><span class="hll">          <span class="p">}</span>
+</span><span class="hll">       <span class="p">]</span>
+</span>    <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/0f98734cda2e39fbd968b46f1396e59e/azureRouteTablesInMutipleSubscriptions.json"><code class="xref download docutils literal notranslate"><span class="pre">azureRouteTablesInMutipleSubscriptions.json</span></code></a></p>
+</div>
+<div class="section" id="aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key">
+<span id="aws-sse-aws-key"></span><h2>AWS KMS Server-side encryption (SSE-KMS) Using Default AWS Managed Key<a class="headerlink" href="#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key" title="Permalink to this headline">¶</a></h2>
+<p>This example shows how to configure CFE when the S3 bucket used for failover state uses server-side KMS encryption with the default AWS managed key.</p>
+<div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">AWS Server-side encryption with AWS managed key</span><a class="headerlink" href="#id9" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;myCloudFailoverBucket&quot;</span><span class="p">,</span>
+<span class="hll">    <span class="nt">&quot;encryption&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="hll">      <span class="nt">&quot;serverSide&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="hll">        <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span><span class="hll">        <span class="nt">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;aws:kms&quot;</span>
+</span><span class="hll">      <span class="p">}</span>
+</span><span class="hll">    <span class="p">}</span>
+</span>  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span>
+          <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10.0.13.12&quot;</span>
+          <span class="p">]</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/2fc049f5e1f4a4975ce654e6618e4b0b/aws-s3-server-side-encryption-aws-key.json"><code class="xref download docutils literal notranslate"><span class="pre">aws-s3-server-side-encryption-aws-key.json</span></code></a></p>
+</div>
+<div class="section" id="aws-kms-server-side-encryption-sse-kms-using-customer-managed-key">
+<span id="aws-sse-custom-key"></span><h2>AWS KMS Server-side encryption (SSE-KMS) Using Customer Managed Key<a class="headerlink" href="#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key" title="Permalink to this headline">¶</a></h2>
+<p>This example shows how to configure CFE when the S3 bucket used for failover state uses server-side KMS encryption with a customer-provided key. Note: The <code class="docutils literal notranslate"><span class="pre">keyId</span></code> should be the actual ID, not the <cite>arn</cite> or <cite>alias</cite>.</p>
+<div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">AWS Server-side encryption with custom key</span><a class="headerlink" href="#id10" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+    <span class="p">},</span>
+<span class="hll">    <span class="nt">&quot;encryption&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="hll">      <span class="nt">&quot;serverSide&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="hll">        <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span><span class="hll">        <span class="nt">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;aws:kms&quot;</span><span class="p">,</span>
+</span><span class="hll">        <span class="nt">&quot;keyId&quot;</span><span class="p">:</span> <span class="s2">&quot;11111111-1111-1111-111-11111111111&quot;</span>
+</span><span class="hll">      <span class="p">}</span>
+</span><span class="hll">    <span class="p">}</span>
+</span>  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span>
+          <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10.0.13.12&quot;</span>
+          <span class="p">]</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/1a007f7f290b4cbddf24632634d8ce2a/aws-s3-server-side-encryption-custom-key.json"><code class="xref download docutils literal notranslate"><span class="pre">aws-s3-server-side-encryption-custom-key.json</span></code></a></p>
+</div>
+<div class="section" id="setting-the-log-level">
+<h2>Setting the Log Level<a class="headerlink" href="#setting-the-log-level" title="Permalink to this headline">¶</a></h2>
+<p>You set the log level in the controls class. To see more information about editing the controls class, see <a class="reference internal" href="logging.html#logging-ref"><span class="std std-ref">Logging</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">Setting the Log Level</span><a class="headerlink" href="#id11" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+<span class="hll">  <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+</span><span class="hll">     <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+</span><span class="hll">     <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+</span><span class="hll">  <span class="p">},</span>
+</span>  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+     <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+     <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+     <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/a55e5bcae38616ebd00f5e315b1c7080/settingLogLevel.json"><code class="xref download docutils literal notranslate"><span class="pre">settingLogLevel.json</span></code></a></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="apidocs.html" title="API Reference" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="postman-collection.html" title="Postman Collection" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

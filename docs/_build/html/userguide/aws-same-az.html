@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>AWS (Same Availability Zone)</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="AWS (Same Availability Zone)"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>AWS (Same Availability Zone) &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Azure" href="azure.html" />
+    <link rel="prev" title="AWS" href="aws.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#components-of-the-declaration">Components of the Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#endpoints">Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#using-a-proxy">Using a Proxy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="configuration.html#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">AWS (Same Availability Zone)</a><ul>
+<li><a class="reference internal" href="#aws-cfe-prerequisites">AWS CFE Prerequisites</a></li>
+<li><a class="reference internal" href="#aws-failover-event-diagram">AWS Failover Event Diagram</a></li>
+<li><a class="reference internal" href="#example-aws-declaration">Example AWS Declaration</a></li>
+<li><a class="reference internal" href="#create-and-assign-an-iam-role">Create and assign an IAM Role</a><ul>
+<li><a class="reference internal" href="#iam-role-example-declaration">IAM Role Example Declaration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#define-aws-infrastructure-objects">Define AWS Infrastructure Objects</a><ul>
+<li><a class="reference internal" href="#tag-the-network-interfaces-in-aws">Tag the Network Interfaces in AWS</a></li>
+<li><a class="reference internal" href="#define-remote-storage-for-state-file-in-aws">Define Remote Storage for State File in AWS</a></li>
+<li><a class="reference internal" href="#define-the-failover-addresses-in-aws">Define the Failover Addresses in AWS</a></li>
+<li><a class="reference internal" href="#define-the-routes-in-aws">Define the Routes in AWS</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li><a class="reference internal" href="#specify-a-custom-trusted-certificate-bundle-for-api-calls">Specify a custom trusted certificate bundle for API Calls</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; AWS (Same Availability Zone)</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="aws-same-availability-zone">
+<span id="aws-same-az"></span><h1>AWS (Same Availability Zone)<a class="headerlink" href="#aws-same-availability-zone" title="Permalink to this headline">¶</a></h1>
+<p>In this section, you can see the complete steps for implementing Cloud Failover Extension in AWS <em>(Same Availability Zone)</em>. For an <em>Across Availability Zone</em> deployment, see <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>.</p>
+<div class="section" id="aws-cfe-prerequisites">
+<h2>AWS CFE Prerequisites<a class="headerlink" href="#aws-cfe-prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>These are the basic prerequisites for setting up CFE in AWS:</p>
+<ul class="simple">
+<li><strong>2 BIG-IP systems in Active/Standby configuration</strong>. You can use an <a class="reference external" href="https://github.com/F5Networks/f5-aws-cloudformation/tree/master/supported/failover/same-net/via-api/3nic/existing-stack/payg">example AWS Cloudformation template</a>. Any configuration tool can be used to provision the resources.</li>
+<li><strong>Disable “Src/Dst checking”</strong> on the NICs if enabling routing or avoiding SNAT. See <a class="reference external" href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check">AWS documentation</a> for more information.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Complete these tasks to deploy Cloud Failover Extension in AWS. Before getting started, we recommend you review the <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">Known Issues</a> and <a class="reference internal" href="faq.html#faq"><span class="std std-ref">Frequently Asked Questions (FAQ)</span></a>.</p>
+<div class="sidebar admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.</p>
+</div>
+<table border="1" class="styled-table docutils" id="id9">
+<caption><span class="caption-text">Task Summary</span><a class="headerlink" href="#id9" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Step</th>
+<th class="left-align head">Task</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#download-rpm"><span class="std std-ref">Download the RPM file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#verify-rpm"><span class="std std-ref">Verify the integrity of the Cloud Failover Extension RPM package</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="2">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#upload-install"><span class="std std-ref">Upload and install the Cloud Failover Extension (CFE) file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#installgui-ref"><span class="std std-ref">Install CFE using the BIG-IP Configuration utility</span></a> (or)</li>
+<li><a class="reference internal" href="installation.html#installcurl-ref"><span class="std std-ref">Install CFE using cURL from the Linux shell</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="3">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="#aws-same-az-iam"><span class="std std-ref">Create and assign an IAM Role</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="#aws-same-az-iam-example"><span class="std std-ref">IAM Role Example Declaration</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="4">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="#aws-same-az-define-objects"><span class="std std-ref">Define AWS Infrastructure Objects</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="#aws-same-az-tag-nics"><span class="std std-ref">Tag the Network Interfaces in AWS</span></a></li>
+<li><a class="reference internal" href="#aws-same-az-define-storage"><span class="std std-ref">Define Remote Storage for State File in AWS</span></a></li>
+<li><a class="reference internal" href="#aws-same-az-define-addresses"><span class="std std-ref">Define the Failover Addresses in AWS</span></a></li>
+<li><a class="reference internal" href="#aws-same-az-define-routes"><span class="std std-ref">Define the Routes in AWS</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="5">
+<li></li>
+</ol>
+</td>
+<td class="left-align">Modify and POST the <a class="reference internal" href="#aws-same-az-example"><span class="std std-ref">Example AWS Declaration</span></a></td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="6">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="update-revert.html#update-revert"><span class="std std-ref">Update or Revert Cloud Failover Extension</span></a></td>
+</tr>
+</tbody>
+</table>
+<p>Additional Information:</p>
+<ul class="simple">
+<li><a class="reference internal" href="#aws-as3-same-az-example"><span class="std std-ref">Example Virtual Service Declaration</span></a></li>
+<li><a class="reference internal" href="#aws-same-az-custom-cert"><span class="std std-ref">Specify a custom trusted certificate bundle for API Calls</span></a></li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="aws-failover-event-diagram">
+<span id="aws-same-az-diagram"></span><h2>AWS Failover Event Diagram<a class="headerlink" href="#aws-failover-event-diagram" title="Permalink to this headline">¶</a></h2>
+<p>This diagram shows an example of a <em>Same Availability Zone</em> failover with 3NIC BIG-IPs. You can see Elastic IP (EIP) addresses are associated with the secondary private IPs of the active BIG-IP device. Upon failover, secondary IP addresses will be re-mapped to the peer BIG-IP. Route targets with destinations matching the Cloud Failover Extension configuration are updated with the network interface of the active BIG-IP device.</p>
+<img alt="../_images/aws-failover-same-net-3nic-multiple-vips-1-eip-animated.gif" src="../_images/aws-failover-same-net-3nic-multiple-vips-1-eip-animated.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>Management NICs/Subnets are not shown in this diagram.</li>
+<li>In AWS, only Secondary IP addresses can be reassigned, so they are mapped to BIG-IP addresses that typically float (like VIPs, SNATs, etc.). Hence, AWS Primary IPs and their associated EIPs are used for the BIG-IP system’s unique Self IPs (which also do not float) and are not remapped during failover.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="example-aws-declaration">
+<span id="aws-same-az-example"></span><h2>Example AWS Declaration<a class="headerlink" href="#example-aws-declaration" title="Permalink to this headline">¶</a></h2>
+<p>This example declaration shows the minimum information needed to update the cloud resources in AWS. See the <a class="reference internal" href="quickstart.html#quickstart"><span class="std std-ref">Quickstart</span></a> section for steps on how to post this declaration. See the <a class="reference internal" href="example-declarations.html#example-declarations"><span class="std std-ref">Example Declarations</span></a> section for more examples.</p>
+<div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">Example AWS Declaration with Single Routing Table</span><a class="headerlink" href="#id10" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;controls&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;silly&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;myCloudFailoverBucket&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;encryption&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;serverSide&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;AES256&quot;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+      <span class="p">},</span>
+      <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+              <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span>
+            <span class="p">}</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+              <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;10.0.13.12&quot;</span>
+            <span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/ea496742c4b8e17164487a6aa183257e/aws-same-az-1.13.0.json"><code class="xref download docutils literal notranslate"><span class="pre">aws-same-az.json</span></code></a></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="create-and-assign-an-iam-role">
+<span id="aws-same-az-iam"></span><h2>Create and assign an IAM Role<a class="headerlink" href="#create-and-assign-an-iam-role" title="Permalink to this headline">¶</a></h2>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You are responsible for following the provider’s IAM best practices.  See your cloud provider resources for IAM Best Practices (for example, <a class="reference external" href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM Best Practices</a>).</p>
+</div>
+<p>In order to successfully implement CFE in AWS, you need an AWS Identity and Access Management (IAM) role with sufficient access. To create and assign an IAM role you must have a user role of <cite>iam:CreateUser</cite>.</p>
+<ol class="arabic">
+<li><p class="first">In AWS, go to <strong>IAM &gt; Roles</strong> and create a policy with the following permissions:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="13%" />
+<col width="10%" />
+<col width="10%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">IAM Action</th>
+<th class="head">IAM Resource Element</th>
+<th class="head">IAM Resource Condition</th>
+<th class="head">CFE Component</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>ec2:AssignIpv6Addresses</td>
+<td>Network Interface ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To remap IPv6 addresses to the network interface of the active BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>ec2:AssignPrivateIpAddresses</td>
+<td>Network Interface ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To remap one or more secondary private IP addresses to the network interface of the active BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>ec2:AssociateAddress</td>
+<td>Elastic IP ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To associate Elastic IP addresses to the network interface of the active BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>ec2:CreateRoute</td>
+<td>Route Table ID</td>
+<td>Tag (Optional)</td>
+<td>failoverRoutes</td>
+<td>To update a route’s next hop to use the active BIG-IP’s NIC.</td>
+</tr>
+<tr class="row-even"><td>ec2:DescribeAddresses</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>failoverAddresses</td>
+<td>To get information about an Elastic IP addresses in the current account/region.</td>
+</tr>
+<tr class="row-odd"><td>ec2:DescribeInstances</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>All</td>
+<td>To get information about BIG-IP instances in the current account/region.</td>
+</tr>
+<tr class="row-even"><td>ec2:DescribeInstanceStatus</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>All</td>
+<td>To get status of BIG-IP instances in the current account/region.</td>
+</tr>
+<tr class="row-odd"><td>ec2:DescribeNetworkInterfaceAttribute</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>All</td>
+<td>To get attributes of BIG-IP network interfaces in the current account/region.</td>
+</tr>
+<tr class="row-even"><td>ec2:DescribeNetworkInterfaces</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>All</td>
+<td>To get information about BIG-IP network interfaces in the current account/region.</td>
+</tr>
+<tr class="row-odd"><td>ec2:ReplaceRoute</td>
+<td>Route Table ID</td>
+<td>Optional</td>
+<td>failoverRoutes</td>
+<td>To replace an existing route within a route table.</td>
+</tr>
+<tr class="row-even"><td>ec2:DescribeRouteTables</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>failoverRoutes</td>
+<td>To get information about route tables in the current account/region.</td>
+</tr>
+<tr class="row-odd"><td>ec2:DescribeSubnets</td>
+<td>*</td>
+<td>Current Account/Region</td>
+<td>All</td>
+<td>To get information about subnets in the current account/region.</td>
+</tr>
+<tr class="row-even"><td>ec2:DisassociateAddress</td>
+<td>Elastic IP ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To disassociate Elastic IP address from instance or network interface of standby BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>ec2:UnassignIpv6Addresses</td>
+<td>Network Interface ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To unassign IPv6 addresses from the network interface.</td>
+</tr>
+<tr class="row-even"><td>ec2:UnassignPrivateIpAddresses</td>
+<td>Network Interface ID</td>
+<td>Tag (Optional)</td>
+<td>failoverAddresses</td>
+<td>To unassign one or more secondary private IP addresses from the network interface of standby BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>s3:DeleteObject</td>
+<td>S3 Bucket ID/Key</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To delete failover state file.</td>
+</tr>
+<tr class="row-even"><td>s3:GetBucketLocation</td>
+<td>S3 Bucket ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To discover (using scopingTags) bucket location used for failover state file.</td>
+</tr>
+<tr class="row-odd"><td>s3:GetBucketTagging</td>
+<td>S3 Bucket ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To discover (using scopingTags) bucket used for failover state file.</td>
+</tr>
+<tr class="row-even"><td>s3:GetObject</td>
+<td>S3 Bucket ID/Key</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To retrieve failover state file.</td>
+</tr>
+<tr class="row-odd"><td>s3:ListAllMyBuckets</td>
+<td>*</td>
+<td>Current Account</td>
+<td>externalStorage</td>
+<td>To discover (using scopingTags) bucket used for failover state file.</td>
+</tr>
+<tr class="row-even"><td>s3:ListBucket</td>
+<td>S3 Bucket ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To return information about a bucket.</td>
+</tr>
+<tr class="row-odd"><td>s3:PutObject</td>
+<td>S3 Bucket ID/Key</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To write failover state file.</td>
+</tr>
+<tr class="row-even"><td>kms:DescribeKey</td>
+<td>KMS Encryption Key ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To write failover state file when using a <strong>customer managed</strong> KMS key for server-side encryption.</td>
+</tr>
+<tr class="row-odd"><td>kms:GenerateDataKey</td>
+<td>KMS Encryption Key ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To write failover state file when using a <strong>customer managed</strong> KMS key for server-side encryption.</td>
+</tr>
+<tr class="row-even"><td>kms:Decrypt</td>
+<td>KMS Encryption Key ID</td>
+<td>Optional</td>
+<td>externalStorage</td>
+<td>To write failover state file when using a <strong>customer managed</strong> KMS key for server-side encryption.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>For example, to create a role for an EC2 service follow these steps:</p>
+<ol class="loweralpha simple">
+<li>In the navigation pane of the console, click <span class="guilabel">Roles</span> and then select <span class="guilabel">Create role</span>.</li>
+<li>Select the EC2 service that you will use for this role. Then click <span class="guilabel">Next: Permissions</span>.</li>
+<li>Click <span class="guilabel">Create policy</span> to open a new browser tab and then create a new policy.</li>
+<li>Select the EC2 service, expand <span class="guilabel">Write box</span> and select the <span class="guilabel">CreateRoute</span> boxes that you want the service to have.</li>
+<li>Specify the Resource. If the resource IDs are known ahead of time, provide the resource ARN for the Action. For example, add a route table ID with the following syntax: <code class="docutils literal notranslate"><span class="pre">arn:aws:ec2:region:account:route-table/route-table-id</span></code>.</li>
+<li>Optionally, add Request Conditions to limit which resources can be accessed. For resources not known ahead of time, add a Request Condition to limit the resources to those tagged with the f5_cloud_failover_label tag. For actions requiring a wildcard scope, consider adding a Request Condition that filters resources in the current account or region. See <a class="reference external" href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition.html">AWS documentation</a> for more information.</li>
+<li>Choose <span class="guilabel">Review policy</span> then select <span class="guilabel">Create policy</span>.</li>
+</ol>
+<img alt="../_images/AWSIAMRoleSummary2.png" src="../_images/AWSIAMRoleSummary2.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Assign an IAM role to each instance by navigating to <strong>EC2 &gt; Instances &gt; Instance &gt; Actions &gt; Security &gt; Modify IAM role</strong></p>
+<p>For example:</p>
+<img alt="../_images/AWSIAMRoleAssignedToInstance3.png" src="../_images/AWSIAMRoleAssignedToInstance3.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="iam-role-example-declaration">
+<span id="aws-same-az-iam-example"></span><h3>IAM Role Example Declaration<a class="headerlink" href="#iam-role-example-declaration" title="Permalink to this headline">¶</a></h3>
+<p>Below is an example F5 policy that can be associated with an IAM role assigned to each BIG-IP instance.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">The example below provides the minimum permissions required and serves as an illustration. <em>Resource</em> statements should be limited as much as possible. For <em>Actions</em> that <strong>do not</strong> allow resource level permissions and require a wildcard “*”, this example uses <em>Condition</em> statements to restrict resources to a specific Account and Region. For <em>Actions</em> that <strong>do</strong> allow resource level permissions, provide the specific Resource IDs. <em>NOTE: Some Actions like ec2:AssociateAddress may require access to multiple types of Resources. In the snippet below, the resource IDs for ec2:AssociateAddress action include the EIP for the Virtual Service, the dataplane NICs where addresses are being remapped and both BIG-IP instances.</em></p>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;s3:ListAllMyBuckets&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;*&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="nt">&quot;aws:PrincipalAccount&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_account_id&gt;&quot;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;s3:ListBucket&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;s3:GetBucketLocation&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;s3:GetBucketTagging&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="s2">&quot;arn:*:s3:::&lt;my_bucket_id&gt;&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;s3:PutObject&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;s3:GetObject&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;s3:DeleteObject&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="s2">&quot;arn:*:s3:::&lt;my_bucket_id&gt;/*&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;s3:PutObject&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;Null&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="nt">&quot;s3:x-amz-server-side-encryption&quot;</span><span class="p">:</span> <span class="kc">true</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Deny&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;Fn::Join&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="p">[</span>
+                        <span class="s2">&quot;arn:*:s3:::&lt;my_bucket_id&gt;/*&quot;</span>
+                    <span class="p">]</span>
+                <span class="p">]</span>
+            <span class="p">},</span>
+            <span class="nt">&quot;Sid&quot;</span><span class="p">:</span> <span class="s2">&quot;DenyPublishingUnencryptedResources&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;ec2:DescribeAddresses&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DescribeInstances&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DescribeInstanceStatus&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DescribeNetworkInterfaces&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DescribeNetworkInterfaceAttribute&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DescribeSubnets&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;*&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="nt">&quot;aws:RequestedRegion&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_region&gt;&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;aws:PrincipalAccount&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_account_id&gt;&quot;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;ec2:DescribeRouteTables&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;*&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="nt">&quot;aws:RequestedRegion&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_region&gt;&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;aws:PrincipalAccount&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_account_id&gt;&quot;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;ec2:AssociateAddress&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:DisassociateAddress&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:elastic-ip/eipalloc-0c95857a871766c89&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:elastic-ip/eipalloc-0c95857a871766c11&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:network-interface/eni-0b6048204159911f6&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:network-interface/eni-04d62e9925725bd50&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:instance/i-0da99e772e3391dd7&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:instance/i-0954f69207c32e1b5&quot;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;ec2:DescribeRouteTables&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;*&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="nt">&quot;StringEquals&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="nt">&quot;aws:RequestedRegion&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_region&gt;&quot;</span><span class="p">,</span>
+                    <span class="nt">&quot;aws:PrincipalAccount&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_account_id&gt;&quot;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+            <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;ec2:CreateRoute&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ec2:ReplaceRoute&quot;</span>
+            <span class="p">],</span>
+            <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:route-table/rtb-11111111111111111&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;arn:aws:ec2:&lt;my_region&gt;:&lt;my_account_id&gt;:route-table/rtb-22222222222222222&quot;</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>NOTE: If a customer managed KMS Encryption Key is used for server-side encryption on the S3 bucket, the following permissions are required:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;kms:DescribeKey&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;kms:GenerateDataKey&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;kms:Decrypt&quot;</span>
+    <span class="p">],</span>
+    <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="s2">&quot;arn:aws:kms:&lt;my_region&gt;:&lt;my_account_id&gt;:key/&lt;my_customer_managed_key_id&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>To limit encryption to a specific type or for more information, see <a class="reference external" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html">AWS Documentation</a>.</p>
+<p>Alternatively, for <em>Actions</em> that <strong>do</strong> allow resource level permissions, but the specific resource IDs may not be known ahead of time, you can leverage <em>Condition</em> statements that limit access to only those resources with a certain tag. For example, in some orchestration workflows, the IAM instance profile and policy are created first in order to apply to the instance at creation time, but of course the instance IDs for the policy are not known yet. Instead, in the snippet below, <em>Conditions</em> are used so only resources with the <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_label</span></code> tag can be updated.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+     <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">&quot;ec2:AssociateAddress&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;ec2:DisassociateAddress&quot;</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">&quot;*&quot;</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+         <span class="nt">&quot;StringLike&quot;</span><span class="p">:</span> <span class="p">{</span>
+             <span class="nt">&quot;aws:ResourceTag/f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_f5_cloud_failover_label_tag_value&gt;&quot;</span>
+         <span class="p">}</span>
+     <span class="p">}</span>
+ <span class="p">}</span>
+ <span class="p">{</span>
+     <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+     <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">&quot;ec2:CreateRoute&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;ec2:ReplaceRoute&quot;</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">&quot;*&quot;</span>
+     <span class="p">],</span>
+     <span class="nt">&quot;Condition&quot;</span><span class="p">:</span> <span class="p">{</span>
+         <span class="nt">&quot;StringLike&quot;</span><span class="p">:</span> <span class="p">{</span>
+             <span class="nt">&quot;aws:ResourceTag/f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;my_f5_cloud_failover_label_tag_value&gt;&quot;</span>
+         <span class="p">}</span>
+     <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="define-aws-infrastructure-objects">
+<span id="aws-same-az-define-objects"></span><h2>Define AWS Infrastructure Objects<a class="headerlink" href="#define-aws-infrastructure-objects" title="Permalink to this headline">¶</a></h2>
+<p>Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.</p>
+<div class="section" id="tag-the-network-interfaces-in-aws">
+<span id="aws-same-az-tag-nics"></span><h3>Tag the Network Interfaces in AWS<a class="headerlink" href="#tag-the-network-interfaces-in-aws" title="Permalink to this headline">¶</a></h3>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">Tagging the NICs is required for all deployments regardless of which configuration option (<cite>Explicit</cite> or <cite>Discovery via Tag</cite>) you choose to define your failover objects.</p>
+</div>
+<ol class="arabic">
+<li><p class="first">Create two sets of tags for Network Interfaces:</p>
+<ul>
+<li><p class="first"><strong>Deployment scoping tag</strong>: a key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration. If you use the declaration example below, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code>.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+    <span class="p">},</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first"><strong>NIC mapping tag</strong>: a key-value pair with the reserved key named <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_nic_map</span></code> and a user-provided value that can be anything. For example <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;external&quot;</span></code>.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;external&quot;</span></code> and their internal NIC tagged with <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;internal&quot;</span></code>.</p>
+</div>
+<img alt="../_images/AWS-NetworkInterface-Tags.png" src="../_images/AWS-NetworkInterface-Tags.png" />
+</li>
+</ul>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ol class="arabic" start="2">
+<li><p class="first">Disable the original built-in scripts (<code class="docutils literal notranslate"><span class="pre">/usr/libexec/aws/aws-failover-tgactive.sh,</span> <span class="pre">/usr/libexec/aws/aws-failover-tgrefresh.sh</span></code>) from a BIG-IP shell, either manually or using automation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mount -o remount,rw /usr
+mv /usr/libexec/aws/aws-failover-tgactive.sh /usr/libexec/aws/aws-failover-tgactive.sh.disabled
+mv /usr/libexec/aws/aws-failover-tgrefresh.sh /usr/libexec/aws/aws-failover-tgrefresh.sh.disabled
+mount -o remount,ro /usr
+</pre></div>
+</div>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-remote-storage-for-state-file-in-aws">
+<span id="aws-same-az-define-storage"></span><h3>Define Remote Storage for State File in AWS<a class="headerlink" href="#define-remote-storage-for-state-file-in-aws" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="simple">
+<li>Beginning v2.4.0, CFE supports providing stateFileName property to customize the name of the failover state file stored in S3. If not provided, the default file name is <code class="docutils literal notranslate"><span class="pre">f5cloudfailoverstate.json</span></code>.</li>
+<li>Beginning v2.4.0, CFE supports providing a PrivateLink for accessing an S3 bucket through a direct connection on a private network with the <code class="docutils literal notranslate"><span class="pre">endpointDnsName</span></code> property under <code class="docutils literal notranslate"><span class="pre">externalStorage</span></code> which also requires <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> or <code class="docutils literal notranslate"><span class="pre">scopingTags</span></code> be present. Click <a class="reference external" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html">here</a> for more information on PrivateLink Interface Endpoints.</li>
+<li>Beginning v2.1.0, CFE supports providing a fully-qualified “virtual host” style bucket name for <code class="docutils literal notranslate"><span class="pre">scopingName</span></code>. When using this feature, the bucket name must be provided in the following format: <code class="docutils literal notranslate"><span class="pre">bucket-name.s3.region-code.amazonaws.com</span></code>. Click <a class="reference external" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html">here</a> for more information on S3 bucket naming conventions.</li>
+<li>The property <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> is available in Cloud Failover Extension v1.7.0 and later. To improve performance and reduce the number of API calls made to Amazon S3, F5 strongly recommends providing the <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> property for external storage instead of <code class="docutils literal notranslate"><span class="pre">scopingTags</span></code>.</li>
+<li>Using the fully-qualified “virtual host” style <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> property to specify external storage is <strong>required</strong> when the EC2 instances are deployed in a non-commercial AWS environment.</li>
+<li>Beginning v1.13.0, CFE supports Serverside Encryption on the S3 Bucket using Amazon S3-Managed Keys (SSE-S3) or KMS keys Stored in AWS Key Management Service (SSE-KMS) with either the default AWS managed key or a customer managed key. See <a class="reference external" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html">AWS Documentation</a> for more details on how to enable server-side encryption on the S3 bucket.</li>
+</ul>
+<div class="last admonition important">
+<p class="first admonition-title">Important</p>
+<ul class="last simple">
+<li>Because it is accessed via an HTTPS endpoint, the S3 bucket name <strong>MUST NOT</strong> contain dots.</li>
+</ul>
+</div>
+</div>
+<ol class="arabic">
+<li><p class="first">Create an <a class="reference external" href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html">S3 bucket in AWS</a> for Cloud Failover Extension cluster-wide file(s).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<ul class="last simple">
+<li>Amazon S3 now applies server-side encryption with Amazon S3 managed keys (SSE-S3) as the base level of encryption for every bucket in Amazon S3. Starting January 5, 2023, all new object uploads to Amazon S3 are automatically encrypted.</li>
+<li>Although SSE-S3 is applied automatcially, the IAM policy to require encrypted uploads must be created separately. To avoid a potential data breach, ensure the required S3 buckets are properly secured per the IAM role examples provided above, and do not allow public access. See your cloud provider for best practices.</li>
+<li>The <code class="docutils literal notranslate"><span class="pre">encryption</span></code> configuration block is required when an IAM policy that blocks unencrypted uploads is applied to the S3 bucket (recommended).</li>
+</ul>
+</div>
+</li>
+<li><p class="first">Update/modify the Cloud Failover <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> value with name of your S3 bucket:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+<span class="hll">  <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;yourS3BucketforCloudFailover&quot;</span><span class="p">,</span>
+</span>  <span class="nt">&quot;encryption&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;serverSide&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="nt">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;AES256&quot;</span>
+    <span class="p">}</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>You can also optionally update/modify the serverside encyption config. The example above uses S3-Managed Keys (SSE-S3). To use KMS (SSE-KMS), set the <code class="docutils literal notranslate"><span class="pre">algorithm</span></code> attribute to “aws::kms”. Click <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-default-aws-managed-key">here</a> to see an example using KMS and the default AWS managed key. Click <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#aws-kms-server-side-encryption-sse-kms-using-customer-managed-key">here</a> to see an example using KMS and a customer managed key.</p>
+<p>Alternatively, if you are using the Discovery via Tag option, tag the S3 bucket with your custom key:values in the <cite>externalStorage.scopingTags</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+<span class="hll">      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+</span>   <span class="p">},</span>
+   <span class="nt">&quot;encryption&quot;</span><span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;serverSide&quot;</span><span class="p">:</span> <span class="p">{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;algorithm&quot;</span><span class="p">:</span> <span class="s2">&quot;AES256&quot;</span>
+     <span class="p">}</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<ol class="loweralpha simple">
+<li>Sign in to the AWS Management Console and open the Amazon S3 console.</li>
+<li>In the <span class="guilabel">Bucket name</span> list, choose the name of the bucket.</li>
+<li>In the <span class="guilabel">Name</span> list, choose the name of the object you want to add tags to.</li>
+<li>Select <span class="guilabel">Properties</span>.</li>
+<li>Select <span class="guilabel">Tags</span> and then select <span class="guilabel">Add Tag</span>.</li>
+<li>Each tag is a key-value pair. Type a <span class="guilabel">Key</span> and a <span class="guilabel">Value</span> of your choosing. This key-value pair will match the key-value pair you enter in the <cite>externalStorage.scopingTags</cite> section of the CFE declaration. Then select <span class="guilabel">Save</span></li>
+</ol>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+<img alt="../_images/AWS-S3-Tags.png" src="../_images/AWS-S3-Tags.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-failover-addresses-in-aws">
+<span id="aws-same-az-define-addresses"></span><h3>Define the Failover Addresses in AWS<a class="headerlink" href="#define-the-failover-addresses-in-aws" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>Beginning v2.4.0, CFE supports providing a PrivateLink for accessing EC2 API through a direct connection on a private network with the <code class="docutils literal notranslate"><span class="pre">endpointDnsName</span></code> property under <code class="docutils literal notranslate"><span class="pre">failoverAddresses</span></code>. Click <a class="reference external" href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/interface-vpc-endpoints.html">here</a> for more information on PrivateLink Interface Endpoints.</li>
+<li>Beginning v2.2.0, CFE supports AWS ipv4 prefix migration during a failover event when providing <code class="docutils literal notranslate"><span class="pre">scopingAddress</span></code> property under <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> with an ipv4 address and prefix. Example: 10.0.1.48/28.  Click <a class="reference external" href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-prefix-eni.html">here</a> for more information on Prefix delegation for Amazon EC2 network interfaces. CFE will update the prefix association during failover to move the entire prefix to the active instance’s NIC. This allows for up to 16 IP addresses to be moved with a single API call, which can improve failover time for large deployments. CFE also locates EIPs associated with any of the IPs in the prefix and moves those EIPs during failover as well.</li>
+<li>Beginning v1.7.0, the property <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> is available in Cloud Failover Extension.</li>
+</ul>
+</div>
+<p>Update/modify the <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> list to match the addresses in your deployment. In the Same AZ example below, there are three services defined:</p>
+<ul class="simple">
+<li>Virtual Service 1 (10.0.12.101): Mapped to an AWS secondary IP (10.0.12.101)</li>
+<li>Virtual Service 2 (10.0.12.102): Mapped to an AWS secondary IP (10.0.12.102)</li>
+<li>Virtual Service 3 (10.0.12.48): Mapped to Network Interface property ipv4Prefix (10.0.12.48/28) and EIP addresses associated with any of the IPs in that prefix will also be moved during failover.</li>
+</ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.48/28&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using AWS PrivateLink to access EC2 services, provide the private endpoint DNS name in the <cite>failoverAddresses.endpointDnsName</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;endpointDnsName&quot;</span><span class="p">:</span> <span class="s2">&quot;vpce-xxxxxxx.xxxxxxx.ec2.us-east-1.vpce.amazonaws.com&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.48/28&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>This will force CFE to use the provided PrivateLink endpoint to access EC2 API for failover operations instead of going through the public AWS API endpoints.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, tag the the network interfaces with your custom key:values in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.48/28&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-routes-in-aws">
+<span id="aws-same-az-define-routes"></span><h3>Define the Routes in AWS<a class="headerlink" href="#define-the-routes-in-aws" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> is available in Cloud Failover Extension v1.5.0 and later.</p>
+</div>
+<p>Update/modify the <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> list to the desired route tables and prefixes to manage.
+The <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> property allows more granular route-table operations. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;10.0.13.12&quot;</span>
+              <span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>See <a class="reference internal" href="example-declarations.html#advanced-routing-examples-aws"><span class="std std-ref">AWS Advanced Routing</span></a> for additional examples of more advanced configurations.</p>
+<p>Alternatively, if you are using the Discovery via Tag option, tag the route tables containing the routes you want to manage.</p>
+<ol class="arabic simple">
+<li>Create a key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</li>
+</ol>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+<ol class="arabic" start="2">
+<li><p class="first">In the case where BIG-IP has multiple NICs, CFE needs to know what interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses using an additional tag on the route table or provide them statically in the cloud failover configuration.</p>
+<ul class="simple">
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">routeTag</span></code>, you will need to add another tag to the route table in your cloud environment with the reserved key <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">&quot;f5_self_ips&quot;:&quot;10.0.13.11,10.0.23.11&quot;</span></code>.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;nextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;routeTag&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">static</span></code>, you can provide the Self-IPs in the items area of the CFE configuration. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information.</li>
+</ul>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="example-virtual-service-declaration">
+<span id="aws-as3-same-az-example"></span><h2>Example Virtual Service Declaration<a class="headerlink" href="#example-virtual-service-declaration" title="Permalink to this headline">¶</a></h2>
+<p>See below for example Virtual Services created with <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/">AS3</a> in <a class="reference internal" href="#aws-same-az-diagram"><span class="std std-ref">AWS Failover Event Diagram</span></a> above:</p>
+<div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">Example AS3 Declaration</span><a class="headerlink" href="#id11" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">  1</span>
+<span class="normal">  2</span>
+<span class="normal">  3</span>
+<span class="normal">  4</span>
+<span class="normal">  5</span>
+<span class="normal">  6</span>
+<span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_AWS&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;schemaVersion&quot;</span><span class="p">:</span><span class="s2">&quot;3.0.0&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_AWS&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;ADC&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Tenant_Shared_Services&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Shared_Services&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;generic&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;vs_wildcard_forwarding&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_Forwarding&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Outbound Wildcard Forwarding Virtual Server&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="p">[</span>
+                   <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;0.0.0.0/0&quot;</span>
+                <span class="p">]</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;virtualPort&quot;</span><span class="p">:</span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;forwardingType&quot;</span><span class="p">:</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;layer4&quot;</span><span class="p">:</span><span class="s2">&quot;any&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;allowVlans&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/internal&quot;</span>
+                <span class="p">}</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_1&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_1&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 1 on Private Secondary IP&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.12.101&quot;</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+             <span class="p">},</span>
+             <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+             <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_1_Pool&quot;</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;Service_1_Pool&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 1&#39;s Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                   <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                      <span class="s2">&quot;10.0.14.101&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.102&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.103&quot;</span>
+                   <span class="p">]</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;http&quot;</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_2&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_2&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 2 on Private Secondary IP&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.12.102&quot;</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+             <span class="p">},</span>
+             <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+             <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_2_Pool&quot;</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;Service_2_Pool&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 2&#39;s Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                   <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                      <span class="s2">&quot;10.0.14.201&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.202&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.203&quot;</span>
+                   <span class="p">]</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;http&quot;</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/08140e50f611bfdd5cd6069f94039a37/aws-as3-same-az.json"><code class="xref download docutils literal notranslate"><span class="pre">aws-as3-same-az.json</span></code></a></p>
+</div>
+<div class="section" id="specify-a-custom-trusted-certificate-bundle-for-api-calls">
+<span id="aws-same-az-custom-cert"></span><h2>Specify a custom trusted certificate bundle for API Calls<a class="headerlink" href="#specify-a-custom-trusted-certificate-bundle-for-api-calls" title="Permalink to this headline">¶</a></h2>
+<p>In AWS C2S environments, you may need the ability to specify a custom trusted certificate bundle for API calls to work. You can specify a custom trusted certificate by using the property <code class="docutils literal notranslate"><span class="pre">trustedCertBundle</span></code>. Enter a string that specifies the BIG-IP file path to the certificate bundle to use when connecting to AWS API endpoints. For example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;trustedCertBundle&quot;</span><span class="p">:</span> <span class="s2">&quot;/config/ssl/ssl.crt/ca-bundle.crt&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="aws.html" title="AWS" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="azure.html" title="Azure" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

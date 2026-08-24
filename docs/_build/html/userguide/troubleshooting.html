@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Troubleshooting</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Troubleshooting"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Troubleshooting &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Document Revision History" href="../revision-history.html" />
+    <link rel="prev" title="CFE in Isolated Environments" href="isolated-env.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#confirm-cfe-installation">Confirm CFE Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Confirm Network Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#confirm-cfe-configuration">Confirm CFE Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting-and-debugging-unexpected-behavior">Troubleshooting and Debugging Unexpected Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting-index">Troubleshooting Index</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Troubleshooting</a><ul>
+<li><a class="reference internal" href="#confirm-cfe-installation">Confirm CFE Installation</a></li>
+<li><a class="reference internal" href="#id2">Confirm Network Configuration</a></li>
+<li><a class="reference internal" href="#confirm-cfe-configuration">Confirm CFE Configuration</a></li>
+<li><a class="reference internal" href="#troubleshooting-and-debugging-unexpected-behavior">Troubleshooting and Debugging Unexpected Behavior</a></li>
+<li><a class="reference internal" href="#troubleshooting-index">Troubleshooting Index</a><ul>
+<li><a class="reference internal" href="#i-m-receiving-a-path-not-registered-error-when-i-try-to-post-a-declaration">I’m receiving a <strong>path not registered</strong> error when I try to post a declaration</a></li>
+<li><a class="reference internal" href="#i-m-receiving-a-400-error-when-i-try-to-post-a-declaration-with-no-additional-helpful-message">I’m receiving a <strong>400</strong> error when I try to post a declaration with no additional helpful message</a></li>
+<li><a class="reference internal" href="#i-m-receiving-a-recovery-operations-are-empty-error-when-failover-is-triggered-or-i-need-to-reset-the-state-of-my-failover-extension">I’m receiving a <strong>recovery operations are empty</strong> error when failover is triggered or I need to reset the state of my failover extension</a></li>
+<li><a class="reference internal" href="#i-see-some-of-my-failover-objects-are-not-re-mapped-after-failover">I see some of my failover objects are not re-mapped after failover</a></li>
+<li><a class="reference internal" href="#i-m-not-seeing-any-logs-in-var-log-restnoded-restnoded-log-after-a-dry-run-or-failover">I’m not seeing any logs in <code class="docutils literal notranslate"><span class="pre">/var/log/restnoded/restnoded.log</span></code> after a DRY-RUN or failover</a></li>
+<li><a class="reference internal" href="#i-m-receiving-a-404-error-after-upgrading-the-big-ip-version">I’m receiving a <strong>404</strong> error after upgrading the BIG-IP version</a></li>
+<li><a class="reference internal" href="#recommended-shutdown-sequence">Recommended shutdown sequence</a></li>
+<li><a class="reference internal" href="#failover-objects-are-not-mapped-to-the-active-big-ip-after-a-cluster-reboot">Failover objects are not mapped to the Active BIG-IP after a cluster reboot</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Troubleshooting</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="troubleshooting">
+<span id="id1"></span><h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h1>
+<p>Use this section to read about known issues and for common troubleshooting steps. To provide feedback on this documentation, you can file a <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For simplicity and illustration purposes, the examples below use BIG-IP’s <a href="https://my.f5.com/manage/s/article/K0001352286">bash</a> shell to run <cite>curl</cite> locally on the BIG-IP itself and the utililty <cite>jq</cite> to pretty print the JSON output. However, any REST client will do. See the <a href="https://clouddocs.f5.com/api/icontrol-rest/">iControl REST API</a> documenation for more information and  <a class="reference internal" href="postman-collection.html"><span class="doc">Postman Collection</span></a> for CFE for more examples.</p>
+</div>
+<div class="section" id="confirm-cfe-installation">
+<span id="confirm-installation"></span><h2>Confirm CFE Installation<a class="headerlink" href="#confirm-cfe-installation" title="Permalink to this headline">¶</a></h2>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>Confirm that the Cloud Failover Extension (CFE) is installed</strong> on both BIG-IP instances. See <a class="reference internal" href="installation.html"><span class="doc">Download and Install Cloud Failover Extension</span></a> for more information. On the BIG-IP system (via the <a href="https://my.f5.com/manage/s/article/K0001352286">bash</a> shell), you can use the following command to verify that CFE is installed:</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info <span class="p">|</span>  jq .
+</pre></div>
+</div>
+</div></blockquote>
+<p>The expected ouput is a JSON payload containing the version. For example:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+  <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;1.14.0&quot;</span>,
+  <span class="s2">&quot;release&quot;</span>: <span class="s2">&quot;0&quot;</span>,
+  <span class="s2">&quot;schemaCurrent&quot;</span>: <span class="s2">&quot;1.14.0&quot;</span>,
+  <span class="s2">&quot;schemaMinimum&quot;</span>: <span class="s2">&quot;0.9.1&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If the output is empty, CFE is not installed.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Confirm the <cite>trigger</cite> call is installed in both the <code class="docutils literal notranslate"><span class="pre">/config/failover/tgactive</span></code> and <code class="docutils literal notranslate"><span class="pre">/config/failover/tgrefresh</span></code> files. For example, files from a clean installation of CFE will have the following contents:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>admin@bigip01:Active:In Sync<span class="o">]</span> ~ <span class="c1"># cat /config/failover/tgactive</span>
+<span class="c1">#!/bin/sh</span>
+<span class="c1">#</span>
+<span class="c1"># NOTE:</span>
+<span class="c1"># This file will be installed in /config/failover/tgactive and it will</span>
+<span class="c1"># be called by /usr/lib/failover/f5tgactive</span>
+<span class="c1">#</span>
+<span class="c1"># - This file is for customer additions for tasks</span>
+<span class="c1">#   to be performed when failover goes to active state.</span>
+<span class="c1">#</span>
+<span class="c1"># - Refer to /usr/lib/failover/f5tgactive for more information</span>
+<span class="c1">#</span>
+
+
+<span class="c1"># Autogenerated by F5 Failover Extension - Triggers failover</span>
+<span class="nv">i</span><span class="o">=</span><span class="m">0</span>
+<span class="k">while</span> <span class="o">[</span> <span class="nv">$i</span> -le <span class="m">50</span> <span class="o">]</span><span class="p">;</span> <span class="k">do</span>
+    <span class="k">if</span> <span class="o">[[</span> <span class="s2">&quot;</span><span class="k">$(</span>curl -u admin:admin --max-time <span class="m">5</span> --connect-timeout <span class="m">5</span> -s -o /dev/null -w <span class="s1">&#39;%{http_code}&#39;</span> http://localhost:8100/mgmt/shared/cloud-failover/info<span class="k">)</span><span class="s2">&quot;</span> <span class="o">==</span> <span class="s2">&quot;200&quot;</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then</span>
+        break<span class="p">;</span>
+    <span class="k">fi</span>
+    sleep <span class="m">3</span>
+    <span class="nv">i</span><span class="o">=</span><span class="k">$((</span> <span class="nv">$i</span> <span class="o">+</span> <span class="m">1</span> <span class="k">))</span>
+<span class="k">done</span>
+curl -u admin:admin --max-time <span class="m">10</span> --connect-timeout <span class="m">10</span> -d <span class="o">{}</span> -X POST http://localhost:8100/mgmt/shared/cloud-failover/trigger
+</pre></div>
+</div>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>If the instances have been upgraded, confirm that any previous failover scripts are either disabled or removed.</p>
+<p>For example, if the following command returns any output:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>egrep <span class="s1">&#39;/usr/bin/f5-rest-node&#39;</span> /config/failover/tg*
+</pre></div>
+</div>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">/usr/bin/f5-rest-node</span></code> line should be removed. See the individual cloud provider sections in <a class="reference internal" href="configuration.html"><span class="doc">Configure Cloud Failover Extension</span></a> for more details.</p>
+<div class="line-block" id="confirm-network-configuration">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>Confirm Network Configuration<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>CFE needs to make calls to the Cloud’s <strong>Metadata service</strong> (which live on a <a href="https://my.f5.com/manage/s/article/K11650">Link Local</a> address) and it’s <strong>REST APIs</strong>, which are typically on the Internet.</p>
+<blockquote>
+<div><ul class="simple">
+<li>In order to reach the <strong>Metadata</strong> service, you will need to enable <a href="https://my.f5.com/manage/s/article/K11650">Link Local</a> addresses on the BIG-IP and potentially create a route out a particular interface on which the Metadata service is enabled.</li>
+<li>In order to reach the Cloud’s <strong>REST APIs</strong>, you will need an upstream NAT service (For example: NAT Gateway, custom firewall, Public IP, etc).  Depending the BIG-IP’s routing configuration, these calls will egress either the management’s <strong>or</strong> the external interface’s <em>default route</em>.</li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>See the following articles for more information on BIG-IP routing:</p>
+<blockquote>
+<div><ul class="simple">
+<li><a href="https://my.f5.com/manage/s/article/K13284">K13284: Overview of management interface routing (11.x - 17.x)</a></li>
+<li><a href="https://my.f5.com/manage/s/article/K15040">K15040: Configuring and displaying the management IP address for the BIG-IP system</a></li>
+</ul>
+</div></blockquote>
+<p>as well as CFE’s individual cloud provider documentation in  <a class="reference internal" href="configuration.html"><span class="doc">Configure Cloud Failover Extension</span></a> sections for more information on the specific configuration requirements for each cloud environment.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">One of the most common installation issues is one has provided the <em>required</em> access to reach these Cloud APIs but <strong>only</strong> via the Management interface. However, in a subsequent step, one configures a <strong>default route</strong> out the external traffic interface (which per the above articles, ends up taking precedence). This results in CFE not being able to reach the endpoints anymore.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>You can use curl to test BIG-IP’s access to these endpoints. By default, curl and CFE will use the host’s routing table and if it works with curl, that is an indicator CFE will work as well. For example:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl &lt;url&gt;
+</pre></div>
+</div>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>If the default curl command is not working, you can use the <code class="docutils literal notranslate"><span class="pre">--interface</span></code> flag to verify wether the BIG-IP can reach a service via a particular expected interface. For example:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl --interface mgmt &lt;url&gt;
+curl --interface external &lt;url&gt;
+</pre></div>
+</div>
+</div></blockquote>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">external</span></code> with name of your external vlan name and <code class="docutils literal notranslate"><span class="pre">&lt;url&gt;</span></code> with the service you’re testing. If it works via the <em>mgmt</em> interface but not the <em>external</em>, you have a default traffic route and will need to enable access through the external network instead. However, if <em>neither</em> of these works, check your DNS configuration, upstream NAT’ing service, and/or cloud security group/firewall outbound rules.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ol class="arabic simple" id="confirm-metadata-service">
+<li><strong>Confirm that CFE can contact the metadata service</strong></li>
+</ol>
+<blockquote>
+<div><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>AWS</strong>:</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<blockquote>
+<div><p><em>IMDSv1</em>:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl http://169.254.169.254/latest/meta-data/
+</pre></div>
+</div>
+</div></blockquote>
+<p><em>IMDSv2</em>:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">TOKEN</span><span class="o">=</span><span class="sb">`</span>curl -X PUT <span class="s2">&quot;http://169.254.169.254/latest/api/token&quot;</span> -H <span class="s2">&quot;X-aws-ec2-metadata-token-ttl-seconds: 21600&quot;</span><span class="sb">`</span> <span class="se">\</span>
+<span class="o">&amp;&amp;</span> curl -H <span class="s2">&quot;X-aws-ec2-metadata-token: </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span> -v http://169.254.169.254/latest/meta-data/
+</pre></div>
+</div>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Azure</strong>:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -s -H <span class="s2">&quot;Metadata:true&quot;</span> <span class="s2">&quot;http://169.254.169.254/metadata/instance?api-version=2018-10-01&quot;</span> <span class="p">|</span> jq .
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>GCP</strong>:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -H <span class="s2">&quot;Metadata-Flavor: Google&quot;</span> http://metadata.google.internal/computeMetadata/v1/instance
+</pre></div>
+</div>
+</div></blockquote>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ol class="arabic simple" id="confirm-rest-api" start="2">
+<li><strong>Confirm that CFE can contact the Cloud REST APIs</strong></li>
+</ol>
+<blockquote>
+<div><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><em>NOTE:</em> the example curl commands below don’t authenticate but you should receive a <strong>4XX</strong> code response that confirms general network connectivity.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>AWS</strong>:</p>
+<blockquote>
+<div><blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -s -I  https://ec2.amazonaws.com
+</pre></div>
+</div>
+</div></blockquote>
+<p>See <a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Using_Endpoints.html">AWS API Documentation</a> for more information.</p>
+</div></blockquote>
+<p><strong>Azure</strong>:</p>
+<blockquote>
+<div><blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -s -I https://management.azure.com/
+</pre></div>
+</div>
+</div></blockquote>
+<p>See <a href="https://learn.microsoft.com/en-us/rest/api/azure/">Azure API Documentation</a> for more information.</p>
+</div></blockquote>
+<p><strong>GCP</strong>:</p>
+<blockquote>
+<div><blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -s -I https://compute.googleapis.com
+</pre></div>
+</div>
+</div></blockquote>
+<p>See <a href="https://cloud.google.com/apis">GCP API Documentation</a> for more information.</p>
+</div></blockquote>
+</div></blockquote>
+<p>If you are unable to reach the Cloud’s REST APIs, you may need to check your DNS settings or upstream NAT service, Public IP, proxy or other service to allow the BIG-IP to reach the cloud APIs. See the individual cloud provider sections in <a class="reference internal" href="configuration.html"><span class="doc">Configure Cloud Failover Extension</span></a> or <a class="reference internal" href="isolated-env.html"><span class="doc">CFE in Isolated Environments</span></a> for more details.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="confirm-cfe-configuration">
+<span id="confirm-configuration"></span><h2>Confirm CFE Configuration<a class="headerlink" href="#confirm-cfe-configuration" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first"><strong>Confirm that the Cloud Failover Extension (CFE) is configured</strong></p>
+<blockquote>
+<div><blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare <span class="p">|</span>  jq .
+</pre></div>
+</div>
+<p>The expected ouput is a JSON payload containing the declaration. For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+  <span class="s2">&quot;message&quot;</span>: <span class="s2">&quot;success&quot;</span>,
+  <span class="s2">&quot;declaration&quot;</span>: <span class="o">{</span>
+    <span class="s2">&quot;schemaVersion&quot;</span>: <span class="s2">&quot;1.0.0&quot;</span>,
+    <span class="s2">&quot;class&quot;</span>: <span class="s2">&quot;Cloud_Failover&quot;</span>,
+    <span class="s2">&quot;controls&quot;</span>: <span class="o">{</span>
+      <span class="s2">&quot;class&quot;</span>: <span class="s2">&quot;Controls&quot;</span>,
+      <span class="s2">&quot;logLevel&quot;</span>: <span class="s2">&quot;silly&quot;</span>
+    <span class="o">}</span>,
+  ...
+  &lt;output shortened <span class="k">for</span> illustration purposes&gt;
+  ...
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>If the output is empty, CFE is not configured. Otherwise, examine the REST response:</p>
+<blockquote>
+<div><ul class="simple">
+<li>A 400-level response will carry an error message. See the Troubleshooting Index below.</li>
+<li>If the error message is missing, incorrect, or misleading, please let us know by filing a <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">GitHub Issue</a>.</li>
+<li><strong>Review the logs.</strong> (<code class="docutils literal notranslate"><span class="pre">/var/log/restnoded/restnoded.log</span></code>) to check for any errors.</li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>A declaration needs to be posted at least once to <em>each</em> unit in order to initialize. After that, you only need to post to one unit and the CFE configuration will be synced to the other unit. If auto-sync is enabled, the CFE configurations will automatically sync. Otherwise, you can manually <a href="https://my.f5.com/manage/s/article/K14856">sync</a> the units to sync the CFE config).</li>
+</ul>
+</div>
+</div></blockquote>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">To prevent unexpected behavior, ensure that you are using a CFE configuration that is appropriate for your use case. For example, if you are only failing over route resources, do not include the failoverAddresses block in the CFE configuration and vice-versa. Limit the CFE configuration to include only the resources you want to move between BIG-IP devices.</p>
+</div>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p>If you are deploying for the first time and having issues, F5 recommends deploying an example full-stack deployment template as a working baseline. This can potentially help you isolate and identify any issues/differences with your configuration and/or environment.</p>
+<ul class="last simple">
+<li><a class="reference external" href="https://github.com/F5Networks/f5-aws-cloudformation-v2/tree/main/examples/failover/">AWS Cloudformation Failover Templates</a></li>
+<li><a class="reference external" href="https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/failover/">Azure ARM Failover Templates</a></li>
+<li><a class="reference external" href="https://github.com/F5Networks/f5-google-gdm-templates-v2/tree/main/examples/failover">Google Deployment Manager Failover Templates</a></li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="troubleshooting-and-debugging-unexpected-behavior">
+<span id="debugging"></span><h2>Troubleshooting and Debugging Unexpected Behavior<a class="headerlink" href="#troubleshooting-and-debugging-unexpected-behavior" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div></blockquote>
+<blockquote id="enable-debug-logging">
+<div><ol class="arabic">
+<li><p class="first"><strong>Enable DEBUG Logging</strong> <em>(OPTIONAL: Skip to step 2 if debug logging is already enabled)</em></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Set the CFE configuration <a class="reference internal" href="logging.html#logging-ref"><span class="std std-ref">Logging</span></a> level to <cite>silly</cite>.</p>
+<ul>
+<li><p class="first">Download the config:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/declare <span class="p">|</span>  jq .declaration &gt; cfe.json
+</pre></div>
+</div>
+</li>
+<li><p class="first">Use your preferred editor to configure debug logging (<code class="docutils literal notranslate"><span class="pre">&quot;logLevel&quot;:</span> <span class="pre">&quot;silly&quot;</span></code>). Click <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/example-declarations.html#example-declaration-setting-the-log-level">here</a> to see an example control block with debug logging:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>vim cfe.json
+</pre></div>
+</div>
+</li>
+<li><p class="first">Repost to update the config:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare <span class="p">|</span> jq .
+</pre></div>
+</div>
+</li>
+<li><p class="first">Sync the BIG-IP config to the other unit (if auto-sync is not enabled).</p>
+</li>
+</ul>
+</li>
+</ol>
+</div></blockquote>
+<blockquote id="reset">
+<div><ol class="arabic" start="2">
+<li><p class="first"><strong>RESET the State file</strong></p>
+<p>This only needs to be be run once on either unit.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X POST -d <span class="s1">&#39;{&quot;resetStateFile&quot;:true}&#39;</span> http://localhost:8100/mgmt/shared/cloud-failover/reset <span class="p">|</span> jq .
+</pre></div>
+</div>
+</li>
+</ol>
+</div></blockquote>
+<blockquote id="inspect">
+<div><ol class="arabic" start="3">
+<li><p class="first"><strong>Run INSPECT (on *each* instance)</strong></p>
+<p>Use the <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Information/paths/~1inspect/get">/inspect</a> endpoint to validate the cloud resources (ip addresses and routes) currently associated with each unit.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: http://localhost:8100/mgmt/shared/cloud-failover/inspect <span class="p">|</span> jq .
+</pre></div>
+</div>
+</li>
+</ol>
+</div></blockquote>
+<blockquote id="dry-run">
+<div><ol class="arabic" start="4">
+<li><p class="first"><strong>Run DRY-RUN (on the *STANDBY* instance only)</strong></p>
+<p>Use <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger">/trigger</a> endpoint to perform a DRY-RUN and validate which objects will be re-mapped when the Standby instance fails over to Active.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X POST -d <span class="s1">&#39;{&quot;action&quot;:&quot;dry-run&quot;}&#39;</span> http://localhost:8100/mgmt/shared/cloud-failover/trigger <span class="p">|</span> jq .
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p>Check the <code class="docutils literal notranslate"><span class="pre">toActive</span></code> section of the response to confirm the desired objects will be re-mapped. For example, if failing over a set of expected VIP addresses, confirm those addresses are present in the <code class="docutils literal notranslate"><span class="pre">toActive</span></code> section.</p>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -su admin: -X POST -d <span class="s1">&#39;{&quot;action&quot;:&quot;dry-run&quot;}&#39;</span> http://localhost:8100/mgmt/shared/cloud-failover/trigger <span class="p">|</span> jq .addresses.interfaces.associate
+</pre></div>
+</div>
+</div>
+</li>
+<li><p class="first"><strong>Review the debug logs</strong> (<code class="docutils literal notranslate"><span class="pre">/var/log/restnoded/restnoded.log</span></code>) to check for any errors.  For instance, the logs may reveal a particular service is unreachable, CFE does not have permissions to access a service, etc.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>grep f5-cloud-failover /var/log/restnoded/restnoded.log
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">If opening a case with F5 Support, you will be asked to provide these logs with <em>DEBUG</em> enabled.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>If any of the above curl calls seem to hang or take a long time to respond, it may indicate that BIG-IP is unable to reach or communicate with the cloud provider’s APIs.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>You may see an network related errors in this log like:</p>
+<ul>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">Function</span> <span class="pre">error,</span> <span class="pre">retrying:</span> <span class="pre">getaddrinfo</span> <span class="pre">ENOTFOUND</span></code></p>
+<p><em>Recommendation:</em>  CFE can’t resolve the API address. Check the DNS settings on BIG-IP.</p>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">Function</span> <span class="pre">error,</span> <span class="pre">retrying:</span> <span class="pre">connect</span> <span class="pre">ECONNREFUSED</span></code></p>
+<blockquote>
+<div><p><em>Recommendation:</em> CFE can’t contact the Cloud API. Check the upstream network environment, upstream NAT/Firewall service, any security/firewall rules, etc. per <a class="reference internal" href="#confirm-network-configuration"><span class="std std-ref">above</span></a>.</p>
+</div></blockquote>
+</li>
+</ul>
+<p>Or permissions related errors like:</p>
+<ul>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">Function</span> <span class="pre">error,</span> <span class="pre">retrying:</span> <span class="pre">Invalid</span> <span class="pre">token</span> <span class="pre">response,</span> <span class="pre">did</span> <span class="pre">not</span> <span class="pre">find</span> <span class="pre">tokenType.</span></code></p>
+</li>
+<li><p class="first"><code class="docutils literal notranslate"><span class="pre">Failover</span> <span class="pre">initialization</span> <span class="pre">failed:</span> <span class="pre">No</span> <span class="pre">storage</span> <span class="pre">account</span> <span class="pre">found!</span> <span class="pre">Error:</span> <span class="pre">No</span> <span class="pre">storage</span> <span class="pre">account</span> <span class="pre">found!</span></code></p>
+</li>
+<li><p class="first">Where it hangs on the <code class="docutils literal notranslate"><span class="pre">Listing</span> <span class="pre">Storage</span> <span class="pre">Accounts</span></code> message</p>
+<p><em>Recommendation:</em> Check that the BIG-IP’s RBAC Role is attached and its permissions are configured appropriately.</p>
+</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<div>If the above commands return successfully and no obvious errors are found but the failover objects are not being discovered or remapped as expected, check the following:</div></blockquote>
+</div></blockquote>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>Beginning in version v1.15.0, CFE will assist with a common misconfiguration and remove any leading or trailing spaces on tags/labels before using them to identify objects.</li>
+<li>Beginning in version v1.15.0, CFE will be compatiable with Azure Service Tags. Previously Service Tags would cause CFE to fail to discover routes.</li>
+</ul>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<blockquote>
+<div><blockquote>
+<div><ul class="simple">
+<li>If you are using the <cite>Explicit</cite> based configuration, ensure all desired objects are defined in the CFE declaration.</li>
+<li>If you are using the <cite>Discovery via Tag</cite> based configuration, check to ensure any tags or labels used to identify the failover objects are present on the objects, that there are no typos like leading or trailing spaces, capitalization, extra-characters, etc. It may be helpful to use the cloud’s CLI to inspect the text output of the objects to help confirm there are no differences that may not be visually apparent in the Cloud’s GUI.</li>
+<li>If failing over routes, ensure the route prefix is an exact string match. For a cloud route with prefix ‘<code class="docutils literal notranslate"><span class="pre">192.168.1.100/24</span></code>’, configuring a route scoping address of ‘<code class="docutils literal notranslate"><span class="pre">192.168.1.0/24</span></code>’ will not work.</li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>In some cases, permission issues may not produce any errors but still prevent CFE from discovering or remapping objects. For example, the Cloud API will simply not return objects that the BIG-IP’s RBAC role does not have permissions for so double-check that the BIG-IP’s role has the necessary <em>effective</em> permissions through organizational policies, inheritance, etc.</p>
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="troubleshooting-index">
+<h2>Troubleshooting Index<a class="headerlink" href="#troubleshooting-index" title="Permalink to this headline">¶</a></h2>
+<p>Use this section for specific troubleshooting help.</p>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="i-m-receiving-a-path-not-registered-error-when-i-try-to-post-a-declaration">
+<h3>I’m receiving a <strong>path not registered</strong> error when I try to post a declaration<a class="headerlink" href="#i-m-receiving-a-path-not-registered-error-when-i-try-to-post-a-declaration" title="Permalink to this headline">¶</a></h3>
+<p>If you are receiving this error, it means either you did not install Cloud Failover Extension, or it did not install properly. The error contains the following message:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+    <span class="s2">&quot;code&quot;</span>:404,
+    <span class="s2">&quot;message&quot;</span>: <span class="s2">&quot;Public URI path no registered. Please see /var/log/restjavad.0.log and /var/log/restnoded/restnoded.log for details.&quot;</span>.
+    ...
+<span class="o">}</span>
+</pre></div>
+</div>
+<p><em>Recommendation:</em> See <a class="reference internal" href="installation.html"><span class="doc">Download and Install Cloud Failover Extension</span></a> to install or re-install Cloud Failover Extension.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="i-m-receiving-a-400-error-when-i-try-to-post-a-declaration-with-no-additional-helpful-message">
+<h3>I’m receiving a <strong>400</strong> error when I try to post a declaration with no additional helpful message<a class="headerlink" href="#i-m-receiving-a-400-error-when-i-try-to-post-a-declaration-with-no-additional-helpful-message" title="Permalink to this headline">¶</a></h3>
+<p>If you are receiving this error, it typically means the provider prerequisites have not been met and there is an issue performing initialization operations.</p>
+<p><em>Recommendation:</em> Please review the provider prerequisites sections for more information.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="i-m-receiving-a-recovery-operations-are-empty-error-when-failover-is-triggered-or-i-need-to-reset-the-state-of-my-failover-extension">
+<h3>I’m receiving a <strong>recovery operations are empty</strong> error when failover is triggered or I need to reset the state of my failover extension<a class="headerlink" href="#i-m-receiving-a-recovery-operations-are-empty-error-when-failover-is-triggered-or-i-need-to-reset-the-state-of-my-failover-extension" title="Permalink to this headline">¶</a></h3>
+<p>If you receive this error, it means Cloud Failover Extension had a previous failure which left it in a bad state.</p>
+<p><em>Recommendation:</em>  Manually ensure <em>(either through the Cloud’s GUI or CLI)</em> that all the desired resources are attached the to ACTIVE instance again <em>(to get in the expected initial pre-failover state)</em>, then <em>RESET</em> the state file and run through the INSPECT and DRY-RUN debugging steps as described <a class="reference internal" href="#debugging"><span class="std std-ref">above</span></a> to determine any discrepencies before attempting failing over again.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="i-see-some-of-my-failover-objects-are-not-re-mapped-after-failover">
+<h3>I see some of my failover objects are not re-mapped after failover<a class="headerlink" href="#i-see-some-of-my-failover-objects-are-not-re-mapped-after-failover" title="Permalink to this headline">¶</a></h3>
+<p>There could be a number of reasons why some of your failover objects are not re-mapped after failover.</p>
+<p><em>Recommendation:</em>  First check the logs <cite>(/var/log/restnoded/restnoded.log)</cite> logs to see if there any transient or environmental discrepencies that may have led to the issue. For instance, due to load or network event, the Cloud API was slow or unvailable.</p>
+<p>If you see some of your failover objects are not re-mapped after failover, this could also mean Cloud Failover Extension was unable to discover or remap those objects. Check to make sure there were no changes to the environment that may have caused the objects to be discovered or mismatched.</p>
+<p>Run through the INSPECT and DRY-RUN debugging steps as described <a class="reference internal" href="#debugging"><span class="std std-ref">above</span></a> to help determine any discrepencies and gather debug logs.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="i-m-not-seeing-any-logs-in-var-log-restnoded-restnoded-log-after-a-dry-run-or-failover">
+<h3>I’m not seeing any logs in <code class="docutils literal notranslate"><span class="pre">/var/log/restnoded/restnoded.log</span></code> after a DRY-RUN or failover<a class="headerlink" href="#i-m-not-seeing-any-logs-in-var-log-restnoded-restnoded-log-after-a-dry-run-or-failover" title="Permalink to this headline">¶</a></h3>
+<p>Check that the <cite>trigger</cite> call was installed in the <code class="docutils literal notranslate"><span class="pre">/config/failover/tgactive</span></code> and <code class="docutils literal notranslate"><span class="pre">/config/failover/tgrefresh</span></code> files. If the <cite>trigger</cite> call is not present, the failover extension will not be able to trigger a failover or dry-run.</p>
+<p><em>Recommendation:</em>  See the <a class="reference internal" href="#confirm-installation"><span class="std std-ref">above</span></a> section for more information on re-installing and confirming the needed trigger call.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="i-m-receiving-a-404-error-after-upgrading-the-big-ip-version">
+<h3>I’m receiving a <strong>404</strong> error after upgrading the BIG-IP version<a class="headerlink" href="#i-m-receiving-a-404-error-after-upgrading-the-big-ip-version" title="Permalink to this headline">¶</a></h3>
+<p>F5 is currently tracking this issue (929213).</p>
+<p><em>Recommendation:</em>  Currently the workaround is that f5-cloud-failover RPM needs to be re-uploaded.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="recommended-shutdown-sequence">
+<h3>Recommended shutdown sequence<a class="headerlink" href="#recommended-shutdown-sequence" title="Permalink to this headline">¶</a></h3>
+<p>When shutting down both BIG-IP instances, it is important to use the following sequence to avoid loss of configuration:</p>
+<ol class="arabic simple">
+<li><strong>BIG-IP 2</strong> is Active (and has failover objects).</li>
+<li>Shutdown <strong>BIG-IP 1</strong>.</li>
+<li>Wait 1 minute.</li>
+<li>Shutdown <strong>BIG-IP 2</strong>.</li>
+<li>Start <strong>BIG-IP 2</strong>.</li>
+<li>Wait 1 minute.</li>
+<li>Start <strong>BIG-IP 1</strong>.</li>
+<li><strong>BIG-IP 2</strong> should be Active (should retain failover objects).</li>
+</ol>
+</div>
+<div class="section" id="failover-objects-are-not-mapped-to-the-active-big-ip-after-a-cluster-reboot">
+<h3>Failover objects are not mapped to the Active BIG-IP after a cluster reboot<a class="headerlink" href="#failover-objects-are-not-mapped-to-the-active-big-ip-after-a-cluster-reboot" title="Permalink to this headline">¶</a></h3>
+<p>After both BIG-IP VMs have been rebooted, sometimes failover objects are not mapped to the Active BIG-IP.</p>
+<ol class="arabic simple">
+<li><strong>BIG-IP 2</strong> is Active (and has failover objects).</li>
+<li>Shutdown <strong>BIG-IP 1</strong>.</li>
+<li>Shutdown <strong>BIG-IP 2</strong>.</li>
+<li>Start <strong>BIG-IP 1</strong>.</li>
+<li>Wait 1 minute.</li>
+<li>Start <strong>BIG-IP 2</strong>.</li>
+<li><strong>BIG-IP 1</strong> should be Active (and have failover objects).</li>
+</ol>
+<p>Failover under these conditions normally works as long as restnoded comes up before HA status is determined and tgactive is called.</p>
+<p>If, during a reboot, the objects are mapped to the wrong BIG-IP, you can force a failover event by POSTing to the <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-cloud-failover/latest/userguide/apidocs.html#tag/Trigger">/trigger</a> endpoint of the <strong>currently active</strong> BIG-IP.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="isolated-env.html" title="CFE in Isolated Environments" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="../revision-history.html" title="Document Revision History" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

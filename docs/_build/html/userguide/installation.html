@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Download and Install Cloud Failover Extension</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Download and Install Cloud Failover Extension"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Download and Install Cloud Failover Extension &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Configure Cloud Failover Extension" href="configuration.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Download and Install Cloud Failover Extension</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#download-the-rpm-file">Download the RPM file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#upload-and-install-the-cloud-failover-extension-cfe-file">Upload and install the Cloud Failover Extension (CFE) file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#update-cloud-failover-extension">Update Cloud Failover Extension</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Download and Install Cloud Failover Extension</a><ul>
+<li><a class="reference internal" href="#download-the-rpm-file">Download the RPM file</a><ul>
+<li><a class="reference internal" href="#verify-the-integrity-of-the-cloud-failover-extension-rpm-package">Verify the integrity of the Cloud Failover Extension RPM package</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#upload-and-install-the-cloud-failover-extension-cfe-file">Upload and install the Cloud Failover Extension (CFE) file</a><ul>
+<li><a class="reference internal" href="#install-cfe-using-the-big-ip-configuration-utility">Install CFE using the BIG-IP Configuration utility</a></li>
+<li><a class="reference internal" href="#install-cfe-using-curl-from-the-linux-shell">Install CFE using cURL from the Linux shell</a></li>
+<li><a class="reference internal" href="#increase-memory-allocated-to-restjavad">Increase Memory Allocated to Restjavad</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#update-cloud-failover-extension">Update Cloud Failover Extension</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Download and Install Cloud Failover Extension</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="download-and-install-cloud-failover-extension">
+<span id="installation"></span><h1>Download and Install Cloud Failover Extension<a class="headerlink" href="#download-and-install-cloud-failover-extension" title="Permalink to this headline">¶</a></h1>
+<p>The Cloud Failover Extension package is an RPM file you download, and then upload to the BIG-IP system using the iControl/iApp LX framework. Alternatively, you can see the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> section.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="download-the-rpm-file">
+<span id="download-rpm"></span><h2>Download the RPM file<a class="headerlink" href="#download-the-rpm-file" title="Permalink to this headline">¶</a></h2>
+<p>The first task is to download the latest RPM file.  Go to the <a href="https://github.com/F5Networks/f5-cloud-failover-extension" target="_blank">F5 BIG-IP Cloud Failover Extension site on GitHub</a>, and download the latest (highest numbered) RPM file, found in the <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">Release section</a>.</p>
+<div class="section" id="verify-the-integrity-of-the-cloud-failover-extension-rpm-package">
+<span id="verify-rpm"></span><h3>Verify the integrity of the Cloud Failover Extension RPM package<a class="headerlink" href="#verify-the-integrity-of-the-cloud-failover-extension-rpm-package" title="Permalink to this headline">¶</a></h3>
+<p>F5 Networks provides a checksum for each Cloud Failover Extension release so you can confirm the integrity of the RPM package.</p>
+<p>You can get a checksum for a particular RPM by running one of the following commands, depending on your operating system:</p>
+<ul class="simple">
+<li>Linux: <code class="docutils literal notranslate"><span class="pre">sha256sum</span> <span class="pre">&lt;path_to_rpm&gt;</span></code></li>
+<li>Windows using CertUtil: <code class="docutils literal notranslate"><span class="pre">CertUtil</span> <span class="pre">–hashfile</span> <span class="pre">&lt;path_to_rpm&gt;</span> <span class="pre">SHA256</span></code></li>
+</ul>
+<p>You can compare the checksum produced by that command against the <strong>.sha256</strong> file (<a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/releases">https://github.com/F5Networks/f5-cloud-failover-extension/releases</a>).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Do not continue if the hash does not match.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="upload-and-install-the-cloud-failover-extension-cfe-file">
+<span id="upload-install"></span><h2>Upload and install the Cloud Failover Extension (CFE) file<a class="headerlink" href="#upload-and-install-the-cloud-failover-extension-cfe-file" title="Permalink to this headline">¶</a></h2>
+<p>After you download the RPM, with CFE version 1.15.0 or earlier you must upload and then install RPM on each BIG-IP system. However, with the CFE version 2.0.0 or later, uploading and installing the RPM on one BIG-IP system results in auto file transfer and CFE installation in rest of the BIG-IP systems that are part of same device group. You can use the BIG-IP Configuration utility or cURL (alternatively, you can use SCP to upload the file to <strong>/var/config/rest/downloads</strong>, but you will still have to use the cURL command to install the package). Use only one of the following procedures.</p>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">Cloud Failover Extension supports BIG-IP version 14.1.X and later.</p>
+</div>
+<div class="section" id="install-cfe-using-the-big-ip-configuration-utility">
+<span id="installgui-ref"></span><h3>Install CFE using the BIG-IP Configuration utility<a class="headerlink" href="#install-cfe-using-the-big-ip-configuration-utility" title="Permalink to this headline">¶</a></h3>
+<p>From the Configuration utility:</p>
+<ol class="arabic simple">
+<li>Click <strong>iApps &gt; Package Management LX</strong>.</li>
+<li>Click the <strong>Import</strong> button.</li>
+<li>Click <strong>Choose File</strong> and then browse to the location you saved the RPM file, and then click <strong>Ok</strong>.</li>
+<li>Click the <strong>Upload</strong> button.</li>
+</ol>
+</div>
+<div class="section" id="install-cfe-using-curl-from-the-linux-shell">
+<span id="installcurl-ref"></span><h3>Install CFE using cURL from the Linux shell<a class="headerlink" href="#install-cfe-using-curl-from-the-linux-shell" title="Permalink to this headline">¶</a></h3>
+<p>If you want to use cURL to install Cloud Failover Extension, use the following command syntax.</p>
+<ol class="arabic">
+<li><p class="first">Set the file name and the BIG-IP IP address and credentials, making sure you use the appropriate RPM file name, including build number, and BIG-IP credentials.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">FN</span><span class="o">=</span>f5-cloud-failover-1.0.0-1.noarch.rpm
+
+<span class="nv">CREDS</span><span class="o">=</span>admin:password
+
+<span class="nv">IP</span><span class="o">=</span>IP address of BIG-IP
+</pre></div>
+</div>
+</li>
+<li><p class="first">Copy the following commands to upload the package. If you uploaded the RPM by another method, you can skip these commands.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">LEN</span><span class="o">=</span><span class="k">$(</span>wc -c <span class="nv">$FN</span> <span class="p">|</span> cut -f <span class="m">1</span> -d <span class="s1">&#39; &#39;</span><span class="k">)</span>
+
+curl -kvu <span class="nv">$CREDS</span> https://<span class="nv">$IP</span>/mgmt/shared/file-transfer/uploads/<span class="nv">$FN</span> -H <span class="s1">&#39;Content-Type: application/octet-stream&#39;</span> -H <span class="s2">&quot;Content-Range: 0-</span><span class="k">$((</span>LEN <span class="o">-</span> <span class="m">1</span><span class="k">))</span><span class="s2">/</span><span class="nv">$LEN</span><span class="s2">&quot;</span> -H <span class="s2">&quot;Content-Length: </span><span class="nv">$LEN</span><span class="s2">&quot;</span> -H <span class="s1">&#39;Connection: keep-alive&#39;</span> --data-binary @<span class="nv">$FN</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Copy the following commands to install the package.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">DATA</span><span class="o">=</span><span class="s2">&quot;{\&quot;operation\&quot;:\&quot;INSTALL\&quot;,\&quot;packageFilePath\&quot;:\&quot;/var/config/rest/downloads/</span><span class="nv">$FN</span><span class="s2">\&quot;}&quot;</span>
+
+
+curl -kvu <span class="nv">$CREDS</span> <span class="s2">&quot;https://</span><span class="nv">$IP</span><span class="s2">/mgmt/shared/iapp/package-management-tasks&quot;</span> -H <span class="s2">&quot;Origin: https://</span><span class="nv">$IP</span><span class="s2">&quot;</span> -H <span class="s1">&#39;Content-Type: application/json;charset=UTF-8&#39;</span> --data <span class="nv">$DATA</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="increase-memory-allocated-to-restjavad">
+<span id="increase-memory"></span><h3>Increase Memory Allocated to Restjavad<a class="headerlink" href="#increase-memory-allocated-to-restjavad" title="Permalink to this headline">¶</a></h3>
+<p>When using the BIG-IP API, F5 recommends increasing the memory allocated to the process called <strong>restjavad</strong>. Note that this process will cause service interruption.</p>
+<p>Add additional memory for restjavad using following procedure:</p>
+<ol class="arabic">
+<li><p class="first">In the BIG-IP user interface, navigate to <strong>System &gt; Resource Provisioning</strong>. Set Management provisioning to <strong>Large</strong>.</p>
+</li>
+<li><p class="first">Modify sys db variables using following commands in the CLI (bash):</p>
+<p>For versions prior to BIG-IP 17.1.x:</p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">modify</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">provision.extramb</span> <span class="pre">value</span> <span class="pre">1000</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">modify</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">restjavad.useextramb</span> <span class="pre">value</span> <span class="pre">true</span></code></p>
+<p>For BIG-IP versions 17.1.x and later:</p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">modify</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">provision.restjavad.extramb</span> <span class="pre">value</span> <span class="pre">1000</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">save</span> <span class="pre">sys</span> <span class="pre">config</span></code></p>
+</li>
+<li><p class="first">Restart restjavad daemons:</p>
+<p><code class="docutils literal notranslate"><span class="pre">bigstart</span> <span class="pre">restart</span> <span class="pre">restjavad</span> <span class="pre">restnoded</span></code></p>
+</li>
+</ol>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference external" href="https://my.f5.com/manage/s/article/K000133648">K000133648: Error: The requested database variable (restjavad.useextramb) was not found</a>  for more information on restjavad.useextramb, and
+<a class="reference external" href="https://support.f5.com/csp/article/K26427018">K26427018: Overview of Management provisioning</a> for more on the memory allocation.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="update-cloud-failover-extension">
+<span id="upgrade"></span><h2>Update Cloud Failover Extension<a class="headerlink" href="#update-cloud-failover-extension" title="Permalink to this headline">¶</a></h2>
+<p>When F5 releases a new version of Cloud Failover Extension, use the same procedure you used to initially install the RPM. For example, if you used the Configuration utility, when you click <strong>Import</strong> and then select the new RPM, the system recognizes you are upgrading Cloud Failover Extension.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="quickstart.html" title="Quickstart" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="configuration.html" title="Configure Cloud Failover Extension" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

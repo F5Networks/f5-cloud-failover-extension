@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Azure</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Azure"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Azure &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Google Cloud" href="gcp.html" />
+    <link rel="prev" title="AWS (Same Availability Zone)" href="aws-same-az.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#components-of-the-declaration">Components of the Declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#endpoints">Endpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#using-a-proxy">Using a Proxy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="configuration.html#cloud-environments">Cloud Environments</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Azure</a><ul>
+<li><a class="reference internal" href="#azure-cfe-prerequisites">Azure CFE Prerequisites</a></li>
+<li><a class="reference internal" href="#azure-failover-event-diagram">Azure Failover Event Diagram</a></li>
+<li><a class="reference internal" href="#example-azure-declaration">Example Azure Declaration</a></li>
+<li><a class="reference internal" href="#create-and-assign-a-managed-service-identity-msi">Create and assign a Managed Service Identity (MSI)</a><ul>
+<li><a class="reference internal" href="#rbac-role-definition">RBAC Role Definition</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#define-your-azure-infrastructure-objects">Define your Azure Infrastructure Objects</a><ul>
+<li><a class="reference internal" href="#define-the-storage-account-in-azure">Define the Storage Account in Azure</a></li>
+<li><a class="reference internal" href="#tag-the-network-interfaces-in-azure">Tag the Network Interfaces in Azure</a></li>
+<li><a class="reference internal" href="#define-the-failover-addresses-in-azure">Define the Failover Addresses in Azure</a></li>
+<li><a class="reference internal" href="#define-the-routes-in-azure">Define the Routes in Azure</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#set-up-access-to-azure-s-instance-metadata-service">Set up access to Azure’s Instance Metadata Service</a><ul>
+<li><a class="reference internal" href="#using-tmsh">Using TMSH</a></li>
+<li><a class="reference internal" href="#using-declarative-onboarding">Using Declarative Onboarding</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-virtual-service-declaration">Example Virtual Service Declaration</a></li>
+<li><a class="reference internal" href="#azure-private-endpoints">Azure Private Endpoints</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Azure</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="azure">
+<span id="id1"></span><h1>Azure<a class="headerlink" href="#azure" title="Permalink to this headline">¶</a></h1>
+<p>In this section, you will see the complete steps for implementing Cloud Failover Extension in Microsoft Azure. You can also go straight to the <a class="reference internal" href="#azure-example"><span class="std std-ref">Example Azure Declaration</span></a>.</p>
+<div class="section" id="azure-cfe-prerequisites">
+<span id="azure-prereqs"></span><h2>Azure CFE Prerequisites<a class="headerlink" href="#azure-cfe-prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>These are the basic prerequisites for setting up CFE in Microsoft Azure.</p>
+<ul>
+<li><p class="first"><strong>2 BIG-IP systems in Active/Standby configuration</strong>. You can find an <a class="reference external" href="https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/failover">example ARM template here</a> . Any configuration tool can be used to provision the resources.</p>
+</li>
+<li><p class="first"><strong>Virtual addresses</strong> created in a floating traffic group and matching addresses (secondary) on the IP configurations of the instance NICs serving application traffic.</p>
+<div class="admonition tip">
+<p class="first admonition-title">Tip</p>
+<p class="last">Use Static allocation for each IP configuration that will serve application traffic. Using Dynamic allocation is discouraged for production deployments.</p>
+</div>
+</li>
+<li><p class="first"><strong>Access to Azure’s Instance Metadata Service</strong>, which is a REST Endpoint accessible to all IaaS VMs created with the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can only be accessed from within the VM. See the instructions below to <a class="reference internal" href="#azure-ims"><span class="std std-ref">Set up access to Azure’s Instance Metadata Service</span></a>.</p>
+</li>
+<li><p class="first"><strong>Enable “enableIPForwarding”</strong> on the NICs if enabling routing or avoiding SNAT. See <a class="reference external" href="https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-network-interface#enable-or-disable-ip-forwarding">Enable or disable IP forwarding</a> for more information.</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">CFE makes calls to the Azure APIs in order to failover cloud resource objects such as private IP addresses and route tables. These calls may vary significantly in response time. See the <a class="reference internal" href="performance-sizing.html#performance-sizing"><span class="std std-ref">Performance and Sizing</span></a> section for example times.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Complete these tasks to deploy Cloud Failover Extension in Microsoft Azure. Before getting started, we recommend you review the <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">Known Issues</a> and <a class="reference internal" href="faq.html#faq"><span class="std std-ref">Frequently Asked Questions (FAQ)</span></a>. To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see <a class="reference internal" href="isolated-env.html#isolated-env"><span class="std std-ref">CFE in Isolated Environments</span></a>.</p>
+<div class="sidebar admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.</p>
+</div>
+<table border="1" class="styled-table docutils" id="id3">
+<caption><span class="caption-text">Task Summary</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="left-align head">Step</th>
+<th class="left-align head">Task</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#download-rpm"><span class="std std-ref">Download the RPM file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#verify-rpm"><span class="std std-ref">Verify the integrity of the Cloud Failover Extension RPM package</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="2">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="installation.html#upload-install"><span class="std std-ref">Upload and install the Cloud Failover Extension (CFE) file</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="installation.html#installgui-ref"><span class="std std-ref">Install CFE using the BIG-IP Configuration utility</span></a> (or)</li>
+<li><a class="reference internal" href="installation.html#installcurl-ref"><span class="std std-ref">Install CFE using cURL from the Linux shell</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="3">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="#azure-msi"><span class="std std-ref">Create and assign a Managed Service Identity (MSI)</span></a></td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="4">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><p class="first"><a class="reference internal" href="#azure-define-objects"><span class="std std-ref">Define your Azure Infrastructure Objects</span></a></p>
+<ul class="last simple">
+<li><a class="reference internal" href="#azure-define-storage"><span class="std std-ref">Define the Storage Account in Azure</span></a></li>
+<li><a class="reference internal" href="#azure-define-addresses"><span class="std std-ref">Define the Failover Addresses in Azure</span></a></li>
+<li><a class="reference internal" href="#azure-define-routes"><span class="std std-ref">Define the Routes in Azure</span></a></li>
+</ul>
+</td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="5">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="#azure-ims"><span class="std std-ref">Set up access to Azure’s Instance Metadata Service</span></a></td>
+</tr>
+<tr class="row-odd"><td class="left-align"><ol class="first last arabic simple" start="6">
+<li></li>
+</ol>
+</td>
+<td class="left-align">Modify and POST the <a class="reference internal" href="#azure-example"><span class="std std-ref">Example Azure Declaration</span></a></td>
+</tr>
+<tr class="row-even"><td class="left-align"><ol class="first last arabic simple" start="7">
+<li></li>
+</ol>
+</td>
+<td class="left-align"><a class="reference internal" href="update-revert.html#update-revert"><span class="std std-ref">Update or Revert Cloud Failover Extension</span></a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="azure-failover-event-diagram">
+<span id="azure-diagram"></span><h2>Azure Failover Event Diagram<a class="headerlink" href="#azure-failover-event-diagram" title="Permalink to this headline">¶</a></h2>
+<p>The following diagram shows a failover event with CFE implemented in Microsoft Azure with an HA pair in an Active/Standby configuration.</p>
+<p>In the diagram, the IP configuration has a secondary private address that matches a virtual address in a traffic group owned by the active BIG-IP. In the event of a failover, the IP configuration is deleted and recreated on that device’s network interface. Simultaneously, the user-defined routes are updated with a next hop attribute the corresponds to the self IP address of the active BIG-IP.</p>
+<img alt="../_images/azure-failover-3nic-multiple-vs-animated.gif" src="../_images/azure-failover-3nic-multiple-vs-animated.gif" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Management NICs/Subnets are not shown in this diagram.</p>
+</div>
+</div>
+<div class="section" id="example-azure-declaration">
+<span id="azure-example"></span><h2>Example Azure Declaration<a class="headerlink" href="#example-azure-declaration" title="Permalink to this headline">¶</a></h2>
+<p>This example declaration shows the minimum information needed to update the cloud resources in Azure. See the <a class="reference internal" href="quickstart.html#quickstart"><span class="std std-ref">Quickstart</span></a> section for steps on how to post this declaration. See the <a class="reference internal" href="example-declarations.html#example-declarations"><span class="std std-ref">Example Declarations</span></a> section for more examples.</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Example Azure Declaration with Single Routing Table</span><a class="headerlink" href="#id4" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;environment&quot;</span><span class="p">:</span> <span class="s2">&quot;azure&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;controls&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;silly&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;externalStorage&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;myCloudFailoverStorage&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;myroutetable-1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span>
+          <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;items&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10.0.13.12&quot;</span>
+          <span class="p">]</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/6589a6e25567a7abbecf45e04a1c8d8d/azure-1.7.0.json"><code class="xref download docutils literal notranslate"><span class="pre">azure.json</span></code></a></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="create-and-assign-a-managed-service-identity-msi">
+<span id="azure-msi"></span><h2>Create and assign a Managed Service Identity (MSI)<a class="headerlink" href="#create-and-assign-a-managed-service-identity-msi" title="Permalink to this headline">¶</a></h2>
+<p>In order to successfully implement CFE in Azure, you need a system-assigned or user-managed identity with sufficient access. Your Managed Service Identity (MSI) should be limited to the resource groups that contain the BIG-IP instances, VNET, route tables, etc. that will be updated. Read more about managed identities <a href="https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview" target="_blank">here</a>.
+To create and assign a Managed Service Identity (MSI) you must have a role of <cite>User Access Administrator</cite> or <cite>Contributor access</cite>. The following example shows a system-assigned MSI.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">CFE supports only <strong>one</strong> Managed Service Identity assigned to each Azure Virtual Machine instance; failover will NOT work correctly when multiple identities are assigned. You must create a single identity with all of the permissions required by CFE, as well as any other necessary permissions.
+You can create a managed identity manually or using the F5 access template. See <a class="reference external" href="https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access">Deploying Access Template</a> for more information.</p>
+</div>
+<ol class="arabic">
+<li><p class="first">Enable MSI for each VM: go to <strong>Virtual Machine &gt; Identity &gt; System assigned</strong> and set the status to <code class="docutils literal notranslate"><span class="pre">On</span></code>.</p>
+<p>For example:</p>
+<img alt="../_images/AzureMSIVMIdentity.png" src="../_images/AzureMSIVMIdentity.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Assign permissions to each MSI: go to <strong>Resource Group &gt; Access control (IAM) &gt; Role assignments &gt; Add</strong>, make the changes listed below, and then add the MSI.</p>
+<ul class="simple">
+<li>Role: Contributor</li>
+<li>Assign access to: <strong>System assigned managed identity &gt; Virtual Machine</strong></li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>For example:</p>
+<img alt="../_images/AzureMSIAssignedToResourceGroup.png" src="../_images/AzureMSIAssignedToResourceGroup.png" />
+</li>
+</ol>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Certain resources may be deployed in a separate subscription. Add role assignments for each subscription where resources are located.</p>
+</div>
+<div class="section" id="rbac-role-definition">
+<span id="azure-rbac"></span><h3>RBAC Role Definition<a class="headerlink" href="#rbac-role-definition" title="Permalink to this headline">¶</a></h3>
+<p>Below is an example Azure role definition with permissions required by CFE.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="17%" />
+<col width="11%" />
+<col width="41%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Scope</th>
+<th class="head">CFE Component</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Microsoft.Authorization/*/read</td>
+<td>Roles and Role Assignments - Read</td>
+<td>All</td>
+<td>To authenticate using the managed identity.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Compute/locations/*/read</td>
+<td>Locations - Read</td>
+<td>All</td>
+<td>To get the Azure location.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Compute/virtualMachines/*/read</td>
+<td>Virtual Machines - Read</td>
+<td>All</td>
+<td>To get information about a BIG-IP instance.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Network/*/join/action</td>
+<td>Network Provider - Join</td>
+<td>All</td>
+<td>To update network.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Network/networkInterfaces/read</td>
+<td>Network Interfaces - Read</td>
+<td>All</td>
+<td>To get information about a network interface.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Network/networkInterfaces/write</td>
+<td>Network Interfaces - Write</td>
+<td>All</td>
+<td>To update a network interface to use the active BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Network/publicIPAddresses/read</td>
+<td>Public IP Addresses - Read</td>
+<td>failoverAddresses</td>
+<td>To get information about a public IP address.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Network/publicIPAddresses/write</td>
+<td>Public IP Addresses - Write</td>
+<td>failoverAddresses</td>
+<td>To update a public IP address to use the active BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Network/routeTables/*/read</td>
+<td>Route Tables - Read</td>
+<td>failoverRoutes</td>
+<td>To get information about a route table.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Network/routeTables/*/write</td>
+<td>Route Tables - Write</td>
+<td>failoverRoutes</td>
+<td>To update route next hop to use the active BIG-IP instance.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Resources/subscriptions/resourceGroups/read</td>
+<td>Resource Groups - Read</td>
+<td>All</td>
+<td>To get information about a resource group.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Storage/storageAccounts/read</td>
+<td>Storage Accounts - Read</td>
+<td>externalStorage</td>
+<td>To get information about the storage account used for the failover state file.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Storage/storageAccounts/blobServices/containers/read</td>
+<td>Storage Containers - Read</td>
+<td>externalStorage</td>
+<td>To get information about the storage container used for the failover state file.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Storage/storageAccounts/blobServices/containers/write</td>
+<td>Storage Containers - Write</td>
+<td>externalStorage</td>
+<td>To create the storage container used for the failover state file.</td>
+</tr>
+<tr class="row-even"><td>Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read</td>
+<td>Storage Blobs - Read</td>
+<td>externalStorage</td>
+<td>To get information about the storage blob used for the failover state file.</td>
+</tr>
+<tr class="row-odd"><td>Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write</td>
+<td>Storage Blobs - Write</td>
+<td>externalStorage</td>
+<td>To create the storage blob used for the failover state file.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div></blockquote>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<ul class="last simple">
+<li>This example provides the minimum permissions required and serves as an illustration. You are responsible for following the provider’s IAM best practices.</li>
+<li>Certain resources such as the virtual network are commonly deployed in a separate resource group; ensure the correct scopes are applied to all applicable resource groups.</li>
+<li>Certain resources such as route tables may be deployed in a separate subscription, ensure the assignable scopes applies to all relevant subscriptions.</li>
+<li>CFE supports only <strong>one</strong> Managed Service Identity assigned to each Azure Virtual Machine instance; failover will not function when multiple identities are assigned. You must create a single identity with all of the permissions listed above, as well as any other required permissions. You can create a managed identity manually, or by using the F5 access template. See <a class="reference external" href="https://github.com/F5Networks/f5-azure-arm-templates-v2/tree/main/examples/modules/access">Deploying Access Template</a> for more information.</li>
+<li>Previous versions of CFE required the <strong>Microsoft.Storage/storageAccounts/listKeys/action</strong> role definition permission; this requirement has been superseded by the <strong>Microsoft.Storage/storageAccounts/blobServices/containers/</strong> data actions permissions listed above.</li>
+</ul>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="define-your-azure-infrastructure-objects">
+<span id="azure-define-objects"></span><h2>Define your Azure Infrastructure Objects<a class="headerlink" href="#define-your-azure-infrastructure-objects" title="Permalink to this headline">¶</a></h2>
+<p>Define or Tag your cloud resources with the keys and values that you configure in your CFE declaration.</p>
+<div class="section" id="define-the-storage-account-in-azure">
+<span id="azure-define-storage"></span><h3>Define the Storage Account in Azure<a class="headerlink" href="#define-the-storage-account-in-azure" title="Permalink to this headline">¶</a></h3>
+<p>Add a storage account in Azure to your resource group for Cloud Failover to use.</p>
+<ol class="arabic">
+<li><p class="first">Create a <a class="reference external" href="https://docs.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal">Storage Account in Azure</a> for Cloud Failover Extension cluster-wide file(s).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Ensure the required storage accounts do not have public access. See your cloud provider for Best Practices.</p>
+</div>
+</li>
+</ol>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>Beginning v2.4.0, CFE supports providing stateFileName property to customize the name of the failover state file stored in Azure Storage. If not provided, the default file name is <code class="docutils literal notranslate"><span class="pre">f5cloudfailoverstate.json</span></code>.</li>
+<li>The property <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> is available in Cloud Failover Extension v1.7.0 and later.</li>
+</ul>
+</div>
+<ol class="arabic" start="2">
+<li><p class="first">Update/modify the Cloud Failover <code class="docutils literal notranslate"><span class="pre">scopingName</span></code> value with name of your Storage Account:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+  <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span> <span class="s2">&quot;yourStorageAccountforCloudFailover&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, tag the Azure Storage Account with your custom key:values in the <cite>externalStorage.scopingTags</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+<img alt="../_images/AzureStorageTags.png" src="../_images/AzureStorageTags.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<blockquote>
+<div><p>Alternatively, if you are using a custom state file name with the Discovery via Tag option, tag the Azure Storage Account with your custom key:values in the <cite>externalStorage.scopingTags</cite> section of the CFE declaration.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;stateFileName&quot;</span><span class="p">:</span> <span class="s2">&quot;customStateFileName.json&quot;</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+<img alt="../_images/AzureStorageTags.png" src="../_images/AzureStorageTags.png" />
+</div></blockquote>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="tag-the-network-interfaces-in-azure">
+<span id="azure-tag-nics"></span><h3>Tag the Network Interfaces in Azure<a class="headerlink" href="#tag-the-network-interfaces-in-azure" title="Permalink to this headline">¶</a></h3>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">Tagging the NICs is required for all deployments regardless of which configuration option (<cite>Explicit</cite> or <cite>Discovery via Tag</cite>) you choose to define your failover objects.</p>
+</div>
+<ol class="arabic">
+<li><p class="first">Within Azure, go to <strong>NIC &gt; Tags</strong>.</p>
+</li>
+<li><p class="first">Create two sets of tags for Network Interfaces:</p>
+<ul>
+<li><p class="first"><strong>Deployment scoping tag</strong>: a key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be: <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+</li>
+<li><p class="first"><strong>NIC mapping tag</strong>: a key-value pair with the reserved key named <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_nic_map</span></code> and a user-provided value that can be anything. For example <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;external&quot;</span></code>. Only required when using the the <cite>Discovery via Tag</cite> configuration option.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">The same tag (matching key:value) must be placed on corresponding NIC on the peer BIG-IP. For example, each BIG-IP would have their external NIC tagged with <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;external&quot;</span></code> and their internal NIC tagged with <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_nic_map&quot;:&quot;internal&quot;</span></code>.</p>
+</div>
+</li>
+</ul>
+<p>For Example:</p>
+<img alt="../_images/AzureNICTags.png" src="../_images/AzureNICTags.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-failover-addresses-in-azure">
+<span id="azure-define-addresses"></span><h3>Define the Failover Addresses in Azure<a class="headerlink" href="#define-the-failover-addresses-in-azure" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">The property <code class="docutils literal notranslate"><span class="pre">addressGroupDefinitions</span></code> is available in Cloud Failover Extension v1.7.0 and later.</p>
+</div>
+<p>Update/modify the <code class="docutils literal notranslate"><span class="pre">addressGroupDefiniitions</span></code> list to match the addresses in your deployment. In the example below, there are two services defined on secondary IP adddress:</p>
+<ul class="simple">
+<li>Virtual Service 1 (10.0.12.101): Mapped to an Azure secondary IP (10.0.12.101)</li>
+<li>Virtual Service 2 (10.0.12.102): Mapped to an Azure secondary IP (10.0.12.102)</li>
+</ul>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">},</span>
+    <span class="nt">&quot;addressGroupDefinitions&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.101&quot;</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;networkInterfaceAddress&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;scopingAddress&quot;</span><span class="p">:</span> <span class="s2">&quot;10.0.12.102&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, edit the declaration as shown below. This will look for BIG-IPs Virtual Addresses (on traffic-group 1) and try to match them to Secondary IPs.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+   <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="define-the-routes-in-azure">
+<span id="azure-define-routes"></span><h3>Define the Routes in Azure<a class="headerlink" href="#define-the-routes-in-azure" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<ul class="last simple">
+<li>The property <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> is available in Cloud Failover Extension v1.5.0 and later.</li>
+<li>Beginning in version v1.15.0, CFE will be compatible with routes that use Azure Service Tag address prefixes. Previously Service Tags would cause CFE to fail to discover routes.</li>
+</ul>
+</div>
+<p>Update/modify the <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> list to the desired route tables and prefixes to manage. The <code class="docutils literal notranslate"><span class="pre">routeGroupDefinitions</span></code> property allows more granular route-table operations. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+    <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;route-table-1&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+              <span class="p">{</span>
+                <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+              <span class="p">}</span>
+          <span class="p">],</span>
+          <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+              <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+              <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;10.0.23.11&quot;</span>
+              <span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ul class="simple">
+<li>See <a class="reference internal" href="example-declarations.html#azure-multiple-subscriptions"><span class="std std-ref">Azure Route Tables in Multiple Subscriptions</span></a> for examples of managing route tables in multiple subscriptions.</li>
+<li>See <a class="reference internal" href="example-declarations.html#advanced-routing-examples-azure"><span class="std std-ref">Azure Advanced Routing</span></a> for additional examples of more advanced configurations.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Alternatively, if you are using the Discovery via Tag option, tag your route tables containing the routes you want to manage.</p>
+<ol class="arabic">
+<li><p class="first">Create a key-value pair that will correspond to the key-value pair in the <cite>failoverAddresses.scopingTags</cite> section of the CFE declaration.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you use our declaration example, the key-value tag would be <code class="docutils literal notranslate"><span class="pre">&quot;f5_cloud_failover_label&quot;:&quot;mydeployment&quot;</span></code></p>
+</div>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>In the case where BIG-IP has multiple NICs, CFE needs to know which interfaces (by using the Self-IPs associated with those NICs) it needs to re-map the routes to. You can either define the nextHopAddresses statically in the CFE configuration or if using the Discovery via Tag configuration using an additional tag on the route table.</p>
+<blockquote>
+<div><ul class="simple">
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">static</span></code>, you can provide the Self-IPs in the items area of the CFE configuration. See <a class="reference internal" href="configuration.html#failover-routes"><span class="std std-ref">Failover Routes</span></a> for more information.</li>
+<li>If you use discoveryType <code class="docutils literal notranslate"><span class="pre">routeTag</span></code>, you will need to add another tag to the route table in your cloud environment with the reserved key <code class="docutils literal notranslate"><span class="pre">f5_self_ips</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">&quot;f5_self_ips&quot;:&quot;10.0.13.11,10.0.23.11&quot;</span></code>.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="nt">&quot;enabled&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span> <span class="s2">&quot;mydeployment&quot;</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;range&quot;</span><span class="p">:</span> <span class="s2">&quot;0.0.0.0/0&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;nextHopAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;routeTag&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div></blockquote>
+<ol class="arabic">
+<li><p class="first">Within Azure, go to <strong>Basic UDR &gt; Tags</strong> to create a deployment scoping tag. The name and value can be anything; the example below uses <code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_label:mydeployment</span></code>.</p>
+<img alt="../_images/AzureUDR.png" src="../_images/AzureUDR.png" />
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="set-up-access-to-azure-s-instance-metadata-service">
+<span id="azure-ims"></span><h2>Set up access to Azure’s Instance Metadata Service<a class="headerlink" href="#set-up-access-to-azure-s-instance-metadata-service" title="Permalink to this headline">¶</a></h2>
+<p>Azure’s Instance Metadata Service is a REST Endpoint accessible to all IaaS VMs created via the Azure Resource Manager. The endpoint is available at a well-known non-routable IP address (169.254.169.254) that can be accessed only from within the VM.</p>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">Certain BIG-IP versions and/or topologies may use DHCP to create the management routes (for example: <code class="docutils literal notranslate"><span class="pre">dhclient_route1</span></code>), if that is the case the below steps are not required.</p>
+</div>
+<p>To configure the route on BIG-IP to talk to Azure’s Instance Metadata Services, use either of the commands below. Note that in this example, 192.0.2.1 is the management subnet’s default gateway.</p>
+<div class="section" id="using-tmsh">
+<h3>Using TMSH<a class="headerlink" href="#using-tmsh" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tmsh modify sys db config.allow.rfc3927 value <span class="nb">enable</span>
+tmsh create sys management-route metadata-route network <span class="m">169</span>.254.169.254/32 gateway <span class="m">192</span>.0.2.1
+tmsh save sys config
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-declarative-onboarding">
+<h3>Using Declarative Onboarding<a class="headerlink" href="#using-declarative-onboarding" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;managementRoute&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;ManagementRoute&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;gw&quot;</span><span class="p">:</span> <span class="s2">&quot;192.0.2.1&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;network&quot;</span><span class="p">:</span> <span class="s2">&quot;169.254.169.254&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;mtu&quot;</span><span class="p">:</span> <span class="mi">1500</span>
+  <span class="p">},</span>
+  <span class="nt">&quot;dbVars&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;DbVariables&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;config.allow.rfc3927&quot;</span><span class="p">:</span> <span class="s2">&quot;enable&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+</div>
+<div class="section" id="example-virtual-service-declaration">
+<span id="azure-as3-example"></span><h2>Example Virtual Service Declaration<a class="headerlink" href="#example-virtual-service-declaration" title="Permalink to this headline">¶</a></h2>
+<p>See below for example Virtual Services created with <a class="reference external" href="https://clouddocs.f5.com/products/extensions/f5-appsvcs-extension/latest/">AS3</a> in <a class="reference internal" href="#azure-diagram"><span class="std std-ref">Azure Failover Event Diagram</span></a> above:</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Example AS3 Declaration</span><a class="headerlink" href="#id5" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal">  1</span>
+<span class="normal">  2</span>
+<span class="normal">  3</span>
+<span class="normal">  4</span>
+<span class="normal">  5</span>
+<span class="normal">  6</span>
+<span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_Azure&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;schemaVersion&quot;</span><span class="p">:</span><span class="s2">&quot;3.0.0&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;AS3_Azure&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;ADC&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;Tenant_Shared_Services&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Shared_Services&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;generic&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;vs_wildcard_forwarding&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_Forwarding&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Outbound Wildcard Forwarding Virtual Server&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="p">[</span>
+                   <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;0.0.0.0/0&quot;</span>
+                <span class="p">]</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;virtualPort&quot;</span><span class="p">:</span><span class="s2">&quot;0&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;forwardingType&quot;</span><span class="p">:</span><span class="s2">&quot;ip&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;layer4&quot;</span><span class="p">:</span><span class="s2">&quot;any&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;allowVlans&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/internal&quot;</span>
+                <span class="p">}</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_1&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_1&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 1 on Private IP&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.12.101&quot;</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+             <span class="p">},</span>
+             <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+             <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_1_Pool&quot;</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;Service_1_Pool&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 1&#39;s Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                   <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                      <span class="s2">&quot;10.0.14.101&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.102&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.103&quot;</span>
+                   <span class="p">]</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;http&quot;</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;Tenant_2&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Tenant&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;Service_2&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Application&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="s2">&quot;https&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;serviceMain&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Service_HTTPS&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 2 on Private IP&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;virtualAddresses&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;10.0.12.102&quot;</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;snat&quot;</span><span class="p">:</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;serverTLS&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;bigip&quot;</span><span class="p">:</span><span class="s2">&quot;/Common/clientssl&quot;</span>
+             <span class="p">},</span>
+             <span class="nt">&quot;redirect80&quot;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span>
+             <span class="nt">&quot;pool&quot;</span><span class="p">:</span><span class="s2">&quot;Service_2_Pool&quot;</span>
+          <span class="p">},</span>
+          <span class="nt">&quot;Service_2_Pool&quot;</span><span class="p">:{</span>
+             <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;remark&quot;</span><span class="p">:</span><span class="s2">&quot;Service 2&#39;s Pool&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;members&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;servicePort&quot;</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span>
+                   <span class="nt">&quot;serverAddresses&quot;</span><span class="p">:[</span>
+                      <span class="s2">&quot;10.0.14.201&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.202&quot;</span><span class="p">,</span>
+                      <span class="s2">&quot;10.0.14.203&quot;</span>
+                   <span class="p">]</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;monitors&quot;</span><span class="p">:[</span>
+                <span class="s2">&quot;http&quot;</span>
+             <span class="p">]</span>
+          <span class="p">}</span>
+       <span class="p">}</span>
+    <span class="p">}</span>
+ <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/38a152347258420d37f431082996f328/azure-as3.json"><code class="xref download docutils literal notranslate"><span class="pre">azure-as3.json</span></code></a></p>
+</div>
+<div class="section" id="azure-private-endpoints">
+<h2>Azure Private Endpoints<a class="headerlink" href="#azure-private-endpoints" title="Permalink to this headline">¶</a></h2>
+<p>To see how to run CFE on Azure when BIG-IP instances have no route to public internet, see <a class="reference internal" href="isolated-env.html#isolated-env"><span class="std std-ref">CFE in Isolated Environments</span></a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Microsoft has an early access program for their new control plane, which enables CFE to failover in seconds.
+To gain early access, contact your F5 Account Manager or Sales Engineer. See <a class="reference internal" href="performance-sizing.html#performance-sizing"><span class="std std-ref">Performance and Sizing</span></a> for more information.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="aws-same-az.html" title="AWS (Same Availability Zone)" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="gcp.html" title="Google Cloud" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

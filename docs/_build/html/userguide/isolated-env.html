@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>CFE in Isolated Environments</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="CFE in Isolated Environments"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>CFE in Isolated Environments &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Troubleshooting" href="troubleshooting.html" />
+    <link rel="prev" title="Performance and Sizing" href="performance-sizing.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CFE in Isolated Environments</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gcp">GCP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#azure">Azure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">CFE in Isolated Environments</a><ul>
+<li><a class="reference internal" href="#gcp">GCP</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#example-scenario">Example Scenario</a></li>
+<li><a class="reference internal" href="#steps">Steps</a></li>
+<li><a class="reference internal" href="#inputs">Inputs</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#azure">Azure</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; CFE in Isolated Environments</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="cfe-in-isolated-environments">
+<span id="isolated-env"></span><h1>CFE in Isolated Environments<a class="headerlink" href="#cfe-in-isolated-environments" title="Permalink to this headline">¶</a></h1>
+<p>Running BIG-IP in isolated Virtual Private Clouds (VPCs) is a security best practice, but requires upfront foundational setup. This section shows how to support CFE when BIG-IP instances have no route to public internet on the following cloud environments:</p>
+<ul class="simple">
+<li><a class="reference internal" href="#gcp-iso-env"><span class="std std-ref">GCP</span></a></li>
+<li><a class="reference internal" href="#azure-iso-env"><span class="std std-ref">Azure</span></a></li>
+</ul>
+<div class="section" id="gcp">
+<span id="gcp-iso-env"></span><h2>GCP<a class="headerlink" href="#gcp" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Enable restricted (aka private) API access on subnets</li>
+<li>Override DNS entries for <cite>*.googleapis.com</cite> with <cite>restricted.googleapis.com</cite>, with A records for CIDR 199.36.153.4/30</li>
+<li>Create custom routes on networks (if needed) for 199.36.153.4/30 via internet next-hop</li>
+</ul>
+<p>BIG-IP instances launched in GCP by almost any method will need to retrieve Cloud Libraries, DO declarations, and other run-time assets pulled from public URLs during boot sequence. This allows decoupling of BIG-IP releases from the libraries and add-ons that enhance cloud deployments, and is generally a good thing. When BIG-IP is deployed into VPCs without a public IP address, or where there isn’t a NAT gateway, or the default internet routes have been removed, then an alternative means to install the libraries is required.</p>
+<p>Many enterprises will deploy an artefact repository (such as Artifactory or Nexus) in GCP that can be leveraged to provide a convenient and secured way for VMs to access components for downloading and installing. Alternatively, a VM can be established to provide simple HTTP(s) or FTP downloads of binaries from within the VPCs. Assuming the repository endpoints are accessible to the VMs, you can modify the boot scripts to pull from the new location instead of F5’s CDN.</p>
+<p>Alternatively, you can choose to build custom BIG-IP images to add the library binaries to the BIG-IP base image for configuration at run-time; this too is a good solution if you have a repave strategy for maintenance and updates, and can use BYOL.</p>
+<p>As long as the endpoint resolves to an address in one of the VPC network CIDRs attached to BIG-IP, installing the libraries at boot will be successful, even if the user has to modify the installation scripts. Note that GCS is not an option for binary distribution in this example because Storage API endpoints are implemented on public IP addresses.</p>
+</div>
+<div class="section" id="example-scenario">
+<h3>Example Scenario<a class="headerlink" href="#example-scenario" title="Permalink to this headline">¶</a></h3>
+<p>CFE will not function correctly out of the box when the BIG-IP instances are not able to reach the public internet directly or via a NAT. CFE must have access to Storage APIs for state management, and to compute APIs for network updates. This section shows you how to make CFE work in an isolated VPC using a scenario.</p>
+<p>In the following scenario, a user is looking to use BIG-IP in an active-standby configuration on GCP, and rightly does not want to incur the additional cost of putting a GCP LB in front of BIG-IP. As BIG-IP will need to update GCP routing and addressing on a failover event, the user will need to use CFE to manage HA state and make GCP API calls as necessary. The user also has a requirement that VMs, including BIG-IP, must operate in an environment without internet access:</p>
+<ul class="simple">
+<li>VMs do not have a public IP address</li>
+<li>NAT is not provided</li>
+<li>Default VPC network routes to the internet are removed and only the default subnet and any custom routes exist</li>
+</ul>
+<img alt="../_images/gcp-private-endpoints.png" src="../_images/gcp-private-endpoints.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>This scenario causes problems for CFE:</p>
+<ul class="simple">
+<li>CFE tries to initialize shared instance state in a dedicated bucket, or update a route via API.</li>
+<li>Bucket access is via <cite>storage.googleapis.com</cite> endpoint and networking API is via <cite>compute.googleapis.com</cite>, both of which resolve to public IP addresses.</li>
+<li>Default internet routes have been removed from the network, and NAT gateway or instance with custom routes is not in place: Access to the APIs fails.</li>
+</ul>
+<p><strong>Solution: Private Google Access</strong></p>
+<p>Enabling Private Google Access on each VPC subnet that may need to access Google Cloud APIs makes a change to the underlying SDN such that the CIDR for <cite>restricted.googleapis.com</cite> (199.36.153.4/30) will be routed without going through the internet. When combined with a private DNS zone which resolves all <cite>googleapis.com</cite> lookups to <cite>restricted.googleapis.com</cite> <a class="footnote-reference" href="#ie1" id="id1">[1]</a> API endpoint addresses, the VPC networks effectively have private endpoint access for all GCP APIs.</p>
+<ol class="arabic simple">
+<li>Enable Private Google Access on each VPC subnet as necessary.</li>
+<li>Create a Cloud DNS private zone <a class="footnote-reference" href="#ie2" id="id2">[2]</a> for <cite>googleapis.com</cite>.<ol class="loweralpha">
+<li>Add a CNAME for <cite>*.googleapis.com</cite> that aliases to <cite>restricted.googleapis.com</cite>.</li>
+<li>Add an A record for <cite>restricted.googleapis.com</cite> that resolves to 199.36.153.4/30.</li>
+</ol>
+</li>
+</ol>
+<p>With this configuration in place, any VMs that are attached to the VPC networks that are associated with this private DNS zone will automatically try to use 199.36.153.4/30 endpoints for all GCP API calls. If the user did not remove the default-internet routes, this is all you need to do to make the APIs functional again and CFE will work correctly.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>In this scenario, the default route to internet was removed, and the user insists that it cannot be re-added. In this case, a custom route <a class="footnote-reference" href="#ie3" id="id3">[3]</a> must be added to each VPC network that will use GCP APIs.</p>
+<ol class="arabic simple">
+<li>Define a custom route​​​​​​​ on each network <a class="footnote-reference" href="#ie4" id="id4">[4]</a> for 199.36.153.4/30 with next-hop set for <code class="docutils literal notranslate"><span class="pre">internet</span> <span class="pre">gateway</span></code>.</li>
+</ol>
+<p>Once the custom routes are in place, GCP will route traffic for the /30 CIDR to an internet gateway, which will effectively route via a private VPC network to an internal GCP endpoint; the traffic will never go to the internet even though the target IP is a public address.</p>
+<img alt="../_images/gcp-private-endpoints2.png" src="../_images/gcp-private-endpoints2.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Now CFE can access the GCP APIs and function correctly:</p>
+<ul class="simple">
+<li>BIG-IP (and bastion) instances attempt to connect to GCP APIs.</li>
+<li>Cloud DNS private zone for <cite>googleapis.com</cite> has been injected into each VPC network; DNS returns a CNAME alias of <cite>restricted.googleapis.com</cite> for all <cite>googleapis.com</cite> lookups, which in turn resolves to an IP address in 199.36.153.4/30.</li>
+<li>Custom routes provides a way to reach Google API endpoints from VMs to GCP services that does not traverse the public internet.</li>
+<li>API endpoints in Google’s private VPC respond.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p><strong>Boot-time scripts, cloud libs, and GCS</strong></p>
+<p>The approach described here applies at VPC network and subnet resources, which means that any VM that is instantiated on those networks after these changes will be able to use GCP APIs, including Cloud Storage. This makes GCS a viable option for storing Cloud Libs, RPMs, etc. needed by the BIG-IP boot-time initialization scripts.</p>
+<p>See a fully functional example below. <a class="footnote-reference" href="#ie5" id="id5">[5]</a> When executed, Terraform will create three network VPCs that lack the default-internet egress route, but have a custom route to allow traffic to restricted.googleapis.com CIDR. It will also create a Cloud DNS private zone to override googleapis.com and resolve to restricted.googleapis.com, and associate the private zone with all three networks. A pair of BIG-IPs are spun up with CFE  enabled and using a dedicated CFE bucket for state management. An IAP bastion host with tinyproxy allows for SSH and GUI access to the BIG-IPs (See the repo README for details). If you force the active instance to standby, you will see CFE state being created or updated in the GCS bucket.</p>
+<p class="rubric"><strong>Footnotes</strong></p>
+<table class="docutils footnote" frame="void" id="ie1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><strong>Private versus restricted access:</strong> GCP supports two protected API endpoint options: <cite>private</cite> and <cite>restricted access</cite>. Both allow access to GCP API endpoints without traversing the public internet, but <cite>restricted access</cite> is integrated with <a class="reference external" href="https://cloud.google.com/vpc-service-controls/docs">VPC Service Controls</a> albeit with a reduced set of API endpoints, whereas private access cannot be used with VPC Service Controls but supports all of the GCP API endpoints. Both options are valid for BIG-IP deployments and supporting libraries, but F5 recommends <cite>restricted access</cite> as it has better observability and access controls. If you require use of private access, the same steps can be used by shadowing <cite>*.googleapis.com</cite> to resolve to <cite>private.googleapis.com</cite>, and adding A records for 199.36.153.8/30, and a corresponding custom route declaration.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ie2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><strong>DNS resolution:</strong> Cloud DNS is used in this example because bastion host needs the same <cite>restricted</cite> access to APIs. An alternative DNS implementation will work fine, including BIG-IP declarations, as long as it can resolve <cite>*.googleapis.com</cite> to either the <cite>restricted</cite> or <cite>private access</cite> endpoints.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ie3" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td><strong>Custom route only needed if a route through internet gateway is undefined:</strong> In this post a custom route is required because the default-internet route has been explicitly removed from the VPC networks. If the user has not removed this route, or if another route exists that contains the 199.36.153.4/30 CIDR with a next-hop to internet gateway, then those will provide the same private GCP routing as the custom route. I.e. the default-internet routes have a target CIDR of 0.0.0.0/0 with next-hop of internet gateway.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ie4" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[4]</a></td><td><strong>Do I really need to add DNS and route to all VPC networks used by BIG-IP or other instances?:</strong> No, you don’t. Most VMs will resolve DNS and make API calls through nic0 as GCP sets a default route through the first network attached to each instance. For BIG-IP it will depend on the default route set via TMSH or DO. However, to make things simple and to have a minimal working example I inject the custom DNS zone and routes to all networks so that BIG-IP and bastion can make use of GCS for boot-time libraries.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ie5" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[5]</a></td><td><strong>Custom BIG-IP onboarding vs supported GDM templates:</strong> The example repo uses a Terraform module to define and bootstrap BIG-IP instances because the module has built in support for overriding the location of library files. The same techniques described here will work with the F5 published GDM templates if you or your user will edit the Python file associated with deployment target to use the updated URLs.</td></tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="steps">
+<h3>Steps<a class="headerlink" href="#steps" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic">
+<li><p class="first">Create or prepare a GCS bucket, or other HTTP host on the private network that can supply Cloud Libraries and supporting files as needed by BIG-IP and bastion host.</p>
+</li>
+<li><p class="first">Prepare Terraform config and variables setting files; make a copy of <code class="docutils literal notranslate"><span class="pre">env/emes</span></code> folder and modify the <code class="docutils literal notranslate"><span class="pre">base.config</span></code> and <code class="docutils literal notranslate"><span class="pre">base.tfvars</span></code> files to match your environment.</p>
+<ul class="simple">
+<li>This example assumes you have setup and enabled IAM impersonation for a Terraform service account; set <code class="docutils literal notranslate"><span class="pre">tf_sa_email</span></code> variable to empty string (“”) to use your own credentials or a service account via application-default credentials.</li>
+<li>If you are using a GCS bucket to host RPMs, etc, use the scheme for encoding HTTP download requests as described at <a class="reference external" href="https://cloud.google.com/storage/docs/request-endpoints#encoding">Encoding URI path parts</a> and set <code class="docutils literal notranslate"><span class="pre">cloud_libs_bucket</span></code> variable to the name of the GCS bucket. Terraform will ensure the BIG-IP and bastion service accounts have read-only access to the bucket.</li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">install_cloud_libs</span> <span class="o">=</span> <span class="p">[</span>
+   <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">f5-cloud-libs.tar.gz?alt=media&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">f5-cloud-libs-gce.tar.gz?alt=media&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">f5-appsvcs-3.22.1-1.noarch.rpm?alt=media&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">f5-declarative-onboarding-1.15.0-3.noarch.rpm?alt=media&quot;</span><span class="p">,</span>
+   <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">f5-cloud-failover-1.5.0-0.noarch.rpm?alt=media&quot;</span>
+<span class="p">]</span>
+<span class="n">install_tinyproxy_url</span> <span class="o">=</span> <span class="s2">&quot;https://storage.googleapis.com/storage/v1/b/automation-factory-f5-gcs-4138-sales-cloud-sales/o/misc</span><span class="si">%2F</span><span class="s2">tinyproxy-1.8.3-2.el7.x86_64.rpm?alt=media&quot;</span>
+<span class="n">cloud_libs_bucket</span> <span class="o">=</span> <span class="s2">&quot;automation-factory-f5-gcs-4138-sales-cloud-sales&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Initialize and execute Terraform. Using <code class="docutils literal notranslate"><span class="pre">emes</span></code> configuration as an example.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">terraform</span> <span class="n">init</span> <span class="o">-</span><span class="n">backend</span><span class="o">-</span><span class="n">config</span> <span class="n">env</span><span class="o">/</span><span class="n">emes</span><span class="o">/</span><span class="n">base</span><span class="o">.</span><span class="n">config</span>
+<span class="n">terraform</span> <span class="n">apply</span> <span class="o">-</span><span class="n">var</span><span class="o">-</span><span class="n">file</span> <span class="n">env</span><span class="o">/</span><span class="n">emes</span><span class="o">/</span><span class="n">base</span><span class="o">.</span><span class="n">tfvars</span> <span class="o">-</span><span class="n">auto</span><span class="o">-</span><span class="n">approve</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Apply complete! Resources: 52 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+admin_password_key = projects/f5-gcs-4138-sales-cloud-sales/secrets/isolated-vpcs-bigip-admin-passwd-key
+bastion_name = isolated-vpcs-bastion
+bigip_addresses = {
+  &quot;isolated-vpcs-bigip-0&quot; = {
+    &quot;external&quot; = [
+      &quot;172.16.0.3&quot;,
+      &quot;172.16.0.4/32&quot;,
+    ]
+    &quot;internal&quot; = [
+      &quot;172.18.0.2&quot;,
+    ]
+    &quot;management&quot; = [
+      &quot;172.17.0.2&quot;,
+    ]
+    &quot;vips&quot; = [
+      &quot;172.16.0.4/32&quot;,
+    ]
+  }
+  &quot;isolated-vpcs-bigip-1&quot; = {
+    &quot;external&quot; = [
+      &quot;172.16.0.2&quot;,
+    ]
+    &quot;internal&quot; = [
+      &quot;172.18.0.3&quot;,
+    ]
+    &quot;management&quot; = [
+      &quot;172.17.0.3&quot;,
+    ]
+    &quot;vips&quot; = []
+  }
+}
+cfe_label_value = isolated-vpcs
+</pre></div>
+</div>
+</li>
+<li><p class="first">Wait for BIG-IPs to complete initialization. You can check initialization status by viewing the serial console output of instances and verifying that the CFE declaration has been applied, as this is the final step in initialization.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">gcloud</span> <span class="n">compute</span> <span class="n">instances</span> <span class="n">get</span><span class="o">-</span><span class="n">serial</span><span class="o">-</span><span class="n">port</span><span class="o">-</span><span class="n">output</span> <span class="o">--</span><span class="n">project</span> <span class="n">f5</span><span class="o">-</span><span class="n">gcs</span><span class="o">-</span><span class="mi">4138</span><span class="o">-</span><span class="n">sales</span><span class="o">-</span><span class="n">cloud</span><span class="o">-</span><span class="n">sales</span> <span class="o">--</span><span class="n">zone</span> <span class="n">us</span><span class="o">-</span><span class="n">central1</span><span class="o">-</span><span class="n">c</span> <span class="n">isolated</span><span class="o">-</span><span class="n">vpcs</span><span class="o">-</span><span class="n">bigip</span><span class="o">-</span><span class="mi">1</span> <span class="mi">2</span><span class="o">&gt;/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span> <span class="o">|</span> <span class="n">grep</span> <span class="s1">&#39;/config/cloud/gce&#39;</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">54</span><span class="p">:</span><span class="mf">25.447</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Initialisation</span> <span class="n">starting</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">54</span><span class="p">:</span><span class="mf">25.451</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Generating</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">network</span><span class="o">.</span><span class="n">config</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">54</span><span class="p">:</span><span class="mf">25.610</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">mcpd</span> <span class="n">to</span> <span class="n">be</span> <span class="n">ready</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mf">14.543</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">multiNicMgmtSwap</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Rebooting</span> <span class="k">for</span> <span class="n">multi</span><span class="o">-</span><span class="n">nic</span> <span class="n">management</span> <span class="n">interface</span> <span class="n">swap</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">00.021</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Initialisation</span> <span class="n">starting</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">00.025</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Generating</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">network</span><span class="o">.</span><span class="n">config</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">00.037</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">mcpd</span> <span class="n">to</span> <span class="n">be</span> <span class="n">ready</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">27.580</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">multiNicMgmtSwap</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Nothing</span> <span class="n">to</span> <span class="n">do</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">27.587</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialNetworking</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">mcpd</span> <span class="n">to</span> <span class="n">be</span> <span class="n">ready</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T15</span><span class="p">:</span><span class="mi">56</span><span class="p">:</span><span class="mf">27.841</span><span class="o">-</span><span class="mi">0700</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialNetworking</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Resetting</span> <span class="n">management</span> <span class="n">settings</span>
+<span class="o">...</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">08.234</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">customConfig</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">waiting</span> <span class="k">for</span> <span class="n">mcpd</span> <span class="n">to</span> <span class="n">be</span> <span class="n">ready</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">08.959</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">customConfig</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Applying</span> <span class="n">CFE</span> <span class="n">payload</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">26.609</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">customConfig</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">CFE</span> <span class="n">declaration</span> <span class="ow">is</span> <span class="n">applied</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">26.614</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">initialSetup</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">Info</span><span class="p">:</span> <span class="n">Initialisation</span> <span class="n">complete</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">26.620</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">resetManagementRoute</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">waiting</span> <span class="k">for</span> <span class="n">mcpd</span> <span class="n">to</span> <span class="n">be</span> <span class="n">ready</span>
+<span class="mi">2020</span><span class="o">-</span><span class="mi">09</span><span class="o">-</span><span class="mi">17</span><span class="n">T22</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mf">27.051</span><span class="o">+</span><span class="mi">0000</span><span class="p">:</span> <span class="o">/</span><span class="n">config</span><span class="o">/</span><span class="n">cloud</span><span class="o">/</span><span class="n">gce</span><span class="o">/</span><span class="n">resetManagementRoute</span><span class="o">.</span><span class="n">sh</span><span class="p">:</span> <span class="n">complete</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Login and configure BIG-IP as needed. In this example, accessing the BIG-IP requires the use of the bastion host. Create an SSH tunnel through the bastion host and use tinyproxy to access instances.</p>
+<ol class="loweralpha">
+<li><p class="first">Create an IAP session for SSH to the bastion and tunnel between port 8888 on local computer and bastion. Tinyproxy has been configured to be active on port 8888 too. This command will ensure that your key is forwarded to the bastion so you can SSH to a BIG-IP instance on it’s management IP address.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">gcloud</span> <span class="n">compute</span> <span class="n">ssh</span> <span class="o">--</span><span class="n">project</span> <span class="n">f5</span><span class="o">-</span><span class="n">gcs</span><span class="o">-</span><span class="mi">4138</span><span class="o">-</span><span class="n">sales</span><span class="o">-</span><span class="n">cloud</span><span class="o">-</span><span class="n">sales</span> <span class="o">--</span><span class="n">zone</span> <span class="n">us</span><span class="o">-</span><span class="n">central1</span><span class="o">-</span><span class="n">f</span> <span class="n">isolated</span><span class="o">-</span><span class="n">vpcs</span><span class="o">-</span><span class="n">bastion</span> <span class="o">--</span><span class="n">tunnel</span><span class="o">-</span><span class="n">through</span><span class="o">-</span><span class="n">iap</span> <span class="o">--</span> <span class="o">-</span><span class="n">A</span> <span class="o">-</span><span class="n">L8888</span><span class="p">:</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">8888</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Set your browser to proxy HTTP and HTTPS traffic through localhost:8888</p>
+<a class="reference internal image-reference" href="../_images/gcp-private-endpoints3.png"><img alt="../_images/gcp-private-endpoints3.png" src="../_images/gcp-private-endpoints3.png" style="width: 710.0px; height: 721.0px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Retrieve the random admin password from Secret Manager.</p>
+<a class="reference internal image-reference" href="../_images/gcp-private-endpoints4.png"><img alt="../_images/gcp-private-endpoints4.png" src="../_images/gcp-private-endpoints4.png" style="width: 778.0px; height: 491.0px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Login to a BIG-IP instance using the <code class="docutils literal notranslate"><span class="pre">admin</span></code> account and password from step 3.</p>
+<img alt="../_images/gcp-private-endpoints5.png" src="../_images/gcp-private-endpoints5.png" />
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+</ol>
+</li>
+</ol>
+</div>
+<div class="section" id="inputs">
+<h3>Inputs<a class="headerlink" href="#inputs" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="10%" />
+<col width="8%" />
+<col width="24%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Type</th>
+<th class="head">Required</th>
+<th class="head">Default</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>bastion_zone</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;us-central1-f&quot;</span></code></td>
+<td>The GCE zone to deploy the bastion host.
+Default is ‘us-central1-f’.</td>
+</tr>
+<tr class="row-odd"><td>bigip_zones</td>
+<td>list(string)</td>
+<td>Optional</td>
+<td><dl class="first docutils">
+<dt><code class="docutils literal notranslate"><span class="pre">[</span></code></dt>
+<dd><code class="docutils literal notranslate"><span class="pre">&quot;us-central1-f&quot;,</span></code>
+<code class="docutils literal notranslate"><span class="pre">&quot;us-central1-c&quot;</span></code></dd>
+</dl>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">]</span></code></p>
+</td>
+<td>The GCE zones to deploy the BIG-IP
+instances. Default is ‘us-central1-f’ and
+‘us-central1-c’.</td>
+</tr>
+<tr class="row-even"><td>cfe_label_key</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">f5_cloud_failover_label</span></code></td>
+<td>The CFE label key to assign to resources
+that are going to be managed by CFE.
+Default value is ‘f5_cloud_failover_label’.</td>
+</tr>
+<tr class="row-odd"><td>cfe_label_value</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></td>
+<td>The CFE label value to assign to resources
+that are going to be managed by this BIG-IP
+deployment. If left empty, a value will be
+generated for this deployment.</td>
+</tr>
+<tr class="row-even"><td>cloud_libs_bucket</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></td>
+<td>An optional GCS bucket name to which the
+BIG-IP service account will be granted
+read-only access. Default is empty string.
+See install_cloud_libs.</td>
+</tr>
+<tr class="row-odd"><td>image</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;projects/f5-7626-networks-</span>
+<span class="pre">public/global/images/f5-</span>
+<span class="pre">bigip-15-1-0-4-0-0-6-payg-</span>
+<span class="pre">good-25mbps-200618231522&quot;</span></code></td>
+<td>The GCE image to use as the base for BIG-IP
+instances; default is latest BIG-IP v15
+payg good 25mbs.</td>
+</tr>
+<tr class="row-even"><td>install_cloud_libs</td>
+<td>list(string)</td>
+<td>Required</td>
+<td>N/A</td>
+<td>Contains the URLs for F5’s Cloud Libs
+required for BIG-IP with CFE on-boarding,
+overriding the default download patch from
+cdn.f5.com and github.com.</td>
+</tr>
+<tr class="row-odd"><td>install_tinyproxy_url</td>
+<td>string</td>
+<td>Required</td>
+<td>N/A</td>
+<td>Contains the URL for tinyproxy RPM to
+install on bastion host.</td>
+</tr>
+<tr class="row-even"><td>labels</td>
+<td>map(string)</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">{}</span></code></td>
+<td>An optional map of label key-values to
+apply to all resources. Default is an
+empty map.</td>
+</tr>
+<tr class="row-odd"><td>prefix</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">&quot;isolated-vpcs&quot;</span></code></td>
+<td>An optional prefix to use when naming
+resources; default is ‘isolated-vpcs’.
+Override this value if you are deploying
+in a shared environment.</td>
+</tr>
+<tr class="row-even"><td>project_id</td>
+<td>string</td>
+<td>Required</td>
+<td>N/A</td>
+<td>The existing project ID that will host the
+BIG-IP resources.</td>
+</tr>
+<tr class="row-odd"><td>tf_sa_email</td>
+<td>string</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">null</span></code></td>
+<td>The fully-qualified email address of the
+Terraform service account to use for
+resource creation. For example <code class="docutils literal notranslate"><span class="pre">tf_sa_email</span> <span class="pre">=</span>
+<span class="pre">&quot;terraform&#64;PROJECT_ID.iam.gserviceaccount.com&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>tf_sa_token_lifetime_secs</td>
+<td>number</td>
+<td>Optional</td>
+<td><code class="docutils literal notranslate"><span class="pre">1200</span></code></td>
+<td>The expiration duration for the service account
+token, in seconds. This value should be high
+enough to prevent token timeout issues during
+resource creation, but short enough that the
+token is useless replayed later. Default value
+is 1200.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<hr class="docutils" />
+</div>
+</div>
+<div class="section" id="azure">
+<span id="azure-iso-env"></span><h2>Azure<a class="headerlink" href="#azure" title="Permalink to this headline">¶</a></h2>
+<div class="sidebar admonition seealso">
+<p class="first admonition-title">See also</p>
+<ul class="last simple">
+<li>Azure documentation for <a class="reference external" href="https://docs.microsoft.com/en-us/azure/storage/common/storage-private-endpoints#connecting-to-private-endpoints">connecting to a private endpoint</a>.</li>
+</ul>
+</div>
+<p>Use this section to set up a private endpoint for accessing Azure APIs. Before you get started, deploy the ARM template and install CFE on both devices.</p>
+<ol class="arabic">
+<li><p class="first">Within Azure, convert the storage account from V1 to V2:</p>
+<ol class="loweralpha">
+<li><p class="first">Select the storage account used by CFE (if deployed by F5’s ARM template, the storage account will have “cfedata” in the name).</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint1.png"><img alt="../_images/azure-private-endpoint1.png" src="../_images/azure-private-endpoint1.png" style="width: 730.5px; height: 532.5px;" /></a>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<ol class="loweralpha" start="2">
+<li><p class="first">Go to the <span class="guilabel">Settings &gt; Configuration</span> tab and select the <span class="guilabel">Upgrade</span> button.</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint2.png"><img alt="../_images/azure-private-endpoint2.png" src="../_images/azure-private-endpoint2.png" style="width: 875.0px; height: 531.5px;" /></a>
+</li>
+</ol>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Go to <span class="guilabel">Security + networking &gt; Networking &gt; Firewalls and virtual networks</span> tab and select <span class="guilabel">Selected networks</span>. Ensure that the Exception <em>Allow Azure services on the trusted services list to access this storage account</em> is checked.</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint5.png"><img alt="../_images/azure-private-endpoint5.png" src="../_images/azure-private-endpoint5.png" style="width: 875.0px; height: 563.0px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Go to <span class="guilabel">Security + networking &gt; Networking &gt; Private endpoint connections &gt; + Private endpoint</span> to create a private endpoint for the storage account.</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint6.png"><img alt="../_images/azure-private-endpoint6.png" src="../_images/azure-private-endpoint6.png" style="width: 1310.25px; height: 377.25px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint7.png"><img alt="../_images/azure-private-endpoint7.png" src="../_images/azure-private-endpoint7.png" style="width: 675.0px; height: 411.75px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">On the Resource configuration page change the <span class="guilabel">Target sub-resource</span> to <span class="guilabel">blob</span>.</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint8.png"><img alt="../_images/azure-private-endpoint8.png" src="../_images/azure-private-endpoint8.png" style="width: 684.0px; height: 398.25px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">On the Configuration page, select the subnet in which you want the private endpoint to be created. Select the external subnet of the BIG-IPs.</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint9.png"><img alt="../_images/azure-private-endpoint9.png" src="../_images/azure-private-endpoint9.png" style="width: 855.75px; height: 470.25px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint10.png"><img alt="../_images/azure-private-endpoint10.png" src="../_images/azure-private-endpoint10.png" style="width: 563.25px; height: 946.5px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint11.png"><img alt="../_images/azure-private-endpoint11.png" src="../_images/azure-private-endpoint11.png" style="width: 1311.75px; height: 504.75px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint12.png"><img alt="../_images/azure-private-endpoint12.png" src="../_images/azure-private-endpoint12.png" style="width: 1306.5px; height: 322.5px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">The resource, once created, should show a private IP in the external subnet:</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint13.png"><img alt="../_images/azure-private-endpoint13.png" src="../_images/azure-private-endpoint13.png" style="width: 1311.75px; height: 220.5px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+<li><p class="first">Restrict outbound connections to the AzureResourceManager API and the Azure Instance Metadata Service API. On the Network Security Group (NSG) of your external subnet, add the following rules:</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint15.png"><img alt="../_images/azure-private-endpoint15.png" src="../_images/azure-private-endpoint15.png" style="width: 1751.0px; height: 460.0px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</li>
+</ol>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="31%" />
+<col width="9%" />
+<col width="14%" />
+<col width="13%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Source</th>
+<th class="head">Destination</th>
+<th class="head">Port</th>
+<th class="head">Protocol</th>
+<th class="head">Action</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Self IPs of both BIG-IPs
+in external subnet.</td>
+<td><code class="docutils literal notranslate"><span class="pre">169.254.169.254/32</span></code>,
+<code class="docutils literal notranslate"><span class="pre">13.69.67.32/28</span></code>
+<code class="docutils literal notranslate"><span class="pre">13.69.114.0/23</span></code></td>
+<td>Any</td>
+<td>TCP</td>
+<td>Allow</td>
+</tr>
+<tr class="row-odd"><td>Self IPs of both BIG-IPs
+in external subnet.</td>
+<td>Service tag Internet</td>
+<td>Any</td>
+<td>TCP</td>
+<td>Deny</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">The Azure Resource Manager system service destination addresses used in the above example apply only to the West Europe region. You must locate the appropriate addresses for your region using the address prefixes referenced in the ServiceTags_Public_xxxxx.json file. This file is available for download from this <a class="reference external" href="https://www.microsoft.com/en-us/download/details.aspx?id=56519">Azure website</a>.</p>
+</div>
+<p>Example Azure Resource Manager system service configuration for the West US region:</p>
+<a class="reference internal image-reference" href="../_images/azure-private-endpoint17.png"><img alt="../_images/azure-private-endpoint17.png" src="../_images/azure-private-endpoint17.png" style="width: 393.0px; height: 382.0px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="performance-sizing.html" title="Performance and Sizing" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="troubleshooting.html" title="Troubleshooting" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>

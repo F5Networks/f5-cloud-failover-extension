@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<head>
+  
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PPZPQ6');</script>
+  <!-- End Google Tag Manager -->
+    <title>Quickstart</title>
+  
+
+  <meta charset="utf-8">
+  <!-- Twitter Bootstrap viewport setting -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- F5 metadata -->
+  <meta name="title" content="Quickstart"/>
+  <meta name="product" content="F5 BIG-IP Cloud Failover"/>
+  <meta name="version" content=""/>
+  <meta name="updated_date"  content="None"/>
+  <meta name="archived" content="Archived documents excluded"/>
+  <meta name="doc_type" content="Manual"/>
+  <meta name="lifecycle" content="release"/>
+  <meta name="F5 BIG-IP Cloud Failover" content=""/>
+
+
+  
+
+  
+  <link href="https://cdn.f5.com/favicon.ico" rel="icon">
+
+</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Quickstart &#8212; F5 BIG-IP Cloud Failover </title>
+    <link rel="stylesheet" href="../_static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/f5-theme.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/CoveoFullSearch.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/21fb8a09c3.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/clipboard.min.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Download and Install Cloud Failover Extension" href="installation.html" />
+    <link rel="prev" title="Frequently Asked Questions (FAQ)" href="faq.html" /> 
+  </head><body>
+  <div id="clouddocs-header"></div>
+
+    <div id="sidebar" class="section-nav">
+      
+      <!--  version selector ------------------>
+      <div id="version_selector_wrapper">
+      </div>
+      <nav class="nav-sidebartoc">
+
+        
+         <h5>F5 BIG-IP Cloud Failover  </h5>
+        
+
+        <hr>
+        <span class="nav-sidebartoc">
+            <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Cloud Failover Extension Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prereqs.html">Prerequisites and Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#quick-start-example">Quick Start Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Download and Install Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configure Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example-declarations.html">Example Declarations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postman-collection.html">Postman Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="update-revert.html">Update or Revert Cloud Failover Extension</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance-sizing.html">Performance and Sizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="isolated-env.html">CFE in Isolated Environments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../revision-history.html">Document Revision History</a></li>
+</ul>
+
+        </span><!-- Use this file to add extra links to the bottom of the ToC sidebar -->
+<hr>
+  <span class="nav-sidebartoc">
+ <!-- insert content here -->
+  </span>
+      </nav>
+    </div>
+
+
+    <div id="right-sidebar">
+      <h7 style="font-weight:normal">On this page:</h7>
+      <nav class="nav-sidebartoc">
+        <span class="nav-sidebartoc">
+            <ul>
+<li><a class="reference internal" href="#">Quickstart</a><ul>
+<li><a class="reference internal" href="#quick-start-example">Quick Start Example</a></li>
+</ul>
+</li>
+</ul>
+
+         </span>
+      </nav>
+    </div>
+
+
+
+
+
+  
+  <div class="main active" id="content" >
+    <article class="docs-container site-article-inner">
+            <nav class="site-breadcrumb-nav site-nav">
+          <ul class="site-breadcrumb-list">
+            <li class="breadcrumb-item"><button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn site-hidden"><i class="fa fa-align-justify"></i></button>&#x20 <a href="/">CloudDocs Home</a> &gt; <a href="../index.html">F5 BIG-IP Cloud Failover </a> &gt; Quickstart</li>
+          </ul>
+      </nav>
+      
+      
+
+
+    <!--a title="Export PDF" id="export-pdf" class="btn btn btn-link pull-right">View PDF</a-->
+    <button type="button" id="export-pdf" class="btn btn-link right">PDF</button>
+
+
+    
+     
+         <div class="sidebar" id="version-warning" style="display: none;">
+           <p class="first sidebar-title">
+           <span class="icon fa fa-info-circle fa-lg"></span> Version notice:</p>
+           <p class="last" id="currentVersion"></p>
+          </div>
+
+
+     <div role="main">
+        
+  <div class="section" id="quickstart">
+<span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>If you are familiar with the BIG-IP system, and generally familiar with REST and
+using APIs, this section contains the minimum amount of information to get you
+up and running with Cloud Failover.</p>
+<div class="sidebar">
+<p class="first sidebar-title"><span class="icon fa fa-info-circle fa-lg"></span> Version Notice:</p>
+<p class="last">Cloud Failover Extension supports BIG-IP version 14.1.X and later.</p>
+</div>
+<ol class="arabic">
+<li><p class="first">Download the latest RPM package from <a href="https://github.com/F5Networks/f5-cloud-failover-extension/releases" target="_blank">F5 BIG-IP Cloud Failover Extension site on GitHub</a>.</p>
+</li>
+<li><p class="first">Upload and install the RPM package using the BIG-IP GUI:</p>
+<ul class="simple">
+<li><span class="guilabel">Main tab &gt; iApps &gt; Package Management LX &gt; Import</span></li>
+</ul>
+<a class="reference internal image-reference" href="../_images/cloud-failover-import.png"><img alt="../_images/cloud-failover-import.png" src="../_images/cloud-failover-import.png" style="width: 800px;" /></a>
+<ul class="simple">
+<li>Select the downloaded file and click <span class="guilabel">Upload</span></li>
+<li>For complete instructions see <a class="reference internal" href="installation.html#installgui-ref"><span class="std std-ref">Install CFE using the BIG-IP Configuration utility</span></a> or <a class="reference internal" href="installation.html#installcurl-ref"><span class="std std-ref">Install CFE using cURL from the Linux shell</span></a></li>
+</ul>
+</li>
+<li><p class="first">When using the BIG-IP API, F5 recommends increasing the memory allocated to the process called <strong>restjavad</strong>. Note that this process will cause service interruption. Add additional memory for restjavad using the following procedure:</p>
+<ul>
+<li><p class="first">In the BIG-IP user interface, navigate to <strong>System &gt; Resource Provisioning</strong>. Set Management provisioning to <strong>Large</strong>.</p>
+</li>
+<li><p class="first">Modify sys db variables using following commands in the CLI (bash):</p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">modify</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">provision.extramb</span> <span class="pre">value</span> <span class="pre">1000</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">tmsh</span> <span class="pre">modify</span> <span class="pre">sys</span> <span class="pre">db</span> <span class="pre">restjavad.useextramb</span> <span class="pre">value</span> <span class="pre">true</span></code></p>
+</li>
+<li><p class="first">Restart restjavad daemons:</p>
+<p><code class="docutils literal notranslate"><span class="pre">bigstart</span> <span class="pre">restart</span> <span class="pre">restjavad</span> <span class="pre">restnoded</span></code></p>
+</li>
+</ul>
+</li>
+<li><p class="first">Be sure to see the <a href="https://github.com/F5Networks/f5-cloud-failover-extension/issues" target="_blank">Known Issues on GitHub</a> to review any known issues and other important information before you attempt to use Cloud Failover Extension.</p>
+</li>
+<li><p class="first">Provide authorization (basic auth) to the BIG-IP system:</p>
+<ul class="simple">
+<li>If using a RESTful API client like Postman, in the <span class="guilabel">Authorization</span> tab, type the user name and password for a BIG-IP user account with Administrator permissions.</li>
+<li>If using cURL, see <a class="reference internal" href="installation.html#installcurl-ref"><span class="std std-ref">Install CFE using cURL from the Linux shell</span></a>.</li>
+</ul>
+</li>
+<li><p class="first">Using a RESTful API client, send a GET request to the URI <code class="docutils literal notranslate"><span class="pre">https://{{host}}/mgmt/shared/cloud-failover/info</span></code> to ensure Cloud Failover Extension is installed and running. For illustration purposes, the examples below use <cite>curl</cite> on the BIG-IP itself and the utililty <cite>jq</cite> to pretty print the JSON output:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X GET http://localhost:8100/mgmt/shared/cloud-failover/info | jq .</span>
+<span class="o">{</span>
+   <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>,
+   <span class="s2">&quot;release&quot;</span>: <span class="s2">&quot;0&quot;</span>,
+   <span class="s2">&quot;schemaCurrent&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>,
+   <span class="s2">&quot;schemaMinimum&quot;</span>: <span class="s2">&quot;1.2.3&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Copy one of the example declarations that best matches the configuration you want to use. There are additional examples in the individual provider sections for <a class="reference internal" href="aws.html#aws"><span class="std std-ref">AWS</span></a>, <a class="reference internal" href="azure.html#azure"><span class="std std-ref">Azure</span></a>, and <a class="reference internal" href="gcp.html#gcp"><span class="std std-ref">Google Cloud</span></a> as well as the <a class="reference internal" href="example-declarations.html#example-declarations"><span class="std std-ref">Example Declarations</span></a> section.</p>
+</li>
+<li><p class="first">Paste or copy the declaration into your API client, and modify any names, addresses, routes or properties as applicable.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If configuration requires tags, the key and value pair in the configuration can be arbitrary but they must match the tags or labels that you assign to the infrastructure within the cloud provider. You can craft your declaration with any key and value pair as long as it matches what is in the configuration. For example:</p>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:</span> <span class="p">{</span>
+   <span class="nt">&quot;scopingTags&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;i_am_an_arbitrary_key&quot;</span><span class="p">:</span> <span class="s2">&quot;i_am_an_arbitrary_value&quot;</span>
+   <span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">POST to the URI <code class="docutils literal notranslate"><span class="pre">https://&lt;BIG-IP&gt;/mgmt/shared/cloud-failover/declare</span></code>.</p>
+<p>Below is an example where cfe.json is the file that has been uploaded or edited locally to contain the contents of your CFE declaration.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># vim cfe.json</span>
+<span class="o">[</span>admin@bigip-A:Active:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .</span>
+<span class="o">[</span>admin@bigip-B:Standby:In Sync<span class="o">]</span> config <span class="c1"># curl -su admin: -X POST -d @cfe.json http://localhost:8100/mgmt/shared/cloud-failover/declare | jq .</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>If the declaration is successful, you will receive a response  that looks like this example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;declaration&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition important">
+<p class="first admonition-title">Important</p>
+<p class="last">You must POST the initial configuration to each device at least once for the appropriate system hook configuration to enable failover via CFE. After that, additional configuration operations can be sent to a single device.</p>
+</div>
+</li>
+<li><p class="first">Validate.</p>
+</li>
+</ol>
+<ul class="simple">
+<li>See the <a class="reference internal" href="configuration.html#config-validation"><span class="std std-ref">Validation</span></a> section.</li>
+<li>Review the logs: <code class="docutils literal notranslate"><span class="pre">tail</span> <span class="pre">–f</span> <span class="pre">/var/log/restnoded/restnoded.log</span></code>.</li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="quick-start-example">
+<h2>Quick Start Example<a class="headerlink" href="#quick-start-example" title="Permalink to this headline">¶</a></h2>
+<p>Here is a simple example declaration for AWS. NOTE: This example declaration requires CFE v1.5.0 and above.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Quick Start Example: AWS Single Routing Table</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
+<div class="highlight-json notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"> 1</span>
+<span class="normal"> 2</span>
+<span class="normal"> 3</span>
+<span class="normal"> 4</span>
+<span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Cloud_Failover&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;controls&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;class&quot;</span><span class="p">:</span><span class="s2">&quot;Controls&quot;</span><span class="p">,</span>
+       <span class="nt">&quot;logLevel&quot;</span><span class="p">:</span><span class="s2">&quot;silly&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;externalStorage&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverAddresses&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;scopingTags&quot;</span><span class="p">:{</span>
+          <span class="nt">&quot;f5_cloud_failover_label&quot;</span><span class="p">:</span><span class="s2">&quot;mydeployment&quot;</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;failoverRoutes&quot;</span><span class="p">:{</span>
+       <span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span>
+       <span class="nt">&quot;routeGroupDefinitions&quot;</span><span class="p">:[</span>
+          <span class="p">{</span>
+             <span class="nt">&quot;scopingName&quot;</span><span class="p">:</span><span class="s2">&quot;rtb-11111111111111111&quot;</span><span class="p">,</span>
+             <span class="nt">&quot;scopingAddressRanges&quot;</span><span class="p">:[</span>
+                <span class="p">{</span>
+                   <span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="s2">&quot;0.0.0.0/0&quot;</span>
+                <span class="p">}</span>
+             <span class="p">],</span>
+             <span class="nt">&quot;defaultNextHopAddresses&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;discoveryType&quot;</span><span class="p">:</span><span class="s2">&quot;static&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;items&quot;</span><span class="p">:[</span>
+                   <span class="s2">&quot;10.0.13.11&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;10.0.23.11&quot;</span>
+                <span class="p">]</span>
+             <span class="p">}</span>
+          <span class="p">}</span>
+       <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<p><span class="icon fa fa-download"></span> <a class="reference download internal" download="" href="../_downloads/9cee3731f38d05f0c0e2237e9af5354c/quickstart.json"><code class="xref download docutils literal notranslate"><span class="pre">quickstart.json</span></code></a></p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To provide feedback on Cloud Failover Extension or this documentation, you can file a <a class="reference external" href="https://github.com/F5Networks/f5-cloud-failover-extension/issues">GitHub Issue</a>.</p>
+</div>
+</div>
+</div>
+
+
+     </div>
+    
+     <div class="row next-prev-btn-row">
+       <div class="col-lg-12">
+       
+        <a href="faq.html" title="Frequently Asked Questions (FAQ)" accesskey="p" class="btn btn-primary left"><i class="fa fa-arrow-circle-left" aria-hidden="true"></i> Previous</a>
+       
+       
+          <a href="installation.html" title="Download and Install Cloud Failover Extension" accesskey="n" class="btn btn-primary right">Next <i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+       
+     </div>
+     </div>
+    
+
+    </article>
+  </div>
+
+</div>
+
+
+  <div id="clouddocs-footer"></div>
+  <!-- Bootstrap core JavaScript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+
+  <script src="../_static/js/index.js"></script>
+  <script src="../_static/js/jquery.appear.js"></script>
+  <script src="../_static/js/printThis.js"></script>
+  <script src="../_static/js/bootstrap.min.js"></script>
+  <script src="../_static/js/clouddocs.js"></script>
+  <script src="../_static/js/CoveoJsSearch.Lazy.min.js"></script>
+  </body>
+</html>
